@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FLIPAZO — Las Mejores Ofertas de España</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Playfair+Display+SC:wght@700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Variables ─────────────────────────────────────────────── */
+    :root {
+      --ink:       #111111;
+      --ink-light: #444444;
+      --rule:      #222222;
+      --bg:        #ffffff;
+      --accent:    #c0392b;   /* rojo periódico */
+      --badge-rev: #1a6b3c;   /* verde reventa  */
+      --serif:     'Playfair Display', Georgia, serif;
+      --serif-sc:  'Playfair Display SC', Georgia, serif;
+      --mono:      'Courier Prime', 'Courier New', monospace;
+      --col-gap:   28px;
+    }
+
+    /* ── Base ──────────────────────────────────────────────────── */
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--serif);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Masthead ───────────────────────────────────────────────── */
+    .masthead {
+      border-bottom: 3px solid var(--rule);
+      padding: 28px 40px 18px;
+      text-align: center;
+    }
+
+    .masthead__eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin-bottom: 6px;
+    }
+
+    .masthead__name {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: clamp(56px, 10vw, 110px);
+      line-height: 0.92;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+    }
+
+    .masthead__rule {
+      border: none;
+      border-top: 1.5px solid var(--rule);
+      margin: 14px 0 10px;
+    }
+
+    .masthead__meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--ink-light);
+      text-transform: uppercase;
+    }
+
+    .masthead__tagline {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 14px;
+      color: var(--ink-light);
+    }
+
+    /* ── Section header ─────────────────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 24px 40px 12px;
+      border-bottom: 1.5px solid var(--rule);
+    }
+
+    .section-header__title {
+      font-family: var(--serif-sc);
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      color: var(--ink-light);
+    }
+
+    .section-header__line {
+      flex: 1;
+      border: none;
+      border-top: 1px solid #ddd;
+    }
+
+    .section-header__count {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-light);
+    }
+
+    /* ── Live indicator ─────────────────────────────────────────── */
+    .live-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-right: 6px;
+      animation: blink 1.6s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    /* ── Grid ───────────────────────────────────────────────────── */
+    .deals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 0;
+      padding: 0 40px;
+    }
+
+    /* ── Deal card ──────────────────────────────────────────────── */
+    .deal {
+      border-right: 1px solid #e0e0e0;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 24px 22px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      transition: background 0.15s;
+    }
+
+    .deal:hover { background: #fafafa; }
+
+    /* Remove right border on last in row — handled via nth */
+    .deals-grid .deal:nth-child(3n) { border-right: none; }
+
+    /* ── Badge ──────────────────────────────────────────────────── */
+    .deal__badge {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--bg);
+      background: var(--ink);
+      display: inline-block;
+      padding: 3px 8px;
+      margin-bottom: 12px;
+      align-self: flex-start;
+    }
+
+    .deal__badge--reventa {
+      background: var(--badge-rev);
+    }
+
+    .deal__badge--oferta {
+      background: var(--accent);
+    }
+
+    /* ── Image ──────────────────────────────────────────────────── */
+    .deal__image-wrap {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      background: #f5f5f5;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .deal__image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+    }
+
+    .deal__image-placeholder {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #bbb;
+      letter-spacing: 0.1em;
+    }
+
+    /* ── Store ──────────────────────────────────────────────────── */
+    .deal__store {
+      font-family: var(--serif-sc);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      color: var(--ink-light);
+      margin-bottom: 6px;
+    }
+
+    /* ── Title ──────────────────────────────────────────────────── */
+    .deal__title {
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 17px;
+      line-height: 1.25;
+      margin-bottom: 14px;
+      flex: 1;
+    }
+
+    /* ── Pricing ────────────────────────────────────────────────── */
+    .deal__pricing {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+
+    .deal__original {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: #999;
+      text-decoration: line-through;
+    }
+
+    .deal__current {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 26px;
+      line-height: 1;
+      color: var(--ink);
+    }
+
+    .deal__discount {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Price min histórico ────────────────────────────────────── */
+    .deal__historico {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--badge-rev);
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+
+    /* ── Wallapop / Reventa ─────────────────────────────────────── */
+    .deal__reventa {
+      border-top: 1px dashed #ccc;
+      margin: 12px 0;
+      padding-top: 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--ink-light);
+    }
+
+    .deal__reventa strong {
+      color: var(--badge-rev);
+      font-size: 13px;
+    }
+
+    /* ── Razonamiento ───────────────────────────────────────────── */
+    .deal__reason {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 12px;
+      color: #777;
+      line-height: 1.4;
+      margin-bottom: 14px;
+    }
+
+    /* ── CTA ────────────────────────────────────────────────────── */
+    .deal__cta {
+      margin-top: auto;
+      padding-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-block;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 9px 16px;
+      border: 1.5px solid var(--ink);
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .btn--primary {
+      background: var(--ink);
+      color: var(--bg);
+    }
+
+    .btn--primary:hover {
+      background: #333;
+    }
+
+    .btn--secondary {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .btn--secondary:hover {
+      background: var(--ink);
+      color: var(--bg);
+    }
+
+    /* ── Timestamp ──────────────────────────────────────────────── */
+    .deal__time {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: #bbb;
+      letter-spacing: 0.08em;
+      margin-top: 12px;
+      text-transform: uppercase;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────── */
+    .footer {
+      border-top: 3px solid var(--rule);
+      padding: 28px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 40px;
+    }
+
+    .footer__brand {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 22px;
+      letter-spacing: -0.01em;
+    }
+
+    .footer__copy {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink-light);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: right;
+      line-height: 1.8;
+    }
+
+    /* ── Empty state ─────────────────────────────────────────────── */
+    .empty {
+      grid-column: 1 / -1;
+      padding: 80px 40px;
+      text-align: center;
+      font-family: var(--mono);
+      color: #bbb;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* ── Loading skeleton ────────────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 2px;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .masthead, .section-header, .footer { padding-left: 18px; padding-right: 18px; }
+      .deals-grid { padding: 0 0; grid-template-columns: 1fr; }
+      .deal { border-right: none; }
+      .deals-grid .deal:nth-child(3n) { border-right: none; }
+      .masthead__meta { flex-direction: column; gap: 4px; text-align: center; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── MASTHEAD ─────────────────────────────────────────────── -->
+  <header class="masthead">
+    <p class="masthead__eyebrow">El canal de ofertas más flipante de España</p>
+    <h1 class="masthead__name">Flipazo</h1>
+    <hr class="masthead__rule" />
+    <div class="masthead__meta">
+      <span id="js-date">—</span>
+      <span class="masthead__tagline">Ofertas reales. Descuentos verificados.</span>
+      <span><span class="live-dot"></span>Actualización automática</span>
+    </div>
+  </header>
+
+  <!-- ── SECTION HEADER ────────────────────────────────────────── -->
+  <div class="section-header">
+    <span class="section-header__title">Últimas ofertas</span>
+    <hr class="section-header__line" />
+    <span class="section-header__count" id="js-count">Cargando…</span>
+  </div>
+
+  <!-- ── GRID ──────────────────────────────────────────────────── -->
+  <main class="deals-grid" id="js-grid">
+    <!-- Populated by JS -->
+  </main>
+
+  <!-- ── FOOTER ────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <span class="footer__brand">Flipazo</span>
+    <p class="footer__copy">
+      Precios y disponibilidad sujetos a cambio.<br />
+      Contiene links de afiliado. · flipazo.es
+    </p>
+  </footer>
+
+  <script>
+    // ── Config ─────────────────────────────────────────────────
+    const API_URL      = "https://api.flipazo.es/api/deals";   // producción
+    const USE_MOCK     = true;   // ← cambiar a false cuando la API esté lista
+    const POLL_MS      = 5 * 60 * 1000;  // refresco cada 5 min
+
+    // ── Mock data ───────────────────────────────────────────────
+    const MOCK_DEALS = [
+      {
+        id: 1,
+        tipo: "REVENTA",
+        tienda: "Amazon",
+        titulo: "Sony WH-1000XM5 Auriculares Inalámbricos con Cancelación de Ruido",
+        precio_actual: 189.00,
+        precio_original: 279.00,
+        descuento_pct: 32,
+        imagen_url: "https://m.media-amazon.com/images/I/61hNGBUPF3L._AC_SL1500_.jpg",
+        url_affiliate: "#",
+        precio_wallapop: 245.0,
+        beneficio_neto: 47.0,
+        precio_historico_min: 0,
+        razonamiento: "",
+        timestamp: new Date(Date.now() - 8 * 60000).toISOString()
+      },
+      {
+        id: 2,
+        tipo: "OFERTA",
+        tienda: "PcComponentes",
+        titulo: "LG OLED55C44LA · Smart TV 4K 55\" OLED evo · Google TV",
+        precio_actual: 799.00,
+        precio_original: 1299.00,
+        descuento_pct: 38,
+        imagen_url: "https://www.lg.com/es/images/televisores/md07522869/gallery/medium01.jpg",
+        url_affiliate: "#",
+        precio_wallapop: 0,
+        beneficio_neto: 0,
+        precio_historico_min: 799.00,
+        razonamiento: "Precio mínimo histórico en esta referencia. Alta liquidez.",
+        timestamp: new Date(Date.now() - 22 * 60000).toISOString()
+      },
+      {
+        id: 3,
+        tipo: "REVENTA",
+        tienda: "Amazon",
+        titulo: "Nintendo Switch 2 · Consola con Joy-Con 2 · Edición Estándar",
+        precio_actual: 289.00,
+        precio_original: 449.00,
+        descuento_pct: 36,
+        imagen_url: "https://m.media-amazon.com/images/I/71lrLYLsiML._AC_SL1500_.jpg",
+        url_affiliate: "#",
+        precio_wallapop: 380.0,
+        beneficio_neto: 71.0,
+        precio_historico_min: 0,
+        razonamiento: "",
+        timestamp: new Date(Date.now() - 45 * 60000).toISOString()
+      },
+      {
+        id: 4,
+        tipo: "OFERTA",
+        tienda: "MediaMarkt",
+        titulo: "Dyson V15 Detect Absolute · Aspirador sin cable con láser",
+        precio_actual: 499.00,
+        precio_original: 749.00,
+        descuento_pct: 33,
+        imagen_url: "https://assets.dyson.com/content/dam/dyson/images/products/primary/394512-01.png",
+        url_affiliate: "#",
+        precio_wallapop: 0,
+        beneficio_neto: 0,
+        precio_historico_min: 520.00,
+        razonamiento: "Casi en mínimos. Dyson V15 con muy alta demanda en Wallapop.",
+        timestamp: new Date(Date.now() - 68 * 60000).toISOString()
+      },
+      {
+        id: 5,
+        tipo: "OFERTA",
+        tienda: "PrivateSportShop",
+        titulo: "Adidas Terrex Free Hiker 2 · Bota de montaña GORE-TEX",
+        precio_actual: 109.00,
+        precio_original: 220.00,
+        descuento_pct: 50,
+        imagen_url: "https://assets.adidas.com/images/h_840,f_auto,q_auto,fl_lossy,c_fill,g_auto/ad36b2b2b2e847b2b2e8/terrex-free-hiker-2-gore-tex-hiking-boots.jpg",
+        url_affiliate: "#",
+        precio_wallapop: 0,
+        beneficio_neto: 0,
+        precio_historico_min: 0,
+        razonamiento: "50% real en bota técnica de alta gama. Stock limitado.",
+        timestamp: new Date(Date.now() - 95 * 60000).toISOString()
+      },
+      {
+        id: 6,
+        tipo: "REVENTA",
+        tienda: "Amazon",
+        titulo: "Apple AirPods Pro 2ª Gen · USB-C · Cancelación activa de ruido",
+        precio_actual: 179.00,
+        precio_original: 279.00,
+        descuento_pct: 36,
+        imagen_url: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MQD83_AV3?wid=1144&hei=1144&fmt=jpeg&qlt=90&.v=1660803972361",
+        url_affiliate: "#",
+        precio_wallapop: 220.0,
+        beneficio_neto: 28.0,
+        precio_historico_min: 189.00,
+        razonamiento: "",
+        timestamp: new Date(Date.now() - 130 * 60000).toISOString()
+      },
+    ];
+
+    // ── Utils ───────────────────────────────────────────────────
+    function timeAgo(iso) {
+      const diff = Math.floor((Date.now() - new Date(iso)) / 60000);
+      if (diff < 1)  return "Ahora mismo";
+      if (diff < 60) return `Hace ${diff} min`;
+      const h = Math.floor(diff / 60);
+      return `Hace ${h}h`;
+    }
+
+    function fmtPrice(n) {
+      return n.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+    }
+
+    // ── Render card ─────────────────────────────────────────────
+    function renderDeal(d) {
+      const isReventa = d.tipo === "REVENTA";
+      const badgeClass = isReventa ? "deal__badge--reventa" : "deal__badge--oferta";
+      const badgeLabel = isReventa ? "♻ Reventa" : "⚡ Oferta";
+
+      const imgHtml = d.imagen_url
+        ? `<img src="${d.imagen_url}" alt="${d.titulo}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=deal__image-placeholder>SIN IMAGEN</span>'" />`
+        : `<span class="deal__image-placeholder">SIN IMAGEN</span>`;
+
+      const historicoHtml = d.precio_historico_min > 0 && d.precio_actual <= d.precio_historico_min
+        ? `<p class="deal__historico">▲ PRECIO MÍNIMO HISTÓRICO</p>`
+        : "";
+
+      const reventaHtml = isReventa && d.precio_wallapop > 0
+        ? `<div class="deal__reventa">
+             Wallapop estimado: <strong>${fmtPrice(d.precio_wallapop)}</strong><br />
+             Ganancia neta: <strong>+${fmtPrice(d.beneficio_neto)}</strong>
+           </div>`
+        : "";
+
+      const razonHtml = d.razonamiento
+        ? `<p class="deal__reason">"${d.razonamiento}"</p>`
+        : "";
+
+      const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent(d.titulo.split(" ").slice(0, 4).join(" "))}`;
+      const wallaBtn = isReventa
+        ? `<a href="${wallapopUrl}" target="_blank" rel="noopener" class="btn btn--secondary">Ver Wallapop</a>`
+        : "";
+
+      return `
+        <article class="deal">
+          <span class="deal__badge ${badgeClass}">${badgeLabel}</span>
+          <div class="deal__image-wrap">${imgHtml}</div>
+          <p class="deal__store">${d.tienda}</p>
+          <h2 class="deal__title">${d.titulo}</h2>
+          <div class="deal__pricing">
+            <span class="deal__original">${fmtPrice(d.precio_original)}</span>
+            <span class="deal__current">${fmtPrice(d.precio_actual)}</span>
+            <span class="deal__discount">−${d.descuento_pct}%</span>
+          </div>
+          ${historicoHtml}
+          ${reventaHtml}
+          ${razonHtml}
+          <div class="deal__cta">
+            <a href="${d.url_affiliate}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Comprar →</a>
+            ${wallaBtn}
+          </div>
+          <p class="deal__time">${timeAgo(d.timestamp)}</p>
+        </article>`;
+    }
+
+    // ── Fetch & render ──────────────────────────────────────────
+    let lastId = 0;
+
+    async function loadDeals() {
+      const grid  = document.getElementById("js-grid");
+      const count = document.getElementById("js-count");
+
+      let deals = [];
+
+      if (USE_MOCK) {
+        deals = MOCK_DEALS;
+      } else {
+        try {
+          const res = await fetch(`${API_URL}?limit=50`);
+          if (!res.ok) throw new Error(res.status);
+          deals = await res.json();
+        } catch (e) {
+          console.error("Error cargando deals:", e);
+          count.textContent = "Error al cargar";
+          return;
+        }
+      }
+
+      // Solo añadir deals nuevos al inicio (por ID)
+      const nuevos = deals.filter(d => d.id > lastId);
+      if (nuevos.length > 0 || grid.innerHTML === "") {
+        if (lastId === 0) {
+          // Primera carga
+          grid.innerHTML = deals.map(renderDeal).join("");
+        } else {
+          // Insertar nuevos al inicio
+          grid.insertAdjacentHTML("afterbegin", nuevos.map(renderDeal).join(""));
+        }
+        lastId = Math.max(...deals.map(d => d.id));
+      }
+
+      count.textContent = `${deals.length} oferta${deals.length !== 1 ? "s" : ""} publicada${deals.length !== 1 ? "s" : ""}`;
+
+      // Actualizar timestamps cada minuto
+      document.querySelectorAll(".deal__time").forEach((el, i) => {
+        if (deals[i]) el.textContent = timeAgo(deals[i].timestamp);
+      });
+    }
+
+    // ── Date header ─────────────────────────────────────────────
+    function setDate() {
+      const opts = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+      document.getElementById("js-date").textContent =
+        new Date().toLocaleDateString("es-ES", opts).toUpperCase();
+    }
+
+    // ── Init ────────────────────────────────────────────────────
+    setDate();
+    loadDeals();
+    setInterval(loadDeals, POLL_MS);
+    setInterval(() => {
+      // Refrescar "hace X min" cada 60s
+      document.querySelectorAll("[data-ts]").forEach(el => {
+        el.textContent = timeAgo(el.dataset.ts);
+      });
+    }, 60000);
+  </script>
+
+</body>
+</html>
