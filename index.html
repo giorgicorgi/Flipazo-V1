@@ -558,16 +558,23 @@
 
     // ── Render card ─────────────────────────────────────────────
     function renderDeal(d) {
-      const isReventa = d.tipo === "REVENTA";
+      // ARBITRAJE y REVENTA se tratan igual visualmente
+      const isReventa = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
       const badgeClass = isReventa ? "deal__badge--reventa" : "deal__badge--oferta";
       const badgeLabel = isReventa ? "♻ Reventa" : "⚡ Oferta";
 
       const imgHtml = d.imagen_url
-        ? `<img src="${d.imagen_url}" alt="${d.titulo}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=deal__image-placeholder>SIN IMAGEN</span>'" />`
-        : `<span class="deal__image-placeholder">SIN IMAGEN</span>`;
+        ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'" />`
+        : "";
 
-      const historicoHtml = d.precio_historico_min > 0 && d.precio_actual <= d.precio_historico_min
-        ? `<p class="deal__historico">▲ PRECIO MÍNIMO HISTÓRICO</p>`
+      // Solo mostrar precio original si existe
+      const precioOriginalHtml = d.precio_original > 0
+        ? `<span class="deal__original">${fmtPrice(d.precio_original)}</span>`
+        : "";
+
+      // Solo mostrar descuento si es real
+      const descuentoHtml = d.descuento_pct > 0
+        ? `<span class="deal__discount">−${d.descuento_pct}%</span>`
         : "";
 
       const reventaHtml = isReventa && d.precio_wallapop > 0
@@ -581,7 +588,7 @@
         ? `<p class="deal__reason">"${d.razonamiento}"</p>`
         : "";
 
-      const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent(d.titulo.split(" ").slice(0, 4).join(" "))}`;
+      const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent((d.titulo || "").split(" ").slice(0, 4).join(" "))}`;
       const wallaBtn = isReventa
         ? `<a href="${wallapopUrl}" target="_blank" rel="noopener" class="btn btn--secondary">Ver Wallapop</a>`
         : "";
@@ -589,19 +596,18 @@
       return `
         <article class="deal">
           <span class="deal__badge ${badgeClass}">${badgeLabel}</span>
-          <div class="deal__image-wrap">${imgHtml}</div>
-          <p class="deal__store">${d.tienda}</p>
-          <h2 class="deal__title">${d.titulo}</h2>
+          ${imgHtml ? `<div class="deal__image-wrap">${imgHtml}</div>` : ""}
+          <p class="deal__store">${d.tienda || ""}</p>
+          <h2 class="deal__title">${d.titulo || ""}</h2>
           <div class="deal__pricing">
-            <span class="deal__original">${fmtPrice(d.precio_original)}</span>
-            <span class="deal__current">${fmtPrice(d.precio_actual)}</span>
-            <span class="deal__discount">−${d.descuento_pct}%</span>
+            ${precioOriginalHtml}
+            <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
+            ${descuentoHtml}
           </div>
-          ${historicoHtml}
           ${reventaHtml}
           ${razonHtml}
           <div class="deal__cta">
-            <a href="${d.url_affiliate}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Comprar →</a>
+            <a href="${d.url_affiliate || "#"}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Comprar →</a>
             ${wallaBtn}
           </div>
           <p class="deal__time">${timeAgo(d.timestamp)}</p>
@@ -609,7 +615,8 @@
     }
 
     // ── Fetch & render ──────────────────────────────────────────
-    let lastId = 0;
+    // rowid es integer — usado para detectar deals nuevos en el polling
+    let lastRowid = 0;
 
     async function loadDeals() {
       const grid  = document.getElementById("js-grid");
@@ -631,25 +638,27 @@
         }
       }
 
-      // Solo añadir deals nuevos al inicio (por ID)
-      const nuevos = deals.filter(d => d.id > lastId);
-      if (nuevos.length > 0 || grid.innerHTML === "") {
-        if (lastId === 0) {
-          // Primera carga
-          grid.innerHTML = deals.map(renderDeal).join("");
+      if (!deals.length) {
+        count.textContent = "Sin ofertas por ahora";
+        return;
+      }
+
+      // Primera carga: renderizar todo
+      // Recargas: solo insertar deals con rowid mayor al último visto
+      const nuevos = lastRowid === 0
+        ? deals
+        : deals.filter(d => (d.rowid || 0) > lastRowid);
+
+      if (nuevos.length > 0) {
+        if (lastRowid === 0) {
+          grid.innerHTML = nuevos.map(renderDeal).join("");
         } else {
-          // Insertar nuevos al inicio
           grid.insertAdjacentHTML("afterbegin", nuevos.map(renderDeal).join(""));
         }
-        lastId = Math.max(...deals.map(d => d.id));
+        lastRowid = Math.max(...deals.map(d => d.rowid || 0));
       }
 
       count.textContent = `${deals.length} oferta${deals.length !== 1 ? "s" : ""} publicada${deals.length !== 1 ? "s" : ""}`;
-
-      // Actualizar timestamps cada minuto
-      document.querySelectorAll(".deal__time").forEach((el, i) => {
-        if (deals[i]) el.textContent = timeAgo(deals[i].timestamp);
-      });
     }
 
     // ── Date header ─────────────────────────────────────────────
