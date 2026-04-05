@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FLIPAZO — Las Mejores Ofertas de España</title>
+  <title>Flipazo — Las Mejores Ofertas de España</title>
+  <meta name="description" content="Canal automatizado de ofertas reales para España. Descuentos verificados superiores al 35% en electrónica, deportes, hogar y más. Alertas en tiempo real por Telegram." />
+  <meta property="og:title" content="Flipazo — Las Mejores Ofertas de España" />
+  <meta property="og:description" content="Descuentos verificados superiores al 35%. Actualizados automáticamente cada hora." />
+  <meta property="og:url" content="https://flipazo.es" />
+  <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Playfair+Display+SC:wght@700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
@@ -338,16 +343,48 @@
       text-transform: uppercase;
     }
 
+    /* ── About section ──────────────────────────────────────────── */
+    .about {
+      border-top: 3px solid var(--rule);
+      border-bottom: 1px solid #e0e0e0;
+      padding: 48px 40px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 40px;
+      margin-top: 40px;
+    }
+
+    .about__block h3 {
+      font-family: var(--serif-sc);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      color: var(--ink-light);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .about__block p, .about__block a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-light);
+      line-height: 1.7;
+    }
+
+    .about__block a:hover { text-decoration: underline; }
+
+    @media (max-width: 700px) {
+      .about { grid-template-columns: 1fr; padding: 32px 18px; gap: 28px; }
+    }
+
     /* ── Footer ─────────────────────────────────────────────────── */
     .footer {
-      border-top: 3px solid var(--rule);
-      padding: 28px 40px;
+      border-top: 1px solid #e0e0e0;
+      padding: 20px 40px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 40px;
     }
 
     .footer__brand {
@@ -366,6 +403,57 @@
       text-align: right;
       line-height: 1.8;
     }
+
+    /* ── Privacy modal ───────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 40px;
+      border-top: 4px solid var(--ink);
+    }
+
+    .modal h2 {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .modal p {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-light);
+      line-height: 1.8;
+      margin-bottom: 14px;
+    }
+
+    .modal__close {
+      float: right;
+      font-family: var(--mono);
+      font-size: 11px;
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px solid var(--ink);
+      padding: 6px 12px;
+      background: none;
+    }
+
+    .modal__close:hover { background: var(--ink); color: #fff; }
 
     /* ── Empty state ─────────────────────────────────────────────── */
     .empty {
@@ -428,14 +516,63 @@
     <!-- Populated by JS -->
   </main>
 
+  <!-- ── ABOUT ─────────────────────────────────────────────────── -->
+  <section class="about">
+    <div class="about__block">
+      <h3>Qué es Flipazo</h3>
+      <p>Canal automatizado de ofertas reales para España. Nuestro sistema analiza cientos de productos cada hora y publica solo los descuentos verificados superiores al 35% en electrónica, deportes, hogar y más.</p>
+    </div>
+    <div class="about__block">
+      <h3>Síguenos en Telegram</h3>
+      <p>Recibe las alertas en tiempo real directamente en tu móvil.<br /><br />
+        <a href="https://t.me/flipazo" target="_blank" rel="noopener">→ Unirse al canal de Telegram</a>
+      </p>
+    </div>
+    <div class="about__block">
+      <h3>Contacto</h3>
+      <p>
+        <a href="mailto:hola@flipazo.es">hola@flipazo.es</a><br /><br />
+        <a href="#" onclick="document.getElementById('modal-privacidad').classList.add('open'); return false;">Política de privacidad</a><br />
+        <a href="#" onclick="document.getElementById('modal-afiliados').classList.add('open'); return false;">Aviso de afiliados</a>
+      </p>
+    </div>
+  </section>
+
   <!-- ── FOOTER ────────────────────────────────────────────────── -->
   <footer class="footer">
     <span class="footer__brand">Flipazo</span>
     <p class="footer__copy">
-      Precios y disponibilidad sujetos a cambio.<br />
-      Contiene links de afiliado. · flipazo.es
+      © 2026 Flipazo · Ofertas verificadas para España<br />
+      Precios y disponibilidad sujetos a cambio sin previo aviso
     </p>
   </footer>
+
+  <!-- ── MODAL: Política de privacidad ─────────────────────────── -->
+  <div class="modal-overlay" id="modal-privacidad" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <button class="modal__close" onclick="document.getElementById('modal-privacidad').classList.remove('open')">Cerrar ×</button>
+      <h2>Política de Privacidad</h2>
+      <p><strong>Responsable:</strong> Flipazo (flipazo.es)</p>
+      <p><strong>Datos recogidos:</strong> Este sitio web no recoge datos personales de los usuarios. No utilizamos formularios de registro ni almacenamos información de identificación personal.</p>
+      <p><strong>Cookies:</strong> Usamos únicamente cookies técnicas necesarias para el funcionamiento del sitio. No usamos cookies de seguimiento propias.</p>
+      <p><strong>Terceros:</strong> Los enlaces de afiliado redirigen a tiendas externas (Amazon, MediaMarkt, etc.) que tienen sus propias políticas de privacidad. Al hacer clic en un enlace externo, quedas sujeto a la política de privacidad del sitio destino.</p>
+      <p><strong>Analytics:</strong> Podemos utilizar herramientas de analítica anónima para medir el tráfico del sitio, sin identificar a usuarios individuales.</p>
+      <p><strong>Contacto:</strong> Para cualquier consulta sobre privacidad escríbenos a hola@flipazo.es</p>
+      <p><strong>Ley aplicable:</strong> Esta política se rige por la legislación española y el Reglamento General de Protección de Datos (RGPD).</p>
+    </div>
+  </div>
+
+  <!-- ── MODAL: Aviso de afiliados ─────────────────────────────── -->
+  <div class="modal-overlay" id="modal-afiliados" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <button class="modal__close" onclick="document.getElementById('modal-afiliados').classList.remove('open')">Cerrar ×</button>
+      <h2>Aviso de Afiliados</h2>
+      <p>Flipazo participa en programas de afiliados. Esto significa que cuando haces clic en ciertos enlaces y realizas una compra, podemos recibir una pequeña comisión sin coste adicional para ti.</p>
+      <p>Participamos en el Programa de Afiliados de Amazon (Amazon Associates) y en la red de afiliados Awin, entre otros. Los precios y la disponibilidad de los productos pueden variar.</p>
+      <p>Las comisiones de afiliado nos permiten mantener el servicio gratuito y seguir publicando ofertas verificadas. Nunca publicamos un deal por su comisión — todos los productos pasan por nuestro sistema de filtrado automático que verifica el descuento real.</p>
+      <p>Si tienes alguna duda, escríbenos a hola@flipazo.es</p>
+    </div>
+  </div>
 
   <script>
     // ── Config ─────────────────────────────────────────────────
