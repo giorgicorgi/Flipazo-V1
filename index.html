@@ -182,6 +182,7 @@
 
     /* ── Image ──────────────────────────────────────────────────── */
     .deal__image-wrap {
+      position: relative;
       width: 100%;
       aspect-ratio: 1 / 1;
       overflow: hidden;
@@ -192,18 +193,46 @@
       justify-content: center;
     }
 
+    .deal__image-wrap a {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .deal__image-wrap img {
       width: 100%;
       height: 100%;
       object-fit: contain;
       mix-blend-mode: multiply;
+      transition: opacity 0.15s;
     }
+
+    .deal__image-wrap a:hover img { opacity: 0.88; }
 
     .deal__image-placeholder {
       font-family: var(--mono);
       font-size: 10px;
       color: #bbb;
       letter-spacing: 0.1em;
+    }
+
+    /* Discount % overlaid on image top-right */
+    .deal__discount-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      padding: 4px 9px;
+      line-height: 1.2;
+      pointer-events: none;
+      z-index: 1;
     }
 
     /* ── Store ──────────────────────────────────────────────────── */
@@ -230,31 +259,33 @@
       display: flex;
       align-items: baseline;
       gap: 10px;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       flex-wrap: wrap;
     }
 
     .deal__original {
       font-family: var(--mono);
       font-size: 13px;
-      color: #999;
+      color: #aaa;
       text-decoration: line-through;
     }
 
     .deal__current {
       font-family: var(--serif);
       font-weight: 900;
-      font-size: 26px;
+      font-size: 30px;
       line-height: 1;
       color: var(--ink);
     }
 
-    .deal__discount {
+    /* "Ahorras X€" — verde, refuerza el ahorro concreto */
+    .deal__savings {
       font-family: var(--mono);
+      font-size: 11px;
       font-weight: 700;
-      font-size: 12px;
-      color: var(--accent);
+      color: var(--badge-rev);
       letter-spacing: 0.05em;
+      margin-bottom: 12px;
     }
 
     /* ── Price min histórico ────────────────────────────────────── */
@@ -266,20 +297,41 @@
       margin-bottom: 10px;
     }
 
-    /* ── Wallapop / Reventa ─────────────────────────────────────── */
+    /* ── Wallapop / Reventa — caja destacada ────────────────────── */
     .deal__reventa {
-      border-top: 1px dashed #ccc;
+      background: #f0faf4;
+      border: 1.5px solid var(--badge-rev);
+      border-left: 4px solid var(--badge-rev);
+      padding: 12px 14px;
       margin: 12px 0;
-      padding-top: 12px;
       font-family: var(--mono);
       font-size: 11px;
-      line-height: 1.6;
-      color: var(--ink-light);
+      line-height: 1.7;
     }
 
-    .deal__reventa strong {
+    .deal__reventa-title {
+      display: block;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
       color: var(--badge-rev);
-      font-size: 13px;
+      margin-bottom: 7px;
+    }
+
+    .deal__reventa-math {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      color: var(--ink);
+    }
+
+    .deal__reventa-profit {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--badge-rev);
+      margin-top: 6px;
+      letter-spacing: 0.02em;
     }
 
     /* ── Razonamiento ───────────────────────────────────────────── */
@@ -336,11 +388,13 @@
     /* ── Timestamp ──────────────────────────────────────────────── */
     .deal__time {
       font-family: var(--mono);
-      font-size: 9px;
-      color: #bbb;
-      letter-spacing: 0.08em;
+      font-size: 9.5px;
+      color: #999;
+      letter-spacing: 0.07em;
       margin-top: 12px;
       text-transform: uppercase;
+      border-top: 1px solid #eee;
+      padding-top: 8px;
     }
 
     /* ── About section ──────────────────────────────────────────── */
@@ -682,11 +736,26 @@
 
     // ── Utils ───────────────────────────────────────────────────
     function timeAgo(iso) {
-      const diff = Math.floor((Date.now() - new Date(iso)) / 60000);
-      if (diff < 1)  return "Ahora mismo";
-      if (diff < 60) return `Hace ${diff} min`;
-      const h = Math.floor(diff / 60);
-      return `Hace ${h}h`;
+      const date  = new Date(iso);
+      const diff  = Math.floor((Date.now() - date) / 60000); // minutos
+
+      // Relativo
+      let rel;
+      if (diff < 1)        rel = "Ahora mismo";
+      else if (diff < 60)  rel = `Hace ${diff} min`;
+      else if (diff < 1440) rel = `Hace ${Math.floor(diff / 60)}h`;
+      else                  rel = `Hace ${Math.floor(diff / 1440)}d`;
+
+      // Absoluto: "Hoy 14:30" / "Ayer 09:15" / "3 abr 22:00"
+      const ahora  = new Date();
+      const mismoD = date.toDateString() === ahora.toDateString();
+      const ayerD  = new Date(ahora - 86400000).toDateString() === date.toDateString();
+      const hora   = date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+      const diaStr = mismoD ? "Hoy"
+                   : ayerD  ? "Ayer"
+                   : date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+
+      return `${rel} · ${diaStr} ${hora}`;
     }
 
     function fmtPrice(n) {
@@ -695,29 +764,44 @@
 
     // ── Render card ─────────────────────────────────────────────
     function renderDeal(d) {
-      // ARBITRAJE y REVENTA se tratan igual visualmente
       const isReventa = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
       const badgeClass = isReventa ? "deal__badge--reventa" : "deal__badge--oferta";
       const badgeLabel = isReventa ? "♻ Reventa" : "⚡ Oferta";
+      const buyUrl     = d.url_affiliate || "#";
 
+      // Imagen clicable → mismo enlace que botón comprar
       const imgHtml = d.imagen_url
-        ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'" />`
+        ? `<div class="deal__image-wrap">
+             ${d.descuento_pct > 0 ? `<span class="deal__discount-badge">−${d.descuento_pct}%</span>` : ""}
+             <a href="${buyUrl}" target="_blank" rel="noopener sponsored">
+               <img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.parentElement.parentElement.style.display='none'" />
+             </a>
+           </div>`
         : "";
 
-      // Solo mostrar precio original si existe
+      // Precio original tachado
       const precioOriginalHtml = d.precio_original > 0
         ? `<span class="deal__original">${fmtPrice(d.precio_original)}</span>`
         : "";
 
-      // Solo mostrar descuento si es real
-      const descuentoHtml = d.descuento_pct > 0
-        ? `<span class="deal__discount">−${d.descuento_pct}%</span>`
+      // "Ahorras X€" — refuerza el ahorro en dinero concreto
+      const ahorro = d.precio_original > d.precio_actual
+        ? d.precio_original - d.precio_actual
+        : 0;
+      const ahorroHtml = ahorro > 1
+        ? `<p class="deal__savings">↓ Ahorras ${fmtPrice(ahorro)}</p>`
         : "";
 
+      // Caja de reventa — diferenciador único de Flipazo
+      const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent((d.titulo || "").split(" ").slice(0, 4).join(" "))}`;
       const reventaHtml = isReventa && d.precio_wallapop > 0
         ? `<div class="deal__reventa">
-             Wallapop estimado: <strong>${fmtPrice(d.precio_wallapop)}</strong><br />
-             Ganancia neta: <strong>+${fmtPrice(d.beneficio_neto)}</strong>
+             <span class="deal__reventa-title">💰 Deal de Reventa</span>
+             <div class="deal__reventa-math">
+               <span>Compra ahora: <strong>${fmtPrice(d.precio_actual)}</strong></span>
+               <span>Vende en Wallapop: <strong>~${fmtPrice(d.precio_wallapop)}</strong></span>
+               <span class="deal__reventa-profit">Ganancia neta estimada: +${fmtPrice(d.beneficio_neto)}</span>
+             </div>
            </div>`
         : "";
 
@@ -725,29 +809,28 @@
         ? `<p class="deal__reason">"${d.razonamiento}"</p>`
         : "";
 
-      const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent((d.titulo || "").split(" ").slice(0, 4).join(" "))}`;
-      const wallaBtn = isReventa
-        ? `<a href="${wallapopUrl}" target="_blank" rel="noopener" class="btn btn--secondary">Ver Wallapop</a>`
+      const wallaBtn = isReventa && d.precio_wallapop > 0
+        ? `<a href="${wallapopUrl}" target="_blank" rel="noopener" class="btn btn--secondary">Wallapop →</a>`
         : "";
 
       return `
         <article class="deal">
           <span class="deal__badge ${badgeClass}">${badgeLabel}</span>
-          ${imgHtml ? `<div class="deal__image-wrap">${imgHtml}</div>` : ""}
+          ${imgHtml}
           <p class="deal__store">${d.tienda || ""}</p>
           <h2 class="deal__title">${d.titulo || ""}</h2>
           <div class="deal__pricing">
             ${precioOriginalHtml}
             <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
-            ${descuentoHtml}
           </div>
+          ${ahorroHtml}
           ${reventaHtml}
           ${razonHtml}
           <div class="deal__cta">
-            <a href="${d.url_affiliate || "#"}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Comprar →</a>
+            <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Comprar →</a>
             ${wallaBtn}
           </div>
-          <p class="deal__time">${timeAgo(d.timestamp)}</p>
+          <p class="deal__time" data-ts="${d.timestamp || ""}">${timeAgo(d.timestamp)}</p>
         </article>`;
     }
 
