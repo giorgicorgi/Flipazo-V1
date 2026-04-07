@@ -278,6 +278,15 @@
       color: var(--ink);
     }
 
+    /* % descuento — rojo, junto al precio actual */
+    .deal__pct {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      align-self: center;
+    }
+
     /* "Ahorras X€" — verde, refuerza el ahorro concreto */
     .deal__savings {
       font-family: var(--mono);
@@ -779,6 +788,11 @@
            </div>`
         : "";
 
+      // % descuento — siempre visible en la fila de precios
+      const descPctHtml = d.descuento_pct > 0
+        ? `<span class="deal__pct">−${d.descuento_pct}%</span>`
+        : "";
+
       // Precio original tachado
       const precioOriginalHtml = d.precio_original > 0
         ? `<span class="deal__original">${fmtPrice(d.precio_original)}</span>`
@@ -799,7 +813,7 @@
              <span class="deal__reventa-title">💰 Deal de Reventa</span>
              <div class="deal__reventa-math">
                <span>Compra ahora: <strong>${fmtPrice(d.precio_actual)}</strong></span>
-               <span>Vende en Wallapop: <strong>~${fmtPrice(d.precio_wallapop)}</strong></span>
+               <span>Precio estimado en Wallapop: <strong>~${fmtPrice(d.precio_wallapop)}</strong> · <a href="${wallapopUrl}" target="_blank" rel="noopener" style="color:var(--badge-rev);font-size:11px">verificar →</a></span>
                <span class="deal__reventa-profit">Ganancia neta estimada: +${fmtPrice(d.beneficio_neto)}</span>
              </div>
            </div>`
@@ -822,6 +836,7 @@
           <div class="deal__pricing">
             ${precioOriginalHtml}
             <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
+            ${descPctHtml}
           </div>
           ${ahorroHtml}
           ${reventaHtml}
