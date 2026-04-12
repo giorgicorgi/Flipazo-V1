@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidad — Flipazo</title>
+  <meta name="description" content="Política de privacidad de Flipazo. Cómo tratamos tus datos, base legal RGPD y tus derechos como usuario." />
+  <meta name="robots" content="noindex, follow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Playfair+Display+SC:wght@700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink:       #111111;
+      --ink-light: #444444;
+      --rule:      #222222;
+      --bg:        #ffffff;
+      --accent:    #c0392b;
+      --serif:     'Playfair Display', Georgia, serif;
+      --serif-sc:  'Playfair Display SC', Georgia, serif;
+      --mono:      'Courier Prime', 'Courier New', monospace;
+    }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--serif);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Masthead ── */
+    .masthead {
+      border-bottom: 3px solid var(--rule);
+      padding: 22px 40px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .masthead__brand {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 32px;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .masthead__brand:hover { text-decoration: none; }
+    .masthead__back {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      border: 1px solid #ccc;
+      padding: 6px 14px;
+    }
+    .masthead__back:hover { background: var(--ink); color: #fff; text-decoration: none; }
+
+    /* ── Page header ── */
+    .page-header {
+      padding: 48px 40px 32px;
+      border-bottom: 1.5px solid #e0e0e0;
+      max-width: 760px;
+    }
+    .page-header__label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin-bottom: 12px;
+    }
+    .page-header h1 {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: clamp(28px, 5vw, 42px);
+      line-height: 1.1;
+      margin-bottom: 14px;
+    }
+    .page-header__meta {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink-light);
+      letter-spacing: 0.1em;
+    }
+
+    /* ── Content ── */
+    .content {
+      max-width: 760px;
+      padding: 40px 40px 80px;
+    }
+    .section {
+      margin-bottom: 40px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .section:last-child { border-bottom: none; }
+    .section h2 {
+      font-family: var(--serif-sc);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--ink-light);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .section p, .section li {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--ink-light);
+      line-height: 1.85;
+      margin-bottom: 12px;
+    }
+    .section ul {
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+    .section li { margin-bottom: 4px; }
+    .highlight-box {
+      background: #f9f9f7;
+      border-left: 3px solid var(--accent);
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .highlight-box p { margin-bottom: 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 11px;
+      margin: 16px 0;
+    }
+    th {
+      text-align: left;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      padding: 8px 12px;
+      border-bottom: 1.5px solid var(--rule);
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e0e0e0;
+      color: var(--ink-light);
+      vertical-align: top;
+    }
+    tr:hover td { background: #fafafa; }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 1.5px solid #e0e0e0;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer__links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .footer__links a {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+    }
+    .footer__copy {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #bbb;
+      letter-spacing: 0.06em;
+    }
+
+    @media (max-width: 640px) {
+      .masthead, .page-header, .content, .footer { padding-left: 18px; padding-right: 18px; }
+      .page-header { padding-top: 32px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="masthead">
+    <a href="/" class="masthead__brand">Flipazo</a>
+    <a href="/" class="masthead__back">← Volver a ofertas</a>
+  </header>
+
+  <div class="page-header">
+    <p class="page-header__label">Legal</p>
+    <h1>Política de Privacidad</h1>
+    <p class="page-header__meta">Última actualización: Abril 2025 &nbsp;·&nbsp; Ley aplicable: RGPD (UE) 2016/679 y LOPDGDD</p>
+  </div>
+
+  <div class="content">
+
+    <div class="section">
+      <h2>1. Responsable del tratamiento</h2>
+      <table>
+        <tr><th>Campo</th><th>Detalle</th></tr>
+        <tr><td>Titular</td><td>Flipazo</td></tr>
+        <tr><td>Sitio web</td><td>flipazo.es</td></tr>
+        <tr><td>Correo de contacto</td><td><a href="mailto:hola@flipazo.es">hola@flipazo.es</a></td></tr>
+        <tr><td>Domicilio</td><td>Barcelona, España</td></tr>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>2. Qué datos recogemos y por qué</h2>
+      <p>Flipazo es un sitio web de consulta de ofertas. <strong>No requiere registro, no almacena contraseñas y no recoge datos de identificación personal de los visitantes</strong> de forma activa.</p>
+      <p>Los únicos datos que pueden tratarse son los siguientes:</p>
+      <table>
+        <tr><th>Dato</th><th>Origen</th><th>Finalidad</th><th>Base legal</th></tr>
+        <tr>
+          <td>Dirección IP y datos técnicos de navegación</td>
+          <td>Servidor web / herramientas de analítica</td>
+          <td>Seguridad del servicio, estadísticas de visitas agregadas y anónimas</td>
+          <td>Interés legítimo (Art. 6.1.f RGPD)</td>
+        </tr>
+        <tr>
+          <td>Preferencia de cookies</td>
+          <td>Banner de consentimiento (localStorage)</td>
+          <td>Recordar tu elección de cookies para no volver a preguntarte</td>
+          <td>Consentimiento (Art. 6.1.a RGPD)</td>
+        </tr>
+        <tr>
+          <td>Datos de contacto (email)</td>
+          <td>Solo si nos escribes a hola@flipazo.es</td>
+          <td>Responder tu consulta</td>
+          <td>Consentimiento / interés legítimo</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>3. Cookies y tecnologías de seguimiento</h2>
+      <p>Flipazo utiliza cookies técnicas propias (necesarias para el funcionamiento) y puede utilizar cookies de analítica y de afiliados de terceros, siempre que hayas dado tu consentimiento mediante nuestro banner.</p>
+      <p>Consulta el detalle completo en nuestra <a href="/cookies.html">Política de Cookies</a>.</p>
+      <div class="highlight-box">
+        <p>Los enlaces a tiendas externas (Amazon, PcComponentes, MediaMarkt, etc.) pueden instalar cookies de seguimiento de afiliado en tu navegador cuando haces clic en ellos. Esas cookies son responsabilidad de cada tienda. Consulta sus políticas de privacidad respectivas.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>4. Servicios de terceros</h2>
+      <p>Para el funcionamiento del sitio utilizamos los siguientes servicios de terceros que pueden tratar datos técnicos:</p>
+      <table>
+        <tr><th>Servicio</th><th>Proveedor</th><th>Finalidad</th><th>Política</th></tr>
+        <tr>
+          <td>Google Fonts</td>
+          <td>Google LLC (EEUU)</td>
+          <td>Carga de tipografías web (puede transferir IP)</td>
+          <td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Ver →</a></td>
+        </tr>
+        <tr>
+          <td>Google Analytics (opcional)</td>
+          <td>Google LLC (EEUU)</td>
+          <td>Estadísticas de visitas — solo se activa con consentimiento</td>
+          <td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Ver →</a></td>
+        </tr>
+        <tr>
+          <td>Amazon Associates</td>
+          <td>Amazon EU S.à r.l.</td>
+          <td>Programa de afiliados — comisiones por compras</td>
+          <td><a href="https://www.amazon.es/gp/help/customer/display.html?nodeId=201909010" target="_blank" rel="noopener">Ver →</a></td>
+        </tr>
+        <tr>
+          <td>Awin</td>
+          <td>Awin AG (Alemania)</td>
+          <td>Red de afiliados — seguimiento de conversiones</td>
+          <td><a href="https://www.awin.com/es/privacidad" target="_blank" rel="noopener">Ver →</a></td>
+        </tr>
+      </table>
+      <p>Cuando utilizamos servicios de terceros ubicados fuera de la UE (como Google LLC, en EE.UU.), la transferencia se realiza al amparo de las Cláusulas Contractuales Tipo aprobadas por la Comisión Europea o la certificación del Marco de Privacidad de Datos UE-EE.UU.</p>
+    </div>
+
+    <div class="section">
+      <h2>5. Conservación de los datos</h2>
+      <p>Los datos técnicos de navegación se retienen el tiempo mínimo necesario para garantizar la seguridad del servicio. Las preferencias de cookies se almacenan localmente en tu dispositivo durante un máximo de <strong>12 meses</strong>. Si nos contactas por email, conservamos tu mensaje el tiempo necesario para responder y hasta 3 años si hay alguna relación contractual.</p>
+    </div>
+
+    <div class="section">
+      <h2>6. Tus derechos</h2>
+      <p>De acuerdo con el RGPD y la LOPDGDD, tienes derecho a:</p>
+      <ul>
+        <li><strong>Acceso:</strong> saber qué datos tenemos sobre ti.</li>
+        <li><strong>Rectificación:</strong> corregir datos inexactos.</li>
+        <li><strong>Supresión («derecho al olvido»):</strong> solicitar que borremos tus datos.</li>
+        <li><strong>Limitación del tratamiento:</strong> restringir el uso de tus datos en determinadas circunstancias.</li>
+        <li><strong>Portabilidad:</strong> recibir tus datos en formato estructurado.</li>
+        <li><strong>Oposición:</strong> oponerte al tratamiento basado en interés legítimo.</li>
+        <li><strong>Retirada del consentimiento:</strong> cuando el tratamiento se base en tu consentimiento, puedes retirarlo en cualquier momento sin que ello afecte a la licitud del tratamiento previo.</li>
+      </ul>
+      <div class="highlight-box">
+        <p>Para ejercer cualquiera de estos derechos, escríbenos a <a href="mailto:hola@flipazo.es">hola@flipazo.es</a> indicando tu solicitud. Responderemos en el plazo máximo de 30 días. Si consideras que no hemos atendido tu solicitud correctamente, puedes presentar una reclamación ante la <a href="https://www.aepd.es" target="_blank" rel="noopener">Agencia Española de Protección de Datos (AEPD)</a>.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>7. Actualizaciones de esta política</h2>
+      <p>Podemos actualizar esta política ocasionalmente para reflejar cambios en el servicio o en la normativa. La fecha de última actualización aparece en el encabezado de esta página. Te recomendamos revisarla periódicamente.</p>
+    </div>
+
+  </div>
+
+  <footer class="footer">
+    <div class="footer__links">
+      <a href="/privacidad.html">Privacidad</a>
+      <a href="/cookies.html">Cookies</a>
+      <a href="/aviso-legal.html">Aviso Legal</a>
+      <a href="mailto:hola@flipazo.es">Contacto</a>
+    </div>
+    <span class="footer__copy">© 2025 Flipazo · Barcelona, España</span>
+  </footer>
+
+</body>
+</html>
