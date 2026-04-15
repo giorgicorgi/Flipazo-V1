@@ -1,0 +1,28 @@
+[Unit]
+Description=Flipazo Analytics — Servidor de redirección y tracking de clicks
+After=network.target flipazo.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=flipazo
+WorkingDirectory=/home/flipazo/app
+EnvironmentFile=/home/flipazo/app/.env
+
+Restart=always
+RestartSec=10
+
+ExecStart=/home/flipazo/app/venv/bin/uvicorn analytics.tracker:app \
+    --host 0.0.0.0 \
+    --port 8080 \
+    --workers 2 \
+    --log-level warning
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=flipazo-analytics
+
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

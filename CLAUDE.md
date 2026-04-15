@@ -7,7 +7,7 @@
 
 ## Qué es Flipazo
 
-Canal de deals automatizado para España. Encuentra ofertas con descuento ≥35% sobre precio histórico, las filtra con IA y las publica en Telegram y web propia (flipazo.es).
+Canal de deals automatizado para España. Encuentra ofertas con descuento ≥40% sobre precio histórico, las filtra con IA y las publica en Telegram y web propia (flipazo.es).
 
 **Modelo de negocio:** freemium (deals públicos) + premium 3,90€/mes (tiempo real, canal privado).  
 **Estado:** En producción en Hetzner. Pipeline completo funcionando. Pendiente: premium/Stripe, WhatsApp, Threads.
@@ -66,6 +66,9 @@ for r in con.execute('SELECT titulo[:60], publicado_en FROM deals_publicados ORD
 ├── flipazo_main.py                     ← MONOLITO PRINCIPAL (todo el pipeline)
 ├── api.py                              ← FastAPI: /api/deals + /r/{id} redirect
 ├── index.html                          ← Frontend web (Vercel, estilo periódico)
+├── aviso-legal.html                    ← Legal (sin datos personales, solo Flipazo)
+├── privacidad.html                     ← Política de privacidad
+├── cookies.html                        ← Política de cookies
 ├── affiliate/
 │   └── link_builder.py                 ← URLs de afiliado por tienda (Amazon/Awin)
 ├── analytics/
@@ -94,7 +97,8 @@ Todo el pipeline vive en un solo archivo (~2100 líneas). Estructura interna:
 ### Constantes clave (líneas ~36-180)
 
 ```python
-DESCUENTO_MINIMO        = 35     # % mínimo para cualquier deal
+DESCUENTO_MINIMO        = 40     # % mínimo para cualquier deal (subido de 35 → 40)
+DESCUENTO_OFERTA_MINIMO = 40     # % mínimo para ofertas puras (subido de 35 → 40)
 PRECIO_MINIMO           = 25.0   # € mínimo (excluye accesorios baratos)
 PRECIO_MAXIMO           = 800.0  # € máximo general
 PRECIO_MAXIMO_BICI      = 3500.0 # € máximo para Mammoth Bikes
@@ -106,14 +110,31 @@ CICLO_COMPLETO_MIN      = 120    # intervalo ciclo completo (todas las tiendas)
 _SCORE_AUTO_APROBAR     = 70     # ≥70 → publicar sin Claude
 _SCORE_AUTO_DESCARTAR   = 22     # <22  → descartar sin Claude
 SCORE_OFERTA_MINIMO     = 58     # umbral Claude para OFERTA
+
+RATIO_PRECIO_REF_INFLADO = 1.25  # Si precio_original > 125% del promedio hist. → ref. inflada
 ```
+
+### Filtrado de productos (`_es_producto_valido`)
+
+Dos capas de filtrado:
+
+1. **`PALABRAS_PROHIBIDAS`** — subcadenas exactas en título (lowercase). Incluye frases específicas como `"café en grano"`, `"café molido"`, `"té verde"` (NO subcadenas genéricas como `"café"` o `"té"` que bloquearían cafeteras/termos).
+
+2. **`_TALLA_RE`** — regex para ropa con tallas de letra (S/M/L/XL/XXL/XS). Permite tallas numéricas (zapatos 42, pantalón 32/32, etc.):
+   ```python
+   _TALLA_RE = re.compile(
+       r'\bTalla\s+(?:XS|XXS|XXXL|XXL|XL|[SML])\b'
+       r'|\bsize[:\s]+(?:XS|XXS|XXXL|XXL|XL|[SML])\b',
+       re.IGNORECASE
+   )
+   ```
 
 ### Tiendas scrapeadas
 
 | Tienda | URLs fuente | Estado |
 |---|---|---|
 | Amazon | 16 categorías + /deals | ✅ Funcional |
-| MediaMarkt | 6 búsquedas por descuento | ✅ (wait_for_selector 12s) |
+| MediaMarkt | 6 búsquedas por descuento | ✅ (selector dual, timeout 20s, cookie accept) |
 | PcComponentes | 4 URLs campañas | ✅ (regex slugs corregida) |
 | Decathlon | 7 categorías | ✅ |
 | Worten | 5 secciones | ✅ |
@@ -149,17 +170,29 @@ CICLO COMPLETO (cada 120 min):
     → scrape_elcorteingles()
     → scrape_mammoth()
     → scrape_privatesportshop()  ← extrae URLs de Gmail, luego Playwright
-  → verificar_historial_ccc()   ← CamelCamelCamel para precio histórico
+  → verificar_historial_ccc()   ← CamelCamelCamel para precio histórico + detección de descuentos falsos
   → score_con_claude()          ← Haiku: pre-scorer local + zona gris
   → obtener_precio_wallapop()   ← solo deals tipo ARBITRAJE
   → publicar en Telegram
   → DeduplicacionDB.marcar_publicado()
 ```
 
+### Verificación CCC y detección de descuentos falsos (`verificar_con_ccc`)
+
+`_scrape_ccc(asin)` devuelve `tuple[float, float]` → `(precio_minimo, precio_promedio)`.
+
+`verificar_con_ccc` aplica **dos checks** en orden:
+
+1. **Detección de referencia inflada:** Si `precio_original > precio_promedio_hist × 1.25`, la referencia de Amazon está inflada artificialmente. Se calcula el descuento real contra el promedio histórico:
+   - Si descuento real < `DESCUENTO_MINIMO` → ❌ descartar ("Descuento falso")
+   - Si descuento real ≥ `DESCUENTO_MINIMO` → corregir `precio_original` y `descuento_pct` con valores honestos
+
+2. **Check precio actual vs mínimo histórico:** `precio_actual / precio_min_hist ≤ RATIO_HISTORICO_MAX` → publicar. Si supera el ratio → ❌ descartar.
+
 ### Scoring (score_con_claude)
 
 **Etapa 1 — Pre-scorer local (sin IA):**
-- Descuento ≥65% → +40 pts; ≥55% → +30; ≥45% → +20; ≥35% → +10
+- Descuento ≥65% → +40 pts; ≥55% → +30; ≥45% → +20; ≥40% → +10
 - Marca conocida → +30 pts (whitelist extensa: Apple, Sony, Nike, Braun, Xiaomi, Lefant, etc.)
 - Precio 30-400€ → +15 pts; 400-600€ → +8 pts
 - Historial CCC: precio en mínimo histórico → +15; penaliza si inflado
@@ -168,6 +201,7 @@ CICLO COMPLETO (cada 120 min):
 - Prompt `PROMPT_SCORING` → JSON con `score_reventa`, `score_oferta`, `precio_wallapop_estimado`
 - `tipo`: `"ARBITRAJE"` | `"OFERTA"` | `"DESCARTAR"`
 - Wallapop: estimaciones conservadoras: marcas premium 60-70% del precio Amazon; marcas chinas/desconocidas 40-55%
+- El prompt indica explícitamente que `descuento_pct` y `precio_original` ya fueron validados contra CCC antes de llegar al scoring
 
 ### Deduplicación (SQLite)
 
@@ -177,11 +211,13 @@ CICLO COMPLETO (cada 120 min):
 
 ### Marcas conocidas (whitelist _MARCAS_CONOCIDAS)
 
-Apple, Samsung, Sony, LG, Philips, Bosch, Dyson, Nike, Adidas, New Balance, Jordan, Asics, Puma, Reebok, LEGO, Nintendo, PlayStation, Xbox, Bose, AirPods, Jabra, Sennheiser, Nespresso, DeLonghi, Tefal, Rowenta, Braun, Siemens, Oral-B, Remington, Wahl, Panasonic, Shark, Bissell, Kärcher, Kenwood, Dior, Chanel, Armani, Calvin Klein, Lacoste, North Face, Roborock, Roomba, iRobot, Lefant, Dreame, Ecovacs, Eufy, Cecotec, Xiaomi, Redmi, Kindle, GoPro, Garmin, Fitbit, Polar, Makita, DeWalt, Milwaukee, Stanley, Canon, Nikon, HP, Dell, Lenovo, Asus, Acer, Microsoft, Logitech, Razer, G-Shock, Casio, Seiko, Citizen
+Apple, Samsung, Sony, LG, Philips, Bosch, Dyson, Nike, Adidas, New Balance, Jordan, Asics, Puma, Reebok, LEGO, Nintendo, PlayStation, Xbox, Bose, AirPods, Jabra, Sennheiser, Nespresso, DeLonghi, Tefal, Rowenta, Braun, Siemens, Oral-B, Remington, Wahl, Panasonic, Shark, Bissell, Kärcher, Kenwood, Dior, Chanel, Armani, Calvin Klein, Lacoste, North Face, Roborock, Roomba, iRobot, Lefant, Dreame, Ecovacs, Eufy, Cecotec, Xiaomi, Redmi, Kindle, GoPro, Garmin, Fitbit, Polar, Makita, DeWalt, Milwaukee, Stanley, Canon, Nikon, HP, Dell, Lenovo, Asus, Acer, Microsoft, Logitech, Razer, G-Shock, Casio, Seiko, Citizen, **Breville, Sage**
 
 ### Palabras prohibidas (PALABRAS_PROHIBIDAS)
 
 Excluye accesorios baratos, alimentación, champús, ropa básica (vaqueros, camisetas, etc.), zapatillas gama baja (Tanjun, Revolution, etc.), multipacks genéricos.
+
+**IMPORTANTE:** Usar frases específicas, NO palabras genéricas como subcadenas. Ejemplo correcto: `"café en grano"`, `"café molido"` — NO `"café"` (bloquearía cafeteras). Mismo principio con `"té verde"` en vez de `"té"`.
 
 ---
 
@@ -235,11 +271,26 @@ Endpoints en producción:
 
 ### index.html (Vercel)
 
-Frontend estilo periódico. Variables clave en el JS:
+Frontend estilo periódico con scroll infinito y categorías. Variables clave en el JS:
 ```javascript
 const USE_MOCK = false;                        // false = datos reales de la API
 const API_URL  = "https://flipazo.es/api/deals";
+const PAGE_SIZE = 24;                          // deals por batch de scroll infinito
 ```
+
+**Arquitectura JS:**
+- `allDeals[]` — todos los deals cargados en memoria
+- `currentOffset` — offset para paginación
+- `activeCategory` — categoría activa (por defecto `"todas"`)
+- `lastSeenRowid` — para detección de deals nuevos en `pollNew()`
+- `loadMore()` — carga siguiente batch y filtra por categoría activa
+- `renderGrid()` — re-renderiza desde `allDeals[]` filtrando por `activeCategory`
+- `pollNew()` — cada 5 min, antepone deals nuevos al principio
+- `IntersectionObserver` sobre `#js-sentinel` con `rootMargin: 300px`
+
+**Categorías (9 total):** Todas, Tecnología, Herramientas, Deportes, Calzado, Hogar, Belleza, Juguetes, Moda — asignadas client-side por regex sobre `titulo` y tienda.
+
+**Menú hamburguesa:** Botón `☰` en masthead que abre `.cat-bar` (panel deslizante via `max-height` CSS transition) con pills por categoría.
 
 Componentes del deal card:
 - `deal__image-wrap` con `deal__discount-badge` (% sobre imagen)
@@ -312,7 +363,7 @@ DEBUG_SCREENSHOTS=false
 |---|---|---|
 | Pipeline principal | ✅ Producción | flipazo_main.py — monolito |
 | Scraper Amazon | ✅ Funcional | 16 categorías + /deals |
-| Scraper MediaMarkt | ✅ Funcional | URLs de búsqueda por descuento |
+| Scraper MediaMarkt | ✅ Funcional | Cookie accept + selector dual + timeout 20s |
 | Scraper PcComponentes | ✅ Funcional | Regex corregida (slugs) |
 | Scraper Decathlon | ✅ Funcional | |
 | Scraper Worten | ✅ Funcional | |
@@ -320,14 +371,17 @@ DEBUG_SCREENSHOTS=false
 | Scraper Mammoth Bikes | ✅ Funcional | 6 outlet pages, precios ES format |
 | Scraper PSS | ⚠️ Bloqueado | Cloudflare duro (2381 chars) |
 | Scoring Claude Haiku | ✅ Funcional | Pre-scorer local + zona gris |
+| Detección descuentos falsos | ✅ Funcional | CCC avg vs precio_original × 1.25 |
+| Filtro ropa con tallas | ✅ Funcional | Regex tallas de letra (S/M/L/XL), no numéricas |
 | Análisis Wallapop | ✅ Funcional | Solo deals ARBITRAJE |
 | Publisher Telegram | ✅ Funcional | Canal público solamente |
 | Deduplicación SQLite | ✅ Funcional | TTL 96h (4 días) |
 | API FastAPI | ✅ Funcional | /api/deals + /r/{id} |
-| Frontend Vercel | ✅ Funcional | index.html, auto-deploy desde GitHub |
+| Frontend Vercel | ✅ Funcional | Scroll infinito + categorías + hamburguesa |
 | Analytics tracker | ✅ Funcional | Puerto 8080, clicks en SQLite |
 | Afiliados Amazon | ✅ Activo | tag flipazo-21 |
 | Afiliados Awin | ⚠️ Parcial | Solo MediaMarkt activo |
+| Páginas legales | ✅ Actualizado | Sin datos personales — solo "Flipazo, Barcelona, España" |
 | Canal premium Telegram | 🔲 Pendiente | |
 | Bot Telegram + Stripe | 🔲 Pendiente | |
 | WhatsApp publisher | 🔲 Pendiente | |
@@ -344,7 +398,7 @@ DEBUG_SCREENSHOTS=false
 
 2. **Resolver PSS y El Corte Inglés**
    - PSS: pide feed XML/CSV a su equipo de afiliados, o usar Awin feed
-   - ECI: intentar con sesión de usuario o feed Awin
+   - ECI: usar feed Awin cuando se apruebe el merchant ID
 
 3. **Más fuentes de deals**
    - Añadir tiendas: Sprinter, Zalando Outlet, Running Room, Garmin Store
@@ -372,6 +426,7 @@ DEBUG_SCREENSHOTS=false
 | Error | Causa | Solución |
 |---|---|---|
 | 0 productos en MediaMarkt | Category IDs caducados | Usar búsquedas `?sort=discountPercentage_desc` |
+| 0 productos en MediaMarkt (v2) | Cookie consent bloqueaba carga | Loop de accept cookies (6 selectores) + timeout 20s + selector dual `/es/product/` |
 | 0 productos en PcComponentes | Regex buscaba `-p\d+\.html` | Filtrar slugs con ≥4 guiones |
 | Deal republicado al día siguiente | TTL dedup era 24h | Cambiado a 96h |
 | Imagen NULL en BD | Amazon lazy loading (base64 placeholder) | Saltar `data:` en src, usar `data-src`/`srcset` |
@@ -379,3 +434,6 @@ DEBUG_SCREENSHOTS=false
 | PSS páginas de 2381 chars | Cloudflare | Circuit breaker, pendiente solución |
 | Wallapop precio muy alto | Claude estimaba cerca de precio Amazon | Prompt actualizado: marcas premium 60-70%, chinas 40-55% |
 | Código no se ejecuta en servidor | scp a `/root/flipazo-deploy/` (incorrecto) | SIEMPRE usar `/home/flipazo/app/` |
+| Cafetera bloqueada por "café" | PALABRAS_PROHIBIDAS usaba `"café"` como subcadena | Reemplazar por frases específicas: `"café en grano"`, `"café molido"`, etc. |
+| Descuento falso Rowenta/infladoPrecio | Amazon sube ref. de €31→€37, actual €28 parece -40% | `_scrape_ccc` devuelve avg histórico; si `precio_original > avg×1.25` → recalcular o descartar |
+| Ropa con tallas S/M/L publicada | Sin filtro de tallas | `_TALLA_RE` filtra tallas de letra; tallas numéricas (zapatos) se permiten |

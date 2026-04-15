@@ -1,0 +1,27 @@
+[Unit]
+Description=Flipazo - Deal Hunter con IA
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=flipazo
+WorkingDirectory=/home/flipazo/app
+EnvironmentFile=/home/flipazo/app/.env
+
+# Reinicia automáticamente si el proceso muere
+Restart=always
+RestartSec=30
+
+ExecStart=/home/flipazo/app/venv/bin/python flipazo_main.py
+
+# Logs a journalctl
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=flipazo
+
+# Límites de recursos
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
