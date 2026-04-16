@@ -26,6 +26,9 @@ Canal de deals automatizado para España. Encuentra ofertas con descuento ≥40%
 | Sesiones Playwright | `/home/flipazo/app/sesion_flipazo_completo/` (ciclo completo) y `sesion_flipazo_flash/` (flash) |
 | Web frontend | Vercel (auto-deploy desde GitHub push a `main`) |
 | Repo GitHub | `https://github.com/giorgicorgi/Flipazo-V1` |
+| Git en servidor | `/home/flipazo/app/` es un repo git que trackea `origin/main` |
+| Auto-deploy | `/home/flipazo/app/auto-deploy.sh` — cron cada 10 min, detecta commits nuevos y reinicia servicios |
+| Log de deploys | `/home/flipazo/app/deploy.log` |
 
 ### Servicios systemd
 
@@ -37,9 +40,15 @@ flipazo-analytics.service → servidor analytics (uvicorn analytics.tracker:app 
 ### Comandos de operación
 
 ```bash
-# Deploy de código (SIEMPRE a /home/flipazo/app/, NO a /root/)
-scp flipazo_main.py root@204.168.199.253:/home/flipazo/app/flipazo_main.py
-scp affiliate/link_builder.py root@204.168.199.253:/home/flipazo/app/affiliate/link_builder.py
+# Deploy preferido: git commit + push → auto-deploy en ≤10 min
+git add flipazo_main.py && git commit -m "fix: ..." && git push origin main
+
+# Deploy inmediato (bypass auto-deploy): scp directo + restart
+scp /Users/jorgeu/Desktop/Flipazo/flipazo_main.py root@204.168.199.253:/home/flipazo/app/flipazo_main.py
+ssh root@204.168.199.253 "systemctl restart flipazo.service"
+
+# Ver log de auto-deploys
+ssh root@204.168.199.253 "tail -30 /home/flipazo/app/deploy.log"
 
 # Restart del servicio
 ssh root@204.168.199.253 "systemctl restart flipazo.service"
@@ -133,16 +142,18 @@ Dos capas de filtrado:
 
 | Tienda | URLs fuente | Estado |
 |---|---|---|
-| Amazon | 16 categorías + /deals | ✅ Funcional |
+| Amazon | 16 categorías + /deals | ✅ Funcional (filtro ≥40% off en URLs) |
 | MediaMarkt | 6 búsquedas por descuento | ✅ (selector dual, timeout 20s, cookie accept) |
-| PcComponentes | 4 URLs campañas | ✅ (regex slugs corregida) |
+| PcComponentes | 5 URLs (ofertas + componentes + portátiles) | ✅ (networkidle wait, slugs ≥2 guiones) |
 | Decathlon | 7 categorías | ✅ |
 | Worten | 5 secciones | ✅ |
 | El Corte Inglés | 10 secciones | ⚠️ Bloqueada frecuentemente (circuit breaker 60min) |
-| Mammoth Bikes | 6 outlet pages | ✅ (precios ES: `1.234,56 €`) |
+| Mammoth Bikes | 10 outlet pages | ✅ (precios ES: `1.234,56 €`) |
 | Private Sport Shop | Via Gmail IMAP + Playwright | ⚠️ Bloqueada — circuit breaker activo |
 
 ### Categorías Amazon (AMAZON_SEARCH_URLS)
+
+Todas las URLs de búsqueda llevan `rh=p_n_pct-off-with-tax%3A2388626011` para filtrar directamente a ≥40% de descuento en Amazon.es:
 
 ```
 electronics, computers, videogames, shoes (Nike/Jordan/Adidas),
@@ -362,13 +373,13 @@ DEBUG_SCREENSHOTS=false
 | Módulo | Estado | Notas |
 |---|---|---|
 | Pipeline principal | ✅ Producción | flipazo_main.py — monolito |
-| Scraper Amazon | ✅ Funcional | 16 categorías + /deals |
+| Scraper Amazon | ✅ Funcional | 16 categorías + /deals; filtro ≥40% off en URL |
 | Scraper MediaMarkt | ✅ Funcional | Cookie accept + selector dual + timeout 20s |
-| Scraper PcComponentes | ✅ Funcional | Regex corregida (slugs) |
+| Scraper PcComponentes | ✅ Funcional | networkidle wait + slugs ≥2 guiones + 5 URLs |
 | Scraper Decathlon | ✅ Funcional | |
 | Scraper Worten | ✅ Funcional | |
 | Scraper El Corte Inglés | ⚠️ Inestable | Cloudflare — circuit breaker 60min |
-| Scraper Mammoth Bikes | ✅ Funcional | 6 outlet pages, precios ES format |
+| Scraper Mammoth Bikes | ✅ Funcional | 10 outlet pages (cascos, componentes, accesorios añadidos) |
 | Scraper PSS | ⚠️ Bloqueado | Cloudflare duro (2381 chars) |
 | Scoring Claude Haiku | ✅ Funcional | Pre-scorer local + zona gris |
 | Detección descuentos falsos | ✅ Funcional | CCC avg vs precio_original × 1.25 |
@@ -382,6 +393,9 @@ DEBUG_SCREENSHOTS=false
 | Afiliados Amazon | ✅ Activo | tag flipazo-21 |
 | Afiliados Awin | ⚠️ Parcial | Solo MediaMarkt activo |
 | Páginas legales | ✅ Actualizado | Sin datos personales — solo "Flipazo, Barcelona, España" |
+| Auto-deploy servidor | ✅ Activo | cron cada 10 min → git pull + restart si hay commits nuevos |
+| Skill scraper-monitor | ✅ Activo | `.claude/skills/scraper-monitor/` |
+| Scheduled trigger 7am | ✅ Activo | `trig_01Um43n8top2mkvYsiFqzVpM` — análisis estático diario |
 | Canal premium Telegram | 🔲 Pendiente | |
 | Bot Telegram + Stripe | 🔲 Pendiente | |
 | WhatsApp publisher | 🔲 Pendiente | |
@@ -391,7 +405,7 @@ DEBUG_SCREENSHOTS=false
 
 ## Próximos pasos prioritarios
 
-1. **Canal premium Telegram + Stripe** (deadline ~15 abril)
+1. **Canal premium Telegram + Stripe**
    - Comando `/premium` en bot → Stripe Checkout link
    - Webhook Stripe → añadir/quitar usuario de canal privado
    - Publicar en canal privado sin delay cuando `tipo == ARBITRAJE`
@@ -416,8 +430,44 @@ DEBUG_SCREENSHOTS=false
 - **Env vars:** siempre `os.getenv()`, nunca hardcodeadas
 - **Nuevo scraper:** seguir patrón `_scrape_tienda_generica()` o el de `scrape_mediamarkt()`
 - **Nueva tienda en afiliados:** añadir en `affiliate/link_builder.py` + var en `.env`
-- **Deploy:** `scp` a `/home/flipazo/app/` + `systemctl restart flipazo.service`
+- **Deploy preferido:** `git commit + push` → auto-deploy en ≤10 min vía cron en servidor
+- **Deploy inmediato:** `scp` a `/home/flipazo/app/` + `systemctl restart flipazo.service`
 - **Frontend:** editar `index.html` → `git add index.html && git commit && git push` → Vercel auto-despliega
+
+---
+
+## Auto-deploy y monitorización automática
+
+### Pipeline de deploy automático
+
+```
+git push origin main
+      ↓
+  [cron cada 10 min en servidor]
+  /home/flipazo/app/auto-deploy.sh
+      ↓
+  git fetch origin main
+  ¿commits nuevos?
+    NO → exit (silencioso)
+    SÍ → git pull
+         ├─ flipazo_main.py / affiliate/ / scrapers/ → restart flipazo.service
+         └─ api.py / analytics/                      → restart flipazo-analytics.service
+  log → /home/flipazo/app/deploy.log
+```
+
+### Scheduled trigger — auditoría diaria 7am
+
+- **ID:** `trig_01Um43n8top2mkvYsiFqzVpM`
+- **Horario:** 7:00am Madrid (5am UTC) — todos los días
+- **Qué hace:** clona el repo, ejecuta 7 checks estáticos en `flipazo_main.py`, aplica fixes si los encuentra, hace commit+push → el auto-deploy lo recoge en ≤10 min
+- **Gestión:** https://claude.ai/code/scheduled/trig_01Um43n8top2mkvYsiFqzVpM
+
+### Skills disponibles
+
+| Skill | Ubicación | Uso |
+|---|---|---|
+| `scraper-monitor` | `.claude/skills/scraper-monitor/` | Diagnóstico y reparación del pipeline. Invocar con `/scraper-monitor` |
+| `ui-ux-pro-max` | `.claude/skills/ui-ux-pro-max/` | Generación de sistemas de diseño UI/UX |
 
 ---
 
@@ -428,6 +478,8 @@ DEBUG_SCREENSHOTS=false
 | 0 productos en MediaMarkt | Category IDs caducados | Usar búsquedas `?sort=discountPercentage_desc` |
 | 0 productos en MediaMarkt (v2) | Cookie consent bloqueaba carga | Loop de accept cookies (6 selectores) + timeout 20s + selector dual `/es/product/` |
 | 0 productos en PcComponentes | Regex buscaba `-p\d+\.html` | Filtrar slugs con ≥4 guiones |
+| 0 productos en PcComponentes (v2) | React SPA no hidratada al evaluar DOM | `wait_for_load_state("networkidle")` + reducir filtro a ≥2 guiones |
+| Amazon solo produce una categoría | URLs sin filtro de descuento — sort por popularidad devuelve items sin oferta real | Añadir `rh=p_n_pct-off-with-tax%3A2388626011` a todas las URLs de búsqueda |
 | Deal republicado al día siguiente | TTL dedup era 24h | Cambiado a 96h |
 | Imagen NULL en BD | Amazon lazy loading (base64 placeholder) | Saltar `data:` en src, usar `data-src`/`srcset` |
 | ECI siempre "Access Denied" | Cloudflare | Circuit breaker 60min, se reintenta sólo |
