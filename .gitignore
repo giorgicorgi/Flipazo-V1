@@ -12,8 +12,9 @@ __pycache__/
 *.pyd
 .Python
 
-# Herramienta Claude Code (memoria local, configuración de sesión)
-.claude/
+# Herramienta Claude Code — ignorar config local pero versionar skills compartidos
+.claude/settings.local.json
+.claude/settings.json
 
 # Base de datos SQLite local (producción tiene la suya en el servidor)
 *.db
