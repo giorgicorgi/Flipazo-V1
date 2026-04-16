@@ -68,39 +68,38 @@ WALLAPOP_COSTES_FIJOS   = WALLAPOP_ENVIO + WALLAPOP_EMBALAJE  # 7€
 
 # ── URLs de categorías con mayor potencial de reventa ────────────
 AMAZON_SEARCH_URLS = [
-    # Electrónica general
-    "https://www.amazon.es/s?i=electronics&s=exact-aware-popularity-rank",
+    # Electrónica general — filtro directo ≥40% off + popularidad
+    "https://www.amazon.es/s?i=electronics&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Informática
-    "https://www.amazon.es/s?i=computers&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=computers&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Videojuegos y consolas
-    "https://www.amazon.es/s?i=videogames&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=videogames&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Zapatillas de marca — alta reventa (Nike, Adidas, New Balance, Jordan)
-    # Zapatillas gama media/alta — excluimos modelos básicos con precio mínimo 70€
-    "https://www.amazon.es/s?i=shoes&k=jordan+nike+air+max+adidas+ultraboost+new+balance+990+550+asics+gel&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=shoes&k=jordan+nike+air+max+adidas+ultraboost+new+balance+990+550+asics+gel&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Perfumes — alta reventa y liquidez
-    "https://www.amazon.es/s?i=beauty&k=perfume+eau+de+parfum+eau+de+toilette&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=beauty&k=perfume+eau+de+parfum+eau+de+toilette&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # LEGO — sube de precio tras descatalogación
-    "https://www.amazon.es/s?k=LEGO&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?k=LEGO&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Herramientas de marca premium (Bosch, DeWalt, Makita, Milwaukee)
-    "https://www.amazon.es/s?i=diy&k=bosch+dewalt+makita+milwaukee+karcher+stanley&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=diy&k=bosch+dewalt+makita+milwaukee+karcher+stanley&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Auriculares premium y gaming (AirPods, Sony, Bose, HyperX, JBL, Jabra)
-    "https://www.amazon.es/s?k=airpods+sony+wh-1000+bose+quietcomfort+hyperx+jbl+jabra&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?k=airpods+sony+wh-1000+bose+quietcomfort+hyperx+jbl+jabra&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Relojes de marca
-    "https://www.amazon.es/s?i=watches&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=watches&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Electrodomésticos de cocina (Nespresso, DeLonghi, Tefal, Kenwood)
-    "https://www.amazon.es/s?i=kitchen&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=kitchen&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Hogar y pequeño electrodoméstico
-    "https://www.amazon.es/s?i=appliances&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=appliances&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Juguetes (Playmobil, Hasbro, Mattel)
-    "https://www.amazon.es/s?i=toys&k=playmobil+hasbro+mattel+hot+wheels&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=toys&k=playmobil+hasbro+mattel+hot+wheels&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Cámaras y fotografía
-    "https://www.amazon.es/s?i=photo&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=photo&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Deporte y fitness
-    "https://www.amazon.es/s?i=sports&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=sports&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Salud y cuidado personal — afeitadoras Braun/Philips, cepillos Oral-B, depiladores
-    "https://www.amazon.es/s?i=hpc&k=braun+philips+oral-b+remington+wahl+panasonic&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=hpc&k=braun+philips+oral-b+remington+wahl+panasonic&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Pequeño electrodoméstico — aspiradoras, planchas, freidoras
-    "https://www.amazon.es/s?i=kitchen&k=rowenta+shark+bissell+tefal+delonghi+cecotec&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=kitchen&k=rowenta+shark+bissell+tefal+delonghi+cecotec&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Amazon Deals — página principal de ofertas por tiempo limitado
     "https://www.amazon.es/deals?ref=nav_cs_gb",
 ]
@@ -133,10 +132,13 @@ MEDIAMARKT_URLS = [
 ]
 
 # ── PcComponentes — ofertas especiales ordenadas por % descuento ──
+# La página usa React (SPA): esperar networkidle antes de evaluar el DOM
 PCCOMPONENTES_URLS = [
     "https://www.pccomponentes.com/ofertas-especiales?sort=discount",
     "https://www.pccomponentes.com/ofertas-especiales?sort=discount&page=2",
     "https://www.pccomponentes.com/ofertas-especiales?sort=discount&page=3",
+    "https://www.pccomponentes.com/componentes?sort=discount",
+    "https://www.pccomponentes.com/portatiles?sort=discount",
 ]
 
 # ── Decathlon — categorías con más volumen ────────────────────────
@@ -176,6 +178,11 @@ MAMMOTH_URLS = [
     "https://www.mammothbikes.com/outlet/alpinestars/o-3191",
     "https://www.mammothbikes.com/outlet/giro/o-3192",
     "https://www.mammothbikes.com/outlet/bicis-iniciacion/o-3193",
+    # Accesorios y componentes — mayor rotación y precio en rango 25-800€
+    "https://www.mammothbikes.com/outlet/cascos/o-2858",
+    "https://www.mammothbikes.com/outlet/componentes/o-2860",
+    "https://www.mammothbikes.com/outlet/accesorios/o-2861",
+    "https://www.mammothbikes.com/outlet/nutricion/o-2862",
 ]
 # Bicicletas pueden superar los 800€ del PRECIO_MAXIMO general
 PRECIO_MAXIMO_BICI = 5000.0
@@ -871,6 +878,13 @@ async def scrape_pccomponentes(context: BrowserContext) -> list[Producto]:
                 if not ok:
                     continue
 
+                # PcComponentes usa React SPA: esperar a que las llamadas AJAX carguen
+                # los productos antes de evaluar el DOM
+                try:
+                    await page.wait_for_load_state("networkidle", timeout=12000)
+                except Exception:
+                    pass  # Timeout aceptable — intentar evaluar igualmente
+
                 await asyncio.sleep(random.uniform(2, 4))
                 await _scroll_pagina(page, veces=5)
                 await asyncio.sleep(1.5)
@@ -884,14 +898,14 @@ async def scrape_pccomponentes(context: BrowserContext) -> list[Producto]:
                         const resultados = [];
                         const vistos = new Set();
 
-                        // PcComponentes usa slugs largos: /brand-model-spec-spec (sin .html ni ID numérico)
-                        // Filtro: slug con ≥4 guiones (productos) y sin palabras de navegación
-                        const NAV = /\/(campanas|portatiles|monitores|componentes|marca|blog|categoria|ayuda|contacto|news)/i;
+                        // PcComponentes usa slugs: /brand-model-spec/CODE o /brand-model/CODE
+                        // Filtro: slug con ≥2 guiones (productos) y sin palabras de navegación
+                        const NAV = /\/(campanas|marca|blog|categoria|ayuda|contacto|news|cart|account)/i;
                         document.querySelectorAll('a[href]').forEach(link => {
                             const rawHref = link.getAttribute('href') || '';
                             const path = rawHref.replace(/^https?:\/\/www\.pccomponentes\.com/, '');
                             // Slug de producto: empieza con /, tiene ≥4 guiones, no es nav
-                            if (!path.startsWith('/') || (path.match(/-/g) || []).length < 4) return;
+                            if (!path.startsWith('/') || (path.match(/-/g) || []).length < 2) return;
                             if (NAV.test(path)) return;
                             const href = rawHref.startsWith('http') ? rawHref : BASE + rawHref;
                             if (vistos.has(href)) return;
