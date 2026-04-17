@@ -649,6 +649,170 @@
     .cat-pill:hover { border-color: var(--ink); color: var(--ink); }
     .cat-pill--active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
+    /* ── Search bar ─────────────────────────────────────────────── */
+    .search-bar {
+      position: relative;
+      padding: 0 40px;
+      border-bottom: 1.5px solid var(--rule);
+      background: var(--bg);
+    }
+    .search-bar__inner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 46px;
+    }
+    .search-bar__icon {
+      flex-shrink: 0;
+      color: var(--ink-light);
+      width: 17px;
+      height: 17px;
+    }
+    .search-bar__input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      color: var(--ink);
+      background: transparent;
+    }
+    .search-bar__input::placeholder {
+      color: #bbb;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+    .search-bar__clear {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #bbb;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      transition: color 0.12s;
+      flex-shrink: 0;
+    }
+    .search-bar__clear:hover { color: var(--ink); }
+    .search-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg);
+      border: 1.5px solid var(--rule);
+      border-top: none;
+      z-index: 50;
+      max-height: 420px;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .search-result {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 11px 40px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .search-result:last-child { border-bottom: none; }
+    .search-result:hover { background: #fafafa; }
+    .search-result__img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      background: #f5f5f5;
+      flex-shrink: 0;
+    }
+    .search-result__info { flex: 1; min-width: 0; }
+    .search-result__title {
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-result__meta {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: #999;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+    .search-result__price {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 16px;
+      color: var(--ink);
+      flex-shrink: 0;
+    }
+    .search-empty {
+      padding: 18px 40px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #bbb;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .search-active-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 40px;
+      background: #fafafa;
+      border-bottom: 1px solid #eee;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+    }
+    .search-active-banner button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: 0;
+    }
+
+    /* ── Vote buttons ────────────────────────────────────────────── */
+    .deal__votes {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .vote-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 5px 11px;
+      border: 1.5px solid #ddd;
+      background: transparent;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      color: #bbb;
+      line-height: 1;
+    }
+    .vote-btn:hover { border-color: var(--ink); color: var(--ink); }
+    .vote-btn--up.voted  { border-color: var(--badge-rev); color: var(--badge-rev); background: #f0faf4; }
+    .vote-btn--down.voted { border-color: #e67e22; color: #e67e22; background: #fffaf5; }
+    .vote-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+
     /* ── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 700px) {
       .masthead, .section-header, .footer { padding-left: 18px; padding-right: 18px; }
@@ -658,6 +822,10 @@
       .masthead__meta { flex-direction: row; justify-content: space-between; align-items: center; }
       .masthead__tagline { display: none; }
       .cat-bar.open { padding: 10px 18px; }
+      .search-bar { padding: 0 18px; }
+      .search-result { padding: 10px 18px; }
+      .search-empty { padding: 14px 18px; }
+      .search-active-banner { padding: 8px 18px; }
     }
   </style>
 </head>
@@ -679,10 +847,41 @@
     </div>
   </header>
 
+  <!-- ── SEARCH BAR ───────────────────────────────────────────── -->
+  <div class="search-bar" id="js-search-bar" role="search">
+    <div class="search-bar__inner">
+      <svg class="search-bar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input
+        class="search-bar__input"
+        id="js-search-input"
+        type="search"
+        placeholder="Buscar ofertas…"
+        autocomplete="off"
+        aria-label="Buscar ofertas"
+        aria-controls="js-search-dropdown"
+        aria-autocomplete="list"
+      />
+      <button class="search-bar__clear" id="js-search-clear" aria-label="Limpiar búsqueda" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="search-dropdown" id="js-search-dropdown" role="listbox" hidden></div>
+  </div>
+
   <!-- ── CATEGORY BAR ──────────────────────────────────────────── -->
   <nav class="cat-bar" id="js-cat-bar" aria-label="Categorías">
     <!-- Populated by JS -->
   </nav>
+
+  <!-- ── SEARCH ACTIVE BANNER ──────────────────────────────────── -->
+  <div class="search-active-banner" id="js-search-banner" style="display:none">
+    <span id="js-search-banner-text"></span>
+    <button onclick="clearSearch()">Limpiar búsqueda ×</button>
+  </div>
 
   <!-- ── SECTION HEADER ────────────────────────────────────────── -->
   <div class="section-header">
@@ -772,10 +971,65 @@
     }
 
     // ── Config ─────────────────────────────────────────────────
-    const API_URL   = "https://api.flipazo.es/api/deals";
+    const API_BASE  = "https://api.flipazo.es";
+    const API_URL   = API_BASE + "/api/deals";
     const USE_MOCK  = false;
     const POLL_MS   = 5 * 60 * 1000;
     const PAGE_SIZE = 24;
+
+    // ── Semantic search groups ──────────────────────────────────
+    // Agrupa sinónimos y expande la búsqueda a términos relacionados
+    const SEMANTIC_GROUPS = [
+      { terms: ["mochila","mochilas","bolso","bolsos","bolsa","maleta","maletas","bandolera","equipaje"],
+        pattern: /mochila|bolso|bolsa|maleta|bandolera/i },
+      { terms: ["bici","bicicleta","bicicletas","ciclismo","ciclo","mtb","gravel"],
+        pattern: /bici|ciclismo|mtb|mountain bike|shimano|sillín|gravel|road bike/i },
+      { terms: ["taladro","bricolaje","herramienta","herramientas","diy","tool"],
+        pattern: /taladro|sierra\b|destornillador|amoladora|lijadora|bosch\b|dewalt|makita|milwaukee|stanley\b/i },
+      { terms: ["zapatilla","zapatillas","sneaker","sneakers","zapato","zapatos","calzado"],
+        pattern: /zapatilla|zapato|bota\b|sandalia|sneaker|nike\b|adidas\b|puma\b|reebok|new balance|asics|jordan\b/i },
+      { terms: ["auricular","auriculares","cascos","headphone","headphones"],
+        pattern: /auricular|cascos|airpods|wh-?1000|bose q|jabra|sennheiser|hyperx|jbl/i },
+      { terms: ["running","correr","atletismo","trail","maratón","maraton"],
+        pattern: /running|trail\b|atletismo|maratón|garmin|polar\b|fitbit/i },
+      { terms: ["gaming","juego","juegos","videojuego","videojuegos","consola","ps5","xbox","nintendo"],
+        pattern: /gaming|ps5|playstation|xbox|nintendo|switch\b|mando|consola\b/i },
+      { terms: ["smartphone","móvil","movil","telefono","teléfono","iphone","samsung"],
+        pattern: /smartphone|móvil|iphone|galaxy\b|redmi|xiaomi|oneplus|oppo/i },
+      { terms: ["cafetera","café","cafe","nespresso","delonghi","breville","sage"],
+        pattern: /cafetera|nespresso|delonghi|breville|sage\b/i },
+      { terms: ["aspirador","aspiradora","robot","roomba","hoover","limpieza"],
+        pattern: /aspirador|robot aspirador|roomba|irobot|roborock|lefant|dreame|ecovacs|eufy/i },
+      { terms: ["perfume","colonia","cosmética","cosmetica","belleza","fragancia"],
+        pattern: /perfume|eau de parfum|eau de toilette|colonia\b|dior\b|chanel\b|armani|calvin klein/i },
+      { terms: ["reloj","relojes","watch","smartwatch"],
+        pattern: /reloj|watch|g-shock|casio|seiko|citizen|garmin/i },
+      { terms: ["lego","juguete","juguetes","toy","toys"],
+        pattern: /lego\b|playmobil|hasbro|mattel|hot wheels|barbie|juguete|funko/i },
+      { terms: ["portátil","portatil","laptop","ordenador","pc","gaming laptop"],
+        pattern: /portátil|laptop|macbook|pc gaming/i },
+      { terms: ["freidora","airfryer","cocina","electrodoméstico","horno"],
+        pattern: /airfryer|freidora|thermomix|batidora|horno|plancha|microondas/i },
+    ];
+
+    function _semanticPattern(query) {
+      const q = query.toLowerCase().trim();
+      for (const g of SEMANTIC_GROUPS) {
+        if (g.terms.some(t => q.includes(t) || t.includes(q))) return g.pattern;
+      }
+      return null;
+    }
+
+    function searchDeals(query) {
+      if (!query || query.trim().length < 2) return [];
+      const q     = query.toLowerCase().trim();
+      const extra = _semanticPattern(q);
+      return allDeals.filter(d => {
+        const t = d.titulo.toLowerCase();
+        return t.includes(q) || (extra && extra.test(d.titulo));
+      });
+      // allDeals ya está ordenado cronológicamente (más reciente primero)
+    }
 
     // ── Categories ──────────────────────────────────────────────
     const CATEGORIAS = [
@@ -976,6 +1230,34 @@
       const wallaBtn  = isReventa && d.precio_wallapop > 0
         ? `<a href="${wallapopUrl}" target="_blank" rel="noopener" class="btn btn--secondary">Wallapop →</a>` : "";
 
+      const dealId  = d.id || "";
+      const uVotes  = getUserVotes();
+      const uVote   = uVotes[dealId] || null;
+      const votesUp   = d.votes_up   || 0;
+      const votesDown = d.votes_down || 0;
+
+      const votesHtml = `
+        <div class="deal__votes" id="votes-${dealId}">
+          <button class="vote-btn vote-btn--up${uVote === "up" ? " voted" : ""}"
+                  onclick="vote('${dealId}', 'up', this)"
+                  aria-label="Me flipó" title="Me flipó">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="18 15 12 9 6 15"/>
+            </svg>
+            <span class="vote-count">${votesUp}</span>
+            <span style="font-size:8px;letter-spacing:.12em">Flipazo</span>
+          </button>
+          <button class="vote-btn vote-btn--down${uVote === "down" ? " voted" : ""}"
+                  onclick="vote('${dealId}', 'down', this)"
+                  aria-label="Meh" title="Meh">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+            <span class="vote-count">${votesDown}</span>
+            <span style="font-size:8px;letter-spacing:.12em">Meh</span>
+          </button>
+        </div>`;
+
       return `
         <article class="deal${d.descuento_pct > 50 ? ' deal--featured' : ''}">
           <span class="deal__badge ${badgeClass}">${badgeLabel}</span>
@@ -994,8 +1276,128 @@
             <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Comprar →</a>
             ${wallaBtn}
           </div>
+          ${votesHtml}
           <p class="deal__time" data-ts="${d.timestamp || ""}">${timeAgo(d.timestamp)}</p>
         </article>`;
+    }
+
+    // ── Votes ───────────────────────────────────────────────────
+    function getUserVotes() {
+      try { return JSON.parse(localStorage.getItem("flipazo_votes") || "{}"); }
+      catch { return {}; }
+    }
+    function _saveUserVotes(v) {
+      try { localStorage.setItem("flipazo_votes", JSON.stringify(v)); } catch {}
+    }
+
+    async function vote(dealId, direction, btn) {
+      if (!dealId) return;
+      const votes  = getUserVotes();
+      const prev   = votes[dealId];
+      if (prev === direction) return;  // ya votado en esta dirección
+
+      const container = btn.closest(".deal__votes");
+      if (!container) return;
+      const upBtn    = container.querySelector(".vote-btn--up");
+      const downBtn  = container.querySelector(".vote-btn--down");
+      const upCount  = upBtn.querySelector(".vote-count");
+      const downCount = downBtn.querySelector(".vote-count");
+
+      // Actualización optimista
+      if (direction === "up") {
+        upBtn.classList.add("voted");
+        downBtn.classList.remove("voted");
+        upCount.textContent   = parseInt(upCount.textContent)   + 1;
+        if (prev === "down") downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
+      } else {
+        downBtn.classList.add("voted");
+        upBtn.classList.remove("voted");
+        downCount.textContent = parseInt(downCount.textContent) + 1;
+        if (prev === "up") upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
+      }
+
+      votes[dealId] = direction;
+      _saveUserVotes(votes);
+
+      // Persistir en servidor (best-effort, no bloquea UI)
+      if (!USE_MOCK) {
+        try {
+          await fetch(`${API_BASE}/api/deals/${dealId}/vote`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ direction }),
+          });
+        } catch {}
+      }
+    }
+
+    // ── Search ──────────────────────────────────────────────────
+    let searchQuery    = "";
+    let searchTimeout  = null;
+
+    function renderSearchDropdown(results, query) {
+      const dd = document.getElementById("js-search-dropdown");
+      if (!results.length) {
+        dd.innerHTML = `<div class="search-empty">Sin resultados para "${query}"</div>`;
+        dd.hidden = false;
+        return;
+      }
+      dd.innerHTML = results.slice(0, 8).map(d => `
+        <div class="search-result" role="option" onclick="applySearch('${query.replace(/'/g,"\\'")}', ${d.id})">
+          ${d.imagen_url
+            ? `<img class="search-result__img" src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">`
+            : `<div class="search-result__img"></div>`}
+          <div class="search-result__info">
+            <div class="search-result__title">${d.titulo || ""}</div>
+            <div class="search-result__meta">${d.tienda || ""} · ${timeAgo(d.timestamp)}</div>
+          </div>
+          <span class="search-result__price">${fmtPrice(d.precio_actual || 0)}</span>
+        </div>`).join("");
+      dd.hidden = false;
+    }
+
+    function applySearch(query, scrollToId) {
+      const dd = document.getElementById("js-search-dropdown");
+      dd.hidden = true;
+      searchQuery = query;
+      const results = searchDeals(query);
+
+      // Mostrar banner
+      const banner = document.getElementById("js-search-banner");
+      const bannerText = document.getElementById("js-search-banner-text");
+      bannerText.textContent = `${results.length} resultado${results.length !== 1 ? "s" : ""} para "${query}"`;
+      banner.style.display = "";
+
+      // Renderizar grid filtrado (respeta orden cronológico de allDeals)
+      const grid = document.getElementById("js-grid");
+      if (!results.length) {
+        grid.innerHTML = `<div class="empty">Sin resultados para "${query}"</div>`;
+      } else {
+        grid.innerHTML = results.map(renderDeal).join("");
+      }
+      document.getElementById("js-section-title").textContent = "Resultados de búsqueda";
+      document.getElementById("js-count").textContent = `${results.length} oferta${results.length !== 1 ? "s" : ""}`;
+
+      // Scroll al deal específico si viene del dropdown
+      if (scrollToId) {
+        setTimeout(() => {
+          const cards = grid.querySelectorAll("article.deal");
+          const idx = results.findIndex(d => d.id === scrollToId);
+          if (idx >= 0 && cards[idx]) cards[idx].scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 80);
+      }
+    }
+
+    function clearSearch() {
+      searchQuery = "";
+      document.getElementById("js-search-input").value = "";
+      document.getElementById("js-search-clear").style.display = "none";
+      document.getElementById("js-search-dropdown").hidden = true;
+      document.getElementById("js-search-banner").style.display = "none";
+      document.getElementById("js-section-title").textContent =
+        activeCategory === "todas" ? "Últimas ofertas"
+        : (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Últimas ofertas");
+      renderGrid();
     }
 
     // ── Fetch ───────────────────────────────────────────────────
@@ -1139,6 +1541,42 @@
       document.getElementById("js-date").textContent =
         new Date().toLocaleDateString("es-ES", opts).toUpperCase();
     }
+
+    // ── Search events ────────────────────────────────────────────
+    (function initSearch() {
+      const input  = document.getElementById("js-search-input");
+      const clear  = document.getElementById("js-search-clear");
+      const dd     = document.getElementById("js-search-dropdown");
+
+      input.addEventListener("input", () => {
+        const q = input.value.trim();
+        clear.style.display = q ? "" : "none";
+
+        clearTimeout(searchTimeout);
+        if (!q || q.length < 2) { dd.hidden = true; return; }
+
+        searchTimeout = setTimeout(() => {
+          const results = searchDeals(q);
+          renderSearchDropdown(results, q);
+        }, 180);
+      });
+
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter" && input.value.trim().length >= 2) {
+          applySearch(input.value.trim(), null);
+        }
+        if (e.key === "Escape") { dd.hidden = true; input.blur(); }
+      });
+
+      clear.addEventListener("click", () => clearSearch());
+
+      // Cerrar dropdown al hacer click fuera
+      document.addEventListener("click", e => {
+        if (!document.getElementById("js-search-bar").contains(e.target)) {
+          dd.hidden = true;
+        }
+      });
+    })();
 
     // ── Init ─────────────────────────────────────────────────────
     setDate();

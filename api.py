@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -30,7 +31,7 @@ app = FastAPI(title="Flipazo API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://flipazo.es", "https://www.flipazo.es", "http://localhost", "http://127.0.0.1"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -42,6 +43,26 @@ def _get_db():
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA journal_mode=WAL")
     return con
+
+
+# ── Startup: migraciones en caliente ─────────────────────────────────────────
+
+@app.on_event("startup")
+def _ensure_vote_columns():
+    """Añade columnas votes_up/votes_down si no existen."""
+    with _get_db() as con:
+        for col_def in ["votes_up INTEGER DEFAULT 0", "votes_down INTEGER DEFAULT 0"]:
+            try:
+                con.execute(f"ALTER TABLE deals_publicados ADD COLUMN {col_def}")
+            except Exception:
+                pass  # columna ya existe
+        con.commit()
+
+
+# ── Modelos ───────────────────────────────────────────────────────────────────
+
+class VoteBody(BaseModel):
+    direction: str  # "up" | "down"
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -89,6 +110,8 @@ def get_deals(
             precio_wallapop,
             beneficio_neto,
             razonamiento,
+            COALESCE(votes_up,   0) AS votes_up,
+            COALESCE(votes_down, 0) AS votes_down,
             publicado_en    AS timestamp
         FROM deals_publicados
         {where_sql}
@@ -111,6 +134,8 @@ def get_deals(
         d["beneficio_neto"]  = d["beneficio_neto"]  or 0.0
         d["imagen_url"]      = d["imagen_url"]       or ""
         d["razonamiento"]    = d["razonamiento"]     or ""
+        d["votes_up"]        = d["votes_up"]         or 0
+        d["votes_down"]      = d["votes_down"]       or 0
         deals.append(d)
 
     return JSONResponse(content=deals)
@@ -121,6 +146,33 @@ def get_count():
     with _get_db() as con:
         total = con.execute("SELECT COUNT(*) FROM deals_publicados").fetchone()[0]
     return {"total": total}
+
+
+@app.post("/api/deals/{deal_id}/vote")
+def vote_deal(deal_id: str, body: VoteBody):
+    """
+    Registra un voto (up/down) en un deal.
+    El cliente controla el anti-spam con localStorage.
+    Devuelve los contadores actualizados.
+    """
+    if body.direction not in ("up", "down"):
+        return JSONResponse(status_code=400, content={"error": "direction must be 'up' or 'down'"})
+
+    col = "votes_up" if body.direction == "up" else "votes_down"
+    with _get_db() as con:
+        updated = con.execute(
+            f"UPDATE deals_publicados SET {col} = {col} + 1 WHERE deal_id = ?",
+            (deal_id,),
+        ).rowcount
+        if updated == 0:
+            return JSONResponse(status_code=404, content={"error": "deal not found"})
+        con.commit()
+        row = con.execute(
+            "SELECT COALESCE(votes_up,0) AS votes_up, COALESCE(votes_down,0) AS votes_down "
+            "FROM deals_publicados WHERE deal_id = ?",
+            (deal_id,),
+        ).fetchone()
+    return {"votes_up": row["votes_up"], "votes_down": row["votes_down"]}
 
 
 @app.get("/r/{deal_id}")
