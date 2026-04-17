@@ -1146,15 +1146,55 @@ async def scrape_elcorteingles(context: BrowserContext) -> list[Producto]:
     )
 
 
+async def _pss_warm_up(context: BrowserContext) -> bool:
+    """
+    Visita la homepage de PSS para obtener la cookie cf_clearance de Cloudflare.
+    Espera hasta 45s a que el JS challenge se resuelva.
+    Con sesión persistente, si la cookie no ha expirado esta función termina en ~2s.
+    """
+    page = await context.new_page()
+    try:
+        print("   🔑 [PSS] Calentando sesión Cloudflare en homepage...")
+        await page.goto("https://www.privatesportshop.es/", timeout=60000, wait_until="domcontentloaded")
+        for _ in range(9):
+            await asyncio.sleep(5)
+            try:
+                titulo = (await page.title()).lower()
+                contenido = await page.content()
+                cf_resuelto = (
+                    len(contenido) > 5000
+                    and not any(s in titulo for s in ["just a moment", "cloudflare", "verificación", "verification"])
+                    and "#cf-challenge-running" not in contenido
+                )
+                if cf_resuelto:
+                    print("   ✅ [PSS] Cloudflare resuelto — cf_clearance en sesión")
+                    return True
+            except Exception:
+                pass
+        print("   ⚠️  [PSS] Cloudflare no resolvió en 45s")
+        return False
+    except Exception as e:
+        print(f"   ❌ [PSS] Error en warm-up: {e}")
+        return False
+    finally:
+        await page.close()
+
+
 async def scrape_privatesportshop(context: BrowserContext, urls: list[str] | None = None) -> list[Producto]:
     """
     Scrape de Private Sport Shop — páginas de evento extraídas del newsletter.
     Visita cada URL de evento (ej: /event/adidas-terrex) con Playwright.
-    Evita la homepage que tiene Cloudflare duro.
+    Warm-up previo en homepage para obtener cf_clearance de Cloudflare.
     """
     if not urls:
         return []
     print(f"\n📡 Private Sport Shop: {len(urls)} evento(s) del newsletter")
+
+    # Warm-up: obtener cf_clearance antes de visitar páginas de evento
+    cf_ok = await _pss_warm_up(context)
+    if not cf_ok:
+        print("   ⚠️  [PSS] Warm-up fallido — se intentará igualmente (cookie puede seguir válida)")
+    await asyncio.sleep(random.uniform(3, 6))
     productos: list[Producto] = []
     vistos_href: set[str] = set()
 
@@ -1173,7 +1213,7 @@ async def scrape_privatesportshop(context: BrowserContext, urls: list[str] | Non
             nombre_evento = evento_url.rstrip("/").split("/")[-1]
             print(f"   📡 PSS evento: {nombre_evento}")
 
-            ok = await _cargar_con_reintento(page, evento_url, f"PSS/{nombre_evento}", max_intentos=1)
+            ok = await _cargar_con_reintento(page, evento_url, f"PSS/{nombre_evento}", max_intentos=2)
             if not ok:
                 continue
 
@@ -1195,7 +1235,7 @@ async def scrape_privatesportshop(context: BrowserContext, urls: list[str] | Non
                         const href = link.href || (BASE + link.getAttribute('href'));
                         if (!href || vistos.has(href)) return;
                         // Filtrar solo links de producto (tienen segmento con número al final)
-                        if (!/\\/[^/]+-\\d+$|\\/p-\\d+|\\/[^/]+\\.html/.test(href)) return;
+                        if (!/\\/[^/]+-\\d+(?:\\/)?$|\\/p-\\d+|\\/[^/]+\\.html|\\/catalog\\/product\\/view\\/id\\/\\d+/.test(href)) return;
                         if (href.includes('/event/') || href.includes('/category/')) return;
                         vistos.add(href);
 
@@ -2167,8 +2207,8 @@ async def run_pipeline(modo: str = "completo"):
         )
         page = browser.pages[0] if browser.pages else await browser.new_page()
 
-        # Parche de fingerprint: ocultar señales de automatización
-        await page.add_init_script("""
+        # Parche de fingerprint: aplicado al CONTEXTO para que todas las páginas nuevas lo hereden
+        await browser.add_init_script("""
             Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
             Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
             Object.defineProperty(navigator, 'languages', {get: () => ['es-ES', 'es', 'en']});
