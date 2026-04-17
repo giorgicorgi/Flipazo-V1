@@ -1665,8 +1665,28 @@ _MARCAS_CONOCIDAS = {
     "g-shock", "casio", "seiko", "citizen", "timex",
 }
 
+# Marcas con mercado real de segunda mano en Wallapop/eBay.es → candidatas a ARBITRAJE
+_MARCAS_ARBITRAJE = {
+    # Sneakers / moda premium
+    "nike", "adidas", "jordan", "new balance", "asics", "puma", "reebok", "north face",
+    # Tech
+    "apple", "airpods", "samsung", "sony",
+    # Gaming
+    "nintendo", "playstation", "xbox", "switch", "lego",
+    # Cámaras / wearables
+    "gopro", "canon", "nikon", "fujifilm", "garmin",
+    # Relojes
+    "g-shock", "casio", "seiko", "citizen",
+    # Perfumería de lujo
+    "dior", "chanel", "armani", "calvin klein",
+    # Herramientas profesionales
+    "makita", "dewalt", "milwaukee", "bosch",
+    # Auriculares premium
+    "bose", "jabra", "sennheiser",
+}
+
 # Umbrales pre-scorer
-_SCORE_AUTO_APROBAR  = 70   # ≥70 → OFERTA directa, sin Claude
+_SCORE_AUTO_APROBAR  = 70   # ≥70 → auto-aprobado (ARBITRAJE o OFERTA según marca), sin Claude
 _SCORE_AUTO_DESCARTAR = 22  # <22 → descartado, sin Claude
 
 
@@ -1800,10 +1820,16 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
     for p in productos:
         s = _score_local(p)
         if s >= _SCORE_AUTO_APROBAR:
-            p.tipo         = "OFERTA"
-            p.score_oferta = s
-            p.razonamiento = "descuento alto + marca reconocida"
-            p.copy         = _copy_template(p)
+            titulo_lower = p.titulo.lower()
+            if any(m in titulo_lower for m in _MARCAS_ARBITRAJE):
+                p.tipo         = "ARBITRAJE"
+                p.score_ai     = s
+                p.razonamiento = "marca premium + descuento alto → reventa viable"
+            else:
+                p.tipo         = "OFERTA"
+                p.score_oferta = s
+                p.razonamiento = "descuento alto + marca reconocida"
+            p.copy = _copy_template(p)
             candidatos.append(p)
         elif s >= _SCORE_AUTO_DESCARTAR:
             zona_gris.append(p)
