@@ -360,6 +360,45 @@
       margin-bottom: 14px;
     }
 
+    /* ── Pros / Contras ─────────────────────────────────────────── */
+    .deal__procon {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .deal__pros, .deal__contras {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .deal__procon-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .deal__procon-list li {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      line-height: 1.5;
+      color: #555;
+      padding-left: 14px;
+      position: relative;
+    }
+    .deal__pros .deal__procon-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #27ae60;
+      font-weight: 700;
+    }
+    .deal__contras .deal__procon-list li::before {
+      content: "–";
+      position: absolute;
+      left: 0;
+      color: #c0392b;
+      font-weight: 700;
+    }
+
     /* ── CTA ────────────────────────────────────────────────────── */
     .deal__cta {
       margin-top: auto;
@@ -878,6 +917,7 @@
       /* Ocultar elementos verbosos en mosaico */
       .deals-grid--mosaic .deal__reventa,
       .deals-grid--mosaic .deal__reason,
+      .deals-grid--mosaic .deal__procon,
       .deals-grid--mosaic .deal__savings,
       .deals-grid--mosaic .deal__historico { display: none; }
       .deals-grid--mosaic .deal__cta { padding-top: 8px; gap: 4px; }
@@ -1132,6 +1172,9 @@
 
     function dealMatchesCategory(deal, catId) {
       if (catId === "todas") return true;
+      // Usar campo server-side si está disponible (deals nuevos)
+      if (deal.categoria) return deal.categoria === catId;
+      // Fallback a regex para deals legacy sin campo categoria
       const cat = CATEGORIAS.find(c => c.id === catId);
       return cat ? cat.test(deal) : false;
     }
@@ -1305,6 +1348,15 @@
            </div>` : "";
 
       const razonHtml = d.razonamiento ? `<p class="deal__reason">"${d.razonamiento}"</p>` : "";
+
+      const pros    = Array.isArray(d.pros)    ? d.pros    : [];
+      const contras = Array.isArray(d.contras) ? d.contras : [];
+      const proconHtml = (pros.length || contras.length) ? `
+        <div class="deal__procon">
+          ${pros.length ? `<div class="deal__pros"><ul class="deal__procon-list">${pros.map(p => `<li>${p}</li>`).join("")}</ul></div>` : ""}
+          ${contras.length ? `<div class="deal__contras"><ul class="deal__procon-list">${contras.map(c => `<li>${c}</li>`).join("")}</ul></div>` : ""}
+        </div>` : "";
+
       const wallaBtn  = isReventa && d.precio_wallapop > 0
         ? `<a href="${wallapopUrl}" target="_blank" rel="noopener" class="btn btn--secondary">Wallapop →</a>` : "";
 
@@ -1350,6 +1402,7 @@
           ${ahorroHtml}
           ${reventaHtml}
           ${razonHtml}
+          ${proconHtml}
           <div class="deal__cta">
             <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Comprar →</a>
             ${wallaBtn}
@@ -1483,7 +1536,9 @@
     // ── Fetch ───────────────────────────────────────────────────
     async function fetchDeals(limit, offset) {
       if (USE_MOCK) return offset === 0 ? MOCK_DEALS : [];
-      const res = await fetch(`${API_URL}?limit=${limit}&offset=${offset}`);
+      let url = `${API_URL}?limit=${limit}&offset=${offset}`;
+      if (activeCategory !== "todas") url += `&categoria=${encodeURIComponent(activeCategory)}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error(res.status);
       return res.json();
     }
@@ -1544,6 +1599,7 @@
           grid.insertAdjacentHTML("beforeend", matching.map(renderDeal).join(""));
         }
         updateCount();
+        if (currentOffset <= PAGE_SIZE) updateSchemaMarkup(); // Solo en primera carga
 
       } catch (e) {
         console.error("Error cargando deals:", e);
@@ -1590,6 +1646,7 @@
 
       bar.querySelectorAll(".cat-pill").forEach(btn => {
         btn.addEventListener("click", () => {
+          if (activeCategory === btn.dataset.cat) return;
           activeCategory = btn.dataset.cat;
           bar.querySelectorAll(".cat-pill").forEach(b => b.classList.remove("cat-pill--active"));
           btn.classList.add("cat-pill--active");
@@ -1597,7 +1654,12 @@
           titleEl.textContent = activeCategory === "todas"
             ? "Últimas ofertas"
             : (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Últimas ofertas");
-          renderGrid();
+          // Resetear estado y recargar desde el servidor con filtro de categoría
+          allDeals      = [];
+          currentOffset = 0;
+          hasMore       = true;
+          document.getElementById("js-grid").innerHTML = "";
+          loadMore();
         });
       });
     }
@@ -1614,6 +1676,55 @@
       entries => { if (entries[0].isIntersecting) loadMore(); },
       { rootMargin: "300px" }
     ).observe(document.getElementById("js-sentinel"));
+
+    // ── Schema.org JSON-LD (SEO rich results) ────────────────────
+    function updateSchemaMarkup() {
+      const sample = allDeals.slice(0, 20);
+      if (!sample.length) return;
+      const schema = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Mejores ofertas del día — Flipazo",
+        "description": "Ofertas con descuento real verificado de Amazon, MediaMarkt, PcComponentes y más tiendas.",
+        "url": "https://flipazo.es",
+        "itemListElement": sample.map((d, i) => ({
+          "@type": "ListItem",
+          "position": i + 1,
+          "item": {
+            "@type": "Product",
+            "name": d.titulo || "",
+            ...(d.imagen_url ? { "image": d.imagen_url } : {}),
+            ...(d.categoria  ? { "category": d.categoria } : {}),
+            "offers": {
+              "@type": "Offer",
+              "price": (d.precio_actual || 0).toFixed(2),
+              "priceCurrency": "EUR",
+              "availability": "https://schema.org/InStock",
+              "url": `https://flipazo.es/r/${d.id}`,
+              ...(d.precio_original > d.precio_actual ? {
+                "priceSpecification": {
+                  "@type": "UnitPriceSpecification",
+                  "price": (d.precio_actual || 0).toFixed(2),
+                  "priceCurrency": "EUR",
+                  "referenceQuantity": {
+                    "@type": "QuantitativeValue",
+                    "value": 1
+                  }
+                }
+              } : {})
+            }
+          }
+        }))
+      };
+      let tag = document.getElementById("schema-deals");
+      if (!tag) {
+        tag = document.createElement("script");
+        tag.type = "application/ld+json";
+        tag.id   = "schema-deals";
+        document.head.appendChild(tag);
+      }
+      tag.textContent = JSON.stringify(schema);
+    }
 
     // ── Date ─────────────────────────────────────────────────────
     function setDate() {

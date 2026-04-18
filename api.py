@@ -11,6 +11,7 @@ Arranque:
   venv/bin/uvicorn api:app --host 0.0.0.0 --port 8080
 """
 
+import json
 import sqlite3
 from datetime import datetime, timezone
 from typing import Optional
@@ -48,14 +49,32 @@ def _get_db():
 # ── Startup: migraciones en caliente ─────────────────────────────────────────
 
 @app.on_event("startup")
-def _ensure_vote_columns():
-    """Añade columnas votes_up/votes_down si no existen."""
+def _ensure_columns():
+    """Migraciones suaves al arrancar: añade columnas si no existen."""
     with _get_db() as con:
-        for col_def in ["votes_up INTEGER DEFAULT 0", "votes_down INTEGER DEFAULT 0"]:
+        for col_def in [
+            "votes_up   INTEGER DEFAULT 0",
+            "votes_down INTEGER DEFAULT 0",
+            "categoria  TEXT    DEFAULT ''",
+            "pros       TEXT    DEFAULT '[]'",
+            "contras    TEXT    DEFAULT '[]'",
+        ]:
             try:
                 con.execute(f"ALTER TABLE deals_publicados ADD COLUMN {col_def}")
             except Exception:
                 pass  # columna ya existe
+        # Tabla de historial de precios (si no existe aún)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS price_history (
+                asin            TEXT NOT NULL,
+                tienda          TEXT NOT NULL DEFAULT 'Amazon',
+                precio          REAL NOT NULL,
+                precio_original REAL,
+                fecha           TEXT NOT NULL,
+                PRIMARY KEY (asin, tienda, fecha)
+            )
+        """)
+        con.execute("CREATE INDEX IF NOT EXISTS idx_ph_asin ON price_history(asin, tienda)")
         con.commit()
 
 
@@ -74,14 +93,15 @@ def health():
 
 @app.get("/api/deals")
 def get_deals(
-    limit:  int = Query(default=50, ge=1, le=200),
-    offset: int = Query(default=0,  ge=0),
-    tipo:   Optional[str] = Query(default=None, description="OFERTA | REVENTA"),
-    tienda: Optional[str] = Query(default=None),
+    limit:     int = Query(default=50, ge=1, le=200),
+    offset:    int = Query(default=0,  ge=0),
+    tipo:      Optional[str] = Query(default=None, description="OFERTA | ARBITRAJE"),
+    tienda:    Optional[str] = Query(default=None),
+    categoria: Optional[str] = Query(default=None, description="tecnologia|herramientas|deportes|calzado|hogar|belleza|juguetes|moda|otras"),
 ):
     """
     Devuelve deals publicados ordenados del más reciente al más antiguo.
-    Filtra opcionalmente por tipo o tienda.
+    Filtra opcionalmente por tipo, tienda o categoria.
     """
     where_clauses = []
     params: list = []
@@ -92,6 +112,9 @@ def get_deals(
     if tienda:
         where_clauses.append("tienda = ?")
         params.append(tienda)
+    if categoria:
+        where_clauses.append("categoria = ?")
+        params.append(categoria.lower())
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -112,6 +135,9 @@ def get_deals(
             razonamiento,
             COALESCE(votes_up,   0) AS votes_up,
             COALESCE(votes_down, 0) AS votes_down,
+            COALESCE(categoria,  '') AS categoria,
+            COALESCE(pros,    '[]') AS pros,
+            COALESCE(contras, '[]') AS contras,
             publicado_en    AS timestamp
         FROM deals_publicados
         {where_sql}
@@ -126,7 +152,6 @@ def get_deals(
     deals = []
     for r in rows:
         d = dict(r)
-        # Aseguramos que los campos numéricos nunca sean null
         d["precio_actual"]   = d["precio_actual"]   or 0.0
         d["precio_original"] = d["precio_original"] or 0.0
         d["descuento_pct"]   = d["descuento_pct"]   or 0
@@ -136,9 +161,30 @@ def get_deals(
         d["razonamiento"]    = d["razonamiento"]     or ""
         d["votes_up"]        = d["votes_up"]         or 0
         d["votes_down"]      = d["votes_down"]       or 0
+        d["categoria"]       = d["categoria"]        or ""
+        try:
+            d["pros"]    = json.loads(d["pros"]    or "[]")
+        except (json.JSONDecodeError, TypeError):
+            d["pros"]    = []
+        try:
+            d["contras"] = json.loads(d["contras"] or "[]")
+        except (json.JSONDecodeError, TypeError):
+            d["contras"] = []
         deals.append(d)
 
     return JSONResponse(content=deals)
+
+
+@app.get("/api/price-history/{asin}")
+def get_price_history(asin: str):
+    """Devuelve el historial de precios para un ASIN/producto específico."""
+    with _get_db() as con:
+        rows = con.execute(
+            "SELECT fecha, precio, precio_original FROM price_history "
+            "WHERE asin = ? ORDER BY fecha ASC",
+            (asin,)
+        ).fetchall()
+    return JSONResponse(content=[dict(r) for r in rows])
 
 
 @app.get("/api/deals/count")

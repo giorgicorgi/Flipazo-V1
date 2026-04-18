@@ -246,6 +246,9 @@ class Producto:
     razonamiento: str = ""
     copy: str = ""
     imagen_url: str = ""
+    categoria: str = ""           # "tecnologia" | "herramientas" | "deportes" | etc.
+    pros: list = field(default_factory=list)    # Hasta 3 puntos fuertes
+    contras: list = field(default_factory=list) # Hasta 2 consideraciones
 
     @property
     def beneficio_neto(self) -> float:
@@ -1704,6 +1707,63 @@ def _copy_template(p: "Producto") -> str:
     return f"Descuento del {desc}% en producto con alta demanda"
 
 
+_CAT_RE = {
+    "tecnologia":   re.compile(
+        r'smartphone|m[oó]vil|iphone|galaxy\b|tablet|ipad|port[aá]til|laptop|macbook|'
+        r'pc gaming|monitor\b|televisor|\btv\b|oled|qled|auricular|cascos|airpods|'
+        r'wh-?1000|bose q|kindle|c[aá]mara|gopro|smartwatch|consola\b|ps5|playstation|'
+        r'xbox|nintendo|switch\b|ssd|disco duro|\bram\b|gpu|rtx|procesador|impresora|'
+        r'router|logitech|razer|corsair|steelseries|hyperx|teclado\b|rat[oó]n\b',
+        re.I),
+    "herramientas": re.compile(
+        r'bosch|dewalt|makita|milwaukee|k[aä]rcher|stanley|martillo|taladro|sierra\b|'
+        r'lijadora|compresor|soldad|atornillador|amoladora|destornillador', re.I),
+    "deportes":     re.compile(
+        r'running|trek\b|senderismo|bicicleta\b|bici\b|ciclismo|fitness|gym\b|bal[oó]n|'
+        r'raqueta|esqu[ií]|nataci[oó]n|swim|alpinestars|giro\b|casco\b.*bici|'
+        r'componente.*bici|zapatilla.*running|zapatilla.*trail', re.I),
+    "calzado":      re.compile(
+        r'\bnike\b|\badidas\b|jordan\b|new balance|asics|puma\b|reebok|converse|vans\b|'
+        r'zapatilla|sneaker', re.I),
+    "hogar":        re.compile(
+        r'cafetera|aspirador|robot\b|freidora|microondas|lavadora|lavavajillas|'
+        r'frigor[ií]fico|nevera|plancha\b|batidora|thermomix|nespresso|delonghi|tefal|'
+        r'rowenta|shark\b|hoover|dyson|roomba|roborock|lefant|dreame|ecovacs|eufy|'
+        r'cecotec|colch[oó]n|l[aá]mpara|sill[oó]n|sof[aá]|escritorio', re.I),
+    "belleza":      re.compile(
+        r'perfume|colonia|eau de|crema\b|m[aá]quillaje|labial|dior\b|chanel\b|armani\b|'
+        r'ysl\b|calvin klein|hugo boss|lanc[oô]me|loreal|nivea|olay\b|afeitadora|'
+        r'cepillo.*el[eé]ctrico|depilador', re.I),
+    "juguetes":     re.compile(
+        r'playmobil|lego\b|hasbro|mattel|hot wheels|barbie|funko|juguete|juego de mesa|'
+        r'puzzle|puzle|scalextric', re.I),
+    "moda":         re.compile(
+        r'mochila|bolso\b|cartera\b|maleta|north face|lacoste\b|ralph lauren|tommy', re.I),
+}
+_TIENDA_CAT = {
+    "PcComponentes": "tecnologia",
+    "MediaMarkt":    "tecnologia",
+    "Worten":        "tecnologia",
+    "Decathlon":     "deportes",
+    "Mammoth Bikes": "deportes",
+}
+
+
+def _inferir_categoria(p: "Producto") -> str:
+    """Asigna una categoría al producto basándose en título y tienda."""
+    if p.tienda in _TIENDA_CAT:
+        # Aun así verificar si el título sugiere otra categoría más específica
+        tienda_cat = _TIENDA_CAT[p.tienda]
+    else:
+        tienda_cat = None
+
+    for cat, rx in _CAT_RE.items():
+        if rx.search(p.titulo):
+            return cat
+
+    return tienda_cat or "otras"
+
+
 def _score_local(p: "Producto") -> int:
     """
     Scoring rápido basado en reglas (0-100). Sin IA.
@@ -1774,6 +1834,11 @@ Para cada producto devuelve un JSON con EXACTAMENTE estas claves:
   Ejemplos buenos: "Sonido premium con ANC para el precio de un auricular básico",
   "La cortadora Bosch que aguanta 10 años, hoy a precio de descatalogado".
   Ejemplos malos: "Oferta increíble", "Gran descuento", "Aprovecha esta oferta".
+- "pros": array de strings, máximo 3 elementos — puntos fuertes breves en español
+  (ej. ["ANC clase alta", "30h batería", "Plegable para viajar"]).
+  Basados en el producto, no en el precio. Máx 5 palabras por ítem.
+- "contras": array de strings, máximo 2 elementos — consideraciones o limitaciones breves
+  (ej. ["Sin jack 3.5mm", "Sólo Bluetooth"]). Máx 5 palabras por ítem. Array vacío [] si no aplica.
 - "tipo": string — una de estas tres opciones:
     "ARBITRAJE"  → score_reventa >= 60 Y beneficio_neto >= 20
     "OFERTA"     → score_oferta >= 58 Y descuento >= 35 (aunque reventa sea baja)
@@ -1829,7 +1894,14 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
                 p.tipo         = "OFERTA"
                 p.score_oferta = s
                 p.razonamiento = "descuento alto + marca reconocida"
-            p.copy = _copy_template(p)
+            p.copy      = _copy_template(p)
+            p.categoria = _inferir_categoria(p)
+            # Pros básicos para deals auto-aprobados (sin llamada IA)
+            p.pros = [f"−{p.descuento_pct}% de descuento real"]
+            if any(m in titulo_lower for m in _MARCAS_CONOCIDAS):
+                p.pros.append("Marca con garantía oficial")
+            if p.precio_historico_min > 0 and p.precio_actual <= p.precio_historico_min:
+                p.pros.append("En mínimo histórico de precio")
             candidatos.append(p)
         elif s >= _SCORE_AUTO_DESCARTAR:
             zona_gris.append(p)
@@ -1900,6 +1972,9 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
                 p.razonamiento  = s.get("razonamiento", "")
                 p.copy          = s.get("copy", "")
                 p.tipo          = s.get("tipo", "DESCARTAR")
+                p.pros          = s.get("pros", [])[:3]
+                p.contras       = s.get("contras", [])[:2]
+                p.categoria     = _inferir_categoria(p)
                 if p.precio_wallapop == 0.0:
                     p.precio_wallapop = float(s.get("precio_wallapop_estimado", 0.0))
 
@@ -2011,11 +2086,25 @@ class DeduplicacionDB:
                 "ALTER TABLE deals_publicados ADD COLUMN precio_wallapop REAL",
                 "ALTER TABLE deals_publicados ADD COLUMN beneficio_neto  REAL",
                 "ALTER TABLE deals_publicados ADD COLUMN razonamiento    TEXT",
+                "ALTER TABLE deals_publicados ADD COLUMN categoria       TEXT DEFAULT ''",
+                "ALTER TABLE deals_publicados ADD COLUMN pros            TEXT DEFAULT '[]'",
+                "ALTER TABLE deals_publicados ADD COLUMN contras         TEXT DEFAULT '[]'",
             ]:
                 try:
                     con.execute(col_sql)
                 except sqlite3.OperationalError:
                     pass  # columna ya existe
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS price_history (
+                    asin            TEXT NOT NULL,
+                    tienda          TEXT NOT NULL DEFAULT 'Amazon',
+                    precio          REAL NOT NULL,
+                    precio_original REAL,
+                    fecha           TEXT NOT NULL,
+                    PRIMARY KEY (asin, tienda, fecha)
+                )
+            """)
+            con.execute("CREATE INDEX IF NOT EXISTS idx_ph_asin ON price_history(asin, tienda)")
             con.execute("""
                 CREATE TABLE IF NOT EXISTS clicks (
                     id      INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2039,20 +2128,36 @@ class DeduplicacionDB:
         return row is not None
 
     def marcar_publicado(self, p: "Producto"):
+        cat = p.categoria or _inferir_categoria(p)
         with sqlite3.connect(self.db_path) as con:
             con.execute(
                 """INSERT OR REPLACE INTO deals_publicados
                        (deal_id, titulo, tienda, precio, tipo, url_afiliado, publicado_en,
                         precio_original, descuento_pct, imagen_url,
-                        precio_wallapop, beneficio_neto, razonamiento)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        precio_wallapop, beneficio_neto, razonamiento,
+                        categoria, pros, contras)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     _deal_hash(p), p.titulo, p.tienda, p.precio_actual, p.tipo,
                     p.url_affiliate, datetime.now(timezone.utc).isoformat(),
                     p.precio_original, p.descuento_pct, p.imagen_url or "",
                     p.precio_wallapop, p.beneficio_neto, p.razonamiento or "",
+                    cat,
+                    json.dumps(p.pros or [], ensure_ascii=False),
+                    json.dumps(p.contras or [], ensure_ascii=False),
                 ),
             )
+            # Registrar precio en historial propio (un registro por día y tienda)
+            try:
+                fecha_hoy = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                asin_key  = p.asin or p.titulo[:40].lower()
+                con.execute(
+                    """INSERT OR REPLACE INTO price_history (asin, tienda, precio, precio_original, fecha)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (asin_key, p.tienda, p.precio_actual, p.precio_original, fecha_hoy),
+                )
+            except Exception as e:
+                print(f"   ⚠️  price_history insert error: {e}")
             con.commit()
 
     def limpiar_expirados(self):
