@@ -170,6 +170,11 @@ WORTEN_URLS = [
     "https://www.worten.es/informatica",
 ]
 
+# ── Barrabes — outlet general ordenado por % de descuento ────────
+BARRABES_URLS = [
+    "https://www.barrabes.com/outlet/outlet/o-269",   # outlet general, ordenado por descuento
+]
+
 # ── Mammoth Bikes — outlet pages ──────────────────────────────────
 MAMMOTH_URLS = [
     "https://www.mammothbikes.com/outlet/ultimas-unidades/o-2857",
@@ -1556,6 +1561,135 @@ async def scrape_mammoth(context: BrowserContext) -> list[Producto]:
     return productos
 
 
+async def scrape_barrabes(context: BrowserContext) -> list[Producto]:
+    """
+    Scraper de Barrabes.com — outlet de outdoor/montaña/ski ordenado por % descuento.
+    Barrabes usa HTML server-side (productos visibles sin JS pesado).
+    Selectores: a[href*="/product-"], precios "29,90 €", descuento "-63%".
+    Sin programa Awin confirmado → URLs directas hasta obtener BARRABES_AWIN_MID.
+    """
+    print(f"\n📡 Barrabes: {len(BARRABES_URLS)} URLs")
+    productos: list[Producto] = []
+    hrefs_vistos: set[str] = set()
+    page = await context.new_page()
+
+    try:
+        for url in BARRABES_URLS:
+            try:
+                ok = await _cargar_con_reintento(page, url, "Barrabes")
+                if not ok:
+                    continue
+
+                await page.wait_for_load_state("networkidle")
+                await asyncio.sleep(2)
+
+                items = await page.evaluate("""
+                    () => {
+                        const resultados = [];
+                        const vistos = new Set();
+                        document.querySelectorAll('a[href*="/product-"]').forEach(link => {
+                            const href = link.href;
+                            if (!href || vistos.has(href)) return;
+                            vistos.add(href);
+
+                            let el = link;
+                            for (let i = 0; i < 8; i++) {
+                                el = el.parentElement;
+                                if (!el) break;
+                                const txt = el.innerText || '';
+                                if (txt.includes('€') && txt.length < 700) {
+                                    // Preferir alt de imagen (suele tener el nombre completo del producto)
+                                    const img = el.querySelector('img[src*="cdn.barrabes"]')
+                                        || el.querySelector('img[alt]')
+                                        || el.querySelector('img');
+                                    const altTitulo = img ? (img.getAttribute('alt') || '') : '';
+                                    // Fallback: derivar del slug en la URL (p.ej. "the-north-face-chaqueta-resolve")
+                                    const partes = href.split('/');
+                                    const slug = partes.find(s => s.length > 12 && s.includes('-') && !s.startsWith('product-')) || '';
+                                    const slugTitulo = slug.replace(/-/g, ' ').trim();
+                                    const titulo = altTitulo || slugTitulo || link.innerText.trim().split('\\n')[0];
+                                    const imagen = img ? (img.getAttribute('src') || img.getAttribute('data-src') || '') : '';
+                                    resultados.push({ href, titulo: titulo.trim(), txt, imagen });
+                                    break;
+                                }
+                            }
+                        });
+                        return resultados;
+                    }
+                """)
+
+                print(f"   📦 {len(items)} productos en {url.split('/')[-2]}")
+
+                for item in items:
+                    try:
+                        href = item.get("href", "")
+                        if href in hrefs_vistos:
+                            continue
+                        hrefs_vistos.add(href)
+
+                        titulo = (item.get("titulo") or "").strip()
+                        txt    = item.get("txt", "")
+
+                        if not titulo or len(titulo) < 8:
+                            continue
+
+                        # Descuento: formato Barrabes es "-63%"
+                        m_desc = re.search(r'-\s*(\d+)\s*%', txt)
+                        descuento = int(m_desc.group(1)) if m_desc else 0
+
+                        # Precios en formato español: "29,90 €"
+                        precios_raw = re.findall(r'(\d[\d.]*,\d{2})\s*€', txt)
+                        if not precios_raw:
+                            continue
+                        nums = sorted(set(_parse_precio_es(p) for p in precios_raw))
+
+                        if len(nums) >= 2:
+                            precio_actual   = nums[0]
+                            precio_original = nums[-1]
+                        elif descuento > 0 and nums:
+                            precio_actual   = nums[0]
+                            precio_original = round(precio_actual / (1 - descuento / 100), 2)
+                        else:
+                            continue
+
+                        if descuento == 0 and precio_original > precio_actual > 0:
+                            descuento = round((1 - precio_actual / precio_original) * 100)
+
+                        if descuento < DESCUENTO_MINIMO:
+                            continue
+                        if not (PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO):
+                            continue
+                        if not _es_producto_valido(titulo, descuento):
+                            continue
+
+                        imagen = item.get("imagen", "")
+                        if imagen and imagen.startswith("data:"):
+                            imagen = ""
+
+                        productos.append(Producto(
+                            titulo=titulo[:120],
+                            asin=href,
+                            precio_actual=precio_actual,
+                            precio_original=precio_original,
+                            descuento_pct=descuento,
+                            tienda="Barrabes",
+                            imagen_url=imagen,
+                        ))
+                    except Exception:
+                        continue
+
+            except Exception as e:
+                print(f"   ⚠️ Error en {url}: {e}")
+                continue
+
+        print(f"   ✅ {len(productos)} ofertas de Barrabes ({len(BARRABES_URLS)} URLs)")
+    except Exception as e:
+        print(f"   ❌ Error Barrabes: {e}")
+    finally:
+        await page.close()
+    return productos
+
+
 async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     """Orquesta el scraping de todas las tiendas secuencialmente."""
     todos: list[Producto] = []
@@ -1570,6 +1704,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         scrape_worten,
         scrape_elcorteingles,
         scrape_mammoth,
+        scrape_barrabes,
         # scrape_privatesportshop,  # ❌ Cloudflare duro — pendiente solución feed
     ]
 

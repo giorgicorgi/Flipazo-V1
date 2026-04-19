@@ -38,7 +38,8 @@ MEDIAMARKT_AWIN_MID       = os.getenv("MEDIAMARKT_AWIN_MID", "6907")
 PCCOMPONENTES_AWIN_MID    = os.getenv("PCCOMPONENTES_AWIN_MID", "")
 ELCORTEINGLES_AWIN_MID    = os.getenv("ELCORTEINGLES_AWIN_MID", "")
 PRIVATESPORTSHOP_AWIN_MID = os.getenv("PRIVATESPORTSHOP_AWIN_MID", "")
-MAMMOTH_AWIN_MID          = os.getenv("MAMMOTH_AWIN_MID", "")  # programa Awin si se aprueba
+MAMMOTH_AWIN_MID          = os.getenv("MAMMOTH_AWIN_MID", "")   # programa Awin si se aprueba
+BARRABES_AWIN_MID         = os.getenv("BARRABES_AWIN_MID", "")  # pendiente confirmar programa Awin
 
 
 # ── Helpers internos ──────────────────────────────────────────────────────────
@@ -93,6 +94,10 @@ def build_affiliate_url(tienda: str, asin_or_url: str) -> str:
     if tienda == "Mammoth Bikes":
         # Si se configura MAMMOTH_AWIN_MID → deep link Awin; si no → URL directa
         return _awin_deep_link(MAMMOTH_AWIN_MID, asin_or_url)
+
+    if tienda == "Barrabes":
+        # Si se configura BARRABES_AWIN_MID → deep link Awin; si no → URL directa
+        return _awin_deep_link(BARRABES_AWIN_MID, asin_or_url)
 
     # Tienda desconocida → devolver URL directa (sin perder el deal)
     return asin_or_url
