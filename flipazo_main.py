@@ -34,17 +34,17 @@ REDIRECT_BASE_URL    = os.getenv("REDIRECT_BASE_URL", "https://flipazo.es")  # d
 TELEGRAM_ADMIN_CHAT_ID = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")  # chat personal para alertas de error
 
 # ── Umbrales Track A: ARBITRAJE (reventa) ────────────────────────
-DESCUENTO_MINIMO        = 40    # % mínimo
+DESCUENTO_MINIMO        = 37    # % mínimo (bajado de 40→37 para capturar deals como POC 39%)
 PRECIO_MINIMO           = 25.0  # € mínimo producto
 PRECIO_MAXIMO           = 800.0 # € máximo — permite PS5, MacBook, TV OLED, etc.
 SCORE_ARBITRAJE_MINIMO  = 60    # Score reventa mínimo para ir a Wallapop
 BENEFICIO_NETO_MINIMO   = 20.0  # € margen neto real mínimo para publicar
-RATIO_HISTORICO_MAX     = 1.15  # Precio actual <= 115% del mínimo histórico CCC
+RATIO_HISTORICO_MAX     = 1.20  # Precio actual <= 120% del mínimo histórico CCC (era 1.15)
 RATIO_PRECIO_REF_INFLADO = 1.25 # Si precio_original > 125% del promedio histórico → referencia inflada artificialmente
 
 # ── Umbrales Track B: OFERTA PURA (sin reventa) ──────────────────
 SCORE_OFERTA_MINIMO     = 58    # Score calidad/valor mínimo
-DESCUENTO_OFERTA_MINIMO = 40    # % mínimo para ofertas puras
+DESCUENTO_OFERTA_MINIMO = 37    # % mínimo para ofertas puras (sincronizado con DESCUENTO_MINIMO)
 
 # ── Pipeline ─────────────────────────────────────────────────────
 BATCH_SIZE_CLAUDE       = 15    # Productos por llamada a la API
@@ -207,24 +207,69 @@ PALABRAS_PROHIBIDAS = [
     "ambientador", "bayeta", "fregona",
     # Papelería
     "bolígrafo", "rotulador", "agenda", "cuaderno", "carpeta", "archivador",
-    # Textil básico y ropa sin valor de reventa
+    # Textil básico sin valor de reventa (independientemente de la marca)
     "calcetines", "ropa interior", "boxer", "calzoncillo", "pijama",
     "sábanas", "toalla", "almohada",
     "vaquero", "vaqueros", "jeans", "jean", "pantalón", "pantalones",
-    "camiseta", "camisetas", "camisa", "camisas", "polo", "polos",
-    "jersey", "jerseys", "sudadera", "sudaderas", "hoodie",
-    "chaqueta", "chaquetas", "abrigo", "abrigos", "anorak",
-    "vestido", "vestidos", "falda", "faldas", "blusa", "blusas",
     "leggins", "leggings", "mallas", "medias", "bragas",
+    # NOTA: camiseta, sudadera, chaqueta, polo, etc. se filtran en _es_producto_valido
+    # con lógica contextual (marca conocida + descuento ≥50% los permite)
     # Zapatillas de gama baja (modelos básicos sin valor de reventa)
     "tanjun", "revolution", "quest ", "court vision", "downshifter",
     "cloudfoam", "lite racer", "run 60s", "run 70s", "grand court",
     "response", "duramo", "breaknet",
     # Libros y medios físicos
     "libro", " novela ", "manual de", "guía de", "dvd", "blu-ray",
-    # Multipacks genéricos
-    "pack de", "kit de", "set de", "lote de", "caja de",
+    # Multipacks genéricos (no bloquear si incluye marca de herramienta: "Kit Makita 18V")
+    "lote de", "caja de",
 ]
+
+# Recambios y componentes de bicicleta — bloqueados solo para Mammoth Bikes
+# (términos demasiado especializados; no aplica globalmente porque en otros contextos
+# "cassette" puede ser electrónica, "freno" puede ser pieza de coche, etc.)
+MAMMOTH_COMPONENTES = frozenset([
+    "piñón", "piñones", "biela", "bielas", "cassette",
+    "desviador", "kit freno", "freno disco", "pastilla de freno",
+    "horquilla", "cuadro ", "pedalier", "rodamiento",
+    "cadena shimano", "cadena sram", "cadena kmc",
+    "sillín", "manillar", "buje", "bujes",
+    "cable de freno", "cable de cambio",
+    "plato shimano", "plato sram",
+])
+
+# Regex para desviadores/cambios: "Cambio Shimano 105 Trasero" — las palabras no son adyacentes
+_CAMBIO_RE = re.compile(
+    r'\bcambio\b.*\b(shimano|sram|campagnolo|campag|microshift|deore|ultegra|dura.?ace|105|apex|rival|force|red)\b'
+    r'|\b(shimano|sram|campagnolo)\b.*\bcambio\b',
+    re.IGNORECASE
+)
+
+# Ropa y calzado de ciclismo de Mammoth — solo si descuento ≥50%
+_MAMMOTH_ROPA = frozenset(["maillot", "culote", "maillots", "culotes"])
+_MAMMOTH_CALZADO_CICLO = frozenset([
+    "zapatillas giro", "zapatillas shimano", "zapatillas sidi",
+    "zapatillas fizik", "zapatillas northwave", "zapatillas bontrager",
+    "zapatillas specialized", "zapatillas gaerne", "zapatillas bont",
+    "zapatillas scott", "zapatillas lake",
+])
+
+
+def _mammoth_es_valido(titulo: str, descuento: int) -> bool:
+    """Filtros específicos para Mammoth Bikes: bloquea recambios y requiere ≥50% para ropa."""
+    t = titulo.lower()
+    if any(c in t for c in MAMMOTH_COMPONENTES):
+        return False
+    if _CAMBIO_RE.search(titulo):
+        return False
+    if any(r in t for r in _MAMMOTH_ROPA) and descuento < 50:
+        return False
+    if any(z in t for z in _MAMMOTH_CALZADO_CICLO) and descuento < 50:
+        return False
+    # Zapatillas genéricas en Mammoth son siempre de ciclismo → umbral 50%
+    if "zapatillas" in t and descuento < 50:
+        return False
+    return True
+
 
 # ── Modelo de datos ──────────────────────────────────────────────
 @dataclass
@@ -558,7 +603,7 @@ async def _extraer_de_busqueda(page: Page, vistos: set) -> list[Producto]:
                     if len(titulo) > 10:
                         break
 
-            if not titulo or not _es_producto_valido(titulo):
+            if not titulo or not _es_producto_valido(titulo, descuento):
                 continue
 
             # Imagen del producto — Amazon usa lazy loading, probar src, data-src y srcset
@@ -661,7 +706,7 @@ async def _extraer_de_deals(page: Page, vistos: set) -> list[Producto]:
                 (t.strip() for t in texto.split('\n') if len(t.strip()) > 20),
                 ""
             )
-            if not titulo or not _es_producto_valido(titulo):
+            if not titulo or not _es_producto_valido(titulo, descuento):
                 continue
 
             vistos.add(asin)
@@ -686,12 +731,35 @@ _TALLA_RE = re.compile(
     re.IGNORECASE
 )
 
-def _es_producto_valido(titulo: str) -> bool:
+# Prendas de ropa/moda: se permiten solo si hay marca conocida + descuento ≥50%
+_PALABRAS_ROPA = frozenset([
+    "camiseta", "camisetas", "camisa", "camisas",
+    "polo", "polos", "jersey", "jerseys",
+    "sudadera", "sudaderas", "hoodie",
+    "chaqueta", "chaquetas", "abrigo", "abrigos", "anorak",
+    "vestido", "vestidos", "falda", "faldas", "blusa", "blusas",
+])
+
+# Marcas con valor real en ropa/moda (usadas solo en el filtro de ropa)
+_MARCAS_ROPA = frozenset([
+    "nike", "adidas", "jordan", "new balance", "asics", "puma", "reebok",
+    "north face", "columbia", "patagonia", "helly hansen", "timberland",
+    "lacoste", "ralph lauren", "tommy", "calvin klein", "armani",
+    "stone island", "burberry", "levi", "salomon", "gore",
+    "castelli", "sportful", "rapha", "poc", "oakley",
+])
+
+
+def _es_producto_valido(titulo: str, descuento_pct: int = 0) -> bool:
     t = titulo.lower()
     if any(p in t for p in PALABRAS_PROHIBIDAS):
         return False
     if _TALLA_RE.search(titulo):
         return False
+    # Ropa de moda/deporte: solo si marca conocida + descuento real ≥50%
+    if any(r in t for r in _PALABRAS_ROPA):
+        if descuento_pct < 50 or not any(m in t for m in _MARCAS_ROPA):
+            return False
     return True
 
 
@@ -1424,7 +1492,7 @@ async def scrape_mammoth(context: BrowserContext) -> list[Producto]:
                         titulo = (item.get("titulo") or "").strip()
                         txt    = item.get("txt", "")
 
-                        if not titulo or len(titulo) < 8 or not _es_producto_valido(titulo):
+                        if not titulo or len(titulo) < 8:
                             continue
 
                         # Descuento explícito en la card (más fiable que calcular)
@@ -1452,6 +1520,12 @@ async def scrape_mammoth(context: BrowserContext) -> list[Producto]:
                         if descuento < DESCUENTO_MINIMO:
                             continue
                         if not (PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO_BICI):
+                            continue
+
+                        # Filtros generales + específicos de Mammoth (ya tenemos descuento)
+                        if not _es_producto_valido(titulo, descuento):
+                            continue
+                        if not _mammoth_es_valido(titulo, descuento):
                             continue
 
                         imagen = item.get("imagen", "")
@@ -1666,6 +1740,13 @@ _MARCAS_CONOCIDAS = {
     "hp", "dell", "lenovo", "asus", "acer", "microsoft",
     "logitech", "razer", "corsair", "steelseries",
     "g-shock", "casio", "seiko", "citizen", "timex",
+    # Deportes outdoor / ciclismo / ski
+    "oakley", "poc", "giro", "scott", "salomon", "uvex",
+    "specialized", "orbea", "trek", "giant", "conor", "bh", "cannondale", "canyon",
+    "columbia", "helly hansen", "timberland", "patagonia",
+    "wahoo", "suunto", "coros",
+    # Moda premium adicional
+    "ralph lauren", "tommy hilfiger", "stone island", "burberry",
 }
 
 # Marcas con mercado real de segunda mano en Wallapop/eBay.es → candidatas a ARBITRAJE
@@ -1791,6 +1872,8 @@ def _score_local(p: "Producto") -> int:
         score += 15
     elif p.precio_actual <= 600:
         score += 8
+    elif p.precio_actual <= 4000:
+        score += 5  # bicicletas, eBikes y productos premium de precio alto
 
     # Historial de precio CCC (hasta 15 pts, penalización si inflado)
     if p.precio_historico_min > 0:
