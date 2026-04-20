@@ -68,12 +68,12 @@ WALLAPOP_COSTES_FIJOS   = WALLAPOP_ENVIO + WALLAPOP_EMBALAJE  # 7€
 
 # ── URLs de categorías con mayor potencial de reventa ────────────
 AMAZON_SEARCH_URLS = [
-    # Electrónica general — filtro directo ≥40% off + popularidad
-    "https://www.amazon.es/s?i=electronics&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Informática
-    "https://www.amazon.es/s?i=computers&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # Electrónica general — Samsung, LG, Sony, Xiaomi (keyword requerido para ≥40% filter)
+    "https://www.amazon.es/s?i=electronics&k=samsung+lg+sony+xiaomi+philips+panasonic&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # Informática — portátiles y accesorios de marca
+    "https://www.amazon.es/s?i=computers&k=lenovo+hp+dell+asus+acer+microsoft+surface&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Videojuegos y consolas
-    "https://www.amazon.es/s?i=videogames&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=videogames&k=nintendo+switch+playstation+xbox+ps5+juego&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Zapatillas de marca — alta reventa (Nike, Adidas, New Balance, Jordan)
     "https://www.amazon.es/s?i=shoes&k=jordan+nike+air+max+adidas+ultraboost+new+balance+990+550+asics+gel&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Perfumes — alta reventa y liquidez
@@ -83,19 +83,19 @@ AMAZON_SEARCH_URLS = [
     # Herramientas de marca premium (Bosch, DeWalt, Makita, Milwaukee)
     "https://www.amazon.es/s?i=diy&k=bosch+dewalt+makita+milwaukee+karcher+stanley&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Auriculares premium y gaming (AirPods, Sony, Bose, HyperX, JBL, Jabra)
-    "https://www.amazon.es/s?k=airpods+sony+wh-1000+bose+quietcomfort+hyperx+jbl+jabra&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Relojes de marca
-    "https://www.amazon.es/s?i=watches&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=electronics&k=airpods+sony+wh-1000+bose+quietcomfort+hyperx+jbl+jabra+sennheiser&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # Relojes de marca — Casio, Seiko, G-Shock, Citizen, Fossil
+    "https://www.amazon.es/s?i=watches&k=casio+seiko+g-shock+citizen+fossil+garmin+polar&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Electrodomésticos de cocina (Nespresso, DeLonghi, Tefal, Kenwood)
-    "https://www.amazon.es/s?i=kitchen&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Hogar y pequeño electrodoméstico
-    "https://www.amazon.es/s?i=appliances&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    "https://www.amazon.es/s?i=kitchen&k=nespresso+delonghi+kenwood+kitchenaid+krups&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # Hogar y electrodomésticos grandes (Dyson, Samsung, LG, Bosch)
+    "https://www.amazon.es/s?i=appliances&k=dyson+samsung+lg+bosch+siemens+whirlpool&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Juguetes (Playmobil, Hasbro, Mattel)
     "https://www.amazon.es/s?i=toys&k=playmobil+hasbro+mattel+hot+wheels&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Cámaras y fotografía
-    "https://www.amazon.es/s?i=photo&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Deporte y fitness
-    "https://www.amazon.es/s?i=sports&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # Cámaras y fotografía — Canon, Nikon, Sony, GoPro
+    "https://www.amazon.es/s?i=photo&k=canon+nikon+sony+gopro+fujifilm+olympus&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # Deporte y fitness — Garmin, Fitbit, Polar, relojes deportivos
+    "https://www.amazon.es/s?i=sports&k=garmin+fitbit+polar+xiaomi+amazfit+suunto&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Salud y cuidado personal — afeitadoras Braun/Philips, cepillos Oral-B, depiladores
     "https://www.amazon.es/s?i=hpc&k=braun+philips+oral-b+remington+wahl+panasonic&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Pequeño electrodoméstico — aspiradoras, planchas, freidoras
@@ -882,7 +882,11 @@ async def scrape_mediamarkt(context: BrowserContext) -> list[Producto]:
                     }
                 """)
 
-                print(f"   📦 {len(items)} productos en {url.split('/')[-1]}")
+                if len(items) == 0:
+                    titulo_pag = await page.title()
+                    print(f"   📦 0 productos en {url.split('/')[-1]} (título pág: '{titulo_pag[:80]}')")
+                else:
+                    print(f"   📦 {len(items)} productos en {url.split('/')[-1]}")
 
                 for item in items:
                     try:
@@ -1019,7 +1023,11 @@ async def scrape_pccomponentes(context: BrowserContext) -> list[Producto]:
                     }
                 """)
 
-                print(f"   📦 {len(items)} productos en {url.split('/')[-1]}")
+                if len(items) == 0:
+                    titulo_pag = await page.title()
+                    print(f"   📦 0 productos en {url.split('/')[-1]} (título pág: '{titulo_pag[:80]}')")
+                else:
+                    print(f"   📦 {len(items)} productos en {url.split('/')[-1]}")
 
                 for item in items:
                     try:
@@ -1132,7 +1140,12 @@ async def _scrape_tienda_generica(
                     }}
                 """)
 
-                print(f"   📦 {len(items)} productos en {url.split('/')[-1] or url.split('/')[-2]}")
+                slug_url = url.split('/')[-1] or url.split('/')[-2]
+                if len(items) == 0:
+                    titulo_pag = await page.title()
+                    print(f"   📦 0 productos en {slug_url} (título pág: '{titulo_pag[:80]}')")
+                else:
+                    print(f"   📦 {len(items)} productos en {slug_url}")
 
                 for item in items:
                     try:
@@ -2155,7 +2168,7 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
             try:
                 response = client.messages.create(
                     model="claude-haiku-4-5-20251001",
-                    max_tokens=2048,
+                    max_tokens=8192,
                     messages=[{
                         "role": "user",
                         "content": PROMPT_SCORING.format(
