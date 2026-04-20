@@ -1107,7 +1107,7 @@
       .sort-tabs { margin-top: 8px; }
       .sort-tab { padding: 9px 14px; font-size: 9px; letter-spacing: 0.12em; }
       .hero { padding: 24px 18px; }
-      .hero__body { flex-direction: column-reverse; gap: 20px; }
+      .hero__body { flex-direction: column; gap: 20px; }
       .hero__img-link { width: 100%; min-height: 180px; }
       .zoom-control { display: none; }
       .scroll-btns { bottom: 16px; right: 16px; }
@@ -1693,6 +1693,10 @@
       return `
         <span class="hero__label">⭐ Oferta del Día · ${d.tienda || ""}</span>
         <div class="hero__body">
+          ${d.imagen_url ? `
+            <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="hero__img-link">
+              <img src="${d.imagen_url}" alt="${d.titulo || ""}" class="hero__img" loading="eager" />
+            </a>` : ""}
           <div class="hero__text">
             <a href="${buyUrl}" target="_blank" rel="noopener sponsored" style="text-decoration:none">
               <h2 class="hero__title">${d.titulo || ""}</h2>
@@ -1710,10 +1714,6 @@
                 : ""}
             </div>
           </div>
-          ${d.imagen_url ? `
-            <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="hero__img-link">
-              <img src="${d.imagen_url}" alt="${d.titulo || ""}" class="hero__img" loading="eager" />
-            </a>` : ""}
         </div>`;
     }
 
