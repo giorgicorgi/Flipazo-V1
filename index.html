@@ -137,7 +137,7 @@
     /* ── Grid ───────────────────────────────────────────────────── */
     .deals-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      grid-template-columns: repeat(var(--grid-cols, 3), 1fr);
       gap: 0;
       padding: 0 40px;
     }
@@ -160,9 +160,6 @@
       position: relative;
       z-index: 1;
     }
-
-    /* Remove right border on last in row — handled via nth */
-    .deals-grid .deal:nth-child(3n) { border-right: none; }
 
     /* ── Badge (overlay esquina imagen) ────────────────────────── */
     .deal__badge {
@@ -692,16 +689,33 @@
 
     /* ── Hero section ───────────────────────────────────────────── */
     .hero {
-      display: grid;
-      grid-template-columns: 1fr 300px;
       border-bottom: 2px solid var(--rule);
-    }
-    .hero__left {
       padding: 36px 40px;
-      border-right: 1.5px solid var(--rule);
     }
-    .hero__right { padding: 20px 28px; }
-    .hero__label, .hero__right-label {
+    .hero__body {
+      display: flex;
+      gap: 48px;
+      align-items: flex-start;
+    }
+    .hero__text { flex: 1; min-width: 0; }
+    .hero__img-link {
+      flex-shrink: 0;
+      width: 260px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      align-self: stretch;
+      min-height: 220px;
+    }
+    .hero__img {
+      width: 100%;
+      height: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+    }
+    .hero__label {
       font-family: var(--mono);
       font-size: 9px;
       font-weight: 700;
@@ -713,7 +727,6 @@
       margin-bottom: 20px;
       display: block;
     }
-    .hero__right-label { margin-bottom: 0; }
     .hero__title {
       font-family: var(--serif);
       font-weight: 900;
@@ -999,6 +1012,89 @@
     .view-btn.active { background: var(--ink); border-color: var(--ink); color: #fff; }
     .view-btn svg { width: 14px; height: 14px; display: block; }
 
+    /* ── Zoom control ───────────────────────────────────────────── */
+    .zoom-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .zoom-icon {
+      font-family: var(--mono);
+      font-size: 16px;
+      line-height: 1;
+      color: var(--ink-light);
+      cursor: pointer;
+      user-select: none;
+      padding: 2px 4px;
+      transition: color 0.12s;
+    }
+    .zoom-icon:hover { color: var(--ink); }
+    .zoom-slider {
+      -webkit-appearance: none;
+      width: 80px;
+      height: 2px;
+      background: #ccc;
+      outline: none;
+      cursor: pointer;
+      border-radius: 1px;
+    }
+    .zoom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px;
+      height: 13px;
+      background: var(--ink);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .zoom-slider::-moz-range-thumb {
+      width: 13px;
+      height: 13px;
+      background: var(--ink);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    /* ── Scroll buttons ─────────────────────────────────────────── */
+    .scroll-btns {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 150;
+    }
+    .scroll-btn {
+      width: 40px;
+      height: 40px;
+      background: var(--ink);
+      color: var(--bg);
+      border: none;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, opacity 0.2s, transform 0.2s;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+    }
+    .scroll-btn:hover { background: #333; }
+    #js-btn-top {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(6px);
+    }
+    #js-btn-top.visible {
+      opacity: 0.9;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    #js-btn-bottom { opacity: 0.9; }
+    #js-btn-bottom:hover { opacity: 1; }
+
     /* ── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 700px) {
       .masthead, .section-header, .footer { padding-left: 18px; padding-right: 18px; }
@@ -1010,9 +1106,12 @@
       .cat-bar { padding: 10px 18px; }
       .sort-tabs { margin-top: 8px; }
       .sort-tab { padding: 9px 14px; font-size: 9px; letter-spacing: 0.12em; }
-      .hero { grid-template-columns: 1fr; }
-      .hero__left { padding: 24px 18px; border-right: none; border-bottom: 1.5px solid var(--rule); }
-      .hero__right { padding: 16px 18px; }
+      .hero { padding: 24px 18px; }
+      .hero__body { flex-direction: column-reverse; gap: 20px; }
+      .hero__img-link { width: 100%; min-height: 180px; }
+      .zoom-control { display: none; }
+      .scroll-btns { bottom: 16px; right: 16px; }
+      .scroll-btn { width: 36px; height: 36px; font-size: 15px; }
       .search-bar { padding: 0 18px; }
       .search-result { padding: 10px 18px; }
       .search-empty { padding: 14px 18px; }
@@ -1119,14 +1218,8 @@
 
   <!-- ── HERO SECTION ──────────────────────────────────────────── -->
   <section class="hero" id="js-hero" style="display:none" aria-label="Oferta destacada">
-    <div class="hero__left" id="js-hero-main">
+    <div id="js-hero-main">
       <!-- Populated by JS -->
-    </div>
-    <div class="hero__right">
-      <span class="hero__right-label">También Destacados</span>
-      <div id="js-hero-sidebar">
-        <!-- Populated by JS -->
-      </div>
     </div>
   </section>
 
@@ -1135,6 +1228,12 @@
     <span class="section-header__title" id="js-section-title">Clasificados</span>
     <hr class="section-header__line" />
     <span class="section-header__count" id="js-count">Cargando…</span>
+    <!-- Zoom slider — desktop -->
+    <div class="zoom-control" id="js-zoom-control" title="Zoom del grid">
+      <span class="zoom-icon" onclick="adjustZoom(-1)" aria-label="Menos columnas">−</span>
+      <input type="range" id="js-zoom-slider" min="1" max="6" value="3" step="1" class="zoom-slider" aria-label="Zoom del grid" />
+      <span class="zoom-icon" onclick="adjustZoom(1)" aria-label="Más columnas">+</span>
+    </div>
     <!-- Visible solo en mobile -->
     <div class="view-toggle" id="js-view-toggle" aria-label="Cambiar vista">
       <button class="view-btn active" id="js-mosaic-btn" onclick="setMobileView('mosaic')" aria-label="Vista mosaico" title="Vista mosaico">
@@ -1206,6 +1305,12 @@
     </p>
     <p class="footer__copy">© 2025 Flipazo · Barcelona, España · Precios sujetos a cambio sin previo aviso</p>
   </footer>
+
+  <!-- ── SCROLL BUTTONS ───────────────────────────────────────── -->
+  <div class="scroll-btns" role="group" aria-label="Navegación rápida">
+    <button class="scroll-btn" id="js-btn-top" onclick="scrollToTop()" title="Ir al principio" aria-label="Ir al principio">↑</button>
+    <button class="scroll-btn" id="js-btn-bottom" onclick="scrollToBottom()" title="Ir al pie de página" aria-label="Ir al pie de página">↓</button>
+  </div>
 
   <!-- ── COOKIE BANNER ─────────────────────────────────────────── -->
   <div id="cookie-banner" class="hidden" role="dialog" aria-label="Aviso de cookies">
@@ -1587,20 +1692,28 @@
       const isReventa = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
       return `
         <span class="hero__label">⭐ Oferta del Día · ${d.tienda || ""}</span>
-        <a href="${buyUrl}" target="_blank" rel="noopener sponsored" style="text-decoration:none">
-          <h2 class="hero__title">${d.titulo || ""}</h2>
-        </a>
-        ${d.razonamiento ? `<p class="hero__reason">"${d.razonamiento}"</p>` : ""}
-        <div class="hero__price-row">
-          ${d.precio_original > 0 ? `<span class="hero__original">${fmtPrice(d.precio_original)}</span>` : ""}
-          <span class="hero__price">${fmtPrice(d.precio_actual || 0)}</span>
-          ${d.descuento_pct > 0 ? `<span class="hero__pct">−${d.descuento_pct}%</span>` : ""}
-        </div>
-        <div class="hero__cta">
-          <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Comprar →</a>
-          ${isReventa && d.precio_wallapop > 0
-            ? `<a href="${wallapopUrl}" target="_blank" rel="noopener" class="btn btn--secondary">Ver en Wallapop →</a>`
-            : ""}
+        <div class="hero__body">
+          <div class="hero__text">
+            <a href="${buyUrl}" target="_blank" rel="noopener sponsored" style="text-decoration:none">
+              <h2 class="hero__title">${d.titulo || ""}</h2>
+            </a>
+            ${d.razonamiento ? `<p class="hero__reason">"${d.razonamiento}"</p>` : ""}
+            <div class="hero__price-row">
+              ${d.precio_original > 0 ? `<span class="hero__original">${fmtPrice(d.precio_original)}</span>` : ""}
+              <span class="hero__price">${fmtPrice(d.precio_actual || 0)}</span>
+              ${d.descuento_pct > 0 ? `<span class="hero__pct">−${d.descuento_pct}%</span>` : ""}
+            </div>
+            <div class="hero__cta">
+              <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Comprar →</a>
+              ${isReventa && d.precio_wallapop > 0
+                ? `<a href="${wallapopUrl}" target="_blank" rel="noopener" class="btn btn--secondary">Ver en Wallapop →</a>`
+                : ""}
+            </div>
+          </div>
+          ${d.imagen_url ? `
+            <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="hero__img-link">
+              <img src="${d.imagen_url}" alt="${d.titulo || ""}" class="hero__img" loading="eager" />
+            </a>` : ""}
         </div>`;
     }
 
@@ -1631,8 +1744,6 @@
       }
       heroMode = true;
       document.getElementById("js-hero-main").innerHTML = buildHeroMain(allDeals[0]);
-      document.getElementById("js-hero-sidebar").innerHTML =
-        allDeals.slice(1, 3).map(buildSidebarCard).join("");
       hero.style.display = "";
     }
 
@@ -2046,10 +2157,56 @@
       });
     })();
 
+    // ── Zoom ────────────────────────────────────────────────────
+    let _zoomStyleSheet = null;
+
+    function applyZoom(val) {
+      document.documentElement.style.setProperty("--grid-cols", val);
+      // Actualizar nth-child dinámico para el borde derecho
+      if (!_zoomStyleSheet) {
+        const s = document.createElement("style");
+        s.id = "zoom-nth-style";
+        document.head.appendChild(s);
+        _zoomStyleSheet = s;
+      }
+      _zoomStyleSheet.textContent = `.deals-grid .deal:nth-child(${val}n) { border-right: none; }`;
+      try { localStorage.setItem("flipazo_zoom", String(val)); } catch {}
+    }
+
+    function adjustZoom(delta) {
+      const slider = document.getElementById("js-zoom-slider");
+      const newVal = Math.min(6, Math.max(1, parseInt(slider.value) + delta));
+      slider.value = newVal;
+      applyZoom(newVal);
+    }
+
+    function initZoom() {
+      const slider = document.getElementById("js-zoom-slider");
+      const saved = (() => { try { return localStorage.getItem("flipazo_zoom") || "3"; } catch { return "3"; } })();
+      slider.value = saved;
+      applyZoom(parseInt(saved));
+      slider.addEventListener("input", () => applyZoom(parseInt(slider.value)));
+    }
+
+    // ── Scroll buttons ───────────────────────────────────────────
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function scrollToBottom() {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
+
+    window.addEventListener("scroll", () => {
+      const btn = document.getElementById("js-btn-top");
+      if (window.scrollY > 320) btn.classList.add("visible");
+      else btn.classList.remove("visible");
+    }, { passive: true });
+
     // ── Init ─────────────────────────────────────────────────────
     setDate();
     buildCatBar();
     buildSortTabs();
+    initZoom();
     loadMore();
 
     // Vista mosaico por defecto en mobile
