@@ -170,9 +170,10 @@ WORTEN_URLS = [
     "https://www.worten.es/informatica",
 ]
 
-# ── Barrabes — outlet general ordenado por % de descuento ────────
+# ── Barrabes — outlet de montaña/esquí/trail/escalada ────────────
 BARRABES_URLS = [
-    "https://www.barrabes.com/outlet/outlet/o-269",   # outlet general, ordenado por descuento
+    "https://www.barrabes.com/outlet/outlet/o-269",        # outlet general (~427 productos)
+    "https://www.barrabes.com/outlet/ultimas-tallas/o-518", # últimas tallas (~75 productos, hasta 80% off)
 ]
 
 # ── Mammoth Bikes — outlet pages ──────────────────────────────────
@@ -249,7 +250,7 @@ _CAMBIO_RE = re.compile(
     re.IGNORECASE
 )
 
-# Ropa y calzado de ciclismo de Mammoth — solo si descuento ≥50%
+# Ropa y calzado de ciclismo de Mammoth — solo si descuento ≥55%
 _MAMMOTH_ROPA = frozenset(["maillot", "culote", "maillots", "culotes"])
 _MAMMOTH_CALZADO_CICLO = frozenset([
     "zapatillas giro", "zapatillas shimano", "zapatillas sidi",
@@ -260,18 +261,18 @@ _MAMMOTH_CALZADO_CICLO = frozenset([
 
 
 def _mammoth_es_valido(titulo: str, descuento: int) -> bool:
-    """Filtros específicos para Mammoth Bikes: bloquea recambios y requiere ≥50% para ropa."""
+    """Filtros específicos para Mammoth Bikes: bloquea recambios y requiere ≥55% para ropa."""
     t = titulo.lower()
     if any(c in t for c in MAMMOTH_COMPONENTES):
         return False
     if _CAMBIO_RE.search(titulo):
         return False
-    if any(r in t for r in _MAMMOTH_ROPA) and descuento < 50:
+    if any(r in t for r in _MAMMOTH_ROPA) and descuento < 55:
         return False
-    if any(z in t for z in _MAMMOTH_CALZADO_CICLO) and descuento < 50:
+    if any(z in t for z in _MAMMOTH_CALZADO_CICLO) and descuento < 55:
         return False
-    # Zapatillas genéricas en Mammoth son siempre de ciclismo → umbral 50%
-    if "zapatillas" in t and descuento < 50:
+    # Zapatillas genéricas en Mammoth son siempre de ciclismo → umbral 55%
+    if "zapatillas" in t and descuento < 55:
         return False
     return True
 
@@ -752,6 +753,12 @@ _MARCAS_ROPA = frozenset([
     "lacoste", "ralph lauren", "tommy", "calvin klein", "armani",
     "stone island", "burberry", "levi", "salomon", "gore",
     "castelli", "sportful", "rapha", "poc", "oakley",
+    # Outdoor / montaña / escalada (Barrabes, Mammoth)
+    "mammut", "black diamond", "mountain equipment", "arc'teryx", "arcteryx",
+    "rab", "millet", "haglofs", "haglöfs", "fjallraven", "fjällräven",
+    "scarpa", "salewa", "la sportiva", "ternua", "trangoworld",
+    "norrona", "norrøna", "icebreaker", "sherpa", "compressport",
+    "dynafit", "ortovox", "montura", "karpos",
 ])
 
 
@@ -1893,6 +1900,11 @@ _MARCAS_CONOCIDAS = {
     "specialized", "orbea", "trek", "giant", "conor", "bh", "cannondale", "canyon",
     "columbia", "helly hansen", "timberland", "patagonia",
     "wahoo", "suunto", "coros",
+    # Outdoor / montaña / escalada (Barrabes)
+    "mammut", "black diamond", "mountain equipment", "arc'teryx", "arcteryx",
+    "rab", "millet", "haglofs", "haglöfs", "fjallraven", "fjällräven",
+    "scarpa", "salewa", "la sportiva", "ternua", "trangoworld",
+    "norrona", "icebreaker", "compressport", "dynafit", "ortovox",
     # Moda premium adicional
     "ralph lauren", "tommy hilfiger", "stone island", "burberry",
 }
