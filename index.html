@@ -1671,7 +1671,12 @@
         return [...deals].sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0));
       }
       if (activeSort === "votados") {
-        return [...deals].sort((a, b) => (b.votes_up || 0) - (a.votes_up || 0));
+        return [...deals].sort((a, b) => {
+          const voteDiff = (b.votes_up || 0) - (a.votes_up || 0);
+          if (voteDiff !== 0) return voteDiff;
+          // Desempate: más recientes primero (deals antiguos suelen estar agotados)
+          return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+        });
       }
       if (activeSort === "reventa") {
         return deals.filter(d => d.tipo === "REVENTA" || d.tipo === "ARBITRAJE");
@@ -1784,6 +1789,18 @@
 
       votes[dealId] = direction;
       _saveUserVotes(votes);
+
+      // Actualizar allDeals en memoria para que el sort "Más Votados" refleje el voto
+      const deal = allDeals.find(d => String(d.id) === String(dealId));
+      if (deal) {
+        if (direction === "up") {
+          deal.votes_up = (deal.votes_up || 0) + 1;
+          if (prev === "down") deal.votes_down = Math.max(0, (deal.votes_down || 0) - 1);
+        } else {
+          deal.votes_down = (deal.votes_down || 0) + 1;
+          if (prev === "up") deal.votes_up = Math.max(0, (deal.votes_up || 0) - 1);
+        }
+      }
 
       // Persistir en servidor (best-effort, no bloquea UI)
       if (!USE_MOCK) {
