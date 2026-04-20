@@ -1402,31 +1402,38 @@
     }
 
     // ── Categories ──────────────────────────────────────────────
+    // NOTA: calzado va antes que deportes — las zapatillas (incluidas las deportivas
+    // y de ciclismo) se clasifican como calzado incluso si el servidor dijo "deportes".
+    // dealMatchesCategory usa lógica OR: server-categoria OR regex cliente.
+    const _RX = {
+      calzado:      /zapatilla|zapato|deportiva\b|\bbota\b|sandalia\b|mocas[ií]n|sneaker|calzado\b|\bnike\b|\badidas\b|\bpuma\b|reebok|new balance|asics|\bjordan\b|air max|ultraboost|salomon\b|hoka\b|on running|saucony\b|brooks\b|mizuno\b|skechers\b|converse\b|\bvans\b/i,
+      tecnologia:   /smartphone|m[oó]vil|iphone|galaxy\b|tablet|ipad|port[aá]til|laptop|macbook|pc gaming|monitor\b|televisor|\btv\b|oled|qled|auricular|cascos|airpods|wh-?1000|bose\b|kindle|c[aá]mara\b|gopro|smartwatch|consola\b|ps5|playstation|xbox|nintendo|switch\b|ssd|disco duro|\bram\b|gpu|rtx|procesador|impresora|router|logitech|razer|corsair|steelseries|hyperx|teclado\b|rat[oó]n\b|altavoz.*bluetooth|echo dot|google home|chromecast|power\s*bank|bater[ií]a.*externa/i,
+      herramientas: /taladro|sierra\b|destornillador|amoladora|lijadora|compresor|k[aä]rcher|dewalt|makita|milwaukee|stanley\b|ryobi\b|bahco\b|nivel.*l[aá]ser|mult[ií]metro|flex[oó]metro|llave inglesa|alicate|bosch.*(taladro|sierra|amoladora|compresor|atornillador)/i,
+      deportes:     /running\b|trail\b|fitness\b|gimnasio|mancuerna|kettlebell|\bpesas\b|nataci[oó]n|swim\b|f[uú]tbol|bal[oó]n|raqueta|p[aá]del|esqu[ií]|snowboard|surf\b|garmin|polar\b|fitbit|under armour|\bgiro\b|shimano|alpinestars|ciclismo|mountain bike|\bmtb\b|gravel\b|bicicleta|\bbici\b|sill[ií]n|escalada|senderismo\b/i,
+      hogar:        /cafetera|nespresso|delonghi|dolce.?gusto|sage\b|breville\b|krups\b|jura\b|aspirador|robot.?aspirador|roomba|irobot|roborock|lefant|dreame|ecovacs|eufy\b|freidora|airfryer|air.?fryer|microondas|lavadora|lavavajillas|frigor[ií]fico|nevera|secadora\b|\bhorno\b|plancha\b|plancha.*vapor|vaporeta|vaporizador|cepillo.*vapor|vapor.*cepillo|campana\b|campana.*extract|extractor.*humos|\bteka\b|batidora|thermomix|olla.*presi[oó]n|robot.*cocina|dyson|rowenta|tefal|cecotec|shark\b|bissell\b|kenwood\b|magimix\b|calefactor|aire.*acondicionado|ventilador\b|purificador|humidificador|deshumidificador|inducci[oó]n\b|vitrocer[aá]mic|colch[oó]n|l[aá]mpara\b|sill[oó]n\b|sof[aá]\b|escritorio\b|estanter[ií]a/i,
+      belleza:      /perfume|eau de parfum|eau de toilette|\bcolonia\b|crema\b|s[eé]rum\b|maquillaje|labial|\bdior\b|\bchanel\b|\barmani\b|ysl\b|calvin klein|hugo boss|lanc[oô]me|l'?oreal|nivea|olay\b|estee lauder|afeitadora|maquinilla|oral.?b|\bbraun\b|oneblade|depiladora|remington\b|wahl\b|babyliss|ghd\b|plancha.*pelo|rizador|secador.*pelo/i,
+      juguetes:     /\blego\b|playmobil|hasbro|mattel|hot wheels|barbie|juguete|mu[ñn]eca\b|\bfunko\b|\bnerf\b|juego de mesa|puzzle\b|puzle\b|scalextric|rc\b.*coche|coche.*teledirigido|\bdron\b|\bdrone\b/i,
+      moda:         /\bbolso\b|mochila|maleta\b|lacoste|ralph lauren|\bdior\b|\bchanel\b|armani|calvin klein|tommy hilfiger|gafas.*sol|gafas.*graduada|cintur[oó]n\b/i,
+    };
+
     const CATEGORIAS = [
       { id: "todas",        label: "Todas",         icon: "" },
-      { id: "tecnologia",   label: "Tecnología",    icon: "📱",
-        test: d => /smartphone|móvil|iphone|galaxy\b|tablet|ipad|portátil|laptop|macbook|pc gaming|monitor\b|televisor|\btv\b|oled|qled|auricular|cascos|airpods|wh-?1000|bose q|kindle|cámara|gopro|smartwatch|consola\b|ps5|playstation|xbox|nintendo|switch\b|ssd|disco duro|\bram\b|gpu|rtx|procesador|impresora|router|logitech|razer|corsair|steelseries/i.test(d.titulo) || ["PcComponentes","MediaMarkt","Worten"].includes(d.tienda) },
-      { id: "herramientas", label: "Herramientas",  icon: "🔧",
-        test: d => /taladro|sierra\b|destornillador|amoladora|lijadora|compresor|karcher|bosch\b|dewalt|makita|milwaukee|stanley\b|llave inglesa|multímetro/i.test(d.titulo) },
-      { id: "deportes",     label: "Deportes",      icon: "⚽",
-        test: d => /running|trail\b|fitness|gimnasio|mancuerna|natación|fútbol|balón|raqueta|garmin|polar\b|fitbit|under armour|giro\b|shimano|alpinestars|ciclismo|mountain bike|\bmtb\b|bicicleta|\bbici\b|sillín/i.test(d.titulo) || ["Mammoth Bikes","Decathlon","PrivateSportShop"].includes(d.tienda) },
-      { id: "calzado",      label: "Calzado",       icon: "👟",
-        test: d => /zapatilla|zapato|\bbota\b|sandalia|sneaker|\bnike\b|\badidas\b|\bpuma\b|reebok|new balance|asics|jordan\b|air max|ultraboost|salomon|hoka\b|on running/i.test(d.titulo) },
-      { id: "hogar",        label: "Hogar",         icon: "🏠",
-        test: d => /aspirador|robot aspirador|roomba|irobot|roborock|lefant|dreame|ecovacs|eufy|freidora|cafetera|nespresso|delonghi|thermomix|airfryer|\bplancha\b|lavadora|secadora|frigorífico|microondas|\bhorno\b|lavavajillas|dyson|rowenta|tefal|cecotec|shark\b|bissell|kenwood|magimix|breville|sage\b/i.test(d.titulo) },
-      { id: "belleza",      label: "Belleza",       icon: "💄",
-        test: d => /perfume|eau de parfum|eau de toilette|\bcolonia\b|afeitadora|maquinilla|oral.?b|braun serie|oneblade|depiladora|plancha.*pelo|rizador/i.test(d.titulo) },
-      { id: "juguetes",     label: "Juguetes",      icon: "🧸",
-        test: d => /\blego\b|playmobil|hasbro|mattel|hot wheels|barbie|juguete|muñeca|\bfunko\b|\bnerf\b/i.test(d.titulo) },
-      { id: "moda",         label: "Moda",          icon: "👗",
-        test: d => /\bbolso\b|mochila|maleta\b|lacoste|ralph lauren|\bdior\b|\bchanel\b|armani|calvin klein|tommy hilfiger/i.test(d.titulo) },
+      { id: "calzado",      label: "Calzado",       icon: "👟", test: d => _RX.calzado.test(d.titulo) },
+      { id: "tecnologia",   label: "Tecnología",    icon: "📱", test: d => _RX.tecnologia.test(d.titulo) || ["PcComponentes","MediaMarkt","Worten"].includes(d.tienda) },
+      { id: "herramientas", label: "Herramientas",  icon: "🔧", test: d => _RX.herramientas.test(d.titulo) },
+      { id: "deportes",     label: "Deportes",      icon: "⚽", test: d => _RX.deportes.test(d.titulo) || ["Mammoth Bikes","Decathlon","PrivateSportShop"].includes(d.tienda) },
+      { id: "hogar",        label: "Hogar",         icon: "🏠", test: d => _RX.hogar.test(d.titulo) },
+      { id: "belleza",      label: "Belleza",       icon: "💄", test: d => _RX.belleza.test(d.titulo) },
+      { id: "juguetes",     label: "Juguetes",      icon: "🧸", test: d => _RX.juguetes.test(d.titulo) },
+      { id: "moda",         label: "Moda",          icon: "👗", test: d => _RX.moda.test(d.titulo) },
     ];
 
     function dealMatchesCategory(deal, catId) {
       if (catId === "todas") return true;
-      // Usar campo server-side si está disponible (deals nuevos)
-      if (deal.categoria) return deal.categoria === catId;
-      // Fallback a regex para deals legacy sin campo categoria
+      // OR: muestra el deal si el servidor lo categorizó así O si el regex cliente lo detecta.
+      // Esto permite que zapatillas de ciclismo (categoria="deportes") aparezcan también en calzado,
+      // y que deals con categoria vacía/legacy sean capturados por regex.
+      if (deal.categoria === catId) return true;
       const cat = CATEGORIAS.find(c => c.id === catId);
       return cat ? cat.test(deal) : false;
     }
@@ -1889,8 +1896,9 @@
     // ── Fetch ───────────────────────────────────────────────────
     async function fetchDeals(limit, offset) {
       if (USE_MOCK) return offset === 0 ? MOCK_DEALS : [];
-      let url = `${API_URL}?limit=${limit}&offset=${offset}`;
-      if (activeCategory !== "todas") url += `&categoria=${encodeURIComponent(activeCategory)}`;
+      // Sin filtro de categoría en el servidor: el filtrado es client-side con OR lógico
+      // (server-categoria OR client-regex) para capturar productos multi-categoría correctamente.
+      const url = `${API_URL}?limit=${limit}&offset=${offset}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(res.status);
       return res.json();
@@ -1930,8 +1938,12 @@
       showLoading(true);
 
       try {
-        const batch = await fetchDeals(PAGE_SIZE, currentOffset);
-        if (batch.length < PAGE_SIZE) hasMore = false;
+        // Para categorías específicas: cargamos un bloque grande de una vez y filtramos client-side.
+        // Para "todas": paginación normal (24 en 24, scroll infinito).
+        const isCatFilter = activeCategory !== "todas";
+        const limit = isCatFilter ? 200 : PAGE_SIZE;
+        const batch = await fetchDeals(limit, currentOffset);
+        if (batch.length < limit || isCatFilter) hasMore = false;
         if (batch.length === 0) { showLoading(false); isLoading = false; return; }
 
         // Guardar rowid máximo en la primera carga (para polling)

@@ -1937,37 +1937,70 @@ def _copy_template(p: "Producto") -> str:
 
 
 _CAT_RE = {
+    # IMPORTANTE: el orden determina prioridad — la primera regex que matchea gana.
+    # calzado va ANTES que deportes para que zapatillas (incluidas las deportivas/ciclismo) vayan a calzado.
+    "calzado":      re.compile(
+        r'\bnike\b|\badidas\b|\bjordan\b|new balance|asics|puma\b|reebok|converse\b|\bvans\b|'
+        r'saucony\b|brooks\b|on running|mizuno\b|skechers\b|'
+        r'zapatilla|sneaker|deportiva\b|\bbota\b|sandalia\b|mocas[ií]n|calzado\b|'
+        # marcas outdoor/trail (solo si aparece con términos de zapato/bota)
+        r'salomon\b|hoka\b|merrell\b',
+        re.I),
     "tecnologia":   re.compile(
         r'smartphone|m[oó]vil|iphone|galaxy\b|tablet|ipad|port[aá]til|laptop|macbook|'
         r'pc gaming|monitor\b|televisor|\btv\b|oled|qled|auricular|cascos|airpods|'
-        r'wh-?1000|bose q|kindle|c[aá]mara|gopro|smartwatch|consola\b|ps5|playstation|'
+        r'wh-?1000|bose\s*q|kindle|c[aá]mara\b|gopro|smartwatch|consola\b|ps5|playstation|'
         r'xbox|nintendo|switch\b|ssd|disco duro|\bram\b|gpu|rtx|procesador|impresora|'
-        r'router|logitech|razer|corsair|steelseries|hyperx|teclado\b|rat[oó]n\b',
+        r'router|logitech|razer|corsair|steelseries|hyperx|teclado\b|rat[oó]n\b|'
+        r'altavoz.*bluetooth|echo dot|google home|chromecast|fire\s*tv|'
+        r'power\s*bank|bater[ií]a.*externa|usb\s*hub|hub\s*usb',
         re.I),
     "herramientas": re.compile(
-        r'bosch|dewalt|makita|milwaukee|k[aä]rcher|stanley|martillo|taladro|sierra\b|'
-        r'lijadora|compresor|soldad|atornillador|amoladora|destornillador', re.I),
+        r'dewalt|makita|milwaukee|k[aä]rcher|stanley\b|ryobi\b|bahco\b|knipex\b|'
+        r'martillo|taladro|sierra\b|lijadora|compresor|soldad|atornillador|amoladora|'
+        r'destornillador|nivel.*l[aá]ser|multim[eé]tro|flex[oó]metro|llave inglesa|'
+        r'alicate|bosch.*(taladro|sierra|amoladora|compresor|atornillador|lijadora|gbh|gsr|gks|gws)',
+        re.I),
     "deportes":     re.compile(
-        r'running|trek\b|senderismo|bicicleta\b|bici\b|ciclismo|fitness|gym\b|bal[oó]n|'
-        r'raqueta|esqu[ií]|nataci[oó]n|swim|alpinestars|giro\b|casco\b.*bici|'
-        r'componente.*bici|zapatilla.*running|zapatilla.*trail', re.I),
-    "calzado":      re.compile(
-        r'\bnike\b|\badidas\b|jordan\b|new balance|asics|puma\b|reebok|converse|vans\b|'
-        r'zapatilla|sneaker', re.I),
+        r'bicicleta\b|\bbici\b|ciclismo|mountain bike|\bmtb\b|gravel\b|\btrek\b|'
+        r'senderismo|escalada|alpinismo|mancuerna|kettlebell|\bpesas\b|'
+        r'nataci[oó]n|swim\b|fitness\b|gym\b|bal[oó]n|raqueta|p[aá]del|'
+        r'esqu[ií]|snowboard|surf\b|alpinestars|\bgiro\b|casco\b.*bici|shimano|'
+        r'under armour|garmin|polar\b|fitbit|'
+        r'componente.*bici|sill[ií]n|manillar|potencia.*bici',
+        re.I),
     "hogar":        re.compile(
-        r'cafetera|aspirador|robot\b|freidora|microondas|lavadora|lavavajillas|'
-        r'frigor[ií]fico|nevera|plancha\b|batidora|thermomix|nespresso|delonghi|tefal|'
-        r'rowenta|shark\b|hoover|dyson|roomba|roborock|lefant|dreame|ecovacs|eufy|'
-        r'cecotec|colch[oó]n|l[aá]mpara|sill[oó]n|sof[aá]|escritorio', re.I),
+        r'cafetera|nespresso|delonghi|dolce.?gusto|sage\b|breville\b|krups\b|jura\b|'
+        r'aspirador|robot.?aspirador|roomba|irobot|roborock|lefant|dreame|ecovacs|eufy\b|'
+        r'freidora|airfryer|air.?fryer|microondas|lavadora|lavavajillas|'
+        r'frigor[ií]fico|nevera|secadora\b|'
+        r'plancha\b|plancha.*vapor|vaporeta|vaporizador|cepillo.*vapor|vapor.*cepillo|'
+        r'campana\b|campana.*extract|extractor.*humos|extractor.*cocina|\bteka\b|'
+        r'batidora|thermomix|olla.*presi[oó]n|robot.*cocina|'
+        r'tefal|rowenta|shark\b|hoover\b|dyson|cecotec|bissell\b|kenwood\b|magimix\b|'
+        r'calefactor|radiador.*el[eé]ctrico|aire.*acondicionado|\bsplit\b|ventilador\b|'
+        r'purificador.*aire|humidificador|deshumidificador|'
+        r'placa.*inducci[oó]n|inducci[oó]n\b|vitrocer[aá]mic|\bhorno\b|'
+        r'colch[oó]n|l[aá]mpara|sill[oó]n|sof[aá]|escritorio|estanter[ií]a',
+        re.I),
     "belleza":      re.compile(
-        r'perfume|colonia|eau de|crema\b|m[aá]quillaje|labial|dior\b|chanel\b|armani\b|'
-        r'ysl\b|calvin klein|hugo boss|lanc[oô]me|loreal|nivea|olay\b|afeitadora|'
-        r'cepillo.*el[eé]ctrico|depilador', re.I),
+        r'perfume|colonia|eau de|crema\b|m[aá]quillaje|labial|s[eé]rum\b|'
+        r'\bdior\b|\bchanel\b|\barmani\b|ysl\b|calvin klein|hugo boss|'
+        r'lanc[oô]me|loreal|l\'or[eé]al|nivea|olay\b|est[eé]e lauder|'
+        r'afeitadora|maquinilla|cepillo.*el[eé]ctrico|depilador|'
+        r'braun\b|oral.?b|remington\b|wahl\b|babyliss|ghd\b|'
+        r'plancha.*pelo|rizador|secador.*pelo',
+        re.I),
     "juguetes":     re.compile(
-        r'playmobil|lego\b|hasbro|mattel|hot wheels|barbie|funko|juguete|juego de mesa|'
-        r'puzzle|puzle|scalextric', re.I),
+        r'playmobil|\blego\b|hasbro|mattel|hot wheels|barbie|funko\b|'
+        r'juguete|juego de mesa|puzzle|puzle|scalextric|\bnerf\b|'
+        r'rc\b.*coche|coche.*teledirigido|coche.*radiocontrol|'
+        r'\bdron\b|\bdrone\b',
+        re.I),
     "moda":         re.compile(
-        r'mochila|bolso\b|cartera\b|maleta|north face|lacoste\b|ralph lauren|tommy', re.I),
+        r'mochila|bolso\b|cartera\b|maleta\b|lacoste\b|ralph lauren|tommy hilfiger|'
+        r'gafas.*sol|gafas.*graduada|cintur[oó]n\b',
+        re.I),
 }
 _TIENDA_CAT = {
     "PcComponentes": "tecnologia",
