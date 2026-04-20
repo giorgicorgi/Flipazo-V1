@@ -164,26 +164,24 @@
     /* Remove right border on last in row — handled via nth */
     .deals-grid .deal:nth-child(3n) { border-right: none; }
 
-    /* ── Badge ──────────────────────────────────────────────────── */
+    /* ── Badge (overlay esquina imagen) ────────────────────────── */
     .deal__badge {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 2;
       font-family: var(--mono);
-      font-size: 9.5px;
+      font-size: 9px;
       font-weight: 700;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--bg);
       background: var(--ink);
-      display: inline-block;
-      padding: 3px 8px;
-      margin-bottom: 12px;
-      align-self: flex-start;
+      padding: 4px 9px;
+      pointer-events: none;
     }
 
-    .deal__badge--reventa {
-      background: var(--badge-rev);
-    }
-
-    .deal__badge--oferta {
+    .deal__badge--garaje {
       background: var(--accent);
     }
 
@@ -627,48 +625,16 @@
       100% { background-position: -200% 0; }
     }
 
-    /* ── Hamburger button ───────────────────────────────────────── */
-    .hamburger {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      align-self: center;
-      flex-shrink: 0;
-    }
-    .hamburger span {
-      display: block;
-      width: 22px;
-      height: 2px;
-      background: var(--ink);
-      transition: transform 0.2s, opacity 0.2s;
-    }
-    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-    .hamburger.open span:nth-child(2) { opacity: 0; }
-    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
     /* ── Category bar ───────────────────────────────────────────── */
     .cat-bar {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 0 40px;
-      border-bottom: 0px solid var(--rule);
+      padding: 12px 40px;
+      border-bottom: 1.5px solid var(--rule);
       overflow-x: auto;
       scrollbar-width: none;
       background: #fafafa;
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.28s ease, padding 0.28s ease, border-bottom-width 0.28s ease;
-    }
-    .cat-bar.open {
-      max-height: 64px;
-      padding: 12px 40px;
-      overflow-x: auto;
-      border-bottom-width: 1.5px;
     }
     .cat-bar::-webkit-scrollbar { display: none; }
     .cat-pill {
@@ -687,6 +653,166 @@
     }
     .cat-pill:hover { border-color: var(--ink); color: var(--ink); }
     .cat-pill--active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+    /* ── Sort tabs ──────────────────────────────────────────────── */
+    .sort-tabs {
+      display: flex;
+      border-top: 1px solid #e0e0e0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      margin-top: 12px;
+    }
+    .sort-tabs::-webkit-scrollbar { display: none; }
+    .sort-tab {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 11px 22px;
+      background: none;
+      border: none;
+      border-right: 1px solid #e0e0e0;
+      cursor: pointer;
+      color: var(--ink-light);
+      white-space: nowrap;
+      position: relative;
+      transition: color 0.12s;
+    }
+    .sort-tab:last-child { border-right: none; }
+    .sort-tab:hover { color: var(--ink); }
+    .sort-tab--active { color: var(--ink); }
+    .sort-tab--active::after {
+      content: "";
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--ink);
+    }
+
+    /* ── Hero section ───────────────────────────────────────────── */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      border-bottom: 2px solid var(--rule);
+    }
+    .hero__left {
+      padding: 36px 40px;
+      border-right: 1.5px solid var(--rule);
+    }
+    .hero__right { padding: 20px 28px; }
+    .hero__label, .hero__right-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      padding-bottom: 12px;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+      display: block;
+    }
+    .hero__right-label { margin-bottom: 0; }
+    .hero__title {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: clamp(26px, 4vw, 40px);
+      line-height: 1.1;
+      margin-bottom: 14px;
+      color: var(--ink);
+      transition: opacity 0.12s;
+    }
+    .hero__title:hover { opacity: 0.75; }
+    .hero__reason {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 14px;
+      color: var(--ink-light);
+      line-height: 1.55;
+      margin-bottom: 26px;
+    }
+    .hero__price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .hero__price {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: clamp(32px, 5vw, 48px);
+      line-height: 1;
+      color: var(--ink);
+    }
+    .hero__original {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: #bbb;
+      text-decoration: line-through;
+    }
+    .hero__pct {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--accent);
+    }
+    .hero__cta { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* ── Sidebar deals ──────────────────────────────────────────── */
+    .sidebar-deal {
+      display: flex;
+      gap: 14px;
+      padding: 18px 0;
+      border-bottom: 1px solid #eee;
+      transition: opacity 0.12s;
+      text-decoration: none;
+      color: inherit;
+    }
+    .sidebar-deal:last-child { border-bottom: none; }
+    .sidebar-deal:hover { opacity: 0.75; }
+    .sidebar-deal__img {
+      width: 72px;
+      height: 72px;
+      object-fit: contain;
+      background: #f5f5f5;
+      flex-shrink: 0;
+    }
+    .sidebar-deal__info { flex: 1; min-width: 0; }
+    .sidebar-deal__store {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--ink-light);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .sidebar-deal__title {
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 1.3;
+      margin-bottom: 8px;
+      color: var(--ink);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .sidebar-deal__price {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 18px;
+      color: var(--ink);
+    }
+    .sidebar-deal__pct {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-left: 8px;
+    }
 
     /* ── Search bar ─────────────────────────────────────────────── */
     .search-bar {
@@ -881,7 +1007,12 @@
       .deals-grid .deal:nth-child(3n) { border-right: none; }
       .masthead__meta { flex-direction: row; justify-content: space-between; align-items: center; }
       .masthead__tagline { display: none; }
-      .cat-bar.open { padding: 10px 18px; }
+      .cat-bar { padding: 10px 18px; }
+      .sort-tabs { margin-top: 8px; }
+      .sort-tab { padding: 9px 14px; font-size: 9px; letter-spacing: 0.12em; }
+      .hero { grid-template-columns: 1fr; }
+      .hero__left { padding: 24px 18px; border-right: none; border-bottom: 1.5px solid var(--rule); }
+      .hero__right { padding: 16px 18px; }
       .search-bar { padding: 0 18px; }
       .search-result { padding: 10px 18px; }
       .search-empty { padding: 14px 18px; }
@@ -941,10 +1072,13 @@
       <span id="js-date">—</span>
       <span class="masthead__tagline">Ofertas reales. Descuentos verificados.</span>
       <span><span class="live-dot"></span>Actualización automática</span>
-      <button class="hamburger" id="js-hamburger" aria-label="Categorías" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
     </div>
+    <nav class="sort-tabs" id="js-sort-tabs" aria-label="Ordenar por">
+      <button class="sort-tab sort-tab--active" data-sort="recientes">Recientes</button>
+      <button class="sort-tab" data-sort="descuento">Mayor Descuento</button>
+      <button class="sort-tab" data-sort="votados">Más Votados</button>
+      <button class="sort-tab" data-sort="reventa">Garaje</button>
+    </nav>
   </header>
 
   <!-- ── SEARCH BAR ───────────────────────────────────────────── -->
@@ -983,9 +1117,22 @@
     <button onclick="clearSearch()">Limpiar búsqueda ×</button>
   </div>
 
+  <!-- ── HERO SECTION ──────────────────────────────────────────── -->
+  <section class="hero" id="js-hero" style="display:none" aria-label="Oferta destacada">
+    <div class="hero__left" id="js-hero-main">
+      <!-- Populated by JS -->
+    </div>
+    <div class="hero__right">
+      <span class="hero__right-label">También Destacados</span>
+      <div id="js-hero-sidebar">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </section>
+
   <!-- ── SECTION HEADER ────────────────────────────────────────── -->
   <div class="section-header">
-    <span class="section-header__title" id="js-section-title">Últimas ofertas</span>
+    <span class="section-header__title" id="js-section-title">Clasificados</span>
     <hr class="section-header__line" />
     <span class="section-header__count" id="js-count">Cargando…</span>
     <!-- Visible solo en mobile -->
@@ -1312,19 +1459,20 @@
 
     // ── Render card ─────────────────────────────────────────────
     function renderDeal(d) {
-      const isReventa = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
-      const badgeClass = isReventa ? "deal__badge--reventa" : "deal__badge--oferta";
-      const badgeLabel = isReventa ? "♻ Reventa" : "⚡ Oferta";
+      const isReventa  = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
+      const badgeClass = isReventa ? "deal__badge--garaje" : "";
+      const badgeLabel = isReventa ? "Garaje" : (d.tienda || "");
       const buyUrl     = d.url_affiliate || "#";
 
-      const imgHtml = d.imagen_url
-        ? `<div class="deal__image-wrap">
+      const imgHtml = `<div class="deal__image-wrap">
+             <span class="deal__badge ${badgeClass}">${badgeLabel}</span>
              ${d.descuento_pct > 0 ? `<span class="deal__discount-badge">−${d.descuento_pct}%</span>` : ""}
-             <a href="${buyUrl}" target="_blank" rel="noopener sponsored">
-               <img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.parentElement.parentElement.style.display='none'" />
-             </a>
-           </div>`
-        : "";
+             ${d.imagen_url
+               ? `<a href="${buyUrl}" target="_blank" rel="noopener sponsored">
+                    <img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'" />
+                  </a>`
+               : `<span class="deal__image-placeholder">sin imagen</span>`}
+           </div>`;
 
       const descPctHtml = d.descuento_pct > 0
         ? `<span class="deal__pct">−${d.descuento_pct}%</span>` : "";
@@ -1390,9 +1538,7 @@
 
       return `
         <article class="deal${d.descuento_pct > 50 ? ' deal--featured' : ''}">
-          <span class="deal__badge ${badgeClass}">${badgeLabel}</span>
           ${imgHtml}
-          <p class="deal__store">${d.tienda || ""}</p>
           <h2 class="deal__title">${d.titulo || ""}</h2>
           <div class="deal__pricing">
             ${precioOriginalHtml}
@@ -1410,6 +1556,84 @@
           ${votesHtml}
           <p class="deal__time" data-ts="${d.timestamp || ""}">${timeAgo(d.timestamp)}</p>
         </article>`;
+    }
+
+    // ── Sort ────────────────────────────────────────────────────
+    let activeSort = "recientes";
+
+    function sortDeals(deals) {
+      if (activeSort === "descuento") {
+        return [...deals].sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0));
+      }
+      if (activeSort === "votados") {
+        return [...deals].sort((a, b) => (b.votes_up || 0) - (a.votes_up || 0));
+      }
+      if (activeSort === "reventa") {
+        return deals.filter(d => d.tipo === "REVENTA" || d.tipo === "ARBITRAJE");
+      }
+      return deals; // recientes: ya ordenados cronológicamente
+    }
+
+    function shouldShowHero() {
+      return activeSort === "recientes" && activeCategory === "todas" && !searchQuery;
+    }
+
+    // ── Hero rendering ───────────────────────────────────────────
+    let heroMode = false;
+
+    function buildHeroMain(d) {
+      const buyUrl = d.url_affiliate || "#";
+      const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent((d.titulo || "").split(" ").slice(0, 4).join(" "))}`;
+      const isReventa = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
+      return `
+        <span class="hero__label">⭐ Oferta del Día · ${d.tienda || ""}</span>
+        <a href="${buyUrl}" target="_blank" rel="noopener sponsored" style="text-decoration:none">
+          <h2 class="hero__title">${d.titulo || ""}</h2>
+        </a>
+        ${d.razonamiento ? `<p class="hero__reason">"${d.razonamiento}"</p>` : ""}
+        <div class="hero__price-row">
+          ${d.precio_original > 0 ? `<span class="hero__original">${fmtPrice(d.precio_original)}</span>` : ""}
+          <span class="hero__price">${fmtPrice(d.precio_actual || 0)}</span>
+          ${d.descuento_pct > 0 ? `<span class="hero__pct">−${d.descuento_pct}%</span>` : ""}
+        </div>
+        <div class="hero__cta">
+          <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Comprar →</a>
+          ${isReventa && d.precio_wallapop > 0
+            ? `<a href="${wallapopUrl}" target="_blank" rel="noopener" class="btn btn--secondary">Ver en Wallapop →</a>`
+            : ""}
+        </div>`;
+    }
+
+    function buildSidebarCard(d) {
+      const buyUrl = d.url_affiliate || "#";
+      return `
+        <a class="sidebar-deal" href="${buyUrl}" target="_blank" rel="noopener sponsored">
+          ${d.imagen_url
+            ? `<img class="sidebar-deal__img" src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">`
+            : `<div class="sidebar-deal__img"></div>`}
+          <div class="sidebar-deal__info">
+            <p class="sidebar-deal__store">${d.tienda || ""}</p>
+            <p class="sidebar-deal__title">${d.titulo || ""}</p>
+            <p>
+              <span class="sidebar-deal__price">${fmtPrice(d.precio_actual || 0)}</span>
+              ${d.descuento_pct > 0 ? `<span class="sidebar-deal__pct">−${d.descuento_pct}%</span>` : ""}
+            </p>
+          </div>
+        </a>`;
+    }
+
+    function updateHero() {
+      const hero = document.getElementById("js-hero");
+      if (!shouldShowHero() || allDeals.length === 0) {
+        hero.style.display = "none";
+        heroMode = false;
+        return;
+      }
+      heroMode = true;
+      document.getElementById("js-hero-main").innerHTML = buildHeroMain(allDeals[0]);
+      document.getElementById("js-hero-sidebar").innerHTML =
+        allDeals.slice(1, 3).map(buildSidebarCard).join("");
+      hero.style.display = "";
     }
 
     // ── Votes ───────────────────────────────────────────────────
@@ -1493,6 +1717,7 @@
       const dd = document.getElementById("js-search-dropdown");
       dd.hidden = true;
       searchQuery = query;
+      updateHero(); // Ocultar hero durante búsqueda
       const results = searchDeals(query);
 
       // Mostrar banner
@@ -1528,8 +1753,8 @@
       document.getElementById("js-search-dropdown").hidden = true;
       document.getElementById("js-search-banner").style.display = "none";
       document.getElementById("js-section-title").textContent =
-        activeCategory === "todas" ? "Últimas ofertas"
-        : (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Últimas ofertas");
+        activeCategory === "todas" ? "Clasificados"
+        : (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Clasificados");
       renderGrid();
     }
 
@@ -1555,16 +1780,19 @@
     }
 
     function renderGrid() {
+      updateHero();
       const grid     = document.getElementById("js-grid");
       const matching = allDeals.filter(d => dealMatchesCategory(d, activeCategory));
-      if (matching.length === 0 && !hasMore) {
+      const sorted   = sortDeals(matching);
+      // Si el hero está activo, el grid empieza desde el deal 4 (índices 3+)
+      const gridDeals = (heroMode && activeCategory === "todas") ? sorted.slice(3) : sorted;
+      if (gridDeals.length === 0 && !hasMore) {
         grid.innerHTML = `<div class="empty">Sin ofertas en esta categoría</div>`;
       } else {
-        grid.innerHTML = matching.map(renderDeal).join("");
+        grid.innerHTML = gridDeals.map(renderDeal).join("");
       }
       updateCount();
-      // Si quedan pocas visibles y hay más en el servidor, cargar más
-      if (matching.length < 8 && hasMore && !isLoading) loadMore();
+      if (gridDeals.length < 8 && hasMore && !isLoading) loadMore();
     }
 
     // ── Load more (scroll infinito) ─────────────────────────────
@@ -1589,17 +1817,28 @@
         allDeals          = allDeals.concat(newDeals);
         currentOffset    += batch.length;
 
+        // Actualizar hero (usa allDeals[0..2])
+        updateHero();
+
         // Añadir al grid solo los que coincidan con la categoría activa
-        const grid     = document.getElementById("js-grid");
-        const emptyEl  = grid.querySelector(".empty");
+        const grid    = document.getElementById("js-grid");
+        const emptyEl = grid.querySelector(".empty");
         if (emptyEl) emptyEl.remove();
 
-        const matching = newDeals.filter(d => dealMatchesCategory(d, activeCategory));
-        if (matching.length > 0) {
-          grid.insertAdjacentHTML("beforeend", matching.map(renderDeal).join(""));
+        const sorted  = sortDeals(newDeals.filter(d => dealMatchesCategory(d, activeCategory)));
+        // En primera carga con hero activo, excluir los 3 primeros del grid
+        const gridDeals = (currentOffset <= PAGE_SIZE && heroMode && activeCategory === "todas")
+          ? sortDeals(allDeals.filter(d => dealMatchesCategory(d, activeCategory))).slice(3)
+          : sorted;
+
+        if (currentOffset <= PAGE_SIZE) {
+          // Primera carga: renderizar grid completo
+          grid.innerHTML = gridDeals.map(renderDeal).join("");
+          updateSchemaMarkup();
+        } else if (gridDeals.length > 0) {
+          grid.insertAdjacentHTML("beforeend", gridDeals.map(renderDeal).join(""));
         }
         updateCount();
-        if (currentOffset <= PAGE_SIZE) updateSchemaMarkup(); // Solo en primera carga
 
       } catch (e) {
         console.error("Error cargando deals:", e);
@@ -1652,8 +1891,8 @@
           btn.classList.add("cat-pill--active");
           const titleEl = document.getElementById("js-section-title");
           titleEl.textContent = activeCategory === "todas"
-            ? "Últimas ofertas"
-            : (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Últimas ofertas");
+            ? "Clasificados"
+            : (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Clasificados");
           // Resetear estado y recargar desde el servidor con filtro de categoría
           allDeals      = [];
           currentOffset = 0;
@@ -1664,12 +1903,30 @@
       });
     }
 
-    // ── Hamburger ────────────────────────────────────────────────
-    document.getElementById("js-hamburger").addEventListener("click", function () {
-      this.classList.toggle("open");
-      this.setAttribute("aria-expanded", this.classList.contains("open"));
-      document.getElementById("js-cat-bar").classList.toggle("open");
-    });
+    // ── Sort tabs ────────────────────────────────────────────────
+    function buildSortTabs() {
+      document.querySelectorAll(".sort-tab").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (activeSort === btn.dataset.sort) return;
+          activeSort = btn.dataset.sort;
+          document.querySelectorAll(".sort-tab").forEach(b => b.classList.remove("sort-tab--active"));
+          btn.classList.add("sort-tab--active");
+          // Si hay datos cargados, re-renderizar sin refetch (excepto "reventa" que filtra)
+          if (allDeals.length > 0) {
+            renderGrid();
+          } else {
+            allDeals = [];
+            currentOffset = 0;
+            hasMore = true;
+            document.getElementById("js-grid").innerHTML = "";
+            loadMore();
+          }
+          // Actualizar título de sección
+          const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Garaje · Reventa" };
+          document.getElementById("js-section-title").textContent = titles[activeSort] || "Clasificados";
+        });
+      });
+    }
 
     // ── IntersectionObserver (scroll infinito) ───────────────────
     new IntersectionObserver(
@@ -1792,6 +2049,7 @@
     // ── Init ─────────────────────────────────────────────────────
     setDate();
     buildCatBar();
+    buildSortTabs();
     loadMore();
 
     // Vista mosaico por defecto en mobile
