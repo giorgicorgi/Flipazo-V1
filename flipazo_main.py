@@ -1931,7 +1931,7 @@ _MARCAS_ARBITRAJE = {
 
 # Umbrales pre-scorer
 _SCORE_AUTO_APROBAR  = 70   # ≥70 → auto-aprobado (ARBITRAJE o OFERTA según marca), sin Claude
-_SCORE_AUTO_DESCARTAR = 22  # <22 → descartado, sin Claude
+_SCORE_AUTO_DESCARTAR = 30  # <30 → descartado, sin Claude
 
 
 def _copy_template(p: "Producto") -> str:
@@ -2082,7 +2082,8 @@ def _score_local(p: "Producto") -> int:
 
     return max(0, min(score, 100))
 
-PROMPT_SCORING = """\
+# Parte estática del prompt — se cachea en la API (cache_control: ephemeral)
+PROMPT_SCORING_SYSTEM = """\
 Eres un experto en ofertas y arbitraje de productos en España. Evalúas dos dimensiones independientes:
 
 A) ARBITRAJE: ¿Se puede comprar y revender con beneficio en Wallapop/eBay.es?
@@ -2104,17 +2105,6 @@ Para cada producto devuelve un JSON con EXACTAMENTE estas claves:
   Marcas chinas o desconocidas (Lefant/Dreame/Cecotec/genéricas): 40-55% del precio Amazon.
   Si no hay mercado claro de segunda mano en España para ese producto, usa 0.
   NUNCA estimes cerca del precio Amazon — Wallapop siempre es bastante más barato.)
-- "razonamiento": string máximo 12 palabras
-- "copy": string — hook de 1 frase en español (máx 12 palabras), persuasivo y específico.
-  Menciona el beneficio clave del producto o el motivo por el que es una ganga. No repitas precio ni %.
-  Ejemplos buenos: "Sonido premium con ANC para el precio de un auricular básico",
-  "La cortadora Bosch que aguanta 10 años, hoy a precio de descatalogado".
-  Ejemplos malos: "Oferta increíble", "Gran descuento", "Aprovecha esta oferta".
-- "pros": array de strings, máximo 3 elementos — puntos fuertes breves en español
-  (ej. ["ANC clase alta", "30h batería", "Plegable para viajar"]).
-  Basados en el producto, no en el precio. Máx 5 palabras por ítem.
-- "contras": array de strings, máximo 2 elementos — consideraciones o limitaciones breves
-  (ej. ["Sin jack 3.5mm", "Sólo Bluetooth"]). Máx 5 palabras por ítem. Array vacío [] si no aplica.
 - "tipo": string — una de estas tres opciones:
     "ARBITRAJE"  → score_reventa >= 60 Y beneficio_neto >= 20
     "OFERTA"     → score_oferta >= 58 Y descuento >= 35 (aunque reventa sea baja)
@@ -2139,17 +2129,14 @@ NOTA IMPORTANTE sobre "descuento_pct" y "precio_original":
   Aun así: si "precio_historico_min" > 0 y "precio_actual" > "precio_historico_min" × 1.10,
   el producto está por encima de su mínimo histórico — penaliza ambos scores en 10 puntos.
 
-Productos a analizar ({n} productos de tiendas: Amazon, MediaMarkt, PcComponentes):
-{productos_json}
-
-IMPORTANTE: Responde ÚNICAMENTE con un array JSON válido. Sin markdown, sin texto adicional."""
+Responde ÚNICAMENTE con un array JSON válido. Sin markdown, sin texto adicional."""
 
 
 async def score_con_claude(productos: list[Producto]) -> list[Producto]:
     """
     Scoring en dos etapas para minimizar coste de API:
-    1. Pre-scorer local (sin IA): auto-aprueba ≥70 pts, descarta <35 pts
-    2. Claude Haiku (solo zona gris 35-69 pts): ~5-10% del total
+    1. Pre-scorer local (sin IA): auto-aprueba ≥70 pts, descarta <30 pts
+    2. Claude Haiku (solo zona gris 30-69 pts): prompt cacheado, output mínimo
     """
     if not productos:
         return []
@@ -2189,7 +2176,7 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
     if not zona_gris:
         return candidatos
 
-    # ── Etapa 2: Claude Haiku (solo zona gris) ────────────────────
+    # ── Etapa 2: Claude Haiku (solo zona gris) — prompt cacheado ──
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     for i in range(0, len(zona_gris), BATCH_SIZE_CLAUDE):
@@ -2213,13 +2200,15 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
             try:
                 response = client.messages.create(
                     model="claude-haiku-4-5-20251001",
-                    max_tokens=8192,
+                    max_tokens=2048,
+                    system=[{
+                        "type": "text",
+                        "text": PROMPT_SCORING_SYSTEM,
+                        "cache_control": {"type": "ephemeral"},
+                    }],
                     messages=[{
                         "role": "user",
-                        "content": PROMPT_SCORING.format(
-                            n=len(batch),
-                            productos_json=json.dumps(payload, ensure_ascii=False, indent=2),
-                        ),
+                        "content": f"Analiza estos {len(batch)} productos:\n{json.dumps(payload, ensure_ascii=False, indent=2)}",
                     }],
                 )
                 break
@@ -2237,24 +2226,33 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
         try:
             texto = response.content[0].text.strip()
             texto = re.sub(r'^```json\s*|\s*```$', '', texto, flags=re.MULTILINE)
-            scores: list[dict] = json.loads(texto)
+            respuesta_limpia = texto[:texto.rfind('}')+1] if '}' in texto else texto
+            scores: list[dict] = json.loads(respuesta_limpia)
             scores_by_asin = {s["asin"]: s for s in scores}
+
+            uso = response.usage
+            cache_hit = getattr(uso, 'cache_read_input_tokens', 0) or 0
+            cache_new = getattr(uso, 'cache_creation_input_tokens', 0) or 0
+            print(f"   💰 Tokens: {uso.input_tokens}in/{uso.output_tokens}out | caché hit={cache_hit} nuevo={cache_new}")
 
             for p in batch:
                 s = scores_by_asin.get(p.asin, {})
-                p.score_ai      = int(s.get("score_reventa", 0))
+                p.score_ai       = int(s.get("score_reventa", 0))
                 p.score_liquidez = int(s.get("score_liquidez", 0))
-                p.score_oferta  = int(s.get("score_oferta", 0))
-                p.razonamiento  = s.get("razonamiento", "")
-                p.copy          = s.get("copy", "")
-                p.tipo          = s.get("tipo", "DESCARTAR")
-                p.pros          = s.get("pros", [])[:3]
-                p.contras       = s.get("contras", [])[:2]
-                p.categoria     = _inferir_categoria(p)
+                p.score_oferta   = int(s.get("score_oferta", 0))
+                p.tipo           = s.get("tipo", "DESCARTAR")
+                p.categoria      = _inferir_categoria(p)
                 if p.precio_wallapop == 0.0:
                     p.precio_wallapop = float(s.get("precio_wallapop_estimado", 0.0))
 
                 if p.tipo in ("ARBITRAJE", "OFERTA"):
+                    titulo_lower = p.titulo.lower()
+                    p.pros = [f"−{p.descuento_pct}% de descuento real"]
+                    if any(m in titulo_lower for m in _MARCAS_CONOCIDAS):
+                        p.pros.append("Marca con garantía oficial")
+                    if p.precio_historico_min > 0 and p.precio_actual <= p.precio_historico_min:
+                        p.pros.append("En mínimo histórico de precio")
+                    p.contras = []
                     candidatos.append(p)
 
             print(f"   🤖 Haiku batch {i//BATCH_SIZE_CLAUDE + 1}: {len(candidatos)} candidatos acumulados")
