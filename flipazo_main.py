@@ -2200,7 +2200,7 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
             try:
                 response = client.messages.create(
                     model="claude-haiku-4-5-20251001",
-                    max_tokens=2048,
+                    max_tokens=4096,
                     system=[{
                         "type": "text",
                         "text": PROMPT_SCORING_SYSTEM,
@@ -2225,9 +2225,16 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
 
         try:
             texto = response.content[0].text.strip()
-            texto = re.sub(r'^```json\s*|\s*```$', '', texto, flags=re.MULTILINE)
-            respuesta_limpia = texto[:texto.rfind('}')+1] if '}' in texto else texto
-            scores: list[dict] = json.loads(respuesta_limpia)
+            texto = re.sub(r'^```json\s*|\s*```$', '', texto, flags=re.MULTILINE).strip()
+
+            # Rescatar JSON truncado: recortar hasta el último objeto completo
+            if '}' in texto:
+                texto = texto[:texto.rfind('}')+1]
+                # Cerrar el array si quedó abierto por truncación
+                if texto.lstrip().startswith('[') and not texto.rstrip().endswith(']'):
+                    texto += ']'
+
+            scores: list[dict] = json.loads(texto)
             scores_by_asin = {s["asin"]: s for s in scores}
 
             uso = response.usage
