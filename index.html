@@ -10,6 +10,15 @@
   <meta property="og:url" content="https://flipazo.es" />
   <meta property="og:type" content="website" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23111111'/><text x='50%' y='74%' font-family='Georgia,serif' font-weight='900' font-size='24' fill='white' text-anchor='middle'>F</text></svg>">
+  <meta name="color-scheme" content="light dark" />
+  <script>
+    /* Anti-FOUC: aplica el tema guardado antes de pintar */
+    (function(){
+      var t = localStorage.getItem('flipazo_theme') ||
+              (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Playfair+Display+SC:wght@700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
@@ -20,17 +29,62 @@
 
     /* ── Variables ─────────────────────────────────────────────── */
     :root {
-      --ink:       #111111;
-      --ink-light: #444444;
-      --rule:      #222222;
-      --bg:        #ffffff;
-      --accent:    #c0392b;   /* rojo periódico */
-      --badge-rev: #1a6b3c;   /* verde reventa  */
-      --serif:     'Playfair Display', Georgia, serif;
-      --serif-sc:  'Playfair Display SC', Georgia, serif;
-      --mono:      'Courier Prime', 'Courier New', monospace;
-      --col-gap:   28px;
+      --ink:          #111111;
+      --ink-light:    #444444;
+      --rule:         #222222;
+      --bg:           #ffffff;
+      --accent:       #c0392b;
+      --badge-rev:    #1a6b3c;
+      --serif:        'Playfair Display', Georgia, serif;
+      --serif-sc:     'Playfair Display SC', Georgia, serif;
+      --mono:         'Courier Prime', 'Courier New', monospace;
+      --col-gap:      28px;
+      /* superficies */
+      --surface:      #f5f5f5;
+      --surface-hover:#fafafa;
+      /* bordes */
+      --border:       #e0e0e0;
+      --border-soft:  #cccccc;
+      --border-faint: #eeeeee;
+      /* texto secundario */
+      --text-body:    #555555;
+      --text-mid:     #777777;
+      --text-dim:     #999999;
+      --text-faint:   #bbbbbb;
+      /* fondos especiales */
+      --reventa-bg:   #f0faf4;
+      --downvote-bg:  #fffaf5;
     }
+
+    /* ── Dark mode ──────────────────────────────────────────────── */
+    [data-theme="dark"] {
+      color-scheme:   dark;
+      --ink:          #e2e2e2;
+      --ink-light:    #888888;
+      --rule:         #cccccc;
+      --bg:           #111111;
+      --badge-rev:    #2ecc71;
+      --surface:      #1a1a1a;
+      --surface-hover:#1e1e1e;
+      --border:       #2a2a2a;
+      --border-soft:  #333333;
+      --border-faint: #1e1e1e;
+      --text-body:    #aaaaaa;
+      --text-mid:     #888888;
+      --text-dim:     #666666;
+      --text-faint:   #444444;
+      --reventa-bg:   #0a1f14;
+      --downvote-bg:  #1f150a;
+    }
+    /* Deal images: fondo y suavizado en dark */
+    [data-theme="dark"] .deal__image-wrap { background: var(--surface) !important; }
+    [data-theme="dark"] .deal__image      { filter: brightness(0.9); }
+    [data-theme="dark"] .deal__skeleton-img {
+      background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
+      background-size: 200% 100%;
+    }
+    /* Cookie banner siempre oscuro, independiente del tema */
+    [data-theme="dark"] #cookie-banner { background: #111111; }
 
     /* ── Base ──────────────────────────────────────────────────── */
     body {
@@ -110,7 +164,7 @@
     .section-header__line {
       flex: 1;
       border: none;
-      border-top: 1px solid #ddd;
+      border-top: 1px solid var(--border-soft);
     }
 
     .section-header__count {
@@ -144,8 +198,8 @@
 
     /* ── Deal card ──────────────────────────────────────────────── */
     .deal {
-      border-right: 1px solid #e0e0e0;
-      border-bottom: 1px solid #e0e0e0;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
       padding: 24px 22px 20px;
       display: flex;
       flex-direction: column;
@@ -153,7 +207,7 @@
       transition: background 0.15s;
     }
 
-    .deal:hover { background: #fafafa; }
+    .deal:hover { background: var(--surface-hover); }
 
     .deal--featured {
       box-shadow: 0 4px 24px rgba(0,0,0,0.13);
@@ -188,7 +242,7 @@
       width: 100%;
       aspect-ratio: 1 / 1;
       overflow: hidden;
-      background: #f5f5f5;
+      background: var(--surface);
       margin-bottom: 14px;
       display: flex;
       align-items: center;
@@ -216,7 +270,7 @@
     .deal__image-placeholder {
       font-family: var(--mono);
       font-size: 10px;
-      color: #bbb;
+      color: var(--text-faint);
       letter-spacing: 0.1em;
     }
 
@@ -268,7 +322,7 @@
     .deal__original {
       font-family: var(--mono);
       font-size: 13px;
-      color: #aaa;
+      color: var(--text-faint);
       text-decoration: line-through;
     }
 
@@ -310,7 +364,7 @@
 
     /* ── Wallapop / Reventa — caja destacada ────────────────────── */
     .deal__reventa {
-      background: #f0faf4;
+      background: var(--reventa-bg);
       border: 1.5px solid var(--badge-rev);
       border-left: 4px solid var(--badge-rev);
       padding: 12px 14px;
@@ -350,7 +404,7 @@
       font-family: var(--serif);
       font-style: italic;
       font-size: 12px;
-      color: #777;
+      color: var(--text-mid);
       line-height: 1.4;
       margin-bottom: 14px;
     }
@@ -375,7 +429,7 @@
       font-family: var(--mono);
       font-size: 10.5px;
       line-height: 1.5;
-      color: #555;
+      color: var(--text-body);
       padding-left: 14px;
       position: relative;
     }
@@ -383,14 +437,14 @@
       content: "✓";
       position: absolute;
       left: 0;
-      color: #27ae60;
+      color: var(--badge-rev);
       font-weight: 700;
     }
     .deal__contras .deal__procon-list li::before {
       content: "–";
       position: absolute;
       left: 0;
-      color: #c0392b;
+      color: var(--accent);
       font-weight: 700;
     }
 
@@ -439,18 +493,44 @@
     .deal__time {
       font-family: var(--mono);
       font-size: 9.5px;
-      color: #999;
+      color: var(--text-dim);
       letter-spacing: 0.07em;
       margin-top: 12px;
       text-transform: uppercase;
-      border-top: 1px solid #eee;
+      border-top: 1px solid var(--border-faint);
       padding-top: 8px;
     }
+
+    /* ── Theme toggle & account link ───────────────────────────── */
+    .masthead__action-link {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s, color 0.15s;
+      padding-bottom: 1px;
+    }
+    .masthead__action-link:hover { border-bottom-color: var(--ink-light); }
+
+    .theme-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--ink-light);
+      padding: 0;
+      line-height: 1;
+      transition: opacity 0.15s, transform 0.3s;
+      user-select: none;
+    }
+    .theme-toggle:hover { opacity: 0.6; transform: rotate(20deg); }
 
     /* ── About section ──────────────────────────────────────────── */
     .about {
       border-top: 3px solid var(--rule);
-      border-bottom: 1px solid #e0e0e0;
+      border-bottom: 1px solid var(--border);
       padding: 48px 40px;
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -482,7 +562,7 @@
 
     /* ── Footer ─────────────────────────────────────────────────── */
     .footer {
-      border-top: 1px solid #e0e0e0;
+      border-top: 1px solid var(--border);
       padding: 24px 40px 80px; /* extra bottom padding for cookie banner */
       display: flex;
       flex-direction: column;
@@ -532,7 +612,7 @@
     .footer__affiliate {
       font-family: var(--mono);
       font-size: 10px;
-      color: #999;
+      color: var(--text-dim);
       line-height: 1.7;
       max-width: 680px;
     }
@@ -604,7 +684,7 @@
       padding: 80px 40px;
       text-align: center;
       font-family: var(--mono);
-      color: #bbb;
+      color: var(--text-faint);
       font-size: 13px;
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -612,7 +692,7 @@
 
     /* ── Loading skeleton ────────────────────────────────────────── */
     .skeleton {
-      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
       background-size: 200% 100%;
       animation: shimmer 1.4s infinite;
       border-radius: 2px;
@@ -631,7 +711,7 @@
       border-bottom: 1.5px solid var(--rule);
       overflow-x: auto;
       scrollbar-width: none;
-      background: #fafafa;
+      background: var(--surface-hover);
     }
     .cat-bar::-webkit-scrollbar { display: none; }
     .cat-pill {
@@ -642,7 +722,7 @@
       text-transform: uppercase;
       white-space: nowrap;
       padding: 7px 14px;
-      border: 1.5px solid #ccc;
+      border: 1.5px solid var(--border-soft);
       background: var(--bg);
       color: var(--ink-light);
       cursor: pointer;
@@ -654,7 +734,7 @@
     /* ── Sort tabs ──────────────────────────────────────────────── */
     .sort-tabs {
       display: flex;
-      border-top: 1px solid #e0e0e0;
+      border-top: 1px solid var(--border);
       overflow-x: auto;
       scrollbar-width: none;
       margin-top: 12px;
@@ -669,7 +749,7 @@
       padding: 11px 22px;
       background: none;
       border: none;
-      border-right: 1px solid #e0e0e0;
+      border-right: 1px solid var(--border);
       cursor: pointer;
       color: var(--ink-light);
       white-space: nowrap;
@@ -704,7 +784,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #f5f5f5;
+      background: var(--surface);
       align-self: stretch;
       min-height: 220px;
     }
@@ -723,7 +803,7 @@
       text-transform: uppercase;
       color: var(--ink-light);
       padding-bottom: 12px;
-      border-bottom: 1px solid #ddd;
+      border-bottom: 1px solid var(--border-soft);
       margin-bottom: 20px;
       display: block;
     }
@@ -762,7 +842,7 @@
     .hero__original {
       font-family: var(--mono);
       font-size: 14px;
-      color: #bbb;
+      color: var(--text-faint);
       text-decoration: line-through;
     }
     .hero__pct {
@@ -778,7 +858,7 @@
       display: flex;
       gap: 14px;
       padding: 18px 0;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-faint);
       transition: opacity 0.12s;
       text-decoration: none;
       color: inherit;
@@ -789,7 +869,7 @@
       width: 72px;
       height: 72px;
       object-fit: contain;
-      background: #f5f5f5;
+      background: var(--surface);
       flex-shrink: 0;
     }
     .sidebar-deal__info { flex: 1; min-width: 0; }
@@ -857,7 +937,7 @@
       background: transparent;
     }
     .search-bar__input::placeholder {
-      color: #bbb;
+      color: var(--text-faint);
       text-transform: uppercase;
       letter-spacing: 0.16em;
     }
@@ -865,7 +945,7 @@
       background: none;
       border: none;
       cursor: pointer;
-      color: #bbb;
+      color: var(--text-faint);
       padding: 4px;
       display: flex;
       align-items: center;
@@ -891,17 +971,17 @@
       align-items: center;
       gap: 14px;
       padding: 11px 40px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-faint);
       cursor: pointer;
       transition: background 0.1s;
     }
     .search-result:last-child { border-bottom: none; }
-    .search-result:hover { background: #fafafa; }
+    .search-result:hover { background: var(--surface-hover); }
     .search-result__img {
       width: 42px;
       height: 42px;
       object-fit: contain;
-      background: #f5f5f5;
+      background: var(--surface);
       flex-shrink: 0;
     }
     .search-result__info { flex: 1; min-width: 0; }
@@ -917,7 +997,7 @@
     .search-result__meta {
       font-family: var(--mono);
       font-size: 9px;
-      color: #999;
+      color: var(--text-dim);
       letter-spacing: 0.08em;
       text-transform: uppercase;
       margin-top: 3px;
@@ -933,7 +1013,7 @@
       padding: 18px 40px;
       font-family: var(--mono);
       font-size: 10px;
-      color: #bbb;
+      color: var(--text-faint);
       letter-spacing: 0.14em;
       text-transform: uppercase;
     }
@@ -942,8 +1022,8 @@
       align-items: center;
       justify-content: space-between;
       padding: 8px 40px;
-      background: #fafafa;
-      border-bottom: 1px solid #eee;
+      background: var(--surface-hover);
+      border-bottom: 1px solid var(--border-faint);
       font-family: var(--mono);
       font-size: 10px;
       letter-spacing: 0.1em;
@@ -979,16 +1059,16 @@
       letter-spacing: 0.1em;
       text-transform: uppercase;
       padding: 5px 11px;
-      border: 1.5px solid #ddd;
+      border: 1.5px solid var(--border-soft);
       background: transparent;
       cursor: pointer;
       transition: border-color 0.15s, color 0.15s, background 0.15s;
-      color: #bbb;
+      color: var(--text-faint);
       line-height: 1;
     }
     .vote-btn:hover { border-color: var(--ink); color: var(--ink); }
-    .vote-btn--up.voted  { border-color: var(--badge-rev); color: var(--badge-rev); background: #f0faf4; }
-    .vote-btn--down.voted { border-color: #e67e22; color: #e67e22; background: #fffaf5; }
+    .vote-btn--up.voted  { border-color: var(--badge-rev); color: var(--badge-rev); background: var(--reventa-bg); }
+    .vote-btn--down.voted { border-color: #e67e22; color: #e67e22; background: var(--downvote-bg); }
     .vote-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
 
     /* ── View toggle (solo mobile) ──────────────────────────────── */
@@ -1000,13 +1080,13 @@
     }
     .view-btn {
       background: none;
-      border: 1.5px solid #ddd;
+      border: 1.5px solid var(--border-soft);
       cursor: pointer;
       padding: 5px 7px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #bbb;
+      color: var(--text-faint);
       transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
     .view-btn.active { background: var(--ink); border-color: var(--ink); color: #fff; }
@@ -1034,7 +1114,7 @@
       -webkit-appearance: none;
       width: 80px;
       height: 2px;
-      background: #ccc;
+      background: var(--border);
       outline: none;
       cursor: pointer;
       border-radius: 1px;
@@ -1122,11 +1202,11 @@
 
       .deals-grid--mosaic { grid-template-columns: repeat(2, 1fr); }
       .deals-grid--mosaic .deal {
-        border-right: 1px solid #e0e0e0;
+        border-right: 1px solid var(--border);
         padding: 12px 10px 10px;
       }
       /* Resetear la regla de nth-child(3n) para que 2n domine */
-      .deals-grid--mosaic .deal:nth-child(3n) { border-right: 1px solid #e0e0e0; }
+      .deals-grid--mosaic .deal:nth-child(3n) { border-right: 1px solid var(--border); }
       .deals-grid--mosaic .deal:nth-child(2n) { border-right: none; }
 
       .deals-grid--mosaic .deal__badge { font-size: 8px; padding: 2px 6px; margin-bottom: 8px; }
@@ -1170,7 +1250,11 @@
     <div class="masthead__meta">
       <span id="js-date">—</span>
       <span class="masthead__tagline">Ofertas reales. Descuentos verificados.</span>
-      <span><span class="live-dot"></span>Actualización automática</span>
+      <span style="display:flex;align-items:center;gap:14px">
+        <span><span class="live-dot"></span>Actualización automática</span>
+        <a href="/cuenta" id="js-cuenta-link" class="masthead__action-link">Mi&nbsp;Cuenta</a>
+        <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">☾</button>
+      </span>
     </div>
     <nav class="sort-tabs" id="js-sort-tabs" aria-label="Ordenar por">
       <button class="sort-tab sort-tab--active" data-sort="recientes">Recientes</button>
@@ -1260,7 +1344,7 @@
   </main>
 
   <!-- ── LOAD MORE ────────────────────────────────────────────── -->
-  <div id="js-load-indicator" style="display:none; padding:32px; text-align:center; font-family:'Courier Prime','Courier New',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#999;">
+  <div id="js-load-indicator" style="display:none; padding:32px; text-align:center; font-family:'Courier Prime','Courier New',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-dim);">
     Cargando más ofertas…
   </div>
   <div id="js-sentinel" style="height:1px;"></div>
@@ -1339,6 +1423,21 @@
       localStorage.setItem("flipazo_consent", JSON.stringify(prefs));
       document.getElementById("cookie-banner").classList.add("hidden");
     }
+
+    // ── Theme toggle ───────────────────────────────────────────
+    function toggleTheme() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const next   = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('flipazo_theme', next);
+      _updateToggleIcon(next);
+    }
+    function _updateToggleIcon(theme) {
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = theme === 'dark' ? '☀' : '☾';
+    }
+    // Sincronizar icono con el tema actual (ya aplicado por el script anti-FOUC)
+    _updateToggleIcon(document.documentElement.getAttribute('data-theme') || 'light');
 
     // ── Config ─────────────────────────────────────────────────
     const API_BASE  = "https://api.flipazo.es";
