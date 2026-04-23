@@ -14,8 +14,7 @@
   <script>
     /* Anti-FOUC: aplica el tema guardado antes de pintar */
     (function(){
-      var t = localStorage.getItem('flipazo_theme') ||
-              (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      var t = localStorage.getItem('flipazo_theme') || 'light';
       if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
     })();
   </script>
@@ -78,7 +77,9 @@
     }
     /* Deal images: fondo y suavizado en dark */
     [data-theme="dark"] .deal__image-wrap { background: var(--surface) !important; }
-    [data-theme="dark"] .deal__image      { filter: none; }
+    [data-theme="dark"] .deal__image-wrap img,
+    [data-theme="dark"] .hero__img,
+    [data-theme="dark"] .sidebar-deal__img { filter: none !important; }
     [data-theme="dark"] .deal__skeleton-img {
       background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
       background-size: 200% 100%;
