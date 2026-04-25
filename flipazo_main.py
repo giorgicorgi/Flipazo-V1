@@ -63,6 +63,10 @@ CICLO_COMPLETO_MIN      = 120
 # ── Costes reales de reventa en Wallapop ─────────────────────────
 WALLAPOP_COMISION       = 0.13  # 13% (10% comisión + ~3% pasarela de pago)
 WALLAPOP_ENVIO          = 5.0   # € envío medio (Correos/MRW)
+
+# ── Límite de productos del mismo tipo por ciclo ─────────────────
+MAX_MISMO_TIPO          = 3     # Si hay más de X del mismo tipo → limitar
+MAX_PUBLICAR_POR_TIPO   = 2     # Cuántos publicar cuando se supera el límite
 WALLAPOP_EMBALAJE       = 2.0   # € materiales embalaje
 WALLAPOP_COSTES_FIJOS   = WALLAPOP_ENVIO + WALLAPOP_EMBALAJE  # 7€
 
@@ -2322,6 +2326,61 @@ async def obtener_precio_wallapop(p: Producto, context: BrowserContext) -> float
         await page.close()
 
 # ════════════════════════════════════════════════════════════════
+# LÍMITE DE PRODUCTOS DEL MISMO TIPO
+# ════════════════════════════════════════════════════════════════
+
+_TIPO_PRODUCTO_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r'\b(bicicleta|mtb|gravel|e-bike|ebike|bici)\b',        re.I), 'bicicleta'),
+    (re.compile(r'\b(auricular|headphone|earbud|earphone|casco\s+audio)',re.I), 'auriculares'),
+    (re.compile(r'\b(cafetera|espresso|nespresso|dolce\s*gusto|tassimo)',re.I), 'cafetera'),
+    (re.compile(r'\b(maillot|culotte)',                                  re.I), 'maillot'),
+    (re.compile(r'\b(robot\s*aspirador|roomba|roborock|dreame|ecovacs|lefant|eufy)', re.I), 'aspirador'),
+    (re.compile(r'\b(smartwatch|smart\s+watch|galaxy\s+watch|apple\s+watch|fenix)',  re.I), 'smartwatch'),
+    (re.compile(r'\b(port[aá]til|laptop|notebook)\b',                   re.I), 'portatil'),
+    (re.compile(r'\btablet\b|ipad',                                     re.I), 'tablet'),
+    (re.compile(r'\b(televisor|smart\s*tv|qled|oled)',                  re.I), 'tv'),
+    (re.compile(r'\b(afeitadora|rasuradora|recortadora)',                re.I), 'afeitadora'),
+    (re.compile(r'\b(plancha|alisador|rizador|secador\s+de?\s+pelo)',    re.I), 'peluqueria'),
+    (re.compile(r'\b(freidora|air\s*fryer)',                            re.I), 'freidora'),
+    (re.compile(r'\b(mochila|backpack)\b',                              re.I), 'mochila'),
+    (re.compile(r'\b(perfume|eau\s+de|colonia)\b',                      re.I), 'perfume'),
+    (re.compile(r'\b(casco\s+(?:bici|moto|ciclismo|ski|senderismo))',   re.I), 'casco'),
+]
+
+
+def _detectar_tipo_producto(titulo: str) -> str | None:
+    """Detecta la categoría de producto a partir del título para limitar duplicados."""
+    for pattern, tipo in _TIPO_PRODUCTO_PATTERNS:
+        if pattern.search(titulo):
+            return tipo
+    return None
+
+
+def _limitar_por_tipo(deals: list["Producto"]) -> list["Producto"]:
+    """Si hay más de MAX_MISMO_TIPO del mismo tipo, conserva solo los MAX_PUBLICAR_POR_TIPO mejores
+    (ordenados por score_ai desc, luego descuento_pct desc)."""
+    from collections import defaultdict
+    por_tipo: dict[str, list["Producto"]] = defaultdict(list)
+    sin_tipo: list["Producto"] = []
+
+    for p in deals:
+        tipo = _detectar_tipo_producto(p.titulo)
+        if tipo:
+            por_tipo[tipo].append(p)
+        else:
+            sin_tipo.append(p)
+
+    resultado: list["Producto"] = list(sin_tipo)
+    for tipo, grupo in por_tipo.items():
+        if len(grupo) > MAX_MISMO_TIPO:
+            grupo_ord = sorted(grupo, key=lambda p: (p.score_ai, p.descuento_pct), reverse=True)
+            resultado.extend(grupo_ord[:MAX_PUBLICAR_POR_TIPO])
+            print(f"   ✂️  Límite tipo '{tipo}': {len(grupo)} → {MAX_PUBLICAR_POR_TIPO} (omitidos {len(grupo) - MAX_PUBLICAR_POR_TIPO})")
+        else:
+            resultado.extend(grupo)
+    return resultado
+
+
 # DEDUPLICACIÓN PERSISTENTE (SQLite)
 # ════════════════════════════════════════════════════════════════
 
@@ -2690,6 +2749,12 @@ async def run_pipeline(modo: str = "completo"):
             for p in ofertas:
                 deals_finales.append(p)
                 print(f"   ⚡ OFERTA  {p.tienda:<12} {p.titulo[:40]:<40} | score {p.score_oferta}/100")
+
+            # ── Fase 4.5: Limitar flood del mismo tipo de producto ──
+            antes = len(deals_finales)
+            deals_finales = _limitar_por_tipo(deals_finales)
+            if len(deals_finales) < antes:
+                print(f"   ✂️  Flood control: {antes} → {len(deals_finales)} deals")
 
             # ── Fase 5: Publicar en Telegram ──────────────────────
             dedup = DeduplicacionDB()
