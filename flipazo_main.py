@@ -2501,14 +2501,7 @@ class DeduplicacionDB:
             con.commit()
 
     def limpiar_expirados(self):
-        limite = (datetime.now(timezone.utc) - timedelta(hours=DEDUP_TTL_HORAS * 2)).isoformat()
-        with sqlite3.connect(self.db_path) as con:
-            n = con.execute(
-                "DELETE FROM deals_publicados WHERE publicado_en < ?", (limite,)
-            ).rowcount
-            con.commit()
-        if n > 0:
-            print(f"   🗑️  Dedup: {n} registros expirados eliminados")
+        pass  # Conservamos todo el historial — no hay límite de almacenamiento
 
 
 # ════════════════════════════════════════════════════════════════
