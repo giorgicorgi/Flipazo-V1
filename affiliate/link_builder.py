@@ -2,24 +2,18 @@
 affiliate/link_builder.py — Generador de URLs de afiliado por tienda.
 
 Soporta:
-  - Amazon.es        → Amazon Associates (tag directo en la URL)
-  - MediaMarkt.es    → Awin deep link  (MEDIAMARKT_AWIN_MID en .env)
-  - PcComponentes    → Awin deep link  (PCCOMPONENTES_AWIN_MID en .env)
+  - Amazon.es           → Amazon Associates (tag directo en la URL)
+  - MediaMarkt.es       → Tradedoubler (prioritario) / Awin (fallback)
+  - PcComponentes       → Awin deep link
+  - Beep ES             → Tradedoubler deep link
+  - Billabong ES        → Tradedoubler deep link
+  - Cole Haan España    → Tradedoubler deep link
+  - Element Brand ES    → Tradedoubler deep link
+  - Elliotti            → Tradedoubler deep link
+  - The Beauty Corner   → Tradedoubler deep link
+  - ToysRus ES          → Tradedoubler deep link
 
-Si no hay credenciales Awin configuradas devuelve la URL directa (sin tracking),
-así el pipeline sigue funcionando mientras se espera el alta en Awin.
-
-Cómo obtener los Merchant IDs de Awin
-──────────────────────────────────────
-1. Entra en https://ui.awin.com → Publisher → My Publishers → tu cuenta
-2. Ve a "Programmes" y busca "MediaMarkt" / "PcComponentes"
-3. Únete al programa (suele tardar 24-48h en aprobarse)
-4. El Merchant ID (awinmid) aparece en la URL del programa o en "Links"
-5. Tu Publisher ID (awinaffid) está en el menú superior de tu cuenta Awin
-
-Valores de referencia (confirmar en tu cuenta Awin):
-  MediaMarkt ES:   awinmid ≈ 6907
-  PcComponentes:   awinmid ≈ 16440  (verificar — pueden variar por región/cuenta)
+Si faltan credenciales devuelve la URL directa (el pipeline sigue funcionando).
 """
 
 import os
@@ -29,26 +23,34 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-AMAZON_AFFILIATE_TAG   = os.getenv("AMAZON_AFFILIATE_TAG", "flipazo-21")
-AWIN_PUBLISHER_ID      = os.getenv("AWIN_PUBLISHER_ID", "")
+# ── Amazon ────────────────────────────────────────────────────────────────────
+AMAZON_AFFILIATE_TAG = os.getenv("AMAZON_AFFILIATE_TAG", "flipazo-21")
 
-# Merchant IDs: los valores por defecto son de referencia.
-# Confírmalos en tu panel Awin antes de activar en producción.
+# ── Awin ──────────────────────────────────────────────────────────────────────
+AWIN_PUBLISHER_ID         = os.getenv("AWIN_PUBLISHER_ID", "")
 MEDIAMARKT_AWIN_MID       = os.getenv("MEDIAMARKT_AWIN_MID", "6907")
 PCCOMPONENTES_AWIN_MID    = os.getenv("PCCOMPONENTES_AWIN_MID", "")
 ELCORTEINGLES_AWIN_MID    = os.getenv("ELCORTEINGLES_AWIN_MID", "")
 PRIVATESPORTSHOP_AWIN_MID = os.getenv("PRIVATESPORTSHOP_AWIN_MID", "")
-MAMMOTH_AWIN_MID          = os.getenv("MAMMOTH_AWIN_MID", "")   # programa Awin si se aprueba
-BARRABES_AWIN_MID         = os.getenv("BARRABES_AWIN_MID", "")  # pendiente confirmar programa Awin
+MAMMOTH_AWIN_MID          = os.getenv("MAMMOTH_AWIN_MID", "")
+BARRABES_AWIN_MID         = os.getenv("BARRABES_AWIN_MID", "")
+
+# ── Tradedoubler ──────────────────────────────────────────────────────────────
+TD_PUBLISHER_ID     = os.getenv("TD_PUBLISHER_ID", "")
+
+BEEP_TD_PID         = os.getenv("BEEP_TD_PID",         "347347")
+BILLABONG_TD_PID    = os.getenv("BILLABONG_TD_PID",     "324694")
+COLEHAAN_TD_PID     = os.getenv("COLEHAAN_TD_PID",      "364994")
+ELEMENT_TD_PID      = os.getenv("ELEMENT_TD_PID",       "324735")
+ELLIOTTI_TD_PID     = os.getenv("ELLIOTTI_TD_PID",      "385916")
+MEDIAMARKT_TD_PID   = os.getenv("MEDIAMARKT_TD_PID",    "270504")
+BEAUTYCORNER_TD_PID = os.getenv("BEAUTYCORNER_TD_PID",  "311896")
+TOYSRUS_TD_PID      = os.getenv("TOYSRUS_TD_PID",       "211811")
 
 
 # ── Helpers internos ──────────────────────────────────────────────────────────
 
 def _awin_deep_link(merchant_id: str, product_url: str) -> str:
-    """
-    Genera el deep link de Awin para un producto.
-    Si falta AWIN_PUBLISHER_ID o merchant_id, devuelve la URL directa.
-    """
     if not AWIN_PUBLISHER_ID or not merchant_id:
         return product_url
     encoded = urllib.parse.quote(product_url, safe="")
@@ -60,6 +62,18 @@ def _awin_deep_link(merchant_id: str, product_url: str) -> str:
     )
 
 
+def _tradedoubler_deep_link(program_id: str, product_url: str) -> str:
+    if not TD_PUBLISHER_ID or not program_id:
+        return product_url
+    encoded = urllib.parse.quote(product_url, safe="")
+    return (
+        f"https://clk.tradedoubler.com/click"
+        f"?p={program_id}"
+        f"&a={TD_PUBLISHER_ID}"
+        f"&url={encoded}"
+    )
+
+
 # ── API pública ───────────────────────────────────────────────────────────────
 
 def build_affiliate_url(tienda: str, asin_or_url: str) -> str:
@@ -67,7 +81,7 @@ def build_affiliate_url(tienda: str, asin_or_url: str) -> str:
     Devuelve la URL de afiliado correcta según la tienda.
 
     Args:
-        tienda:       "Amazon" | "MediaMarkt" | "PcComponentes" | otra
+        tienda:       nombre de la tienda (ver lista de soportadas arriba)
         asin_or_url:  ASIN de 10 chars para Amazon; URL directa de producto para el resto.
 
     Returns:
@@ -76,12 +90,39 @@ def build_affiliate_url(tienda: str, asin_or_url: str) -> str:
     if not asin_or_url:
         return ""
 
+    # Amazon
     if tienda == "Amazon":
         return f"https://www.amazon.es/dp/{asin_or_url}?tag={AMAZON_AFFILIATE_TAG}"
 
+    # MediaMarkt — Tradedoubler prioritario, Awin como fallback
     if tienda == "MediaMarkt":
+        if TD_PUBLISHER_ID:
+            return _tradedoubler_deep_link(MEDIAMARKT_TD_PID, asin_or_url)
         return _awin_deep_link(MEDIAMARKT_AWIN_MID, asin_or_url)
 
+    # Tradedoubler
+    if tienda == "Beep":
+        return _tradedoubler_deep_link(BEEP_TD_PID, asin_or_url)
+
+    if tienda == "Billabong":
+        return _tradedoubler_deep_link(BILLABONG_TD_PID, asin_or_url)
+
+    if tienda == "Cole Haan":
+        return _tradedoubler_deep_link(COLEHAAN_TD_PID, asin_or_url)
+
+    if tienda == "Element Brand":
+        return _tradedoubler_deep_link(ELEMENT_TD_PID, asin_or_url)
+
+    if tienda == "Elliotti":
+        return _tradedoubler_deep_link(ELLIOTTI_TD_PID, asin_or_url)
+
+    if tienda == "The Beauty Corner":
+        return _tradedoubler_deep_link(BEAUTYCORNER_TD_PID, asin_or_url)
+
+    if tienda == "ToysRus":
+        return _tradedoubler_deep_link(TOYSRUS_TD_PID, asin_or_url)
+
+    # Awin
     if tienda == "PcComponentes":
         return _awin_deep_link(PCCOMPONENTES_AWIN_MID, asin_or_url)
 
@@ -92,23 +133,29 @@ def build_affiliate_url(tienda: str, asin_or_url: str) -> str:
         return _awin_deep_link(PRIVATESPORTSHOP_AWIN_MID, asin_or_url)
 
     if tienda == "Mammoth Bikes":
-        # Si se configura MAMMOTH_AWIN_MID → deep link Awin; si no → URL directa
         return _awin_deep_link(MAMMOTH_AWIN_MID, asin_or_url)
 
     if tienda == "Barrabes":
-        # Si se configura BARRABES_AWIN_MID → deep link Awin; si no → URL directa
         return _awin_deep_link(BARRABES_AWIN_MID, asin_or_url)
 
-    # Tienda desconocida → devolver URL directa (sin perder el deal)
+    # Tienda desconocida → URL directa (sin perder el deal)
     return asin_or_url
 
 
 def affiliate_status() -> dict:
     """Devuelve el estado de configuración de cada red de afiliados (útil para debug)."""
     return {
-        "amazon": bool(AMAZON_AFFILIATE_TAG),
-        "awin_publisher_configurado": bool(AWIN_PUBLISHER_ID),
-        "mediamarkt_mid": MEDIAMARKT_AWIN_MID or "❌ no configurado",
-        "pccomponentes_mid": PCCOMPONENTES_AWIN_MID or "❌ no configurado",
-        "mammoth_mid": MAMMOTH_AWIN_MID or "URL directa (sin Awin)",
+        "amazon":                    bool(AMAZON_AFFILIATE_TAG),
+        "awin_publisher":            AWIN_PUBLISHER_ID or "❌ no configurado",
+        "mediamarkt_awin_mid":       MEDIAMARKT_AWIN_MID or "❌ no configurado",
+        "pccomponentes_awin_mid":    PCCOMPONENTES_AWIN_MID or "❌ no configurado",
+        "td_publisher":              TD_PUBLISHER_ID or "❌ no configurado",
+        "mediamarkt_td_pid":         MEDIAMARKT_TD_PID,
+        "beep_td_pid":               BEEP_TD_PID,
+        "billabong_td_pid":          BILLABONG_TD_PID,
+        "colehaan_td_pid":           COLEHAAN_TD_PID,
+        "element_td_pid":            ELEMENT_TD_PID,
+        "elliotti_td_pid":           ELLIOTTI_TD_PID,
+        "beautycorner_td_pid":       BEAUTYCORNER_TD_PID,
+        "toysrus_td_pid":            TOYSRUS_TD_PID,
     }
