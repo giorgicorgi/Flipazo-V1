@@ -509,16 +509,33 @@
     }
 
     /* ── Timestamp ──────────────────────────────────────────────── */
+    .deal__bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      border-top: 1px solid var(--border-faint);
+      padding-top: 8px;
+    }
     .deal__time {
       font-family: var(--mono);
       font-size: 9.5px;
       color: var(--text-dim);
       letter-spacing: 0.07em;
-      margin-top: 12px;
       text-transform: uppercase;
-      border-top: 1px solid var(--border-faint);
-      padding-top: 8px;
     }
+    .deal__fav {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text-dim);
+      transition: color 0.15s, transform 0.15s;
+      padding: 0 2px;
+      line-height: 1;
+    }
+    .deal__fav:hover   { color: #e74c3c; transform: scale(1.15); }
+    .deal__fav.saved   { color: #e74c3c; }
 
     /* ── Theme toggle & account link ───────────────────────────── */
     .masthead__action-link {
@@ -1784,7 +1801,10 @@
             ${wallaBtn}
           </div>
           ${votesHtml}
-          <p class="deal__time" data-ts="${d.timestamp || ""}">${timeAgo(d.timestamp)}</p>
+          <div class="deal__bottom">
+            <p class="deal__time" data-ts="${d.timestamp || ""}">${timeAgo(d.timestamp)}</p>
+            <button class="deal__fav" data-id="${d.id}" onclick="toggleFavorite(this,'${d.id}')" aria-label="Guardar en favoritos">♥</button>
+          </div>
         </article>`;
     }
 
@@ -2368,6 +2388,40 @@
         el.textContent = timeAgo(el.dataset.ts);
       });
     }, 60000);
+
+    // ── Favoritos ──────────────────────────────────────────────────
+    const FAV_API   = 'https://api.flipazo.es';
+    let   savedFavs = new Set();
+
+    (function initFavs() {
+      const token = localStorage.getItem('flipazo_user_token');
+      if (!token) return;
+      fetch(`${FAV_API}/api/user/favorites`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+          data.forEach(d => savedFavs.add(d.id));
+          document.querySelectorAll('.deal__fav').forEach(btn => {
+            if (savedFavs.has(btn.dataset.id)) btn.classList.add('saved');
+          });
+        })
+        .catch(() => {});
+    })();
+
+    async function toggleFavorite(btn, dealId) {
+      const token = localStorage.getItem('flipazo_user_token');
+      if (!token) { window.location.href = '/cuenta'; return; }
+      const isSaved = savedFavs.has(dealId);
+      const method  = isSaved ? 'DELETE' : 'POST';
+      try {
+        const r = await fetch(`${FAV_API}/api/user/favorites/${dealId}`, {
+          method, headers: { Authorization: `Bearer ${token}` }
+        });
+        if (r.ok) {
+          if (isSaved) { savedFavs.delete(dealId); btn.classList.remove('saved'); }
+          else         { savedFavs.add(dealId);    btn.classList.add('saved');    }
+        }
+      } catch { /* silencioso */ }
+    }
   </script>
 
 </body>

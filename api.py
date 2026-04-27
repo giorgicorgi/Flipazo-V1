@@ -32,10 +32,13 @@ import hmac as _hmac
 import json
 import os
 import secrets
+import smtplib
 import sqlite3
 import time
 import urllib.parse
 from datetime import datetime, timezone
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Optional
 
 import requests as _http
@@ -71,6 +74,11 @@ APPLE_REDIRECT_URI = os.getenv(
 
 # ── Frontend (para redirects post-OAuth) ───────────────────────────────────────
 FRONTEND_CUENTA = os.getenv("FRONTEND_CUENTA", "https://flipazo.es/cuenta")
+API_URL         = os.getenv("API_URL",          "https://api.flipazo.es")
+
+# ── Email (Gmail SMTP para verificación de cuentas) ────────────────────────────
+EMAIL_ADDRESS      = os.getenv("EMAIL_ADDRESS",      "")
+EMAIL_APP_PASSWORD = os.getenv("EMAIL_APP_PASSWORD", "")
 
 # ── OAuth state store en memoria (anti-CSRF) ───────────────────────────────────
 _oauth_states: dict[str, float] = {}
@@ -151,6 +159,40 @@ def _require_user(request: Request) -> dict | None:
     return payload if payload and payload.get("role") == "user" else None
 
 
+# ── Password helpers ───────────────────────────────────────────────────────────
+
+def _hash_password(password: str) -> str:
+    salt = os.urandom(16)
+    key  = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 260_000)
+    return salt.hex() + ":" + key.hex()
+
+def _verify_password(password: str, stored: str) -> bool:
+    try:
+        salt_hex, key_hex = stored.split(":")
+        salt = bytes.fromhex(salt_hex)
+        key  = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 260_000)
+        return _hmac.compare_digest(key.hex(), key_hex)
+    except Exception:
+        return False
+
+def _send_email(to: str, subject: str, html: str) -> bool:
+    if not EMAIL_ADDRESS or not EMAIL_APP_PASSWORD:
+        print("⚠️  Email no configurado — verificación omitida")
+        return False
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"]    = f"Flipazo <{EMAIL_ADDRESS}>"
+        msg["To"]      = to
+        msg.attach(MIMEText(html, "html"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as srv:
+            srv.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
+            srv.sendmail(EMAIL_ADDRESS, to, msg.as_string())
+        return True
+    except Exception as e:
+        print(f"❌ Email error: {e}")
+        return False
+
 # ── OAuth state helpers ────────────────────────────────────────────────────────
 
 def _gen_state() -> str:
@@ -229,7 +271,7 @@ def _ensure_schema():
         """)
         con.execute("CREATE INDEX IF NOT EXISTS idx_clicks_deal ON clicks(deal_id)")
 
-        # Usuarios (OAuth)
+        # Usuarios (OAuth + email)
         con.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id                 TEXT PRIMARY KEY,
@@ -244,6 +286,29 @@ def _ensure_schema():
             )
         """)
         con.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+
+        # Columnas nuevas en users (email auth + newsletter)
+        for col_def in [
+            "password_hash       TEXT    DEFAULT ''",
+            "email_verified      INTEGER DEFAULT 0",
+            "verification_token  TEXT    DEFAULT ''",
+            "newsletter          INTEGER DEFAULT 0",
+        ]:
+            try:
+                con.execute(f"ALTER TABLE users ADD COLUMN {col_def}")
+            except Exception:
+                pass
+
+        # Favoritos
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS favorites (
+                user_id    TEXT NOT NULL,
+                deal_id    TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (user_id, deal_id)
+            )
+        """)
+        con.execute("CREATE INDEX IF NOT EXISTS idx_fav_user ON favorites(user_id)")
         con.commit()
 
 
@@ -261,6 +326,18 @@ class AdminLoginBody(BaseModel):
 class PatchDealBody(BaseModel):
     titulo:       Optional[str] = None
     url_afiliado: Optional[str] = None
+
+class RegisterBody(BaseModel):
+    email:    str
+    password: str
+    name:     str = ""
+
+class EmailLoginBody(BaseModel):
+    email:    str
+    password: str
+
+class NewsletterBody(BaseModel):
+    subscribed: bool
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -739,7 +816,7 @@ def auth_me(request: Request):
 
     with _get_db() as con:
         row = con.execute(
-            "SELECT email, name, avatar_url, premium, created_at FROM users WHERE id = ?",
+            "SELECT email, name, avatar_url, premium, newsletter, created_at FROM users WHERE id = ?",
             (payload["sub"],)
         ).fetchone()
 
@@ -752,6 +829,182 @@ def auth_me(request: Request):
         "name":       row["name"],
         "avatar_url": row["avatar_url"],
         "premium":    bool(row["premium"]),
+        "newsletter": bool(row["newsletter"]),
         "provider":   payload.get("provider", ""),
         "created_at": row["created_at"],
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUTH EMAIL
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/auth/register")
+def auth_register(body: RegisterBody):
+    """Registro con email y contraseña. Envía email de verificación."""
+    email = body.email.lower().strip()
+    if not email or not body.password:
+        return JSONResponse(status_code=400, content={"error": "Email y contraseña requeridos"})
+    if len(body.password) < 8:
+        return JSONResponse(status_code=400, content={"error": "La contraseña debe tener al menos 8 caracteres"})
+
+    user_id = f"email:{email}"
+    token   = secrets.token_urlsafe(32)
+    now     = datetime.now(timezone.utc).isoformat()
+
+    with _get_db() as con:
+        existing = con.execute("SELECT id, email_verified FROM users WHERE id = ?", (user_id,)).fetchone()
+        if existing:
+            if existing["email_verified"]:
+                return JSONResponse(status_code=409, content={"error": "Este email ya tiene cuenta. Inicia sesión."})
+            # Reenviar verificación
+            con.execute("UPDATE users SET verification_token = ? WHERE id = ?", (token, user_id))
+        else:
+            name = body.name.strip() or email.split("@")[0]
+            con.execute("""
+                INSERT INTO users
+                  (id, email, name, avatar_url, provider, premium, password_hash,
+                   email_verified, verification_token, newsletter, created_at, last_login)
+                VALUES (?, ?, ?, '', 'email', 0, ?, 0, ?, 0, ?, ?)
+            """, (user_id, email, name, _hash_password(body.password), token, now, now))
+        con.commit()
+
+    verify_url = f"{API_URL}/auth/verify-email?token={token}"
+    html = f"""
+    <div style="font-family:monospace;max-width:480px;margin:0 auto;padding:40px 24px">
+      <p style="font-family:Georgia,serif;font-size:32px;font-weight:900;margin:0 0 4px">FLIPAZO</p>
+      <p style="color:#888;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 32px">El canal de ofertas más flipante de España</p>
+      <p style="font-size:14px;color:#222;margin-bottom:24px">Haz clic para verificar tu dirección de email y activar tu cuenta:</p>
+      <a href="{verify_url}"
+         style="display:inline-block;background:#c0392b;color:#fff;padding:14px 32px;
+                text-decoration:none;font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase">
+        VERIFICAR EMAIL →
+      </a>
+      <p style="color:#bbb;font-size:11px;margin-top:32px">Si no has creado esta cuenta, ignora este mensaje.</p>
+    </div>
+    """
+    _send_email(email, "Verifica tu cuenta de Flipazo", html)
+    return {"status": "verification_sent", "email": email}
+
+
+@app.post("/auth/login/email")
+def auth_login_email(body: EmailLoginBody):
+    """Login con email y contraseña."""
+    email   = body.email.lower().strip()
+    user_id = f"email:{email}"
+
+    with _get_db() as con:
+        user = con.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+
+    if not user or not _verify_password(body.password, user["password_hash"] or ""):
+        return JSONResponse(status_code=401, content={"error": "Email o contraseña incorrectos"})
+
+    if not user["email_verified"]:
+        return JSONResponse(status_code=403, content={"error": "email_not_verified", "email": email})
+
+    with _get_db() as con:
+        con.execute("UPDATE users SET last_login = ? WHERE id = ?",
+                    (datetime.now(timezone.utc).isoformat(), user_id))
+        con.commit()
+
+    token = _jwt_create({
+        "role": "user", "sub": user_id, "email": user["email"],
+        "name": user["name"], "avatar": "", "provider": "email",
+    }, JWT_USER_HOURS)
+    return {"token": token}
+
+
+@app.get("/auth/verify-email")
+def auth_verify_email(token: str = ""):
+    """Verifica el email con el token. Redirige a /cuenta con JWT."""
+    if not token:
+        return RedirectResponse(f"{FRONTEND_CUENTA}?error=token_invalido", status_code=302)
+
+    with _get_db() as con:
+        user = con.execute("SELECT * FROM users WHERE verification_token = ?", (token,)).fetchone()
+        if not user:
+            return RedirectResponse(f"{FRONTEND_CUENTA}?error=token_invalido", status_code=302)
+        con.execute("UPDATE users SET email_verified = 1, verification_token = '' WHERE id = ?", (user["id"],))
+        con.commit()
+
+    jwt = _jwt_create({
+        "role": "user", "sub": user["id"], "email": user["email"],
+        "name": user["name"], "avatar": "", "provider": "email",
+    }, JWT_USER_HOURS)
+    return RedirectResponse(
+        f"{FRONTEND_CUENTA}?token={urllib.parse.quote(jwt, safe='')}",
+        status_code=302,
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FAVORITOS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/user/favorites")
+def get_favorites(request: Request):
+    payload = _require_user(request)
+    if not payload:
+        return JSONResponse(status_code=401, content={"error": "No autenticado"})
+
+    with _get_db() as con:
+        rows = con.execute("""
+            SELECT d.rowid, d.deal_id AS id, d.titulo, d.tienda, d.tipo,
+                   d.precio AS precio_actual, d.precio_original, d.descuento_pct,
+                   d.imagen_url, d.url_afiliado AS url_affiliate,
+                   d.precio_wallapop, d.beneficio_neto, d.publicado_en AS timestamp,
+                   f.created_at AS saved_at
+            FROM favorites f
+            JOIN deals_publicados d ON f.deal_id = d.deal_id
+            WHERE f.user_id = ?
+            ORDER BY f.created_at DESC
+        """, (payload["sub"],)).fetchall()
+
+    return JSONResponse(content=[dict(r) for r in rows])
+
+
+@app.post("/api/user/favorites/{deal_id}")
+def add_favorite(deal_id: str, request: Request):
+    payload = _require_user(request)
+    if not payload:
+        return JSONResponse(status_code=401, content={"error": "No autenticado"})
+
+    with _get_db() as con:
+        if not con.execute("SELECT 1 FROM deals_publicados WHERE deal_id = ?", (deal_id,)).fetchone():
+            return JSONResponse(status_code=404, content={"error": "Deal no encontrado"})
+        con.execute(
+            "INSERT OR IGNORE INTO favorites (user_id, deal_id, created_at) VALUES (?, ?, ?)",
+            (payload["sub"], deal_id, datetime.now(timezone.utc).isoformat()),
+        )
+        con.commit()
+    return {"saved": True, "deal_id": deal_id}
+
+
+@app.delete("/api/user/favorites/{deal_id}")
+def remove_favorite(deal_id: str, request: Request):
+    payload = _require_user(request)
+    if not payload:
+        return JSONResponse(status_code=401, content={"error": "No autenticado"})
+
+    with _get_db() as con:
+        con.execute("DELETE FROM favorites WHERE user_id = ? AND deal_id = ?",
+                    (payload["sub"], deal_id))
+        con.commit()
+    return {"removed": True, "deal_id": deal_id}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NEWSLETTER
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.patch("/api/user/newsletter")
+def toggle_newsletter(body: NewsletterBody, request: Request):
+    payload = _require_user(request)
+    if not payload:
+        return JSONResponse(status_code=401, content={"error": "No autenticado"})
+
+    with _get_db() as con:
+        con.execute("UPDATE users SET newsletter = ? WHERE id = ?",
+                    (1 if body.subscribed else 0, payload["sub"]))
+        con.commit()
+    return {"newsletter": body.subscribed}

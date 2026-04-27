@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Cuenta — Flipazo</title>
+  <meta name="description" content="Gestiona tu cuenta Flipazo y tu suscripción premium." />
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:       #111111;
+      --ink-light: #555555;
+      --rule:      #222222;
+      --bg:        #ffffff;
+      --bg2:       #f8f8f8;
+      --accent:    #c0392b;
+      --green:     #1a6b3c;
+      --border:    #e0e0e0;
+      --serif:     'Playfair Display', Georgia, serif;
+      --mono:      'Courier Prime', 'Courier New', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--serif);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Header ─────────────────────────────────────── */
+    .masthead {
+      border-bottom: 3px solid var(--rule);
+      padding: 22px 40px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .masthead__brand {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 32px;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+    }
+    .masthead__back {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s;
+    }
+    .masthead__back:hover { border-bottom-color: var(--ink-light); }
+
+    /* ── Centrado ───────────────────────────────────── */
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 56px 24px 80px;
+    }
+
+    /* ── Login screen ───────────────────────────────── */
+    .login-headline {
+      font-family: var(--serif);
+      font-size: 36px;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 10px;
+    }
+    .login-sub {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--ink-light);
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .divider span {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--ink-light);
+      text-transform: uppercase;
+    }
+
+    /* OAuth Buttons */
+    .oauth-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      padding: 14px 20px;
+      border: 1.5px solid var(--border);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--bg);
+      color: var(--ink);
+      margin-bottom: 12px;
+      text-decoration: none;
+    }
+    .oauth-btn:hover { border-color: var(--ink); background: var(--bg2); }
+    .oauth-btn--apple { background: #000; color: #fff; border-color: #000; }
+    .oauth-btn--apple:hover { background: #222; border-color: #222; }
+    .oauth-btn svg { flex-shrink: 0; }
+
+    /* Email form */
+    .email-form { display: flex; flex-direction: column; gap: 12px; }
+
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+    .form-field label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+    }
+    .form-field input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--ink);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-field input:focus { border-color: var(--ink); }
+
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--ink);
+      color: #fff;
+      border: none;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 4px;
+    }
+    .submit-btn:hover { opacity: 0.8; }
+    .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .form-toggle {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-light);
+      text-align: center;
+      margin-top: 12px;
+    }
+    .form-toggle button {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 12px;
+      text-decoration: underline;
+      padding: 0;
+    }
+
+    /* Messages */
+    .msg-banner {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: none;
+      line-height: 1.5;
+    }
+    .msg-banner--error   { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+    .msg-banner--success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .msg-banner--info    { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; }
+
+    /* Benefits list */
+    .benefits {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      padding: 24px 28px;
+      margin-top: 40px;
+    }
+    .benefits__title {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin-bottom: 16px;
+    }
+    .benefit-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--ink);
+    }
+    .benefit-icon { color: var(--accent); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Account dashboard ──────────────────────────── */
+    #account-screen { display: none; }
+
+    .profile-card {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 28px 0;
+      border-bottom: 1.5px solid var(--border);
+      margin-bottom: 32px;
+    }
+    .profile-avatar {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border);
+      background: var(--bg2);
+    }
+    .profile-avatar-placeholder {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--serif);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--ink-light);
+      flex-shrink: 0;
+    }
+    .profile-info__name  { font-family: var(--serif); font-size: 22px; font-weight: 700; }
+    .profile-info__email { font-family: var(--mono); font-size: 12px; color: var(--ink-light); margin-top: 4px; }
+    .profile-info__provider {
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--ink-light); margin-top: 6px;
+    }
+
+    /* Section label */
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin-bottom: 14px;
+      margin-top: 32px;
+      display: block;
+    }
+
+    /* Newsletter toggle */
+    .newsletter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px;
+      border: 1.5px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .newsletter-row__text { font-family: var(--mono); font-size: 12px; line-height: 1.5; }
+    .newsletter-row__text strong { display: block; font-size: 13px; margin-bottom: 2px; }
+
+    .toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: #d1d5db;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--green); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    /* Subscription card */
+    .sub-card {
+      border: 1.5px solid var(--border);
+      padding: 24px 28px;
+      margin-bottom: 16px;
+    }
+    .sub-card--premium { border-color: var(--green); background: #f0faf4; }
+    .sub-card__row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .sub-card__plan { font-family: var(--serif); font-size: 20px; font-weight: 700; }
+    .sub-badge {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 10px;
+    }
+    .sub-badge--free    { background: #f3f4f6; color: #6b7280; }
+    .sub-badge--premium { background: var(--green); color: #fff; }
+    .sub-card__desc { font-family: var(--mono); font-size: 12px; color: var(--ink-light); line-height: 1.6; }
+
+    .upgrade-btn {
+      display: block; width: 100%;
+      background: var(--accent); color: #fff; border: none;
+      font-family: var(--mono); font-size: 12px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 14px; cursor: pointer; margin-top: 16px;
+      transition: opacity 0.15s; text-align: center;
+    }
+    .upgrade-btn:hover { opacity: 0.85; }
+    .upgrade-btn:disabled { background: #d1d5db; color: #9ca3af; cursor: not-allowed; opacity: 1; }
+    .upgrade-soon {
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--ink-light); text-align: center; margin-top: 8px;
+    }
+
+    /* Favoritos */
+    .favorites-empty {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-light);
+      padding: 24px 0;
+      text-align: center;
+      border: 1px dashed var(--border);
+    }
+    .fav-card {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .fav-card:last-child { border-bottom: none; }
+    .fav-card__img {
+      width: 64px; height: 64px;
+      object-fit: contain;
+      background: var(--bg2);
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+    .fav-card__img-placeholder {
+      width: 64px; height: 64px;
+      background: var(--bg2);
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+    .fav-card__body { flex: 1; min-width: 0; }
+    .fav-card__tienda {
+      font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink-light); margin-bottom: 4px;
+    }
+    .fav-card__title {
+      font-family: var(--serif); font-size: 14px;
+      font-weight: 700; line-height: 1.3;
+      overflow: hidden; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      margin-bottom: 6px;
+    }
+    .fav-card__price {
+      font-family: var(--mono); font-size: 12px; color: var(--accent); font-weight: 700;
+    }
+    .fav-card__original {
+      font-family: var(--mono); font-size: 11px; color: var(--ink-light); text-decoration: line-through; margin-left: 6px;
+    }
+    .fav-card__actions { display: flex; gap: 10px; margin-top: 8px; align-items: center; }
+    .fav-card__link {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--accent); border-bottom: 1px solid #fca5a5; padding-bottom: 1px;
+    }
+    .fav-card__remove {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-light); background: none; border: none; cursor: pointer; padding: 0;
+    }
+    .fav-card__remove:hover { color: var(--accent); }
+
+    /* Actions row */
+    .action-row { display: flex; gap: 12px; margin-top: 32px; }
+    .action-link {
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+      color: var(--ink-light); cursor: pointer;
+      border-bottom: 1px solid var(--border); padding-bottom: 1px;
+      transition: color 0.12s; background: none;
+      border-top: none; border-left: none; border-right: none;
+    }
+    .action-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
+    .action-link--logout { color: var(--accent); border-bottom-color: #fca5a5; }
+    .action-link--logout:hover { color: #991b1b; }
+
+    /* ── Footer ─────────────────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 40px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: var(--ink-light);
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .masthead { padding: 16px 20px; }
+      .masthead__brand { font-size: 24px; }
+      .container { padding: 36px 20px 60px; }
+      .login-headline { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────── -->
+<header class="masthead">
+  <a href="/" class="masthead__brand">Flipazo</a>
+  <a href="/" class="masthead__back">← Volver a las ofertas</a>
+</header>
+
+<!-- ── Main ──────────────────────────────────────────── -->
+<div class="container">
+
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen">
+    <h1 class="login-headline" id="login-headline">Tu cuenta<br>en Flipazo</h1>
+    <p class="login-sub" id="login-sub">
+      Accede para guardar favoritos, gestionar tu newsletter y suscribirte al plan premium.
+    </p>
+
+    <div id="msg-banner" class="msg-banner"></div>
+
+    <!-- Google -->
+    <a class="oauth-btn" onclick="loginWithGoogle()" style="cursor:pointer">
+      <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+        <path d="M47.5 24.6c0-1.6-.1-3.1-.4-4.6H24v8.7h13.2c-.6 3.1-2.3 5.7-4.9 7.5v6.2h7.9c4.6-4.2 7.3-10.5 7.3-17.8z" fill="#4285F4"/>
+        <path d="M24 48c6.6 0 12.2-2.2 16.2-5.9l-7.9-6.2c-2.2 1.5-5 2.3-8.3 2.3-6.4 0-11.8-4.3-13.7-10.1H2.1v6.4C6.1 42.6 14.5 48 24 48z" fill="#34A853"/>
+        <path d="M10.3 28.1c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6v-6.4H2.1A24.1 24.1 0 000 24c0 3.9.9 7.5 2.1 10.5l8.2-6.4z" fill="#FBBC05"/>
+        <path d="M24 9.5c3.6 0 6.8 1.2 9.3 3.6l7-6.9C36.2 2.3 30.6 0 24 0 14.5 0 6.1 5.4 2.1 13.5l8.2 6.4C12.2 13.8 17.6 9.5 24 9.5z" fill="#EA4335"/>
+      </svg>
+      Continuar con Google
+    </a>
+
+    <!-- Apple -->
+    <a class="oauth-btn oauth-btn--apple" onclick="loginWithApple()" style="cursor:pointer">
+      <svg width="20" height="20" viewBox="0 0 814 1000" fill="currentColor">
+        <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.7-57.6-155.5-127C46 462.8 0 303.7 0 173.5 0 25.4 90.7 0 111.9 0c52.8 0 155.5 33.5 159.4 33.5.6 0-46.5-33.5 14.4-33.5 50 0 151.5 57.4 193.5 114.3-61.4 37.3-74.8 156.9-51.5 225.8 24.7 72.5 82.4 125.2 152.5 125.2 75 0 124.9-47.7 159.4-47.7 22.7 0 42.8 12.2 48.4 16z" />
+      </svg>
+      Continuar con Apple
+    </a>
+
+    <div class="divider"><span>o con email</span></div>
+
+    <!-- Email form -->
+    <form class="email-form" id="email-form" onsubmit="handleEmailSubmit(event)">
+      <div id="name-field" class="form-field" style="display:none">
+        <label for="inp-name">Nombre</label>
+        <input id="inp-name" type="text" placeholder="Tu nombre" autocomplete="name" />
+      </div>
+      <div class="form-field">
+        <label for="inp-email">Email</label>
+        <input id="inp-email" type="email" placeholder="tu@email.com" required autocomplete="email" />
+      </div>
+      <div class="form-field">
+        <label for="inp-password">Contraseña</label>
+        <input id="inp-password" type="password" placeholder="Mínimo 8 caracteres" required autocomplete="current-password" />
+      </div>
+      <div id="confirm-field" class="form-field" style="display:none">
+        <label for="inp-confirm">Confirmar contraseña</label>
+        <input id="inp-confirm" type="password" placeholder="Repite la contraseña" autocomplete="new-password" />
+      </div>
+      <button type="submit" class="submit-btn" id="submit-btn">Iniciar sesión</button>
+    </form>
+
+    <p class="form-toggle">
+      <span id="toggle-text">¿No tienes cuenta?</span>
+      <button onclick="toggleMode()">Crear cuenta</button>
+    </p>
+
+    <!-- Benefits preview -->
+    <div class="benefits">
+      <div class="benefits__title">¿Qué consigues con una cuenta?</div>
+      <div class="benefit-item">
+        <span class="benefit-icon">♥</span>
+        <span><strong>Favoritos:</strong> guarda las ofertas que te interesan y consúltalas cuando quieras.</span>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-icon">✉</span>
+        <span><strong>Newsletter:</strong> recibe en tu email un resumen semanal con los mejores deals.</span>
+      </div>
+      <div class="benefit-item">
+        <span class="benefit-icon">⚡</span>
+        <span><strong>Premium:</strong> alertas en tiempo real en el canal privado de Telegram.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNT DASHBOARD -->
+  <div id="account-screen">
+
+    <div class="profile-card">
+      <div id="avatar-wrap">
+        <div class="profile-avatar-placeholder" id="avatar-placeholder">?</div>
+      </div>
+      <div class="profile-info">
+        <div class="profile-info__name"     id="user-name">—</div>
+        <div class="profile-info__email"    id="user-email">—</div>
+        <div class="profile-info__provider" id="user-provider">—</div>
+      </div>
+    </div>
+
+    <!-- Newsletter -->
+    <span class="section-label">Newsletter</span>
+    <div class="newsletter-row">
+      <div class="newsletter-row__text">
+        <strong>Resumen semanal de deals</strong>
+        Recibe los mejores descuentos de la semana directamente en tu email.
+      </div>
+      <label class="toggle-switch" title="Activar newsletter">
+        <input type="checkbox" id="newsletter-toggle" onchange="toggleNewsletter(this)" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- Subscription -->
+    <span class="section-label">Suscripción</span>
+    <div id="sub-card-free" class="sub-card" style="display:none">
+      <div class="sub-card__row">
+        <span class="sub-card__plan">Plan Gratuito</span>
+        <span class="sub-badge sub-badge--free">Free</span>
+      </div>
+      <p class="sub-card__desc">
+        Acceso a todas las ofertas públicas con un ligero retraso respecto al canal premium.
+      </p>
+      <button class="upgrade-btn" disabled>Actualizar a Premium — 3,90€/mes</button>
+      <p class="upgrade-soon">Próximamente · Integración Stripe en curso</p>
+    </div>
+
+    <div id="sub-card-premium" class="sub-card sub-card--premium" style="display:none">
+      <div class="sub-card__row">
+        <span class="sub-card__plan">Plan Premium</span>
+        <span class="sub-badge sub-badge--premium">Premium ✓</span>
+      </div>
+      <p class="sub-card__desc">
+        Tienes acceso al canal privado de Telegram con alertas en tiempo real. Gracias por apoyar Flipazo.
+      </p>
+    </div>
+
+    <!-- Favoritos -->
+    <span class="section-label">Mis favoritos</span>
+    <div id="favorites-wrap">
+      <div class="favorites-empty">Cargando…</div>
+    </div>
+
+    <div class="action-row">
+      <button class="action-link action-link--logout" onclick="logout()">Cerrar sesión</button>
+      <a href="/" class="action-link">← Volver a las ofertas</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────── -->
+<footer class="footer">
+  © 2025 Flipazo · Barcelona, España ·
+  <a href="/privacidad.html">Privacidad</a> ·
+  <a href="/cookies.html">Cookies</a>
+</footer>
+
+<script>
+  const API = 'https://api.flipazo.es';
+  let isRegisterMode = false;
+  let currentUser    = null;
+
+  // ── Init ─────────────────────────────────────────────
+  (function init() {
+    const p      = new URLSearchParams(window.location.search);
+    const tok    = p.get('token');
+    const err    = p.get('error');
+
+    if (tok) {
+      localStorage.setItem('flipazo_user_token', tok);
+      window.history.replaceState({}, '', window.location.pathname);
+      loadAccount(tok);
+      return;
+    }
+    if (err) {
+      showMsg(errorMessages[err] || 'Ha ocurrido un error. Inténtalo de nuevo.', 'error');
+      return;
+    }
+    const stored = localStorage.getItem('flipazo_user_token');
+    if (stored) loadAccount(stored);
+  })();
+
+  const errorMessages = {
+    google_denied:   'Has cancelado el inicio de sesión con Google.',
+    apple_denied:    'Has cancelado el inicio de sesión con Apple.',
+    state_invalido:  'La sesión ha expirado. Inténtalo de nuevo.',
+    token_exchange:  'Error al conectar con Google. Inténtalo de nuevo.',
+    apple_no_token:  'Error al conectar con Apple. Inténtalo de nuevo.',
+    apple_decode:    'Error al verificar tu cuenta de Apple. Inténtalo de nuevo.',
+    no_token:        'No se recibió token. Inténtalo de nuevo.',
+    token_invalido:  'El enlace de verificación no es válido o ha caducado.',
+  };
+
+  // ── OAuth ──────────────────────────────────────────
+  function loginWithGoogle() { window.location.href = `${API}/auth/google`; }
+  function loginWithApple()  { window.location.href = `${API}/auth/apple`;  }
+
+  // ── Mode toggle ────────────────────────────────────
+  function toggleMode() {
+    isRegisterMode = !isRegisterMode;
+    document.getElementById('name-field').style.display    = isRegisterMode ? 'flex' : 'none';
+    document.getElementById('confirm-field').style.display = isRegisterMode ? 'flex' : 'none';
+    document.getElementById('submit-btn').textContent      = isRegisterMode ? 'Crear cuenta' : 'Iniciar sesión';
+    document.getElementById('login-headline').innerHTML    = isRegisterMode ? 'Crea tu cuenta<br>en Flipazo' : 'Tu cuenta<br>en Flipazo';
+    document.getElementById('toggle-text').textContent     = isRegisterMode ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?';
+    const btn = document.querySelector('.form-toggle button');
+    btn.textContent = isRegisterMode ? 'Iniciar sesión' : 'Crear cuenta';
+    if (isRegisterMode) document.getElementById('inp-password').setAttribute('autocomplete', 'new-password');
+    else document.getElementById('inp-password').setAttribute('autocomplete', 'current-password');
+    clearMsg();
+  }
+
+  // ── Email form ─────────────────────────────────────
+  async function handleEmailSubmit(e) {
+    e.preventDefault();
+    const btn      = document.getElementById('submit-btn');
+    const email    = document.getElementById('inp-email').value.trim();
+    const password = document.getElementById('inp-password').value;
+
+    if (isRegisterMode) {
+      const name    = document.getElementById('inp-name').value.trim();
+      const confirm = document.getElementById('inp-confirm').value;
+      if (password !== confirm) { showMsg('Las contraseñas no coinciden.', 'error'); return; }
+      if (password.length < 8)  { showMsg('La contraseña debe tener al menos 8 caracteres.', 'error'); return; }
+      btn.disabled = true; btn.textContent = 'Creando cuenta…';
+      try {
+        const r = await fetch(`${API}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, name }),
+        });
+        const data = await r.json();
+        if (!r.ok) { showMsg(data.error || 'Error al crear la cuenta.', 'error'); return; }
+        showMsg(`✓ Cuenta creada. Revisa tu email (${email}) y haz clic en el enlace de verificación.`, 'success');
+        document.getElementById('email-form').reset();
+      } catch { showMsg('Error de conexión. Inténtalo de nuevo.', 'error'); }
+      finally { btn.disabled = false; btn.textContent = 'Crear cuenta'; }
+
+    } else {
+      btn.disabled = true; btn.textContent = 'Entrando…';
+      try {
+        const r = await fetch(`${API}/auth/login/email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await r.json();
+        if (!r.ok) {
+          if (data.error === 'email_not_verified')
+            showMsg('Verifica tu email antes de iniciar sesión. Revisa tu bandeja de entrada.', 'info');
+          else
+            showMsg(data.error || 'Email o contraseña incorrectos.', 'error');
+          return;
+        }
+        localStorage.setItem('flipazo_user_token', data.token);
+        loadAccount(data.token);
+      } catch { showMsg('Error de conexión. Inténtalo de nuevo.', 'error'); }
+      finally { btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
+    }
+  }
+
+  // ── Msgs ───────────────────────────────────────────
+  function showMsg(text, type = 'error') {
+    const el = document.getElementById('msg-banner');
+    el.textContent = text;
+    el.className   = `msg-banner msg-banner--${type}`;
+    el.style.display = 'block';
+  }
+  function clearMsg() { document.getElementById('msg-banner').style.display = 'none'; }
+
+  // ── Cargar cuenta ──────────────────────────────────
+  async function loadAccount(token) {
+    try {
+      const r = await fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) { localStorage.removeItem('flipazo_user_token'); return; }
+      const user = await r.json();
+      currentUser = user;
+      renderAccount(user);
+      loadFavorites(token);
+    } catch {
+      const stored = localStorage.getItem('flipazo_user_token');
+      if (stored) {
+        try {
+          const p = JSON.parse(atob(stored.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+          renderAccount({ name: p.name||'', email: p.email||'', avatar_url: p.avatar||'', provider: p.provider||'google', premium: false, newsletter: false });
+        } catch { /* noop */ }
+      }
+    }
+  }
+
+  function renderAccount(user) {
+    document.getElementById('login-screen').style.display   = 'none';
+    document.getElementById('account-screen').style.display = 'block';
+
+    document.getElementById('user-name').textContent     = user.name  || 'Sin nombre';
+    document.getElementById('user-email').textContent    = user.email || '';
+    document.getElementById('user-provider').textContent =
+      user.provider === 'google' ? 'Conectado con Google' :
+      user.provider === 'apple'  ? 'Conectado con Apple'  : 'Cuenta de email';
+
+    if (user.avatar_url) {
+      const img = document.createElement('img');
+      img.className = 'profile-avatar';
+      img.src = user.avatar_url;
+      img.onerror = () => setPlaceholder(user.name);
+      document.getElementById('avatar-wrap').replaceChildren(img);
+    } else {
+      setPlaceholder(user.name);
+    }
+
+    document.getElementById('newsletter-toggle').checked = !!user.newsletter;
+
+    if (user.premium) {
+      document.getElementById('sub-card-premium').style.display = 'block';
+    } else {
+      document.getElementById('sub-card-free').style.display = 'block';
+    }
+  }
+
+  function setPlaceholder(name) {
+    const wrap = document.getElementById('avatar-wrap');
+    wrap.innerHTML = `<div class="profile-avatar-placeholder">${(name||'?')[0].toUpperCase()}</div>`;
+  }
+
+  // ── Newsletter ─────────────────────────────────────
+  async function toggleNewsletter(el) {
+    const token = localStorage.getItem('flipazo_user_token');
+    if (!token) { el.checked = !el.checked; return; }
+    try {
+      await fetch(`${API}/api/user/newsletter`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ subscribed: el.checked }),
+      });
+    } catch { el.checked = !el.checked; }
+  }
+
+  // ── Favoritos ──────────────────────────────────────
+  async function loadFavorites(token) {
+    const wrap = document.getElementById('favorites-wrap');
+    try {
+      const r    = await fetch(`${API}/api/user/favorites`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await r.json();
+      if (!data.length) {
+        wrap.innerHTML = '<div class="favorites-empty">Aún no tienes favoritos guardados.<br>Pulsa ♥ en cualquier oferta para guardarla aquí.</div>';
+        return;
+      }
+      wrap.innerHTML = data.map(d => `
+        <div class="fav-card" id="fav-${d.id}">
+          ${d.imagen_url
+            ? `<img class="fav-card__img" src="${d.imagen_url}" alt="" loading="lazy" />`
+            : `<div class="fav-card__img-placeholder"></div>`}
+          <div class="fav-card__body">
+            <div class="fav-card__tienda">${d.tienda}</div>
+            <div class="fav-card__title">${d.titulo}</div>
+            <div>
+              <span class="fav-card__price">${d.precio_actual.toFixed(2)}€</span>
+              ${d.precio_original > d.precio_actual
+                ? `<span class="fav-card__original">${d.precio_original.toFixed(2)}€</span>`
+                : ''}
+            </div>
+            <div class="fav-card__actions">
+              <a class="fav-card__link" href="${d.url_affiliate}" target="_blank" rel="noopener">Ver oferta →</a>
+              <button class="fav-card__remove" onclick="removeFavorite('${d.id}')">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    } catch {
+      wrap.innerHTML = '<div class="favorites-empty">No se pudieron cargar los favoritos.</div>';
+    }
+  }
+
+  async function removeFavorite(dealId) {
+    const token = localStorage.getItem('flipazo_user_token');
+    if (!token) return;
+    await fetch(`${API}/api/user/favorites/${dealId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+    });
+    const el = document.getElementById(`fav-${dealId}`);
+    if (el) el.remove();
+    if (!document.querySelector('.fav-card')) {
+      document.getElementById('favorites-wrap').innerHTML =
+        '<div class="favorites-empty">Aún no tienes favoritos guardados.<br>Pulsa ♥ en cualquier oferta para guardarla aquí.</div>';
+    }
+  }
+
+  // ── Logout ─────────────────────────────────────────
+  function logout() {
+    localStorage.removeItem('flipazo_user_token');
+    currentUser = null;
+    document.getElementById('account-screen').style.display = 'none';
+    document.getElementById('sub-card-free').style.display    = 'none';
+    document.getElementById('sub-card-premium').style.display = 'none';
+    document.getElementById('login-screen').style.display     = 'block';
+    clearMsg();
+  }
+</script>
+</body>
+</html>
