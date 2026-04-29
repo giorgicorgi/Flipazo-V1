@@ -23,6 +23,7 @@ from playwright.async_api import async_playwright, BrowserContext, Page
 
 from affiliate.link_builder import build_affiliate_url
 from scrapers.pss_email import get_pss_event_urls
+from scrapers.tradedoubler_feed import fetch_tradedoubler_productos
 
 load_dotenv()
 
@@ -1759,6 +1760,23 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         print(f"   ❌ Error en scraper PSS: {e}")
         alertar_admin("Error en scraper PSS", str(e))
 
+    # ── Tradedoubler feeds (MediaMarkt/ToysRus/Beep) — caché 23h ──────────────
+    try:
+        td_raw = await asyncio.to_thread(
+            fetch_tradedoubler_productos, DESCUENTO_MINIMO, PRECIO_MINIMO, PRECIO_MAXIMO
+        )
+        for d in td_raw:
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"]):
+                continue
+            p = Producto(**d)
+            clave = f"{p.tienda}:{p.titulo[:40].lower()}"
+            if clave not in vistos:
+                vistos.add(clave)
+                todos.append(p)
+    except Exception as e:
+        print(f"   ❌ Error en Tradedoubler feeds: {e}")
+        alertar_admin("Error en Tradedoubler feeds", str(e))
+
     print(f"\n✅ Total: {len(todos)} productos únicos de {len({p.tienda for p in todos})} tiendas")
     return todos
 
@@ -2022,8 +2040,10 @@ _TIENDA_CAT = {
     "PcComponentes": "tecnologia",
     "MediaMarkt":    "tecnologia",
     "Worten":        "tecnologia",
+    "Beep":          "tecnologia",
     "Decathlon":     "deportes",
     "Mammoth Bikes": "deportes",
+    "ToysRus":       "juguetes",
 }
 
 
