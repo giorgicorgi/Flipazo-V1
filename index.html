@@ -1093,6 +1093,15 @@
       letter-spacing: 0.14em;
       text-transform: uppercase;
     }
+    .search-see-all {
+      padding: 10px 16px;
+      font-size: 12px;
+      color: var(--accent);
+      cursor: pointer;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+    .search-see-all:hover { background: var(--surface-hover); }
     .search-active-banner {
       display: flex;
       align-items: center;
@@ -1575,23 +1584,38 @@
       const tokens = q.split(" ").filter(w => w.length >= 2);
       if (!tokens.length) return [];
 
+      // Expandir con grupos semánticos: si algún token coincide con un término del grupo,
+      // también incluir deals cuyo título case contra el patrón del grupo (ej. "bici" → MTB, shimano, etc.)
+      const semanticPatterns = SEMANTIC_GROUPS
+        .filter(g => g.terms.some(t => {
+          const nt = _normalizeSearch(t);
+          return tokens.some(tok => nt.includes(tok) || tok.includes(nt));
+        }))
+        .map(g => g.pattern);
+
       const scored = [];
       for (const d of allDeals) {
-        const title  = _normalizeSearch(d.titulo);
-        const words  = title.split(" ");
-        // Todos los tokens deben aparecer en el título (AND estricto)
-        if (!tokens.every(tok => title.includes(tok))) continue;
+        const title = _normalizeSearch(d.titulo);
+        const store = _normalizeSearch(d.tienda || "");
+        const words = title.split(" ");
 
-        // Score basado en posición: cuanto antes aparezca el token, más relevante.
-        // "Bicicleta Trek" (pos 0) >> "Hot Wheels Bicicleta" (pos 2) >> "Auriculares para bicicleta" (pos final)
-        let score = 0;
+        // Match directo: todos los tokens aparecen en título o nombre de tienda
+        const directMatch = tokens.every(tok => title.includes(tok) || store.includes(tok));
+        // Match semántico: título encaja en el patrón expandido del grupo
+        const semanticMatch = semanticPatterns.length > 0 && semanticPatterns.some(p => p.test(d.titulo));
+
+        if (!directMatch && !semanticMatch) continue;
+
+        // Score por posición (matches directos ganan sobre semánticos)
+        let score = directMatch ? 0 : -30;
         for (const tok of tokens) {
           const pos = words.findIndex(w => w.includes(tok));
-          if      (pos === 0)                  score += 100; // concepto principal
+          if (pos === -1) continue;
+          if      (pos === 0)                  score += 100;
           else if (pos === 1)                  score += 60;
           else if (pos <= 3)                   score += 28;
           else if (pos < words.length * 0.5)  score += 12;
-          else                                 score += 3;  // descriptor al final
+          else                                 score += 3;
         }
         scored.push({ d, score });
       }
@@ -2029,8 +2053,26 @@
     }
 
     // ── Search ──────────────────────────────────────────────────
-    let searchQuery    = "";
-    let searchTimeout  = null;
+    let searchQuery       = "";
+    let searchTimeout     = null;
+    let _searchAllLoaded  = false;
+
+    // Pre-carga un batch grande la primera vez que se activa la búsqueda,
+    // para que el usuario pueda encontrar deals que aún no estaban en pantalla.
+    async function ensureSearchData() {
+      if (_searchAllLoaded) return;
+      _searchAllLoaded = true;
+      try {
+        const batch = await fetchDeals(500, 0);
+        if (batch.length) {
+          const existingIds = new Set(allDeals.map(d => d.id));
+          const fresh = batch.filter(d => !existingIds.has(d.id));
+          allDeals = allDeals.concat(fresh);
+        }
+      } catch (e) {
+        _searchAllLoaded = false;
+      }
+    }
 
     function renderSearchDropdown(results, query) {
       const dd = document.getElementById("js-search-dropdown");
@@ -2039,6 +2081,9 @@
         dd.hidden = false;
         return;
       }
+      const seeAll = results.length > 8
+        ? `<div class="search-see-all" role="option" onclick="applySearch(document.getElementById('js-search-input').value.trim(),null)">Ver los ${results.length} resultados →</div>`
+        : "";
       dd.innerHTML = results.slice(0, 8).map(d => `
         <a class="search-result" role="option"
            href="${d.url_affiliate || "#"}" target="_blank" rel="noopener sponsored"
@@ -2051,11 +2096,12 @@
             <div class="search-result__meta">${d.tienda || ""} · ${timeAgo(d.timestamp)}</div>
           </div>
           <span class="search-result__price">${fmtPrice(d.precio_actual || 0)}</span>
-        </a>`).join("");
+        </a>`).join("") + seeAll;
       dd.hidden = false;
     }
 
-    function applySearch(query, scrollToId) {
+    async function applySearch(query, scrollToId) {
+      await ensureSearchData();
       const dd = document.getElementById("js-search-dropdown");
       dd.hidden = true;
       searchQuery = query;
@@ -2399,7 +2445,13 @@
         clearTimeout(searchTimeout);
         if (!q || q.length < 2) { dd.hidden = true; return; }
 
-        searchTimeout = setTimeout(() => {
+        searchTimeout = setTimeout(async () => {
+          if (!_searchAllLoaded) {
+            dd.innerHTML = `<div class="search-empty" style="color:var(--ink-3)">Buscando…</div>`;
+            dd.hidden = false;
+          }
+          await ensureSearchData();
+          if (input.value.trim() !== q) return; // query cambió mientras cargaba
           const results = searchDeals(q);
           renderSearchDropdown(results, q);
         }, 180);
