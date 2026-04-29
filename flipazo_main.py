@@ -2038,12 +2038,14 @@ _CAT_RE = {
         r'colch[oó]n|l[aá]mpara|sill[oó]n|sof[aá]|escritorio|estanter[ií]a',
         re.I),
     "belleza":      re.compile(
-        r'perfume|colonia|eau de|crema\b|m[aá]quillaje|labial|s[eé]rum\b|'
+        r'perfume|colonia|eau de|fragancia|m[aá]quillaje|labial|'
+        r'crema.*facial|crema.*corporal|crema.*hidratante|s[eé]rum.*facial|'
         r'\bdior\b|\bchanel\b|\barmani\b|ysl\b|calvin klein|hugo boss|'
         r'lanc[oô]me|loreal|l\'or[eé]al|nivea|olay\b|est[eé]e lauder|'
-        r'afeitadora|maquinilla|cepillo.*el[eé]ctrico|depilador|'
-        r'braun\b|oral.?b|remington\b|wahl\b|babyliss|ghd\b|'
-        r'plancha.*pelo|rizador|secador.*pelo',
+        r'afeitadora|maquinilla.*afeit|rasuradora|cepillo.*dental|irrigador.*bucal|'
+        r'depilador|epilador|'
+        r'oral.?b|remington\b|wahl\b|babyliss|ghd\b|'
+        r'plancha.*pelo|rizador|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo',
         re.I),
     "juguetes":     re.compile(
         r'playmobil|\blego\b|hasbro|mattel|hot wheels|barbie|funko\b|'
@@ -2057,10 +2059,9 @@ _CAT_RE = {
         re.I),
 }
 _TIENDA_CAT = {
-    "PcComponentes": "tecnologia",
-    "MediaMarkt":    "tecnologia",
-    "Worten":        "tecnologia",
-    "Beep":          "tecnologia",
+    "PcComponentes": "tecnologia",   # solo componentes/periféricos — OK como fallback
+    # MediaMarkt, Worten y Beep venden tecnología Y electrodomésticos Y belleza:
+    # no usar como fallback de categoría — dejar que _CAT_RE decida o asignar "otras"
     "Decathlon":     "deportes",
     "Mammoth Bikes": "deportes",
     "ToysRus":       "juguetes",
@@ -2501,11 +2502,17 @@ class DeduplicacionDB:
         deal_id = _deal_hash(p)
         limite = (datetime.now(timezone.utc) - timedelta(hours=DEDUP_TTL_HORAS)).isoformat()
         with sqlite3.connect(self.db_path) as con:
-            row = con.execute(
-                "SELECT publicado_en FROM deals_publicados WHERE deal_id = ? AND publicado_en > ?",
+            if con.execute(
+                "SELECT 1 FROM deals_publicados WHERE deal_id = ? AND publicado_en > ?",
                 (deal_id, limite),
-            ).fetchone()
-        return row is not None
+            ).fetchone():
+                return True
+            # Secondary check: mismo título exacto + tienda en TTL.
+            # Evita duplicados entre Playwright y feed TD (misma tienda, URL diferente).
+            return bool(con.execute(
+                "SELECT 1 FROM deals_publicados WHERE titulo = ? AND tienda = ? AND publicado_en > ?",
+                (p.titulo, p.tienda, limite),
+            ).fetchone())
 
     def marcar_publicado(self, p: "Producto"):
         cat = p.categoria or _inferir_categoria(p)

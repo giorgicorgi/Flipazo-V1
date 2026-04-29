@@ -767,6 +767,46 @@
     .cat-pill:hover { border-color: var(--ink); color: var(--ink); }
     .cat-pill--active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
+    /* ── Store bar ──────────────────────────────────────────────── */
+    .store-bar {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 40px;
+      border-bottom: 1px solid var(--rule);
+      overflow-x: auto;
+      scrollbar-width: none;
+      background: var(--bg);
+    }
+    .store-bar::-webkit-scrollbar { display: none; }
+    .store-bar__label {
+      font-family: var(--mono);
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      white-space: nowrap;
+      flex-shrink: 0;
+      padding-right: 4px;
+    }
+    .store-pill {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      padding: 5px 10px;
+      border: 1px solid var(--border-soft);
+      background: var(--bg);
+      color: var(--ink-light);
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .store-pill:hover { border-color: var(--ink); color: var(--ink); }
+    .store-pill--active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
     /* ── Sort tabs ──────────────────────────────────────────────── */
     .sort-tabs {
       display: flex;
@@ -1220,6 +1260,7 @@
       .masthead__meta { flex-direction: row; justify-content: space-between; align-items: center; }
       .masthead__tagline { display: none; }
       .cat-bar { padding: 10px 18px; }
+      .store-bar { padding: 6px 18px; }
       .sort-tabs { margin-top: 8px; }
       .sort-tab { padding: 9px 14px; font-size: 9px; letter-spacing: 0.12em; }
       .hero { padding: 24px 18px; }
@@ -1328,6 +1369,11 @@
   <!-- ── CATEGORY BAR ──────────────────────────────────────────── -->
   <nav class="cat-bar" id="js-cat-bar" aria-label="Categorías">
     <!-- Populated by JS -->
+  </nav>
+
+  <!-- ── STORE BAR ─────────────────────────────────────────────── -->
+  <nav class="store-bar" id="js-store-bar" aria-label="Filtrar por tienda">
+    <!-- Populated by JS after first load -->
   </nav>
 
   <!-- ── SEARCH ACTIVE BANNER ──────────────────────────────────── -->
@@ -1523,50 +1569,25 @@
         .replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
     }
 
-    function _semanticPattern(query) {
-      const q = _normalizeSearch(query);
-      for (const g of SEMANTIC_GROUPS) {
-        // q.includes(t): query is a superset ("auriculares sony" ⊃ "auriculares")
-        // t.includes(q): term is a superset only when query is ≥75% of term length
-        //   → allows "auricular" to match "auriculares" but blocks "electro" → "electrodoméstico"
-        if (g.terms.some(t => {
-          const tn = _normalizeSearch(t);
-          return q.includes(tn) || (tn.includes(q) && q.length * 1.4 >= tn.length);
-        })) return g.pattern;
-      }
-      return null;
-    }
-
     function searchDeals(query) {
       if (!query || query.trim().length < 2) return [];
       const q      = _normalizeSearch(query);
       const tokens = q.split(" ").filter(w => w.length >= 2);
       if (!tokens.length) return [];
-      const extra  = _semanticPattern(q);
 
       const scored = [];
       for (const d of allDeals) {
         const title = _normalizeSearch(d.titulo);
+        // Todos los tokens deben aparecer en el título (AND estricto)
+        if (!tokens.every(tok => title.includes(tok))) continue;
 
-        // Primary: ALL query words must appear in the title (AND logic)
-        const allMatch = tokens.every(tok => title.includes(tok));
-        // Secondary: semantic expansion only when AND-match fails
-        const semMatch = !allMatch && extra && extra.test(d.titulo);
-
-        if (!allMatch && !semMatch) continue;
-
-        let score = 0;
-        if (allMatch) {
-          score = 50;
-          for (const tok of tokens) {
-            // Whole-word bonus (surrounded by spaces or at boundary)
-            if (title.includes(" " + tok + " ") || title.startsWith(tok + " ") || title.endsWith(" " + tok) || title === tok) score += 10;
-            else score += 2;
-          }
-          if (title.startsWith(q)) score += 30; // title opens with the full query
-        } else {
-          score = 5; // semantic-only match — shown last
+        let score = 50;
+        for (const tok of tokens) {
+          // Bonus si el token es una palabra completa (separada por espacios)
+          if (title === tok || title.startsWith(tok + " ") || title.endsWith(" " + tok) || title.includes(" " + tok + " ")) score += 10;
+          else score += 2;
         }
+        if (title.startsWith(q)) score += 30;
         scored.push({ d, score });
       }
 
@@ -1583,7 +1604,7 @@
       herramientas: /taladro|sierra\b|destornillador|amoladora|lijadora|compresor|k[aä]rcher|dewalt|makita|milwaukee|stanley\b|ryobi\b|bahco\b|nivel.*l[aá]ser|mult[ií]metro|flex[oó]metro|llave inglesa|alicate|bosch.*(taladro|sierra|amoladora|compresor|atornillador)/i,
       deportes:     /running\b|trail\b|fitness\b|gimnasio|mancuerna|kettlebell|\bpesas\b|nataci[oó]n|swim\b|f[uú]tbol|bal[oó]n|raqueta|p[aá]del|esqu[ií]|snowboard|surf\b|garmin|polar\b|fitbit|under armour|\bgiro\b|shimano|alpinestars|ciclismo|mountain bike|\bmtb\b|gravel\b|bicicleta|\bbici\b|sill[ií]n|escalada|senderismo\b/i,
       hogar:        /cafetera|nespresso|delonghi|dolce.?gusto|sage\b|breville\b|krups\b|jura\b|aspirador|robot.?aspirador|roomba|irobot|roborock|lefant|dreame|ecovacs|eufy\b|freidora|airfryer|air.?fryer|microondas|lavadora|lavavajillas|frigor[ií]fico|nevera|secadora\b|\bhorno\b|plancha\b|plancha.*vapor|vaporeta|vaporizador|cepillo.*vapor|vapor.*cepillo|campana\b|campana.*extract|extractor.*humos|\bteka\b|batidora|thermomix|olla.*presi[oó]n|robot.*cocina|dyson|rowenta|tefal|cecotec|shark\b|bissell\b|kenwood\b|magimix\b|calefactor|aire.*acondicionado|ventilador\b|purificador|humidificador|deshumidificador|inducci[oó]n\b|vitrocer[aá]mic|colch[oó]n|l[aá]mpara\b|sill[oó]n\b|sof[aá]\b|escritorio\b|estanter[ií]a/i,
-      belleza:      /perfume|eau de parfum|eau de toilette|\bcolonia\b|crema\b|s[eé]rum\b|maquillaje|labial|\bdior\b|\bchanel\b|\barmani\b|ysl\b|calvin klein|hugo boss|lanc[oô]me|l'?oreal|nivea|olay\b|estee lauder|afeitadora|maquinilla|oral.?b|\bbraun\b|oneblade|depiladora|remington\b|wahl\b|babyliss|ghd\b|plancha.*pelo|rizador|secador.*pelo/i,
+      belleza:      /perfume\b|eau de parfum|eau de toilette|\bcolonia\b|fragancia\b|maquillaje|labial\b|crema.*facial|crema.*corporal|crema.*hidratante|s[eé]rum.*facial|\bdior\b|\bchanel\b|\barmani\b|ysl\b|calvin klein|hugo boss|lanc[oô]me|l'?oreal|nivea|olay\b|estee lauder|afeitadora|maquinilla.*afeit|rasuradora\b|oneblade|depiladora|epiladora|oral.?b|cepillo.*dental|irrigador.*bucal|remington\b|wahl\b|babyliss|ghd\b|plancha.*pelo|rizador|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo/i,
       juguetes:     /\blego\b|playmobil|hasbro|mattel|hot wheels|barbie|juguete|mu[ñn]eca\b|\bfunko\b|\bnerf\b|juego de mesa|puzzle\b|puzle\b|scalextric|rc\b.*coche|coche.*teledirigido|\bdron\b|\bdrone\b/i,
       moda:         /\bbolso\b|mochila|maleta\b|lacoste|ralph lauren|\bdior\b|\bchanel\b|armani|calvin klein|tommy hilfiger|gafas.*sol|gafas.*graduada|cintur[oó]n\b/i,
     };
@@ -1591,7 +1612,7 @@
     const CATEGORIAS = [
       { id: "todas",        label: "Todas",         icon: "" },
       { id: "calzado",      label: "Calzado",       icon: "👟", test: d => _RX.calzado.test(d.titulo) },
-      { id: "tecnologia",   label: "Tecnología",    icon: "📱", test: d => _RX.tecnologia.test(d.titulo) || ["PcComponentes","MediaMarkt","Worten"].includes(d.tienda) },
+      { id: "tecnologia",   label: "Tecnología",    icon: "📱", test: d => _RX.tecnologia.test(d.titulo) || d.tienda === "PcComponentes" },
       { id: "herramientas", label: "Herramientas",  icon: "🔧", test: d => _RX.herramientas.test(d.titulo) },
       { id: "deportes",     label: "Deportes",      icon: "⚽", test: d => _RX.deportes.test(d.titulo) || ["Mammoth Bikes","Decathlon","PrivateSportShop"].includes(d.tienda) },
       { id: "hogar",        label: "Hogar",         icon: "🏠", test: d => _RX.hogar.test(d.titulo) },
@@ -1602,12 +1623,17 @@
 
     function dealMatchesCategory(deal, catId) {
       if (catId === "todas") return true;
-      // OR: muestra el deal si el servidor lo categorizó así O si el regex cliente lo detecta.
-      // Esto permite que zapatillas de ciclismo (categoria="deportes") aparezcan también en calzado,
-      // y que deals con categoria vacía/legacy sean capturados por regex.
       if (deal.categoria === catId) return true;
       const cat = CATEGORIAS.find(c => c.id === catId);
       return cat ? cat.test(deal) : false;
+    }
+
+    function dealMatchesStore(deal) {
+      return !activeStore || deal.tienda === activeStore;
+    }
+
+    function dealMatchesFilters(deal) {
+      return dealMatchesCategory(deal, activeCategory) && dealMatchesStore(deal);
     }
 
     // ── State ───────────────────────────────────────────────────
@@ -1616,6 +1642,7 @@
     let isLoading      = false;
     let hasMore        = true;
     let activeCategory = "todas";
+    let activeStore    = "";
     let lastSeenRowid  = 0;
 
     // ── Mock data ───────────────────────────────────────────────
@@ -1867,7 +1894,7 @@
     }
 
     function shouldShowHero() {
-      return activeSort === "recientes" && activeCategory === "todas" && !searchQuery;
+      return activeSort === "recientes" && activeCategory === "todas" && !searchQuery && !activeStore;
     }
 
     // ── Hero rendering ───────────────────────────────────────────
@@ -2027,8 +2054,8 @@
       const dd = document.getElementById("js-search-dropdown");
       dd.hidden = true;
       searchQuery = query;
-      updateHero(); // Ocultar hero durante búsqueda
-      const results = searchDeals(query);
+      updateHero();
+      const results = searchDeals(query).filter(d => dealMatchesStore(d));
 
       // Mostrar banner
       const banner = document.getElementById("js-search-banner");
@@ -2085,7 +2112,7 @@
     }
 
     function updateCount() {
-      const n = allDeals.filter(d => dealMatchesCategory(d, activeCategory)).length;
+      const n = allDeals.filter(d => dealMatchesFilters(d)).length;
       document.getElementById("js-count").textContent =
         `${n} oferta${n !== 1 ? "s" : ""}${hasMore ? "+" : ""}`;
     }
@@ -2093,10 +2120,9 @@
     function renderGrid() {
       updateHero();
       const grid     = document.getElementById("js-grid");
-      const matching = allDeals.filter(d => dealMatchesCategory(d, activeCategory));
+      const matching = allDeals.filter(d => dealMatchesFilters(d));
       const sorted   = sortDeals(matching);
-      // Si el hero está activo, el grid empieza desde el deal 4 (índices 3+)
-      const gridDeals = (heroMode && activeCategory === "todas") ? sorted.slice(3) : sorted;
+      const gridDeals = (heroMode && activeCategory === "todas" && !activeStore) ? sorted.slice(3) : sorted;
       if (gridDeals.length === 0 && !hasMore) {
         grid.innerHTML = `<div class="empty">Sin ofertas en esta categoría</div>`;
       } else {
@@ -2113,9 +2139,9 @@
       showLoading(true);
 
       try {
-        // Para categorías específicas: cargamos un bloque grande de una vez y filtramos client-side.
-        // Para "todas": paginación normal (24 en 24, scroll infinito).
-        const isCatFilter = activeCategory !== "todas";
+        // Para categorías o tiendas específicas: cargamos un bloque grande y filtramos client-side.
+        // Para "todas" sin filtro: paginación normal (24 en 24, scroll infinito).
+        const isCatFilter = activeCategory !== "todas" || !!activeStore;
         const limit = isCatFilter ? 200 : PAGE_SIZE;
         const batch = await fetchDeals(limit, currentOffset);
         if (batch.length < limit || isCatFilter) hasMore = false;
@@ -2140,10 +2166,9 @@
         const emptyEl = grid.querySelector(".empty");
         if (emptyEl) emptyEl.remove();
 
-        const sorted  = sortDeals(newDeals.filter(d => dealMatchesCategory(d, activeCategory)));
-        // En primera carga con hero activo, excluir los 3 primeros del grid
-        const gridDeals = (currentOffset <= PAGE_SIZE && heroMode && activeCategory === "todas")
-          ? sortDeals(allDeals.filter(d => dealMatchesCategory(d, activeCategory))).slice(3)
+        const sorted  = sortDeals(newDeals.filter(d => dealMatchesFilters(d)));
+        const gridDeals = (currentOffset <= PAGE_SIZE && heroMode && activeCategory === "todas" && !activeStore)
+          ? sortDeals(allDeals.filter(d => dealMatchesFilters(d))).slice(3)
           : sorted;
 
         if (currentOffset <= PAGE_SIZE) {
@@ -2154,6 +2179,7 @@
           grid.insertAdjacentHTML("beforeend", gridDeals.map(renderDeal).join(""));
         }
         updateCount();
+        buildStoreBar();
 
       } catch (e) {
         console.error("Error cargando deals:", e);
@@ -2181,7 +2207,7 @@
         allDeals = nuevos.concat(allDeals);
 
         const grid     = document.getElementById("js-grid");
-        const matching = nuevos.filter(d => dealMatchesCategory(d, activeCategory));
+        const matching = nuevos.filter(d => dealMatchesFilters(d));
         if (matching.length > 0) {
           grid.insertAdjacentHTML("afterbegin", matching.map(renderDeal).join(""));
           updateCount();
@@ -2239,6 +2265,36 @@
           // Actualizar título de sección
           const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Garaje · Reventa" };
           document.getElementById("js-section-title").textContent = titles[activeSort] || "Clasificados";
+        });
+      });
+    }
+
+    // ── Store bar ────────────────────────────────────────────────
+    function buildStoreBar() {
+      const bar = document.getElementById("js-store-bar");
+      if (!bar) return;
+      const stores = [...new Set(allDeals.map(d => d.tienda))].filter(Boolean).sort();
+      if (stores.length === 0) { bar.style.display = "none"; return; }
+      // No reconstruir si la lista de tiendas no ha cambiado (preserva los event listeners)
+      const existing = [...bar.querySelectorAll(".store-pill[data-store]:not([data-store=''])")].map(b => b.dataset.store);
+      if (existing.join(",") === stores.join(",")) return;
+
+      bar.innerHTML =
+        `<span class="store-bar__label">Tienda</span>` +
+        `<button class="store-pill${!activeStore ? " store-pill--active" : ""}" data-store="">Todas</button>` +
+        stores.map(s =>
+          `<button class="store-pill${activeStore === s ? " store-pill--active" : ""}" data-store="${s}">${s}</button>`
+        ).join("");
+      bar.style.display = "flex";
+
+      bar.querySelectorAll(".store-pill").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const store = btn.dataset.store;
+          if (activeStore === store) return;
+          activeStore = store;
+          bar.querySelectorAll(".store-pill").forEach(b => b.classList.remove("store-pill--active"));
+          btn.classList.add("store-pill--active");
+          renderGrid();
         });
       });
     }
