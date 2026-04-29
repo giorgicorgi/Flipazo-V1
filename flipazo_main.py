@@ -438,10 +438,12 @@ async def _scroll_pagina(page: Page, veces: int = 3):
 
 # Señales que indican que el sitio nos ha bloqueado
 _TITULOS_BLOQUEO = [
-    "just a moment", "verificación", "verification", "access denied",
+    "just a moment", "un momento",   # Cloudflare challenge EN/ES
+    "verificación", "verification", "verifying", "verificando",
+    "access denied", "acceso denegado",
     "robot", "captcha", "cloudflare", "403", "429", "pardon",
     "blocked", "bloqueado", "attention required", "too many requests",
-    "rate limit", "forbidden", "denied",
+    "rate limit", "forbidden", "denied", "error 1020",
 ]
 _URLS_BLOQUEO = ["captcha", "blocked", "challenge", "verify?", "error", "/403", "/429"]
 _SELECTORES_BLOQUEO = [
