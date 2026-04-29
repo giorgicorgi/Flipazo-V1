@@ -106,7 +106,8 @@ AMAZON_SEARCH_URLS = [
     # Pequeño electrodoméstico — aspiradoras, planchas, freidoras
     "https://www.amazon.es/s?i=kitchen&k=rowenta+shark+bissell+tefal+delonghi+cecotec&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Altavoces Bluetooth portátiles — Sony SRS, JBL Charge/Flip, Bose SoundLink, Marshall, Anker Soundcore
-    "https://www.amazon.es/s?i=electronics&k=sony+srs+jbl+charge+flip+bose+soundlink+marshall+anker+soundcore+ue+wonderboom&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # Keyword corto (tipo producto + marcas) para evitar que Amazon lo trate como AND estricto
+    "https://www.amazon.es/s?i=electronics&k=altavoz+bluetooth+sony+jbl+bose+marshall+anker&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Amazon Deals — página principal de ofertas por tiempo limitado
     "https://www.amazon.es/deals?ref=nav_cs_gb",
 ]
@@ -381,7 +382,7 @@ async def scrape_amazon_deals(context: BrowserContext) -> list[Producto]:
                 await asyncio.sleep(3)
                 nuevos = await _extraer_de_deals(page, vistos)
             else:
-                await _scroll_pagina(page, veces=3)
+                await _scroll_pagina(page, veces=5)
                 nuevos = await _extraer_de_busqueda(page, vistos)
 
             if DEBUG_SCREENSHOTS and i == 0:
