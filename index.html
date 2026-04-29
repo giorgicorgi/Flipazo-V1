@@ -1517,23 +1517,60 @@
         pattern: /airfryer|freidora|thermomix|batidora|horno|plancha|microondas/i },
     ];
 
+    function _normalizeSearch(s) {
+      return (s || "").toLowerCase()
+        .normalize("NFD").replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+    }
+
     function _semanticPattern(query) {
-      const q = query.toLowerCase().trim();
+      const q = _normalizeSearch(query);
       for (const g of SEMANTIC_GROUPS) {
-        if (g.terms.some(t => q.includes(t) || t.includes(q))) return g.pattern;
+        // q.includes(t): query is a superset ("auriculares sony" ⊃ "auriculares")
+        // t.includes(q): term is a superset only when query is ≥75% of term length
+        //   → allows "auricular" to match "auriculares" but blocks "electro" → "electrodoméstico"
+        if (g.terms.some(t => {
+          const tn = _normalizeSearch(t);
+          return q.includes(tn) || (tn.includes(q) && q.length * 1.4 >= tn.length);
+        })) return g.pattern;
       }
       return null;
     }
 
     function searchDeals(query) {
       if (!query || query.trim().length < 2) return [];
-      const q     = query.toLowerCase().trim();
-      const extra = _semanticPattern(q);
-      return allDeals.filter(d => {
-        const t = d.titulo.toLowerCase();
-        return t.includes(q) || (extra && extra.test(d.titulo));
-      });
-      // allDeals ya está ordenado cronológicamente (más reciente primero)
+      const q      = _normalizeSearch(query);
+      const tokens = q.split(" ").filter(w => w.length >= 2);
+      if (!tokens.length) return [];
+      const extra  = _semanticPattern(q);
+
+      const scored = [];
+      for (const d of allDeals) {
+        const title = _normalizeSearch(d.titulo);
+
+        // Primary: ALL query words must appear in the title (AND logic)
+        const allMatch = tokens.every(tok => title.includes(tok));
+        // Secondary: semantic expansion only when AND-match fails
+        const semMatch = !allMatch && extra && extra.test(d.titulo);
+
+        if (!allMatch && !semMatch) continue;
+
+        let score = 0;
+        if (allMatch) {
+          score = 50;
+          for (const tok of tokens) {
+            // Whole-word bonus (surrounded by spaces or at boundary)
+            if (title.includes(" " + tok + " ") || title.startsWith(tok + " ") || title.endsWith(" " + tok) || title === tok) score += 10;
+            else score += 2;
+          }
+          if (title.startsWith(q)) score += 30; // title opens with the full query
+        } else {
+          score = 5; // semantic-only match — shown last
+        }
+        scored.push({ d, score });
+      }
+
+      return scored.sort((a, b) => b.score - a.score).map(x => x.d);
     }
 
     // ── Categories ──────────────────────────────────────────────

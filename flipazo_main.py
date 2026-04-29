@@ -233,6 +233,18 @@ PALABRAS_PROHIBIDAS = [
     "libro", " novela ", "manual de", "guía de", "dvd", "blu-ray",
     # Multipacks genéricos (no bloquear si incluye marca de herramienta: "Kit Makita 18V")
     "lote de", "caja de",
+    # Estado del producto — no deals de segunda mano ni refurbished
+    "reacondicionado", "reacondicionada", "reacondicionados", "reacondicionadas",
+    "seminuevo", "seminueva", "seminuevos", "seminuevas",
+    "remanufacturado", "remanufacturada",
+    # Accesorios genéricos
+    "accesorio",
+    # Recambios y repuestos (ya está "repuesto" — añadir plurales y variantes)
+    "recambio", "recambios",
+    # Consumibles de impresora
+    "cartucho de tinta", "cartucho de tóner", "kit de tinta",
+    # Pilas sueltas (baterías como producto principal, no accesorios de otro artículo)
+    "pack de pilas", "pilas alcalinas", "pilas recargables",
 ]
 
 # Recambios y componentes de bicicleta — bloqueados solo para Mammoth Bikes
