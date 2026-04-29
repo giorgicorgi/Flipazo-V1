@@ -245,6 +245,14 @@ PALABRAS_PROHIBIDAS = [
     "cartucho de tinta", "cartucho de tóner", "kit de tinta",
     # Pilas sueltas (baterías como producto principal, no accesorios de otro artículo)
     "pack de pilas", "pilas alcalinas", "pilas recargables",
+    # Periféricos de bajo valor
+    "hub usb", "ladrón usb",
+    # Bases y docks de carga sueltos
+    "base de carga", "estación de carga",
+    # Organizadores (no son producto de valor)
+    "organizador de cables", "organizador de escritorio",
+    # Consumibles de limpieza/jardín
+    "manguera",
 ]
 
 # Recambios y componentes de bicicleta — bloqueados solo para Mammoth Bikes
