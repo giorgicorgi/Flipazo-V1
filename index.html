@@ -1577,17 +1577,22 @@
 
       const scored = [];
       for (const d of allDeals) {
-        const title = _normalizeSearch(d.titulo);
+        const title  = _normalizeSearch(d.titulo);
+        const words  = title.split(" ");
         // Todos los tokens deben aparecer en el título (AND estricto)
         if (!tokens.every(tok => title.includes(tok))) continue;
 
-        let score = 50;
+        // Score basado en posición: cuanto antes aparezca el token, más relevante.
+        // "Bicicleta Trek" (pos 0) >> "Hot Wheels Bicicleta" (pos 2) >> "Auriculares para bicicleta" (pos final)
+        let score = 0;
         for (const tok of tokens) {
-          // Bonus si el token es una palabra completa (separada por espacios)
-          if (title === tok || title.startsWith(tok + " ") || title.endsWith(" " + tok) || title.includes(" " + tok + " ")) score += 10;
-          else score += 2;
+          const pos = words.findIndex(w => w.includes(tok));
+          if      (pos === 0)                  score += 100; // concepto principal
+          else if (pos === 1)                  score += 60;
+          else if (pos <= 3)                   score += 28;
+          else if (pos < words.length * 0.5)  score += 12;
+          else                                 score += 3;  // descriptor al final
         }
-        if (title.startsWith(q)) score += 30;
         scored.push({ d, score });
       }
 
@@ -2301,7 +2306,7 @@
 
     // ── IntersectionObserver (scroll infinito) ───────────────────
     new IntersectionObserver(
-      entries => { if (entries[0].isIntersecting) loadMore(); },
+      entries => { if (entries[0].isIntersecting && !_scrollingToBottom) loadMore(); },
       { rootMargin: "300px" }
     ).observe(document.getElementById("js-sentinel"));
 
@@ -2449,11 +2454,16 @@
     }
 
     // ── Scroll buttons ───────────────────────────────────────────
+    let _scrollingToBottom = false;
+
     function scrollToTop() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
     function scrollToBottom() {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      _scrollingToBottom = true;
+      document.querySelector(".footer").scrollIntoView({ behavior: "smooth", block: "start" });
+      // Limpia la bandera después de que la animación termina (~1.2s max)
+      setTimeout(() => { _scrollingToBottom = false; }, 1400);
     }
 
     window.addEventListener("scroll", () => {
