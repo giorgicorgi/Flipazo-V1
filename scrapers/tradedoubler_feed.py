@@ -19,7 +19,7 @@ TRADEDOUBLER_TOKEN = os.getenv("TRADEDOUBLER_TOKEN", "")
 
 _FEEDS = [
     {"tienda": "MediaMarkt", "fid": "24915"},
-    {"tienda": "ToysRus",    "fid": "21529"},
+    # ToysRus: feed sin precio original — descuento no calculable, omitido
     {"tienda": "Beep",       "fid": "51903"},
 ]
 
@@ -106,7 +106,8 @@ def _filtrar(
             if not (precio_minimo <= precio_actual <= precio_maximo):
                 continue
 
-            strike_raw = _get_field(item.get("fields", {}), "strike_price")
+            fields_raw = item.get("fields", {})
+            strike_raw = _get_field(fields_raw, "strike_price") or _get_field(fields_raw, "PreviousPrice")
             precio_original = _parse_precio(strike_raw)
             if precio_original <= precio_actual:
                 continue
