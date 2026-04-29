@@ -4,7 +4,7 @@ affiliate/link_builder.py — Generador de URLs de afiliado por tienda.
 Soporta:
   - Amazon.es           → Amazon Associates (tag directo en la URL)
   - MediaMarkt.es       → Tradedoubler (prioritario) / Awin (fallback)
-  - PcComponentes       → Awin deep link
+  - PcComponentes       → UTM params propios (?utm_medium=recomendadores&utm_source=ID)
   - Beep ES             → Tradedoubler deep link
   - Billabong ES        → Tradedoubler deep link
   - Cole Haan España    → Tradedoubler deep link
@@ -26,10 +26,13 @@ load_dotenv()
 # ── Amazon ────────────────────────────────────────────────────────────────────
 AMAZON_AFFILIATE_TAG = os.getenv("AMAZON_AFFILIATE_TAG", "flipazo-21")
 
+# ── PcComponentes — UTM afiliado propio ───────────────────────────────────────
+# utm_source = ID de publisher en el programa de recomendadores de PcComponentes
+PCCOMPONENTES_UTM_SOURCE = os.getenv("PCCOMPONENTES_UTM_SOURCE", "")
+
 # ── Awin ──────────────────────────────────────────────────────────────────────
 AWIN_PUBLISHER_ID         = os.getenv("AWIN_PUBLISHER_ID", "")
 MEDIAMARKT_AWIN_MID       = os.getenv("MEDIAMARKT_AWIN_MID", "6907")
-PCCOMPONENTES_AWIN_MID    = os.getenv("PCCOMPONENTES_AWIN_MID", "")
 ELCORTEINGLES_AWIN_MID    = os.getenv("ELCORTEINGLES_AWIN_MID", "")
 PRIVATESPORTSHOP_AWIN_MID = os.getenv("PRIVATESPORTSHOP_AWIN_MID", "")
 MAMMOTH_AWIN_MID          = os.getenv("MAMMOTH_AWIN_MID", "")
@@ -49,6 +52,21 @@ TOYSRUS_TD_PID      = os.getenv("TOYSRUS_TD_PID",       "211811")
 
 
 # ── Helpers internos ──────────────────────────────────────────────────────────
+
+def _pccomponentes_affiliate_url(product_url: str) -> str:
+    """Añade utm_medium=recomendadores&utm_source=ID a cualquier URL de PcComponentes."""
+    if not PCCOMPONENTES_UTM_SOURCE or not product_url:
+        return product_url
+    parsed = urllib.parse.urlparse(product_url)
+    params = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+    # Limpiar UTMs previos que pudiera traer la URL del scraper
+    for k in ("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"):
+        params.pop(k, None)
+    params["utm_medium"] = ["recomendadores"]
+    params["utm_source"] = [PCCOMPONENTES_UTM_SOURCE]
+    new_query = urllib.parse.urlencode({k: v[0] for k, v in params.items()})
+    return urllib.parse.urlunparse(parsed._replace(query=new_query))
+
 
 def _awin_deep_link(merchant_id: str, product_url: str) -> str:
     if not AWIN_PUBLISHER_ID or not merchant_id:
@@ -122,9 +140,9 @@ def build_affiliate_url(tienda: str, asin_or_url: str) -> str:
     if tienda == "ToysRus":
         return _tradedoubler_deep_link(TOYSRUS_TD_PID, asin_or_url)
 
-    # Awin
+    # PcComponentes — UTM propio (sin Awin)
     if tienda == "PcComponentes":
-        return _awin_deep_link(PCCOMPONENTES_AWIN_MID, asin_or_url)
+        return _pccomponentes_affiliate_url(asin_or_url)
 
     if tienda == "ElCorteIngles":
         return _awin_deep_link(ELCORTEINGLES_AWIN_MID, asin_or_url)
@@ -145,11 +163,11 @@ def build_affiliate_url(tienda: str, asin_or_url: str) -> str:
 def affiliate_status() -> dict:
     """Devuelve el estado de configuración de cada red de afiliados (útil para debug)."""
     return {
-        "amazon":                    bool(AMAZON_AFFILIATE_TAG),
-        "awin_publisher":            AWIN_PUBLISHER_ID or "❌ no configurado",
-        "mediamarkt_awin_mid":       MEDIAMARKT_AWIN_MID or "❌ no configurado",
-        "pccomponentes_awin_mid":    PCCOMPONENTES_AWIN_MID or "❌ no configurado",
-        "td_publisher":              TD_PUBLISHER_ID or "❌ no configurado",
+        "amazon":                         bool(AMAZON_AFFILIATE_TAG),
+        "pccomponentes_utm_source":        PCCOMPONENTES_UTM_SOURCE or "❌ no configurado",
+        "awin_publisher":                  AWIN_PUBLISHER_ID or "❌ no configurado",
+        "mediamarkt_awin_mid":             MEDIAMARKT_AWIN_MID or "❌ no configurado",
+        "td_publisher":                    TD_PUBLISHER_ID or "❌ no configurado",
         "mediamarkt_td_pid":         MEDIAMARKT_TD_PID,
         "beep_td_pid":               BEEP_TD_PID,
         "billabong_td_pid":          BILLABONG_TD_PID,
