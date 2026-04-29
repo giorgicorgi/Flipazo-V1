@@ -20,7 +20,10 @@ TRADEDOUBLER_TOKEN = os.getenv("TRADEDOUBLER_TOKEN", "")
 _FEEDS = [
     {"tienda": "MediaMarkt", "fid": "24915"},
     # ToysRus: feed sin precio original — descuento no calculable, omitido
-    {"tienda": "Beep",       "fid": "51903"},
+    # Beep: PreviousPrice es MSRP/precio catálogo del fabricante, no el precio mínimo
+    # de los últimos 30 días (Directiva EU 2011/83). Genera falsos descuentos sistemáticos.
+    # Reactivar solo si Beep proporciona un campo de precio de referencia fiable.
+    # {"tienda": "Beep", "fid": "51903"},
 ]
 
 _API_BASE    = "https://api.tradedoubler.com/1.0/productsUnlimited.json"
