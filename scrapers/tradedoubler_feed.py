@@ -99,7 +99,10 @@ def _filtrar(
                 continue
             offer = offers[0]
 
-            precio_actual = _parse_precio((offer.get("price") or {}).get("value"))
+            price_history = offer.get("priceHistory") or []
+            precio_actual = _parse_precio(
+                (price_history[0].get("price") or {}).get("value") if price_history else None
+            )
             if not (precio_minimo <= precio_actual <= precio_maximo):
                 continue
 
