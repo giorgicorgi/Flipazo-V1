@@ -296,16 +296,15 @@
     /* Discount % overlaid on image top-right */
     .deal__discount-badge {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 8px;
+      right: 8px;
       background: var(--accent);
       color: #fff;
-      font-family: var(--mono);
-      font-weight: 700;
-      font-size: 13px;
-      letter-spacing: 0.04em;
-      padding: 4px 9px;
-      line-height: 1.2;
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 24px;
+      line-height: 1;
+      padding: 5px 10px 4px;
       pointer-events: none;
       z-index: 1;
     }
@@ -355,9 +354,9 @@
 
     /* % descuento — rojo, junto al precio actual */
     .deal__pct {
-      font-family: var(--mono);
-      font-size: 14px;
-      font-weight: 700;
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 900;
       color: var(--accent);
       align-self: center;
     }
@@ -806,6 +805,35 @@
     }
     .store-pill:hover { border-color: var(--ink); color: var(--ink); }
     .store-pill--active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+    /* ── Tech sub-category bar ──────────────────────────────────── */
+    .subcat-bar {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 40px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+      background: var(--surface);
+    }
+    .subcat-bar::-webkit-scrollbar { display: none; }
+    .subcat-pill {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      padding: 5px 11px;
+      border: 1px solid var(--border-soft);
+      background: var(--bg);
+      color: var(--ink-light);
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .subcat-pill:hover { border-color: var(--ink); color: var(--ink); }
+    .subcat-pill--active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
     /* ── Sort tabs ──────────────────────────────────────────────── */
     .sort-tabs {
@@ -1270,6 +1298,7 @@
       .masthead__tagline { display: none; }
       .cat-bar { padding: 10px 18px; }
       .store-bar { padding: 6px 18px; }
+      .subcat-bar { padding: 6px 18px; }
       .sort-tabs { margin-top: 8px; }
       .sort-tab { padding: 9px 14px; font-size: 9px; letter-spacing: 0.12em; }
       .hero { padding: 24px 18px; }
@@ -1346,7 +1375,7 @@
       <button class="sort-tab sort-tab--active" data-sort="recientes">Recientes</button>
       <button class="sort-tab" data-sort="descuento">Mayor Descuento</button>
       <button class="sort-tab" data-sort="votados">Más Votados</button>
-      <button class="sort-tab" data-sort="reventa">Garaje</button>
+      <button class="sort-tab" data-sort="reventa">Para Revender</button>
     </nav>
   </header>
 
@@ -1383,6 +1412,11 @@
   <!-- ── STORE BAR ─────────────────────────────────────────────── -->
   <nav class="store-bar" id="js-store-bar" aria-label="Filtrar por tienda">
     <!-- Populated by JS after first load -->
+  </nav>
+
+  <!-- ── TECH SUB-CATEGORY BAR ─────────────────────────────────── -->
+  <nav class="subcat-bar" id="js-subcat-bar" aria-label="Subcategorías de tecnología">
+    <!-- Shown only when Tecnología category is active -->
   </nav>
 
   <!-- ── SEARCH ACTIVE BANNER ──────────────────────────────────── -->
@@ -1542,8 +1576,8 @@
     const SEMANTIC_GROUPS = [
       { terms: ["mochila","mochilas","bolso","bolsos","bolsa","maleta","maletas","bandolera","equipaje"],
         pattern: /mochila|bolso|bolsa|maleta|bandolera/i },
-      { terms: ["bici","bicicleta","bicicletas","ciclismo","ciclo","mtb","gravel"],
-        pattern: /bici|ciclismo|mtb|mountain bike|shimano|sillín|gravel|road bike/i },
+      { terms: ["bici","bicicleta","bicicletas","ciclismo","ciclo","mtb","gravel","bike"],
+        pattern: /biciclet|bici\b|ciclismo|mtb|mountain bike|shimano|sill[ií]n|gravel|road bike/i },
       { terms: ["taladro","bricolaje","herramienta","herramientas","diy","tool"],
         pattern: /taladro|sierra\b|destornillador|amoladora|lijadora|bosch\b|dewalt|makita|milwaukee|stanley\b/i },
       { terms: ["zapatilla","zapatillas","sneaker","sneakers","zapato","zapatos","calzado"],
@@ -1578,6 +1612,16 @@
         .replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
     }
 
+    // Extrae marca + modelo específico del título para búsquedas en Wallapop
+    function extractModelQuery(titulo) {
+      // Tomar el primer segmento antes de · o |
+      const segment = (titulo || "").split(/\s*[·|]\s*/)[0].trim();
+      // Cortar en la primera preposición genérica o descriptor largo
+      const cut = segment.replace(/\s+(con\s|para\s|pack\s|sin\s|incluye\s|y\s[a-z]|–\s|-\s[A-Z])/i, " ").trim();
+      // Max 5 palabras
+      return cut.split(/\s+/).slice(0, 5).join(" ");
+    }
+
     function searchDeals(query) {
       if (!query || query.trim().length < 2) return [];
       const q      = _normalizeSearch(query);
@@ -1601,8 +1645,9 @@
 
         // Match directo: todos los tokens aparecen en título o nombre de tienda
         const directMatch = tokens.every(tok => title.includes(tok) || store.includes(tok));
-        // Match semántico: título encaja en el patrón expandido del grupo
-        const semanticMatch = semanticPatterns.length > 0 && semanticPatterns.some(p => p.test(d.titulo));
+        // Match semántico: probamos contra título normalizado Y título raw (cubre tildes y variantes)
+        const semanticMatch = semanticPatterns.length > 0 &&
+          semanticPatterns.some(p => p.test(d.titulo) || p.test(title));
 
         if (!directMatch && !semanticMatch) continue;
 
@@ -1622,6 +1667,19 @@
 
       return scored.sort((a, b) => b.score - a.score).map(x => x.d);
     }
+
+    // ── Tech sub-categories ─────────────────────────────────────
+    const TECH_SUBCATS = [
+      { id: "todas",      label: "Todo Tech" },
+      { id: "audio",      label: "Audio",        test: d => /auricular|cascos|airpods|wh-?1000|bose\b|jabra|sennheiser|hyperx|altavoz|speaker|earbuds/i.test(d.titulo) },
+      { id: "gaming",     label: "Videojuegos",  test: d => /gaming|ps5|playstation|xbox|nintendo|switch\b|mando\b|consola\b|steam\b|razer|corsair|steelseries/i.test(d.titulo) },
+      { id: "moviles",    label: "Móviles",      test: d => /smartphone|m[oó]vil|iphone|galaxy\b|redmi|xiaomi|oneplus|oppo\b/i.test(d.titulo) },
+      { id: "portatiles", label: "Portátiles",   test: d => /port[aá]til|laptop|macbook|chromebook|pc gaming/i.test(d.titulo) },
+      { id: "tv",         label: "TV",           test: d => /televisor|\btv\b|oled\b|qled\b|smart.?tv/i.test(d.titulo) },
+      { id: "foto",       label: "Foto/Vídeo",   test: d => /c[aá]mara\b|gopro|dron\b|drone\b|objetivo\b/i.test(d.titulo) },
+      { id: "gadgets",    label: "Gadgets",      test: d => true },
+    ];
+    let activeTechSubcat = "todas";
 
     // ── Categories ──────────────────────────────────────────────
     // NOTA: calzado va antes que deportes — las zapatillas (incluidas las deportivas
@@ -1652,9 +1710,15 @@
 
     function dealMatchesCategory(deal, catId) {
       if (catId === "todas") return true;
-      if (deal.categoria === catId) return true;
       const cat = CATEGORIAS.find(c => c.id === catId);
-      return cat ? cat.test(deal) : false;
+      const inCat = (deal.categoria === catId) || (cat ? cat.test(deal) : false);
+      if (!inCat) return false;
+      // Aplicar sub-filtro de tecnología
+      if (catId === "tecnologia" && activeTechSubcat !== "todas") {
+        const sc = TECH_SUBCATS.find(s => s.id === activeTechSubcat);
+        return sc ? sc.test(deal) : true;
+      }
+      return true;
     }
 
     function dealMatchesStore(deal) {
@@ -1801,7 +1865,7 @@
     function renderDeal(d) {
       const isReventa  = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
       const badgeClass = isReventa ? "deal__badge--garaje" : "";
-      const badgeLabel = isReventa ? "Garaje" : (d.tienda || "");
+      const badgeLabel = isReventa ? "Reventa" : (d.tienda || "");
       const buyUrl     = d.url_affiliate || "#";
 
       const imgHtml = `<div class="deal__image-wrap">
@@ -1824,10 +1888,10 @@
       const ahorroHtml = ahorro > 1
         ? `<p class="deal__savings">↓ Ahorras ${fmtPrice(ahorro)}</p>` : "";
 
-      const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent((d.titulo || "").split(" ").slice(0, 4).join(" "))}`;
+      const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent(extractModelQuery(d.titulo))}`;
       const reventaHtml = isReventa && d.precio_wallapop > 0
         ? `<div class="deal__reventa">
-             <span class="deal__reventa-title">💰 Deal de Reventa</span>
+             <span class="deal__reventa-title">💰 Oportunidad de Reventa</span>
              <div class="deal__reventa-math">
                <span>Compra ahora: <strong>${fmtPrice(d.precio_actual)}</strong></span>
                <span>Precio estimado en Wallapop: <strong>~${fmtPrice(d.precio_wallapop)}</strong> · <a href="${wallapopUrl}" target="_blank" rel="noopener" style="color:var(--badge-rev);font-size:11px">verificar →</a></span>
@@ -1926,12 +1990,33 @@
       return activeSort === "recientes" && activeCategory === "todas" && !searchQuery && !activeStore;
     }
 
+    // Elige la mejor oferta del día y la fija en localStorage hasta medianoche
+    function getDealOfDay(deals) {
+      if (!deals.length) return null;
+      const todayKey = new Date().toLocaleDateString("es-ES");
+      try {
+        const saved = JSON.parse(localStorage.getItem("flipazo_deal_dia") || "{}");
+        if (saved.date === todayKey && saved.id) {
+          const found = deals.find(d => String(d.id) === String(saved.id));
+          if (found) return found;
+        }
+      } catch {}
+      // Elegir el mejor deal de las últimas 24h por descuento_pct
+      const now = Date.now();
+      const pool = deals.filter(d => (now - new Date(d.timestamp || 0).getTime()) < 24 * 3600 * 1000);
+      const best = ([...( pool.length ? pool : deals)]).sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0))[0];
+      if (best) {
+        try { localStorage.setItem("flipazo_deal_dia", JSON.stringify({ date: todayKey, id: String(best.id) })); } catch {}
+      }
+      return best || deals[0];
+    }
+
     // ── Hero rendering ───────────────────────────────────────────
     let heroMode = false;
 
     function buildHeroMain(d) {
       const buyUrl = d.url_affiliate || "#";
-      const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent((d.titulo || "").split(" ").slice(0, 4).join(" "))}`;
+      const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent(extractModelQuery(d.titulo))}`;
       const isReventa = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
       return `
         <span class="hero__label">⭐ Oferta del Día · ${d.tienda || ""}</span>
@@ -1986,7 +2071,9 @@
         return;
       }
       heroMode = true;
-      document.getElementById("js-hero-main").innerHTML = buildHeroMain(allDeals[0]);
+      const dealOfDay = getDealOfDay(allDeals);
+      if (!dealOfDay) { hero.style.display = "none"; heroMode = false; return; }
+      document.getElementById("js-hero-main").innerHTML = buildHeroMain(dealOfDay);
       hero.style.display = "";
     }
 
@@ -2057,13 +2144,13 @@
     let searchTimeout     = null;
     let _searchAllLoaded  = false;
 
-    // Pre-carga un batch grande la primera vez que se activa la búsqueda,
-    // para que el usuario pueda encontrar deals que aún no estaban en pantalla.
+    // Precarga hasta 1000 deals para que el buscador cubra el catálogo completo
     async function ensureSearchData() {
       if (_searchAllLoaded) return;
       _searchAllLoaded = true;
       try {
-        const batch = await fetchDeals(500, 0);
+        const [b1, b2] = await Promise.all([fetchDeals(500, 0), fetchDeals(500, 500)]);
+        const batch = [...b1, ...b2];
         if (batch.length) {
           const existingIds = new Set(allDeals.map(d => d.id));
           const fresh = batch.filter(d => !existingIds.has(d.id));
@@ -2268,6 +2355,30 @@
       }
     }
 
+    // ── Sub-category bar (tecnología) ────────────────────────────
+    function buildSubcatBar() {
+      const bar = document.getElementById("js-subcat-bar");
+      if (!bar) return;
+      if (activeCategory !== "tecnologia") {
+        bar.style.display = "none";
+        activeTechSubcat = "todas";
+        return;
+      }
+      bar.innerHTML = TECH_SUBCATS.map(sc =>
+        `<button class="subcat-pill${sc.id === activeTechSubcat ? " subcat-pill--active" : ""}" data-subcat="${sc.id}">${sc.label}</button>`
+      ).join("");
+      bar.style.display = "flex";
+      bar.querySelectorAll(".subcat-pill").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (activeTechSubcat === btn.dataset.subcat) return;
+          activeTechSubcat = btn.dataset.subcat;
+          bar.querySelectorAll(".subcat-pill").forEach(b => b.classList.remove("subcat-pill--active"));
+          btn.classList.add("subcat-pill--active");
+          renderGrid();
+        });
+      });
+    }
+
     // ── Category bar ─────────────────────────────────────────────
     function buildCatBar() {
       const bar = document.getElementById("js-cat-bar");
@@ -2279,16 +2390,18 @@
         btn.addEventListener("click", () => {
           if (activeCategory === btn.dataset.cat) return;
           activeCategory = btn.dataset.cat;
+          activeTechSubcat = "todas";
           bar.querySelectorAll(".cat-pill").forEach(b => b.classList.remove("cat-pill--active"));
           btn.classList.add("cat-pill--active");
+          buildSubcatBar();
           const titleEl = document.getElementById("js-section-title");
           titleEl.textContent = activeCategory === "todas"
             ? "Clasificados"
             : (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Clasificados");
-          // Resetear estado y recargar desde el servidor con filtro de categoría
           allDeals      = [];
           currentOffset = 0;
           hasMore       = true;
+          _searchAllLoaded = false;
           document.getElementById("js-grid").innerHTML = "";
           loadMore();
         });
@@ -2314,19 +2427,22 @@
             loadMore();
           }
           // Actualizar título de sección
-          const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Garaje · Reventa" };
+          const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Oportunidades de Reventa" };
           document.getElementById("js-section-title").textContent = titles[activeSort] || "Clasificados";
         });
       });
     }
 
     // ── Store bar ────────────────────────────────────────────────
-    function buildStoreBar() {
+    let _allKnownStores = new Set();
+
+    function buildStoreBar(extraStores) {
       const bar = document.getElementById("js-store-bar");
       if (!bar) return;
-      const stores = [...new Set(allDeals.map(d => d.tienda))].filter(Boolean).sort();
+      allDeals.forEach(d => d.tienda && _allKnownStores.add(d.tienda));
+      if (extraStores) extraStores.forEach(s => s && _allKnownStores.add(s));
+      const stores = [..._allKnownStores].filter(Boolean).sort();
       if (stores.length === 0) { bar.style.display = "none"; return; }
-      // No reconstruir si la lista de tiendas no ha cambiado (preserva los event listeners)
       const existing = [...bar.querySelectorAll(".store-pill[data-store]:not([data-store=''])")].map(b => b.dataset.store);
       if (existing.join(",") === stores.join(",")) return;
 
@@ -2348,6 +2464,14 @@
           renderGrid();
         });
       });
+    }
+
+    // Precarga en background todas las tiendas disponibles para el store bar
+    async function preloadStoresForBar() {
+      try {
+        const batch = await fetchDeals(400, 0);
+        buildStoreBar(batch.map(d => d.tienda));
+      } catch {}
     }
 
     // ── IntersectionObserver (scroll infinito) ───────────────────
@@ -2527,9 +2651,12 @@
     // ── Init ─────────────────────────────────────────────────────
     setDate();
     buildCatBar();
+    buildSubcatBar();
     buildSortTabs();
     initZoom();
     loadMore();
+    // Precargar tiendas en background para que el store bar aparezca completo desde el inicio
+    setTimeout(preloadStoresForBar, 1500);
 
     // Vista mosaico por defecto en mobile
     if (window.innerWidth <= 700) {
