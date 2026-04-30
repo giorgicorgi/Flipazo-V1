@@ -149,15 +149,16 @@ PCCOMPONENTES_URLS = [
     "https://www.pccomponentes.com/portatiles?sort=discount",
 ]
 
-# ── Decathlon — categorías con más volumen ────────────────────────
+# ── Decathlon — todas las secciones de deals, ordenadas por mayor descuento ──
 DECATHLON_URLS = [
     "https://www.decathlon.es/es/deals/descuentos-hombre?Ns=discountRateDescending",
     "https://www.decathlon.es/es/deals/descuentos-mujer?Ns=discountRateDescending",
+    "https://www.decathlon.es/es/deals/descuentos-infantil?Ns=discountRateDescending",
+    "https://www.decathlon.es/es/deals/descuentos-esqui?Ns=discountRateDescending",
+    "https://www.decathlon.es/es/deals/descuentos-ciclismo?Ns=discountRateDescending",
     "https://www.decathlon.es/es/deals/descuentos-running?Ns=discountRateDescending",
-    "https://www.decathlon.es/es/deals/descuentos-montana",
-    "https://www.decathlon.es/es/t/senderismo",
-    "https://www.decathlon.es/es/t/natacion",
-    "https://www.decathlon.es/es/t/futbol",
+    "https://www.decathlon.es/es/deals/descuentos-deportes-agua?Ns=discountRateDescending",
+    "https://www.decathlon.es/es/deals?Ns=discountRateDescending",
 ]
 
 # ── Fnac — secciones de oferta ────────────────────────────────────
