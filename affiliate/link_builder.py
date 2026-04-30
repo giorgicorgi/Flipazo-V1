@@ -83,6 +83,9 @@ def _awin_deep_link(merchant_id: str, product_url: str) -> str:
 def _tradedoubler_deep_link(program_id: str, product_url: str) -> str:
     if not TD_PUBLISHER_ID or not program_id:
         return product_url
+    # Las URLs del feed TD (pdt.tradedoubler.com) ya llevan tracking — no double-wrap.
+    if "tradedoubler.com" in product_url:
+        return product_url
     encoded = urllib.parse.quote(product_url, safe="")
     return (
         f"https://clk.tradedoubler.com/click"
