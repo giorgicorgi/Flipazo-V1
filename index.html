@@ -2272,7 +2272,7 @@
 
     // ── Load more (scroll infinito) ─────────────────────────────
     async function loadMore() {
-      if (isLoading || !hasMore) return;
+      if (isLoading || !hasMore || searchQuery) return;
       isLoading = true;
       showLoading(true);
 
