@@ -790,6 +790,10 @@ _MARCAS_ROPA = frozenset([
     "scarpa", "salewa", "la sportiva", "ternua", "trangoworld",
     "norrona", "norrøna", "icebreaker", "sherpa", "compressport",
     "dynafit", "ortovox", "montura", "karpos",
+    # Marcas premium Esdemarca (camisas, polos, chaquetas, abrigos)
+    "boss", "barbour", "hackett", "fred perry", "ba&sh", "ba & sh",
+    "rotate", "max mara", "weekend max mara", "michael kors",
+    "c.p. company", "cp company", "guess", "hoff",
 ])
 
 
