@@ -2327,13 +2327,25 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
 # FASE 4 — WALLAPOP PRICER (precio de mercado real)
 # ════════════════════════════════════════════════════════════════
 
+_WALLAPOP_NOISE_RE = re.compile(
+    r'\s+(con\s|para\s|sin\s|color\s|incluye\s|pack\s|set\s|kit\s|y\s[a-záéíóúñ])',
+    re.IGNORECASE
+)
+
+def _build_wallapop_query(titulo: str) -> str:
+    """Query específica para Wallapop: primer segmento + hasta 6 tokens relevantes.
+    Ej: "Disco duro SSD interno 2TB PS5" → "Disco duro SSD interno 2TB PS5"
+        "Bosch Taladro GSB 21-2 RE con Maletín" → "Bosch Taladro GSB 21-2 RE"
+    """
+    segment = re.split(r'\s*[·|,–]\s*', titulo.replace(",", ""))[0].strip()
+    segment = _WALLAPOP_NOISE_RE.split(segment)[0].strip()
+    tokens = segment.split()
+    return " ".join(tokens[:6])
+
+
 async def obtener_precio_wallapop(p: Producto, context: BrowserContext) -> float:
-    """
-    Scrape Wallapop para obtener precio medio de mercado.
-    Usa las primeras 3 palabras del título para la búsqueda.
-    """
-    palabras = p.titulo.replace(",", "").split()[:3]
-    query = urllib.parse.quote(" ".join(palabras))
+    """Scrape Wallapop para obtener precio medio de mercado."""
+    query = urllib.parse.quote(_build_wallapop_query(p.titulo))
     url = f"https://es.wallapop.com/app/search?keywords={query}&order_by=price_low_to_high"
 
     page = await context.new_page()
@@ -2572,8 +2584,7 @@ def formatear_mensaje(p: Producto) -> str:
 
 def _msg_arbitraje(p: Producto) -> str:
     """Formato HTML para deals de arbitraje/reventa."""
-    walla_query = urllib.parse.quote(" ".join(p.titulo.split()[:4]))
-    walla_url = f"https://es.wallapop.com/app/search?keywords={walla_query}"
+    walla_url = f"https://es.wallapop.com/app/search?keywords={urllib.parse.quote(_build_wallapop_query(p.titulo))}"
 
     ccc_line = ""
     if p.precio_historico_min > 0:

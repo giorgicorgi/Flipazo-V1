@@ -2143,22 +2143,36 @@
     let searchQuery       = "";
     let searchTimeout     = null;
     let _searchAllLoaded  = false;
+    let _searchLoadPromise = null;
+    let _reventaLoaded    = false;
 
-    // Precarga hasta 1000 deals para que el buscador cubra el catálogo completo
+    // Precarga hasta 1500 deals para que el buscador cubra el catálogo completo.
+    // Usa una Promise para evitar race condition: múltiples llamadas simultáneas
+    // comparten la misma carga en vez de buscar en datos parciales.
     async function ensureSearchData() {
       if (_searchAllLoaded) return;
-      _searchAllLoaded = true;
-      try {
-        const [b1, b2] = await Promise.all([fetchDeals(500, 0), fetchDeals(500, 500)]);
-        const batch = [...b1, ...b2];
-        if (batch.length) {
-          const existingIds = new Set(allDeals.map(d => d.id));
-          const fresh = batch.filter(d => !existingIds.has(d.id));
-          allDeals = allDeals.concat(fresh);
+      if (_searchLoadPromise) return _searchLoadPromise;
+      _searchLoadPromise = (async () => {
+        try {
+          const [b1, b2, b3] = await Promise.all([
+            fetchDeals(500, 0),
+            fetchDeals(500, 500),
+            fetchDeals(500, 1000),
+          ]);
+          const batch = [...b1, ...b2, ...b3];
+          if (batch.length) {
+            const existingIds = new Set(allDeals.map(d => d.id));
+            const fresh = batch.filter(d => !existingIds.has(d.id));
+            allDeals = allDeals.concat(fresh);
+          }
+          _searchAllLoaded = true;
+        } catch (e) {
+          // allow retry
+        } finally {
+          _searchLoadPromise = null;
         }
-      } catch (e) {
-        _searchAllLoaded = false;
-      }
+      })();
+      return _searchLoadPromise;
     }
 
     function renderSearchDropdown(results, query) {
@@ -2234,11 +2248,12 @@
     }
 
     // ── Fetch ───────────────────────────────────────────────────
-    async function fetchDeals(limit, offset) {
+    async function fetchDeals(limit, offset, tipo = null) {
       if (USE_MOCK) return offset === 0 ? MOCK_DEALS : [];
       // Sin filtro de categoría en el servidor: el filtrado es client-side con OR lógico
       // (server-categoria OR client-regex) para capturar productos multi-categoría correctamente.
-      const url = `${API_URL}?limit=${limit}&offset=${offset}`;
+      let url = `${API_URL}?limit=${limit}&offset=${offset}`;
+      if (tipo) url += `&tipo=${encodeURIComponent(tipo)}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(res.status);
       return res.json();
@@ -2411,12 +2426,14 @@
     // ── Sort tabs ────────────────────────────────────────────────
     function buildSortTabs() {
       document.querySelectorAll(".sort-tab").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           if (activeSort === btn.dataset.sort) return;
           activeSort = btn.dataset.sort;
           document.querySelectorAll(".sort-tab").forEach(b => b.classList.remove("sort-tab--active"));
           btn.classList.add("sort-tab--active");
-          // Si hay datos cargados, re-renderizar sin refetch (excepto "reventa" que filtra)
+          const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Oportunidades de Reventa" };
+          document.getElementById("js-section-title").textContent = titles[activeSort] || "Clasificados";
+
           if (allDeals.length > 0) {
             renderGrid();
           } else {
@@ -2426,9 +2443,25 @@
             document.getElementById("js-grid").innerHTML = "";
             loadMore();
           }
-          // Actualizar título de sección
-          const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Oportunidades de Reventa" };
-          document.getElementById("js-section-title").textContent = titles[activeSort] || "Clasificados";
+
+          // "Para Revender": cargar todos los deals ARBITRAJE del servidor de una vez
+          // para no limitar la vista a los que ya están en memoria por scroll.
+          if (activeSort === "reventa" && !_reventaLoaded) {
+            _reventaLoaded = true;
+            try {
+              const batch = await fetchDeals(200, 0, "ARBITRAJE");
+              if (batch.length) {
+                const existingIds = new Set(allDeals.map(d => d.id));
+                const fresh = batch.filter(d => !existingIds.has(d.id));
+                if (fresh.length) {
+                  allDeals = allDeals.concat(fresh);
+                  if (activeSort === "reventa") renderGrid();
+                }
+              }
+            } catch (e) {
+              _reventaLoaded = false; // allow retry
+            }
+          }
         });
       });
     }
