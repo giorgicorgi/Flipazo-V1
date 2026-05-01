@@ -86,6 +86,12 @@
     }
     /* Cookie banner siempre oscuro, independiente del tema */
     [data-theme="dark"] #cookie-banner { background: #111111; }
+    /* Savings badge: en dark mode green-on-dark en lugar de white-on-green (contraste) */
+    [data-theme="dark"] .deal__savings {
+      background: rgba(46, 204, 113, 0.12);
+      color: var(--badge-rev);
+      outline: 1.5px solid var(--badge-rev);
+    }
 
     /* ── Base ──────────────────────────────────────────────────── */
     body {
@@ -328,47 +334,81 @@
       flex: 1;
     }
 
-    /* ── Pricing ────────────────────────────────────────────────── */
+    /* ── Pricing block — jerarquía antes/ahora ─────────────────── */
     .deal__pricing {
       display: flex;
-      align-items: baseline;
-      gap: 10px;
-      margin-bottom: 2px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+
+    /* Fila "Antes: 179€" */
+    .deal__before-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .deal__before-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
     }
 
     .deal__original {
       font-family: var(--mono);
-      font-size: 13px;
-      color: var(--text-faint);
+      font-size: 16px;
+      color: var(--text-mid);
       text-decoration: line-through;
+      text-decoration-color: #e74c3c;
+      text-decoration-thickness: 2px;
+    }
+
+    /* Fila precio actual + badge % */
+    .deal__now-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .deal__current {
       font-family: var(--serif);
       font-weight: 900;
-      font-size: 30px;
+      font-size: 36px;
       line-height: 1;
       color: var(--ink);
     }
 
-    /* % descuento — rojo, junto al precio actual */
+    /* Badge descuento — pastilla sólida roja */
     .deal__pct {
-      font-family: var(--serif);
-      font-size: 22px;
-      font-weight: 900;
-      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--accent);
+      padding: 4px 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       align-self: center;
+      white-space: nowrap;
     }
 
-    /* "Ahorras X€" — verde, refuerza el ahorro concreto */
+    /* "Ahorras X€" — etiqueta verde sólida, el refuerzo emocional del ahorro */
     .deal__savings {
+      display: inline-flex;
+      align-items: center;
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: 11.5px;
       font-weight: 700;
-      color: var(--badge-rev);
-      letter-spacing: 0.05em;
-      margin-bottom: 12px;
+      color: #fff;
+      background: #1a6b3c;
+      padding: 5px 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 2px;
     }
 
     /* ── Price min histórico ────────────────────────────────────── */
@@ -945,15 +985,21 @@
     }
     .hero__original {
       font-family: var(--mono);
-      font-size: 14px;
-      color: var(--text-faint);
+      font-size: 15px;
+      color: var(--text-mid);
       text-decoration: line-through;
+      text-decoration-color: #e74c3c;
+      text-decoration-thickness: 2px;
     }
     .hero__pct {
       font-family: var(--mono);
       font-weight: 700;
-      font-size: 18px;
-      color: var(--accent);
+      font-size: 13px;
+      color: #fff;
+      background: var(--accent);
+      padding: 3px 9px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
     .hero__cta { display: flex; gap: 10px; flex-wrap: wrap; }
 
@@ -1337,8 +1383,9 @@
         overflow: hidden;
       }
       .deals-grid--mosaic .deal__current { font-size: 22px; }
-      .deals-grid--mosaic .deal__original { font-size: 11px; }
-      .deals-grid--mosaic .deal__pct { font-size: 12px; }
+      .deals-grid--mosaic .deal__original { font-size: 12px; }
+      .deals-grid--mosaic .deal__pct { font-size: 10px; padding: 3px 7px; }
+      .deals-grid--mosaic .deal__before-label { display: none; }
       /* Ocultar elementos verbosos en mosaico */
       .deals-grid--mosaic .deal__reventa,
       .deals-grid--mosaic .deal__reason,
@@ -1882,12 +1929,15 @@
       const descPctHtml = d.descuento_pct > 0
         ? `<span class="deal__pct">−${d.descuento_pct}%</span>` : "";
 
-      const precioOriginalHtml = d.precio_original > 0
-        ? `<span class="deal__original">${fmtPrice(d.precio_original)}</span>` : "";
+      const beforeRowHtml = d.precio_original > 0
+        ? `<div class="deal__before-row">
+             <span class="deal__before-label">Antes</span>
+             <span class="deal__original">${fmtPrice(d.precio_original)}</span>
+           </div>` : "";
 
       const ahorro = d.precio_original > d.precio_actual ? d.precio_original - d.precio_actual : 0;
       const ahorroHtml = ahorro > 1
-        ? `<p class="deal__savings">↓ Ahorras ${fmtPrice(ahorro)}</p>` : "";
+        ? `<div class="deal__savings">Ahorras ${fmtPrice(ahorro)}</div>` : "";
 
       const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent(extractModelQuery(d.titulo))}`;
       const reventaHtml = isReventa && d.precio_wallapop > 0
@@ -1946,11 +1996,13 @@
           ${imgHtml}
           <h2 class="deal__title">${d.titulo || ""}</h2>
           <div class="deal__pricing">
-            ${precioOriginalHtml}
-            <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
-            ${descPctHtml}
+            ${beforeRowHtml}
+            <div class="deal__now-row">
+              <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
+              ${descPctHtml}
+            </div>
+            ${ahorroHtml}
           </div>
-          ${ahorroHtml}
           ${reventaHtml}
           ${razonHtml}
           ${proconHtml}
