@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Flipazo</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:       #0f0f0f;
+      --ink-2:     #444;
+      --ink-3:     #888;
+      --bg:        #f5f4f1;
+      --surface:   #ffffff;
+      --border:    #ddd;
+      --accent:    #c0392b;
+      --green:     #27ae60;
+      --r:         6px;
+      --sidebar-w: 260px;
+    }
+
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--ink); }
+
+    /* ── Login screen ── */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .login-box h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .login-box h1 span { color: var(--accent); }
+    .login-box p { font-size: 13px; color: var(--ink-3); }
+
+    /* ── App shell ── */
+    #app { display: none; min-height: 100vh; }
+
+    .topbar {
+      background: var(--ink);
+      color: #fff;
+      padding: 0 20px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar__brand {
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.3px;
+    }
+    .topbar__brand span { color: var(--accent); }
+    .topbar__actions { display: flex; gap: 12px; align-items: center; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      min-height: calc(100vh - 48px);
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar__header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .sidebar__header h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); }
+    .sidebar__list { overflow-y: auto; flex: 1; }
+    .sidebar-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .sidebar-item:hover { background: var(--bg); }
+    .sidebar-item.active { background: #fef3f2; border-left: 3px solid var(--accent); }
+    .sidebar-item__title { font-size: 13px; font-weight: 600; line-height: 1.3; }
+    .sidebar-item__meta { font-size: 11px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .badge--pub  { background: #d4edda; color: #155724; }
+    .badge--draft { background: #fff3cd; color: #856404; }
+
+    /* ── Editor area ── */
+    .editor-area {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor-toolbar {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: var(--surface);
+    }
+    .editor-toolbar h2 { font-size: 14px; font-weight: 700; }
+    .editor-toolbar__btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .editor-body { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 16px; max-width: 900px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end; }
+
+    /* ── Editor tabs ── */
+    .editor-tabs { display: flex; border-bottom: 1px solid var(--border); margin: 0 -24px; padding: 0 24px; gap: 0; }
+    .editor-tab {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: var(--ink-3);
+    }
+    .editor-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .editor-pane { display: none; }
+    .editor-pane.active { display: block; }
+
+    textarea.content-editor {
+      min-height: 480px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: vertical;
+    }
+
+    .preview-pane {
+      min-height: 480px;
+      padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow-y: auto;
+    }
+    /* Markdown preview styles (same as blog.html post-content) */
+    .preview-pane h1, .preview-pane h2, .preview-pane h3 { font-family: Georgia, serif; margin: 1.6em 0 0.4em; line-height: 1.3; }
+    .preview-pane h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+    .preview-pane p { margin-bottom: 1em; font-size: 16px; line-height: 1.7; }
+    .preview-pane ul, .preview-pane ol { margin: 0 0 1em 1.6em; }
+    .preview-pane blockquote { border-left: 3px solid var(--accent); padding-left: 14px; color: var(--ink-2); font-style: italic; margin: 1.2em 0; }
+    .preview-pane code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-size: 0.9em; }
+    .preview-pane img { max-width: 100%; border-radius: var(--r); }
+    .preview-pane strong { font-weight: 700; }
+    .preview-pane a { color: var(--accent); }
+    .preview-pane table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
+    .preview-pane th, .preview-pane td { border: 1px solid var(--border); padding: 7px 10px; text-align: left; }
+    .preview-pane th { background: var(--bg); }
+
+    /* ── Forms ── */
+    input[type="text"], input[type="password"], input[type="url"], textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      font-size: 14px;
+      font-family: inherit;
+      background: var(--surface);
+      color: var(--ink);
+      transition: border-color .15s;
+      outline: none;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      border-radius: var(--r);
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .btn--primary { background: var(--accent); color: #fff; }
+    .btn--primary:hover { background: #a93226; }
+    .btn--secondary { background: var(--bg); color: var(--ink); border: 1px solid var(--border); }
+    .btn--secondary:hover { background: var(--border); }
+    .btn--danger { background: #fff0f0; color: #c0392b; border: 1px solid #f5c6c6; }
+    .btn--danger:hover { background: #fce4e4; }
+    .btn--ghost { background: transparent; color: #fff; font-size: 13px; padding: 6px 12px; border: 1px solid rgba(255,255,255,0.25); border-radius: var(--r); cursor: pointer; }
+    .btn--ghost:hover { background: rgba(255,255,255,0.1); }
+
+    /* ── Empty/welcome state ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 12px;
+      color: var(--ink-3);
+      padding: 80px;
+      text-align: center;
+    }
+    .empty-state h2 { font-size: 18px; font-weight: 700; color: var(--ink-2); }
+    .empty-state p { font-size: 14px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      background: var(--ink);
+      color: #fff;
+      border-radius: var(--r);
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity .25s;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    #toast.show { opacity: 1; }
+    #toast.error { background: var(--accent); }
+
+    /* ── Error text ── */
+    .error-msg { font-size: 13px; color: var(--accent); }
+
+    @media (max-width: 700px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .row-2, .row-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─────────── LOGIN ─────────── -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>Flip<span>azo</span> Admin</h1>
+    <p>Introduce tus credenciales para acceder.</p>
+    <div class="field">
+      <label>Usuario</label>
+      <input type="text" id="login-user" autocomplete="username" placeholder="admin" />
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" autocomplete="current-password" placeholder="••••••••" />
+    </div>
+    <p class="error-msg" id="login-error" style="display:none"></p>
+    <button class="btn btn--primary" id="login-btn">Entrar</button>
+  </div>
+</div>
+
+<!-- ─────────── APP ─────────── -->
+<div id="app">
+  <div class="topbar">
+    <span class="topbar__brand">Flip<span>azo</span> Admin</span>
+    <div class="topbar__actions">
+      <a href="/blog.html" target="_blank" class="btn btn--ghost">Ver blog →</a>
+      <button class="btn btn--ghost" id="logout-btn">Salir</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar__header">
+        <h2>Posts</h2>
+        <button class="btn btn--primary" id="new-post-btn" style="padding:5px 10px;font-size:12px">+ Nuevo</button>
+      </div>
+      <div class="sidebar__list" id="js-sidebar-list">
+        <div style="padding:20px;color:var(--ink-3);font-size:13px">Cargando…</div>
+      </div>
+    </aside>
+
+    <!-- Editor -->
+    <div class="editor-area" id="js-editor-area">
+      <div class="empty-state" id="js-welcome">
+        <h2>Panel de Blog</h2>
+        <p>Selecciona un post para editarlo o crea uno nuevo.</p>
+        <button class="btn btn--primary" onclick="newPost()">+ Crear primer post</button>
+      </div>
+
+      <div id="js-editor" style="display:none; display:flex; flex-direction:column; flex:1">
+        <div class="editor-toolbar">
+          <h2 id="js-editor-title">Nuevo post</h2>
+          <div class="editor-toolbar__btns">
+            <button class="btn btn--danger" id="delete-btn" style="display:none" onclick="deletePost()">Eliminar</button>
+            <button class="btn btn--secondary" onclick="cancelEdit()">Cancelar</button>
+            <button class="btn btn--primary" onclick="savePost()">Guardar</button>
+          </div>
+        </div>
+        <div class="editor-body">
+          <input type="hidden" id="field-id" />
+
+          <div class="row-2">
+            <div class="field">
+              <label>Título *</label>
+              <input type="text" id="field-titulo" placeholder="Título del artículo" oninput="autoSlug()" />
+            </div>
+            <div class="field">
+              <label>Slug (URL) *</label>
+              <input type="text" id="field-slug" placeholder="mi-articulo-en-url" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Resumen (subtítulo / excerpt)</label>
+            <input type="text" id="field-resumen" placeholder="Una frase que resume el artículo…" />
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label>URL de imagen de portada</label>
+              <input type="url" id="field-imagen" placeholder="https://…" />
+            </div>
+            <div class="field" style="justify-content:flex-end">
+              <div class="toggle-row">
+                <input type="checkbox" id="field-publicado" />
+                <label for="field-publicado" style="font-size:14px;font-weight:600;cursor:pointer">Publicado</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs: Editor / Preview -->
+          <div class="editor-tabs">
+            <div class="editor-tab active" data-tab="write">✏️ Markdown</div>
+            <div class="editor-tab" data-tab="preview">👁 Preview</div>
+          </div>
+
+          <div class="editor-pane active" id="pane-write">
+            <textarea class="content-editor" id="field-contenido" placeholder="Escribe aquí en Markdown...
+# Título
+**negrita** *cursiva* [link](url)
+- lista
+
+> cita"></textarea>
+          </div>
+          <div class="editor-pane" id="pane-preview">
+            <div class="preview-pane" id="js-preview"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API    = "https://api.flipazo.es";
+  let JWT      = localStorage.getItem("flipazo_admin_jwt") || "";
+  let posts    = [];
+  let editingId = null;
+
+  // ── Utils ──────────────────────────────────────────────────────────
+  function toast(msg, isError = false) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = "show" + (isError ? " error" : "");
+    clearTimeout(t._to);
+    t._to = setTimeout(() => t.className = "", 3000);
+  }
+
+  function slugify(str) {
+    return str.toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim().replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+  }
+
+  function autoSlug() {
+    const slugField = document.getElementById("field-slug");
+    // Solo auto-generar si el slug está vacío o coincide con el slug anterior del título
+    const titulo = document.getElementById("field-titulo").value;
+    slugField.value = slugify(titulo);
+  }
+
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  // ── Auth ───────────────────────────────────────────────────────────
+  async function login() {
+    const user = document.getElementById("login-user").value.trim();
+    const pass = document.getElementById("login-pass").value;
+    const errEl = document.getElementById("login-error");
+    errEl.style.display = "none";
+
+    if (!user || !pass) { errEl.textContent = "Introduce usuario y contraseña."; errEl.style.display = ""; return; }
+
+    try {
+      const res = await fetch(`${API}/admin/login`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: user, password: pass })
+      });
+      const data = await res.json();
+      if (!res.ok) { errEl.textContent = data.error || "Error al iniciar sesión."; errEl.style.display = ""; return; }
+      JWT = data.token;
+      localStorage.setItem("flipazo_admin_jwt", JWT);
+      startApp();
+    } catch (e) {
+      errEl.textContent = "Error de conexión."; errEl.style.display = "";
+    }
+  }
+
+  function logout() {
+    JWT = "";
+    localStorage.removeItem("flipazo_admin_jwt");
+    location.reload();
+  }
+
+  // ── App init ───────────────────────────────────────────────────────
+  function startApp() {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").style.display = "";
+    loadPosts();
+  }
+
+  // ── Posts list ─────────────────────────────────────────────────────
+  async function loadPosts() {
+    try {
+      const data = await fetch(`${API}/admin/blog`, {
+        headers: { "Authorization": `Bearer ${JWT}` }
+      }).then(r => r.json());
+      posts = data.posts || [];
+      renderSidebar();
+    } catch (e) {
+      toast("Error cargando posts", true);
+    }
+  }
+
+  function renderSidebar() {
+    const list = document.getElementById("js-sidebar-list");
+    if (!posts.length) {
+      list.innerHTML = `<div style="padding:20px;color:var(--ink-3);font-size:13px">Sin posts aún.</div>`;
+      return;
+    }
+    list.innerHTML = posts.map(p => `
+      <div class="sidebar-item${editingId === p.id ? " active" : ""}" data-id="${p.id}">
+        <span class="sidebar-item__title">${p.titulo}</span>
+        <span class="sidebar-item__meta">
+          ${fmtDate(p.updated_at)}
+          <span class="badge ${p.publicado ? "badge--pub" : "badge--draft"}">${p.publicado ? "Publicado" : "Borrador"}</span>
+        </span>
+      </div>
+    `).join("");
+    list.querySelectorAll(".sidebar-item").forEach(item => {
+      item.addEventListener("click", () => openPost(parseInt(item.dataset.id)));
+    });
+  }
+
+  // ── Editor ─────────────────────────────────────────────────────────
+  function showEditor(isNew) {
+    document.getElementById("js-welcome").style.display = "none";
+    document.getElementById("js-editor").style.display = "flex";
+    document.getElementById("delete-btn").style.display = isNew ? "none" : "";
+    document.getElementById("js-editor-title").textContent = isNew ? "Nuevo post" : "Editar post";
+    // Reset tab to write
+    document.querySelectorAll(".editor-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === "write"));
+    document.querySelectorAll(".editor-pane").forEach(p => p.classList.toggle("active", p.id === "pane-write"));
+  }
+
+  function newPost() {
+    editingId = null;
+    document.getElementById("field-id").value = "";
+    document.getElementById("field-titulo").value = "";
+    document.getElementById("field-slug").value = "";
+    document.getElementById("field-resumen").value = "";
+    document.getElementById("field-imagen").value = "";
+    document.getElementById("field-contenido").value = "";
+    document.getElementById("field-publicado").checked = false;
+    renderSidebar();
+    showEditor(true);
+  }
+
+  function openPost(id) {
+    const p = posts.find(x => x.id === id);
+    if (!p) return;
+    editingId = id;
+    document.getElementById("field-id").value          = p.id;
+    document.getElementById("field-titulo").value      = p.titulo;
+    document.getElementById("field-slug").value        = p.slug;
+    document.getElementById("field-resumen").value     = p.resumen || "";
+    document.getElementById("field-imagen").value      = p.imagen_url || "";
+    document.getElementById("field-contenido").value   = p.contenido || "";
+    document.getElementById("field-publicado").checked = !!p.publicado;
+    renderSidebar();
+    showEditor(false);
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    renderSidebar();
+    document.getElementById("js-welcome").style.display = "";
+    document.getElementById("js-editor").style.display = "none";
+  }
+
+  async function savePost() {
+    const id       = document.getElementById("field-id").value;
+    const titulo   = document.getElementById("field-titulo").value.trim();
+    const slug     = document.getElementById("field-slug").value.trim();
+    const resumen  = document.getElementById("field-resumen").value.trim();
+    const imagen   = document.getElementById("field-imagen").value.trim();
+    const contenido = document.getElementById("field-contenido").value;
+    const publicado = document.getElementById("field-publicado").checked;
+
+    if (!titulo || !slug) { toast("Título y slug son obligatorios", true); return; }
+
+    const body = { slug, titulo, resumen, contenido, imagen_url: imagen, publicado };
+    const isNew = !id;
+    const url  = isNew ? `${API}/admin/blog` : `${API}/admin/blog/${id}`;
+    const method = isNew ? "POST" : "PUT";
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Authorization": `Bearer ${JWT}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error || "Error al guardar", true); return; }
+      toast(isNew ? "Post creado ✓" : "Post guardado ✓");
+      if (isNew) { editingId = data.id; document.getElementById("field-id").value = data.id; }
+      await loadPosts();
+      renderSidebar();
+    } catch (e) {
+      toast("Error de conexión", true);
+    }
+  }
+
+  async function deletePost() {
+    const id = document.getElementById("field-id").value;
+    if (!id || !confirm("¿Eliminar este post? Esta acción no se puede deshacer.")) return;
+    try {
+      const res = await fetch(`${API}/admin/blog/${id}`, {
+        method: "DELETE", headers: { "Authorization": `Bearer ${JWT}` }
+      });
+      if (!res.ok) { toast("Error al eliminar", true); return; }
+      toast("Post eliminado");
+      editingId = null;
+      cancelEdit();
+      await loadPosts();
+    } catch (e) {
+      toast("Error de conexión", true);
+    }
+  }
+
+  // ── Tabs ────────────────────────────────────────────────────────────
+  document.querySelectorAll(".editor-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      const t = tab.dataset.tab;
+      document.querySelectorAll(".editor-tab").forEach(x => x.classList.toggle("active", x.dataset.tab === t));
+      document.getElementById("pane-write").classList.toggle("active", t === "write");
+      document.getElementById("pane-preview").classList.toggle("active", t === "preview");
+      if (t === "preview") {
+        const md = document.getElementById("field-contenido").value;
+        document.getElementById("js-preview").innerHTML = marked.parse(md || "*Sin contenido*");
+      }
+    });
+  });
+
+  // ── Events ──────────────────────────────────────────────────────────
+  document.getElementById("login-btn").addEventListener("click", login);
+  document.getElementById("login-pass").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+  document.getElementById("logout-btn").addEventListener("click", logout);
+  document.getElementById("new-post-btn").addEventListener("click", newPost);
+
+  // ── Boot ────────────────────────────────────────────────────────────
+  if (JWT) {
+    // Validate token before going to app
+    fetch(`${API}/admin/blog`, { headers: { "Authorization": `Bearer ${JWT}` } })
+      .then(r => { if (r.ok) startApp(); else { JWT = ""; localStorage.removeItem("flipazo_admin_jwt"); } })
+      .catch(() => {});
+  }
+</script>
+</body>
+</html>

@@ -96,7 +96,7 @@ app.add_middleware(
         "http://localhost",
         "http://127.0.0.1",
     ],
-    allow_methods=["GET", "POST", "DELETE", "PATCH"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
     allow_credentials=True,
 )
@@ -309,6 +309,23 @@ def _ensure_schema():
             )
         """)
         con.execute("CREATE INDEX IF NOT EXISTS idx_fav_user ON favorites(user_id)")
+
+        # Blog posts
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS blog_posts (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug        TEXT    UNIQUE NOT NULL,
+                titulo      TEXT    NOT NULL,
+                resumen     TEXT    DEFAULT '',
+                contenido   TEXT    DEFAULT '',
+                imagen_url  TEXT    DEFAULT '',
+                publicado   INTEGER DEFAULT 0,
+                created_at  TEXT    NOT NULL,
+                updated_at  TEXT    NOT NULL
+            )
+        """)
+        con.execute("CREATE INDEX IF NOT EXISTS idx_blog_slug ON blog_posts(slug)")
+        con.execute("CREATE INDEX IF NOT EXISTS idx_blog_pub  ON blog_posts(publicado, created_at)")
         con.commit()
 
 
@@ -338,6 +355,15 @@ class EmailLoginBody(BaseModel):
 
 class NewsletterBody(BaseModel):
     subscribed: bool
+
+
+class BlogPostBody(BaseModel):
+    slug:       str
+    titulo:     str
+    resumen:    str = ""
+    contenido:  str = ""
+    imagen_url: str = ""
+    publicado:  bool = False
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1008,3 +1034,104 @@ def toggle_newsletter(body: NewsletterBody, request: Request):
                     (1 if body.subscribed else 0, payload["sub"]))
         con.commit()
     return {"newsletter": body.subscribed}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOG — público
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/blog")
+def list_blog_posts(limit: int = Query(default=20, ge=1, le=100), offset: int = Query(default=0, ge=0)):
+    """Devuelve posts publicados ordenados del más reciente al más antiguo."""
+    with _get_db() as con:
+        rows = con.execute(
+            "SELECT id, slug, titulo, resumen, imagen_url, created_at, updated_at "
+            "FROM blog_posts WHERE publicado = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (limit, offset)
+        ).fetchall()
+        total = con.execute("SELECT COUNT(*) FROM blog_posts WHERE publicado = 1").fetchone()[0]
+    return {"posts": [dict(r) for r in rows], "total": total}
+
+
+@app.get("/blog/{slug}")
+def get_blog_post(slug: str):
+    """Devuelve un post por slug (solo si está publicado)."""
+    with _get_db() as con:
+        row = con.execute(
+            "SELECT * FROM blog_posts WHERE slug = ? AND publicado = 1", (slug,)
+        ).fetchone()
+    if not row:
+        return JSONResponse(status_code=404, content={"error": "Post no encontrado"})
+    return dict(row)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOG — admin
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/admin/blog")
+def admin_list_blog(request: Request):
+    """Lista todos los posts con contenido completo (publicados + borradores). Requiere JWT admin."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    with _get_db() as con:
+        rows = con.execute(
+            "SELECT id, slug, titulo, resumen, contenido, imagen_url, publicado, created_at, updated_at "
+            "FROM blog_posts ORDER BY created_at DESC"
+        ).fetchall()
+    return {"posts": [dict(r) for r in rows]}
+
+
+@app.post("/admin/blog")
+def create_blog_post(body: BlogPostBody, request: Request):
+    """Crea un nuevo post. Requiere JWT admin."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        with _get_db() as con:
+            cur = con.execute(
+                "INSERT INTO blog_posts (slug, titulo, resumen, contenido, imagen_url, publicado, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (body.slug, body.titulo, body.resumen, body.contenido,
+                 body.imagen_url, 1 if body.publicado else 0, now, now)
+            )
+            con.commit()
+            post_id = cur.lastrowid
+    except Exception as e:
+        if "UNIQUE" in str(e):
+            return JSONResponse(status_code=409, content={"error": f"El slug '{body.slug}' ya existe"})
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    return {"id": post_id, "slug": body.slug, "created_at": now}
+
+
+@app.put("/admin/blog/{post_id}")
+def update_blog_post(post_id: int, body: BlogPostBody, request: Request):
+    """Actualiza un post existente. Requiere JWT admin."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    now = datetime.now(timezone.utc).isoformat()
+    with _get_db() as con:
+        updated = con.execute(
+            "UPDATE blog_posts SET slug=?, titulo=?, resumen=?, contenido=?, "
+            "imagen_url=?, publicado=?, updated_at=? WHERE id=?",
+            (body.slug, body.titulo, body.resumen, body.contenido,
+             body.imagen_url, 1 if body.publicado else 0, now, post_id)
+        ).rowcount
+        con.commit()
+    if not updated:
+        return JSONResponse(status_code=404, content={"error": "Post no encontrado"})
+    return {"id": post_id, "updated_at": now}
+
+
+@app.delete("/admin/blog/{post_id}")
+def delete_blog_post(post_id: int, request: Request):
+    """Elimina un post. Requiere JWT admin."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    with _get_db() as con:
+        deleted = con.execute("DELETE FROM blog_posts WHERE id = ?", (post_id,)).rowcount
+        con.commit()
+    if not deleted:
+        return JSONResponse(status_code=404, content={"error": "Post no encontrado"})
+    return {"deleted": True, "id": post_id}

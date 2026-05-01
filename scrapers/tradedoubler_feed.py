@@ -152,7 +152,7 @@ def _filtrar(
 
 
 def fetch_tradedoubler_productos(
-    descuento_minimo: int = 37,
+    descuento_minimo: int = 40,
     precio_minimo: float = 25.0,
     precio_maximo: float = 800.0,
 ) -> list[dict]:

@@ -35,7 +35,7 @@ REDIRECT_BASE_URL    = os.getenv("REDIRECT_BASE_URL", "https://flipazo.es")  # d
 TELEGRAM_ADMIN_CHAT_ID = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")  # chat personal para alertas de error
 
 # ── Umbrales Track A: ARBITRAJE (reventa) ────────────────────────
-DESCUENTO_MINIMO        = 37    # % mínimo (bajado de 40→37 para capturar deals como POC 39%)
+DESCUENTO_MINIMO        = 40    # % mínimo
 PRECIO_MINIMO           = 25.0  # € mínimo producto
 PRECIO_MAXIMO           = 800.0 # € máximo — permite PS5, MacBook, TV OLED, etc.
 SCORE_ARBITRAJE_MINIMO  = 60    # Score reventa mínimo para ir a Wallapop
@@ -45,7 +45,7 @@ RATIO_PRECIO_REF_INFLADO = 1.25 # Si precio_original > 125% del promedio histór
 
 # ── Umbrales Track B: OFERTA PURA (sin reventa) ──────────────────
 SCORE_OFERTA_MINIMO     = 58    # Score calidad/valor mínimo
-DESCUENTO_OFERTA_MINIMO = 37    # % mínimo para ofertas puras (sincronizado con DESCUENTO_MINIMO)
+DESCUENTO_OFERTA_MINIMO = 40    # % mínimo para ofertas puras
 
 # ── Pipeline ─────────────────────────────────────────────────────
 BATCH_SIZE_CLAUDE       = 15    # Productos por llamada a la API
@@ -2106,7 +2106,7 @@ def _score_local(p: "Producto") -> int:
         score += 30
     elif p.descuento_pct >= 45:
         score += 20
-    elif p.descuento_pct >= 35:
+    elif p.descuento_pct >= 40:
         score += 10
 
     # Marca reconocida (hasta 30 pts)
@@ -2161,7 +2161,7 @@ Para cada producto devuelve un JSON con EXACTAMENTE estas claves:
   NUNCA estimes cerca del precio Amazon — Wallapop siempre es bastante más barato.)
 - "tipo": string — una de estas tres opciones:
     "ARBITRAJE"  → score_reventa >= 60 Y beneficio_neto >= 20
-    "OFERTA"     → score_oferta >= 58 Y descuento >= 35 (aunque reventa sea baja)
+    "OFERTA"     → score_oferta >= 58 Y descuento >= 40 (aunque reventa sea baja)
     "DESCARTAR"  → ninguna condición cumplida
 
 Score ARBITRAJE alto (>70): smartphones Apple/Samsung, portátiles gaming, PS5/Xbox/Switch,

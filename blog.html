@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog — Flipazo</title>
+  <meta name="description" content="Guías, análisis y consejos para comprar mejor. El blog de Flipazo." />
+  <link rel="icon" href="https://flipazo.es/favicon.ico" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:        #0a0a0a;
+      --ink-2:      #3d3d3d;
+      --ink-3:      #787878;
+      --paper:      #faf9f6;
+      --surface:    #ffffff;
+      --border:     #e2ddd5;
+      --accent:     #c0392b;
+      --accent-dk:  #922b21;
+      --badge-rev:  #27ae60;
+      --font-serif: 'Georgia', 'Times New Roman', serif;
+      --font-sans:  'Helvetica Neue', Arial, sans-serif;
+      --max-w:      860px;
+      --r:          4px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ink:    #f0ede8;
+        --ink-2:  #c8c0b4;
+        --ink-3:  #888077;
+        --paper:  #111010;
+        --surface:#1a1918;
+        --border: #2a2826;
+        --accent: #e74c3c;
+      }
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    /* ── Masthead ── */
+    .masthead {
+      border-bottom: 3px double var(--border);
+      padding: 20px 24px 16px;
+      text-align: center;
+    }
+    .masthead__brand {
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 700;
+      letter-spacing: -1px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .masthead__brand span { color: var(--accent); }
+    .masthead__nav {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .masthead__nav a {
+      color: var(--ink-2);
+      text-decoration: none;
+    }
+    .masthead__nav a:hover { color: var(--accent); }
+    .masthead__nav a.active { color: var(--accent); font-weight: 700; }
+
+    /* ── Layout ── */
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* ── Blog list ── */
+    #view-list { padding: 40px 0; }
+
+    .blog-header {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 12px;
+      margin-bottom: 32px;
+    }
+    .blog-header h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(22px, 4vw, 32px);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .blog-header p {
+      color: var(--ink-3);
+      font-size: 14px;
+      margin-top: 6px;
+    }
+
+    .posts-grid {
+      display: grid;
+      gap: 28px;
+    }
+
+    .post-card {
+      display: grid;
+      grid-template-columns: 1fr;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 28px;
+      cursor: pointer;
+      gap: 14px;
+    }
+
+    @media (min-width: 600px) {
+      .post-card {
+        grid-template-columns: 200px 1fr;
+        gap: 20px;
+      }
+      .post-card:not(:has(.post-card__img)) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .post-card__img {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      border-radius: var(--r);
+      background: var(--border);
+    }
+    .post-card__body { display: flex; flex-direction: column; gap: 8px; }
+    .post-card__meta {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .post-card__title {
+      font-family: var(--font-serif);
+      font-size: clamp(17px, 3vw, 22px);
+      font-weight: 700;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    .post-card:hover .post-card__title { color: var(--accent); }
+    .post-card__excerpt {
+      font-size: 14px;
+      color: var(--ink-2);
+      line-height: 1.55;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .post-card__readmore {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-top: auto;
+    }
+
+    .empty-blog {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--ink-3);
+      font-family: var(--font-serif);
+      font-size: 18px;
+    }
+
+    /* ── Single post ── */
+    #view-post { display: none; padding: 40px 0 60px; }
+
+    .post-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      cursor: pointer;
+      margin-bottom: 28px;
+    }
+    .post-back:hover { color: var(--accent); }
+
+    .post-hero-img {
+      width: 100%;
+      max-height: 400px;
+      object-fit: cover;
+      border-radius: var(--r);
+      margin-bottom: 28px;
+    }
+
+    .post-meta {
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin-bottom: 12px;
+    }
+    .post-title {
+      font-family: var(--font-serif);
+      font-size: clamp(26px, 5vw, 42px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+      margin-bottom: 16px;
+    }
+    .post-excerpt {
+      font-size: 18px;
+      color: var(--ink-2);
+      line-height: 1.55;
+      border-left: 3px solid var(--accent);
+      padding-left: 16px;
+      margin-bottom: 32px;
+      font-style: italic;
+    }
+    .post-divider {
+      border: none;
+      border-top: 2px solid var(--ink);
+      margin: 0 0 32px;
+    }
+
+    /* ── Markdown content ── */
+    .post-content {
+      font-size: 17px;
+      line-height: 1.75;
+      color: var(--ink);
+    }
+    .post-content h1, .post-content h2, .post-content h3 {
+      font-family: var(--font-serif);
+      margin: 2em 0 0.5em;
+      line-height: 1.3;
+    }
+    .post-content h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+    .post-content h3 { font-size: 1.2em; }
+    .post-content p { margin-bottom: 1.2em; }
+    .post-content ul, .post-content ol { margin: 0 0 1.2em 1.6em; }
+    .post-content li { margin-bottom: 0.4em; }
+    .post-content strong { font-weight: 700; }
+    .post-content em { font-style: italic; }
+    .post-content a { color: var(--accent); }
+    .post-content blockquote {
+      border-left: 3px solid var(--accent);
+      padding-left: 16px;
+      margin: 1.5em 0;
+      color: var(--ink-2);
+      font-style: italic;
+    }
+    .post-content code {
+      background: var(--border);
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    .post-content pre { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; overflow-x: auto; margin-bottom: 1.2em; }
+    .post-content pre code { background: none; padding: 0; }
+    .post-content img { max-width: 100%; border-radius: var(--r); margin: 1em 0; }
+    .post-content table { width: 100%; border-collapse: collapse; margin-bottom: 1.2em; font-size: 15px; }
+    .post-content th, .post-content td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+    .post-content th { background: var(--surface); font-weight: 700; }
+    .post-content hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+
+    /* ── Spinner ── */
+    .spinner {
+      text-align: center;
+      padding: 60px;
+      color: var(--ink-3);
+      font-size: 14px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--ink-3);
+    }
+    footer a { color: var(--ink-3); }
+    footer a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <header class="masthead">
+    <a href="/" class="masthead__brand">Flip<span>azo</span></a>
+    <nav class="masthead__nav">
+      <a href="/">Ofertas</a>
+      <a href="/blog.html" class="active">Blog</a>
+    </nav>
+  </header>
+
+  <!-- Vista lista -->
+  <main id="view-list">
+    <div class="container">
+      <div class="blog-header">
+        <h1>Blog</h1>
+        <p>Guías, análisis y consejos para comprar mejor.</p>
+      </div>
+      <div class="posts-grid" id="js-posts-grid">
+        <div class="spinner">Cargando…</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Vista post individual -->
+  <article id="view-post">
+    <div class="container">
+      <div class="post-back" id="js-back">← Volver al blog</div>
+      <img id="js-post-img" class="post-hero-img" src="" alt="" style="display:none" />
+      <p class="post-meta" id="js-post-meta"></p>
+      <h1 class="post-title" id="js-post-title"></h1>
+      <p class="post-excerpt" id="js-post-excerpt" style="display:none"></p>
+      <hr class="post-divider" />
+      <div class="post-content" id="js-post-content"></div>
+    </div>
+  </article>
+
+  <footer>
+    <a href="/">Flipazo</a> · <a href="/aviso-legal.html">Aviso legal</a> · <a href="/privacidad.html">Privacidad</a>
+  </footer>
+
+  <script>
+    const API = "https://api.flipazo.es";
+
+    function fmtDate(iso) {
+      return new Date(iso).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+    }
+
+    function showList() {
+      document.getElementById("view-list").style.display = "";
+      document.getElementById("view-post").style.display = "none";
+      document.title = "Blog — Flipazo";
+      history.pushState({}, "", "/blog.html");
+    }
+
+    function showPost(post) {
+      document.getElementById("view-list").style.display = "none";
+      const vp = document.getElementById("view-post");
+      vp.style.display = "";
+
+      const img = document.getElementById("js-post-img");
+      if (post.imagen_url) { img.src = post.imagen_url; img.alt = post.titulo; img.style.display = ""; }
+      else img.style.display = "none";
+
+      document.getElementById("js-post-meta").textContent = fmtDate(post.created_at);
+      document.getElementById("js-post-title").textContent = post.titulo;
+
+      const ex = document.getElementById("js-post-excerpt");
+      if (post.resumen) { ex.textContent = post.resumen; ex.style.display = ""; }
+      else ex.style.display = "none";
+
+      document.getElementById("js-post-content").innerHTML =
+        typeof marked !== "undefined" ? marked.parse(post.contenido || "") : (post.contenido || "").replace(/\n/g, "<br>");
+
+      document.title = `${post.titulo} — Flipazo Blog`;
+      history.pushState({ slug: post.slug }, "", `/blog/${post.slug}`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function loadList() {
+      try {
+        const data = await fetch(`${API}/blog?limit=50`).then(r => r.json());
+        const grid = document.getElementById("js-posts-grid");
+        if (!data.posts || !data.posts.length) {
+          grid.innerHTML = `<div class="empty-blog">Próximamente — el blog está en construcción.</div>`;
+          return;
+        }
+        grid.innerHTML = data.posts.map(p => `
+          <div class="post-card" data-slug="${p.slug}">
+            ${p.imagen_url ? `<img class="post-card__img" src="${p.imagen_url}" alt="${p.titulo}" loading="lazy" onerror="this.style.display='none'" />` : ""}
+            <div class="post-card__body">
+              <p class="post-card__meta">${fmtDate(p.created_at)}</p>
+              <h2 class="post-card__title">${p.titulo}</h2>
+              ${p.resumen ? `<p class="post-card__excerpt">${p.resumen}</p>` : ""}
+              <span class="post-card__readmore">Leer artículo →</span>
+            </div>
+          </div>
+        `).join("");
+
+        grid.querySelectorAll(".post-card").forEach(card => {
+          card.addEventListener("click", () => loadPost(card.dataset.slug));
+        });
+      } catch (e) {
+        document.getElementById("js-posts-grid").innerHTML =
+          `<div class="empty-blog">Error al cargar el blog.</div>`;
+      }
+    }
+
+    async function loadPost(slug) {
+      try {
+        const post = await fetch(`${API}/blog/${slug}`).then(r => r.json());
+        showPost(post);
+      } catch (e) {
+        alert("No se pudo cargar el artículo.");
+      }
+    }
+
+    document.getElementById("js-back").addEventListener("click", showList);
+
+    // Routing: si la URL ya trae un slug, cargar ese post directamente
+    (async () => {
+      const path = location.pathname;
+      const slugMatch = path.match(/^\/blog\/(.+)/);
+      if (slugMatch) {
+        await loadPost(slugMatch[1]);
+      } else {
+        await loadList();
+      }
+    })();
+  </script>
+</body>
+</html>
