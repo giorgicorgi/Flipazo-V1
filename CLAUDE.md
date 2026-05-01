@@ -83,7 +83,8 @@ for r in con.execute('SELECT titulo[:60], publicado_en FROM deals_publicados ORD
 ├── analytics/
 │   └── tracker.py                      ← FastAPI analytics: /r/{id} + /stats
 ├── scrapers/
-│   └── pss_email.py                    ← Lector Gmail IMAP para eventos PSS
+│   ├── pss_email.py                    ← Lector Gmail IMAP para eventos PSS
+│   └── tradedoubler_feed.py            ← Feeds producto Tradedoubler (MediaMarkt/PCBox)
 ├── flipazo.service                     ← Systemd unit para el pipeline
 ├── flipazo_analytics.service           ← Systemd unit para el servidor analytics
 ├── .env                                ← Variables de entorno (NO subir a Git)
@@ -143,13 +144,16 @@ Dos capas de filtrado:
 | Tienda | URLs fuente | Estado |
 |---|---|---|
 | Amazon | 16 categorías + /deals | ✅ Funcional (filtro ≥40% off en URLs) |
-| MediaMarkt | 6 búsquedas por descuento | ✅ (selector dual, timeout 20s, cookie accept) |
+| MediaMarkt | 6 búsquedas Playwright + feed TD | ✅ Playwright (bloqueado esporádicamente) + ✅ Feed TD (544 deals/día) |
+| PCBox | Feed Tradedoubler (fid=50247) | ✅ Feed TD activo — precio original en campo `PreviousPrice` |
+| Beep | Feed Tradedoubler (fid=51903) | ❌ Desactivado — PreviousPrice = MSRP fabricante, no precio 30d |
 | PcComponentes | 5 URLs (ofertas + componentes + portátiles) | ✅ (networkidle wait, slugs ≥2 guiones) |
 | Decathlon | 7 categorías | ✅ |
 | Worten | 5 secciones | ✅ |
 | El Corte Inglés | 10 secciones | ⚠️ Bloqueada frecuentemente (circuit breaker 60min) |
 | Mammoth Bikes | 10 outlet pages | ✅ (precios ES: `1.234,56 €`) |
 | Private Sport Shop | Via Gmail IMAP + Playwright | ⚠️ Bloqueada — circuit breaker activo |
+| ToysRus | Feed TD disponible (fid=21529) | ❌ Feed sin precio original — descuento incalculable |
 
 ### Categorías Amazon (AMAZON_SEARCH_URLS)
 
@@ -174,14 +178,16 @@ CICLO FLASH (cada 60 min):
 CICLO COMPLETO (cada 120 min):
   scrape_todas_las_tiendas()
     → scrape_amazon_deals()
-    → scrape_mediamarkt()
+    → scrape_mediamarkt()        ← Playwright (bloqueado si "Un momento…")
     → scrape_pccomponentes()
     → scrape_decathlon()
     → scrape_worten()
     → scrape_elcorteingles()
     → scrape_mammoth()
+    → scrape_barrabes()
     → scrape_privatesportshop()  ← extrae URLs de Gmail, luego Playwright
-  → verificar_historial_ccc()   ← CamelCamelCamel para precio histórico + detección de descuentos falsos
+    → fetch_tradedoubler_productos()  ← caché 23h; MediaMarkt+PCBox vía API REST
+  → verificar_historial_ccc()   ← CamelCamelCamel (solo productos Amazon con ASIN)
   → score_con_claude()          ← Haiku: pre-scorer local + zona gris
   → obtener_precio_wallapop()   ← solo deals tipo ARBITRAJE
   → publicar en Telegram
@@ -318,13 +324,24 @@ Componentes del deal card:
 build_affiliate_url(tienda, asin_or_url) → str
 
 # Tiendas soportadas:
-"Amazon"          → https://www.amazon.es/dp/{asin}?tag=flipazo-21
-"MediaMarkt"      → Awin deep link (MEDIAMARKT_AWIN_MID=6907)
-"PcComponentes"   → Awin deep link (PCCOMPONENTES_AWIN_MID — pendiente)
-"ElCorteIngles"   → Awin deep link (ELCORTEINGLES_AWIN_MID — pendiente)
-"PrivateSportShop"→ Awin deep link (PRIVATESPORTSHOP_AWIN_MID — pendiente)
-"Mammoth Bikes"   → Awin deep link si MAMMOTH_AWIN_MID configurado; si no, URL directa
-cualquier otra    → URL directa (sin perder el deal)
+"Amazon"           → https://www.amazon.es/dp/{asin}?tag=flipazo-21
+"MediaMarkt"       → Tradedoubler deep link (prioritario) / Awin fallback
+"Beep"             → Tradedoubler deep link (TD_PID=347347)
+"ToysRus"          → Tradedoubler deep link (TD_PID=211811)
+"Billabong"        → Tradedoubler deep link
+"Cole Haan"        → Tradedoubler deep link
+"Element Brand"    → Tradedoubler deep link
+"Elliotti"         → Tradedoubler deep link
+"The Beauty Corner"→ Tradedoubler deep link
+"PcComponentes"    → Awin deep link (PCCOMPONENTES_AWIN_MID — pendiente)
+"ElCorteIngles"    → Awin deep link (ELCORTEINGLES_AWIN_MID — pendiente)
+"PrivateSportShop" → Awin deep link (PRIVATESPORTSHOP_AWIN_MID — pendiente)
+"Mammoth Bikes"    → Awin deep link si MAMMOTH_AWIN_MID configurado; si no, URL directa
+cualquier otra     → URL directa (sin perder el deal)
+
+# Tradedoubler deep link formato:
+# https://clk.tradedoubler.com/click?p={PROGRAM_ID}&a={TD_PUBLISHER_ID}&url={encoded_url}
+# TD_PUBLISHER_ID = site ID 3481714 (NO el publisher ID 2468812)
 ```
 
 ---
@@ -346,10 +363,18 @@ AMAZON_AFFILIATE_TAG=flipazo-21
 
 # Awin (afiliados no-Amazon)
 AWIN_PUBLISHER_ID=...
-MEDIAMARKT_AWIN_MID=6907
+MEDIAMARKT_AWIN_MID=6907           # fallback si TD no configurado
 PCCOMPONENTES_AWIN_MID=            # pendiente aprobación
 ELCORTEINGLES_AWIN_MID=            # pendiente aprobación
 MAMMOTH_AWIN_MID=                  # pendiente solicitar
+
+# Tradedoubler (publisher ID 2468812, site ID 3481714)
+# IMPORTANTE: TD_PUBLISHER_ID debe ser el SITE ID (3481714), no el publisher ID
+TD_PUBLISHER_ID=3481714
+TRADEDOUBLER_TOKEN=                # token tipo PRODUCTS/SITE — Ajustes → Tokens en panel TD
+MEDIAMARKT_TD_PID=270504
+BEEP_TD_PID=347347
+TOYSRUS_TD_PID=211811              # deep link OK, feed sin precio original
 
 # Gmail IMAP (para PSS newsletter)
 EMAIL_ADDRESS=flipazo.newsletter@gmail.com
@@ -390,8 +415,13 @@ DEBUG_SCREENSHOTS=false
 | API FastAPI | ✅ Funcional | /api/deals + /r/{id} |
 | Frontend Vercel | ✅ Funcional | Scroll infinito + categorías + hamburguesa |
 | Analytics tracker | ✅ Funcional | Puerto 8080, clicks en SQLite |
+| Feed TD MediaMarkt | ✅ Activo | `scrapers/tradedoubler_feed.py` — 544 deals/día, caché 23h |
+| Feed TD PCBox | ✅ Activo | fid=50247, ~11 deals/día ≥35%, monitores/cajas/componentes PC |
+| Feed TD Beep | ❌ Desactivado | PreviousPrice = MSRP fabricante → falsos descuentos sistemáticos |
+| Feed TD ToysRus | ❌ Sin precio original | fid=21529 sin campo precio ref → descuento incalculable |
 | Afiliados Amazon | ✅ Activo | tag flipazo-21 |
-| Afiliados Awin | ⚠️ Parcial | Solo MediaMarkt activo |
+| Afiliados Tradedoubler | ✅ Activo | MediaMarkt, PCBox, Beep, ToysRus, Billabong, Cole Haan, Element, Elliotti, Beauty Corner |
+| Afiliados Awin | ⚠️ Parcial | Solo MediaMarkt fallback activo |
 | Páginas legales | ✅ Actualizado | Sin datos personales — solo "Flipazo, Barcelona, España" |
 | Auto-deploy servidor | ✅ Activo | cron cada 10 min → git pull + restart si hay commits nuevos |
 | Skill scraper-monitor | ✅ Activo | `.claude/skills/scraper-monitor/` |
@@ -414,11 +444,61 @@ DEBUG_SCREENSHOTS=false
    - PSS: pide feed XML/CSV a su equipo de afiliados, o usar Awin feed
    - ECI: usar feed Awin cuando se apruebe el merchant ID
 
-3. **Más fuentes de deals**
-   - Añadir tiendas: Sprinter, Zalando Outlet, Running Room, Garmin Store
+3. **Más fuentes TD — feeds disponibles con precio original**
+   - HP Store (fid=38866, 964 productos) — campo precio original a verificar
+   - Esdemarca (fid=116972, 107k productos) — moda/deportes de marca
+   - Quiksilver/Roxy/DC Shoes/Element (feeds TD disponibles) — calzado y moda deportiva
+   - ToysRus: resolver precio original (pedir feed con `strike_price` al merchant)
+
+4. **Más fuentes de deals (Playwright)**
+   - Añadir tiendas: Sprinter, Zalando Outlet, Garmin Store
 
 4. **Supabase** (si se necesita escalar SQLite)
    - Tablas: deals, clicks, users, subscriptions
+
+---
+
+## scrapers/tradedoubler_feed.py — Feeds de producto Tradedoubler
+
+Módulo independiente (sin imports de `flipazo_main` — evita import circular). Se llama desde `scrape_todas_las_tiendas` vía `asyncio.to_thread`.
+
+### Feeds activos
+
+| Tienda | fid | Productos | Campo precio original | Deals/día ≥37% |
+|---|---|---|---|---|
+| MediaMarkt | 24915 | ~17k | `strike_price` | ~544 |
+| PCBox | 50247 | ~24k | `PreviousPrice` | ~11/día ≥35% |
+| Beep | 51903 | ~23k | `PreviousPrice` (MSRP) | ❌ desactivado — falsos descuentos |
+| ToysRus | 21529 | ~32k | ❌ no existe | ❌ descuento incalculable |
+
+### Estructura del offer en el JSON
+
+```python
+offer = product["offers"][0]
+precio_actual   = offer["priceHistory"][0]["price"]["value"]  # string "99.99"
+product_url     = offer["productUrl"]   # ya es deep link TD con tracking
+availability    = offer["availability"] # "in stock" | "pre order"
+```
+
+### Precio original según tienda
+
+```python
+fields = product.get("fields", {})
+# MediaMarkt: campo "strike_price"
+# Beep:       campo "PreviousPrice"
+# Código: _get_field(fields, "strike_price") or _get_field(fields, "PreviousPrice")
+```
+
+### Caché y automatización
+
+- **Caché 23h en memoria** (`_cache`, `_last_fetch`) — descarga 1 vez/día
+- Primera ejecución del día: ~2-3 min descargando feeds (~40k productos)
+- Ciclos siguientes: retorna caché instantáneamente
+- No requiere cron adicional — el ciclo completo cada 120 min lo gestiona
+
+### Sin verificación CCC
+
+Los productos TD no tienen ASIN → no se puede verificar contra CamelCamelCamel. El `strike_price`/`PreviousPrice` de retailers establecidos (MediaMarkt, Beep) está regulado por Directiva EU 2011/83 (precio más bajo de los últimos 30 días). Validación de calidad delegada al scoring de Claude Haiku.
 
 ---
 
@@ -489,3 +569,7 @@ git push origin main
 | Cafetera bloqueada por "café" | PALABRAS_PROHIBIDAS usaba `"café"` como subcadena | Reemplazar por frases específicas: `"café en grano"`, `"café molido"`, etc. |
 | Descuento falso Rowenta/infladoPrecio | Amazon sube ref. de €31→€37, actual €28 parece -40% | `_scrape_ccc` devuelve avg histórico; si `precio_original > avg×1.25` → recalcular o descartar |
 | Ropa con tallas S/M/L publicada | Sin filtro de tallas | `_TALLA_RE` filtra tallas de letra; tallas numéricas (zapatos) se permiten |
+| TD feeds devuelven 0 deals | Precio actual estaba en `priceHistory[0].price.value` no en `price.value` | Corregido en `tradedoubler_feed.py` — usar `offer["priceHistory"][0]["price"]["value"]` |
+| Beep: 0 deals pese a tener descuentos | Campo precio original es `PreviousPrice`, no `strike_price` | `_get_field` busca `strike_price` OR `PreviousPrice` como fallback |
+| ToysRus: siempre 0 deals | Feed sin campo de precio original | Retirado de `_FEEDS` — no hay forma de calcular descuento real |
+| TD_PUBLISHER_ID incorrecto | Confusión publisher ID (2468812) vs site ID (3481714) | `TD_PUBLISHER_ID` debe ser el site ID 3481714 — es el parámetro `&a=` del deep link |

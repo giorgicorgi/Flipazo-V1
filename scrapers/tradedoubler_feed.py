@@ -1,7 +1,14 @@
 """
 scrapers/tradedoubler_feed.py — Feeds de producto Tradedoubler.
 
-Tiendas: MediaMarkt ES (fid=24915), ToysRus ES (fid=21529), Beep ES (fid=51903).
+Tiendas activas:
+  MediaMarkt ES  fid=24915  strike_price = MSRP/precio ref. regulado
+  PCBox ES       fid=50247  PreviousPrice = precio ref. regulado (monitores, cajas, componentes)
+
+Tiendas desactivadas:
+  Beep ES        fid=51903  PreviousPrice = MSRP fabricante, no precio 30d → falsos descuentos
+  ToysRus ES     fid=21529  sin campo precio original → descuento incalculable
+
 Descarga una vez al día (caché 23h). Devuelve list[dict] con los campos de Producto
 listos para que flipazo_main los convierta y filtre con _es_producto_valido.
 """
@@ -19,11 +26,11 @@ TRADEDOUBLER_TOKEN = os.getenv("TRADEDOUBLER_TOKEN", "")
 
 _FEEDS = [
     {"tienda": "MediaMarkt", "fid": "24915"},
-    # ToysRus: feed sin precio original — descuento no calculable, omitido
-    # Beep: PreviousPrice es MSRP/precio catálogo del fabricante, no el precio mínimo
-    # de los últimos 30 días (Directiva EU 2011/83). Genera falsos descuentos sistemáticos.
-    # Reactivar solo si Beep proporciona un campo de precio de referencia fiable.
+    {"tienda": "PCBox",      "fid": "50247"},
+    # Beep: PreviousPrice es MSRP fabricante, no precio 30d → falsos descuentos sistemáticos.
     # {"tienda": "Beep", "fid": "51903"},
+    # ToysRus: feed sin precio original → descuento incalculable.
+    # {"tienda": "ToysRus", "fid": "21529"},
 ]
 
 _API_BASE    = "https://api.tradedoubler.com/1.0/productsUnlimited.json"
@@ -150,7 +157,7 @@ def fetch_tradedoubler_productos(
     precio_maximo: float = 800.0,
 ) -> list[dict]:
     """
-    Descarga y filtra los feeds de MediaMarkt, ToysRus y Beep de Tradedoubler.
+    Descarga y filtra los feeds de MediaMarkt y PCBox de Tradedoubler.
     Usa caché de 23h para no re-descargar en cada ciclo completo del pipeline.
     Retorna list[dict] con campos compatibles con el constructor de Producto.
     """
