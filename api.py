@@ -351,7 +351,7 @@ def health():
 
 @app.get("/api/deals")
 def get_deals(
-    limit:     int = Query(default=50, ge=1, le=200),
+    limit:     int = Query(default=50, ge=1, le=500),
     offset:    int = Query(default=0,  ge=0),
     tipo:      Optional[str] = Query(default=None, description="OFERTA | ARBITRAJE"),
     tienda:    Optional[str] = Query(default=None),

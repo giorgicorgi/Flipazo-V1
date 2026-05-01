@@ -2149,15 +2149,16 @@
     // Precarga hasta 1500 deals para que el buscador cubra el catálogo completo.
     // Usa una Promise para evitar race condition: múltiples llamadas simultáneas
     // comparten la misma carga en vez de buscar en datos parciales.
+    // IMPORTANTE: la API permite máximo limit=500 por request.
     async function ensureSearchData() {
       if (_searchAllLoaded) return;
       if (_searchLoadPromise) return _searchLoadPromise;
       _searchLoadPromise = (async () => {
         try {
           const [b1, b2, b3] = await Promise.all([
-            fetchDeals(500, 0),
-            fetchDeals(500, 500),
-            fetchDeals(500, 1000),
+            fetchDeals(200, 0),
+            fetchDeals(200, 200),
+            fetchDeals(200, 400),
           ]);
           const batch = [...b1, ...b2, ...b3];
           if (batch.length) {
