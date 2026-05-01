@@ -61,19 +61,19 @@
       --ink:          #e2e2e2;
       --ink-light:    #aaaaaa;
       --rule:         #cccccc;
-      --bg:           #111111;
+      --bg:           #1e1e1e;
       --badge-rev:    #2ecc71;
-      --surface:      #1a1a1a;
-      --surface-hover:#1e1e1e;
-      --border:       #2a2a2a;
-      --border-soft:  #333333;
-      --border-faint: #1e1e1e;
+      --surface:      #262626;
+      --surface-hover:#2e2e2e;
+      --border:       #363636;
+      --border-soft:  #404040;
+      --border-faint: #2c2c2c;
       --text-body:    #bbbbbb;
       --text-mid:     #999999;
       --text-dim:     #888888;
       --text-faint:   #666666;
-      --reventa-bg:   #0a1f14;
-      --downvote-bg:  #1f150a;
+      --reventa-bg:   #0f2a1a;
+      --downvote-bg:  #2a1c0e;
     }
     /* Deal images: fondo y suavizado en dark */
     [data-theme="dark"] .deal__image-wrap { background: var(--surface) !important; }
@@ -85,11 +85,11 @@
       background-size: 200% 100%;
     }
     /* Cookie banner siempre oscuro, independiente del tema */
-    [data-theme="dark"] #cookie-banner { background: #111111; }
+    [data-theme="dark"] #cookie-banner { background: #1e1e1e; }
     /* Store badge: fondo oscuro en dark mode */
     [data-theme="dark"] .deal__badge {
-      background: #222;
-      border-color: #444;
+      background: #2d2d2d;
+      border-color: #454545;
       color: #aaa;
     }
     /* Precio actual: rojo más luminoso sobre fondo oscuro */
@@ -1885,7 +1885,9 @@
     }
 
     function fmtPrice(n) {
-      return n.toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+      const parts = Number(n).toFixed(2).split(".");
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      return parts[0] + "," + parts[1] + " €";
     }
 
     // ── Render card ─────────────────────────────────────────────
