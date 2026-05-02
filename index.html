@@ -156,8 +156,9 @@
     .masthead__tagline {
       font-family: var(--serif);
       font-style: italic;
-      font-size: 14px;
-      color: var(--ink-light);
+      font-size: 15px;
+      letter-spacing: 0.02em;
+      color: var(--ink);
     }
 
     .masthead__desc {
@@ -212,13 +213,25 @@
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: var(--accent);
+      background: #1D9E75;
       margin-right: 6px;
-      animation: blink 1.6s ease-in-out infinite;
+      animation: pulse-live 2s ease-in-out infinite;
     }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.2; }
+    @keyframes pulse-live {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.5); }
+      50%       { opacity: 0.85; box-shadow: 0 0 0 4px rgba(29, 158, 117, 0); }
+    }
+    /* Separador visual: "Actualización automática" separado de Blog/Cuenta */
+    .masthead__live {
+      display: flex;
+      align-items: center;
+      padding-right: 14px;
+      border-right: 1px solid var(--border-soft);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #1D9E75;
     }
 
     /* ── Grid ───────────────────────────────────────────────────── */
@@ -759,18 +772,49 @@
       100% { background-position: -200% 0; }
     }
 
-    /* ── Category bar ───────────────────────────────────────────── */
-    .cat-bar {
+    /* ── Filter block (categorías + tiendas agrupadas) ─────────── */
+    .filter-block {
+      background: var(--surface-hover);
+      border-bottom: 1.5px solid var(--rule);
+      border-top: 2px solid var(--border);
+    }
+    .filter-row {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 12px 40px;
-      border-bottom: 1.5px solid var(--rule);
+      padding: 7px 40px;
       overflow-x: auto;
       scrollbar-width: none;
-      background: var(--surface-hover);
     }
-    .cat-bar::-webkit-scrollbar { display: none; }
+    .filter-row::-webkit-scrollbar { display: none; }
+    .filter-row + .filter-row {
+      border-top: 1px solid var(--border-faint);
+    }
+    .filter-row__label {
+      font-family: var(--mono);
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-width: 72px;
+    }
+
+    /* ── Category bar ───────────────────────────────────────────── */
+    .cat-bar {
+      display: contents;
+    }
+    .cat-bar-inner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex: 1;
+    }
+    .cat-bar-inner::-webkit-scrollbar { display: none; }
     .cat-pill {
       font-family: var(--mono);
       font-size: 10px;
@@ -791,26 +835,16 @@
     /* ── Store bar ──────────────────────────────────────────────── */
     .store-bar {
       display: none;
+    }
+    .store-bar-inner {
+      display: flex;
       align-items: center;
       gap: 6px;
-      padding: 7px 40px;
-      border-bottom: 1px solid var(--rule);
       overflow-x: auto;
       scrollbar-width: none;
-      background: var(--bg);
+      flex: 1;
     }
-    .store-bar::-webkit-scrollbar { display: none; }
-    .store-bar__label {
-      font-family: var(--mono);
-      font-size: 8.5px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--ink-light);
-      white-space: nowrap;
-      flex-shrink: 0;
-      padding-right: 4px;
-    }
+    .store-bar-inner::-webkit-scrollbar { display: none; }
     .store-pill {
       font-family: var(--mono);
       font-size: 9px;
@@ -833,7 +867,7 @@
       display: none;
       align-items: center;
       gap: 6px;
-      padding: 6px 40px;
+      padding: 5px 40px 5px 116px;
       border-bottom: 1px solid var(--border);
       overflow-x: auto;
       scrollbar-width: none;
@@ -864,6 +898,7 @@
       overflow-x: auto;
       scrollbar-width: none;
       margin-top: 12px;
+      border-bottom: none;
     }
     .sort-tabs::-webkit-scrollbar { display: none; }
     .sort-tab {
@@ -982,6 +1017,42 @@
       padding: 3px 9px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+    }
+    .hero__savings-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .hero__savings-pill {
+      display: inline-block;
+      background: #EAF3DE;
+      color: #27500A;
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 8px;
+    }
+    .hero__urgency {
+      display: inline-block;
+      background: #FAEEDA;
+      color: #854F0B;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 6px 12px;
+      border-radius: 6px;
+    }
+    [data-theme="dark"] .hero__savings-pill {
+      background: rgba(39, 80, 10, 0.3);
+      color: #8fcc5a;
+    }
+    [data-theme="dark"] .hero__urgency {
+      background: rgba(133, 79, 11, 0.25);
+      color: #f0a848;
     }
     .hero__cta { display: flex; gap: 10px; flex-wrap: wrap; }
 
@@ -1324,9 +1395,9 @@
       .deals-grid .deal:nth-child(3n) { border-right: none; }
       .masthead__meta { flex-direction: row; justify-content: space-between; align-items: center; }
       .masthead__tagline { display: none; }
-      .cat-bar { padding: 10px 18px; }
-      .store-bar { padding: 6px 18px; }
-      .subcat-bar { padding: 6px 18px; }
+      .filter-row { padding: 7px 18px; }
+      .filter-row__label { min-width: 60px; font-size: 7.5px; }
+      .subcat-bar { padding: 5px 18px; }
       .sort-tabs { margin-top: 8px; }
       .sort-tab { padding: 9px 14px; font-size: 9px; letter-spacing: 0.12em; }
       .hero { padding: 24px 18px; }
@@ -1390,10 +1461,9 @@
     <h1 class="masthead__name">Flipazo</h1>
     <hr class="masthead__rule" />
     <div class="masthead__meta">
-      <span id="js-date">—</span>
       <span class="masthead__tagline">Ofertas reales. Descuentos verificados.</span>
       <span style="display:flex;align-items:center;gap:14px">
-        <span><span class="live-dot"></span>Actualización automática</span>
+        <span class="masthead__live"><span class="live-dot"></span>Actualización automática</span>
         <a href="/blog.html" class="masthead__action-link">Blog</a>
         <a href="/cuenta" id="js-cuenta-link" class="masthead__action-link">Mi&nbsp;Cuenta</a>
         <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">☾</button>
@@ -1432,15 +1502,21 @@
     <div class="search-dropdown" id="js-search-dropdown" role="listbox" hidden></div>
   </div>
 
-  <!-- ── CATEGORY BAR ──────────────────────────────────────────── -->
-  <nav class="cat-bar" id="js-cat-bar" aria-label="Categorías">
-    <!-- Populated by JS -->
-  </nav>
-
-  <!-- ── STORE BAR ─────────────────────────────────────────────── -->
-  <nav class="store-bar" id="js-store-bar" aria-label="Filtrar por tienda">
-    <!-- Populated by JS after first load -->
-  </nav>
+  <!-- ── FILTER BLOCK (categorías + tiendas) ──────────────────── -->
+  <div class="filter-block" id="js-filter-block">
+    <div class="filter-row" id="js-cat-row">
+      <span class="filter-row__label">Categoría</span>
+      <nav class="cat-bar-inner" id="js-cat-bar" aria-label="Categorías">
+        <!-- Populated by JS -->
+      </nav>
+    </div>
+    <div class="filter-row store-bar" id="js-store-row" style="display:none">
+      <span class="filter-row__label">Tienda</span>
+      <div class="store-bar-inner" id="js-store-bar" aria-label="Filtrar por tienda">
+        <!-- Populated by JS after first load -->
+      </div>
+    </div>
+  </div>
 
   <!-- ── TECH SUB-CATEGORY BAR ─────────────────────────────────── -->
   <nav class="subcat-bar" id="js-subcat-bar" aria-label="Subcategorías de tecnología">
@@ -2038,20 +2114,57 @@
     // ── Hero rendering ───────────────────────────────────────────
     let heroMode = false;
 
+    function cleanHeroTitle(raw) {
+      if (!raw) return raw;
+      let t = raw;
+      // Eliminar códigos numéricos de referencia (5+ dígitos solos)
+      t = t.replace(/\b\d{5,}\b/g, "");
+      // Eliminar especificaciones entre paréntesis al final: (41), (XXL), (Negro), etc.
+      t = t.replace(/\s*\([^)]{1,25}\)\s*$/, "");
+      // Eliminar lista de atributos al final: ", Plano, Cordones, Casual"
+      t = t.replace(/(?:,\s*[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ\s]+){2,}\s*$/, "");
+      // Transformar "BRAND para hombre/mujer/niño/niña. Producto" → "BRAND — Producto"
+      const paraRx = /^(.+?)\s+para\s+(?:hombre|mujer|ni[ñn][oa])\.\s*(.+)/i;
+      const m = t.match(paraRx);
+      if (m) t = `${m[1].trim()} — ${m[2].trim()}`;
+      // Limpiar espacios múltiples y puntuación sobrante al final
+      t = t.replace(/\s{2,}/g, " ").trim().replace(/[,\.]\s*$/, "");
+      return t;
+    }
+
+    function _heroUrgencyText(timestamp) {
+      if (!timestamp) return "Oferta del día — actualizada esta mañana";
+      const diff = Date.now() - new Date(timestamp).getTime();
+      const mins  = Math.floor(diff / 60000);
+      const hours = Math.floor(mins / 60);
+      if (mins < 60)  return `Publicada hace ${mins} min`;
+      if (hours < 24) return `Publicada hace ${hours} hora${hours !== 1 ? "s" : ""}`;
+      return "Oferta del día — actualizada hoy";
+    }
+
     function buildHeroMain(d) {
       const buyUrl = d.url_affiliate || "#";
       const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent(extractModelQuery(d.titulo))}`;
       const isReventa = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
+      const cleanTitle = cleanHeroTitle(d.titulo || "");
+      const ahorro = (d.precio_original > 0 && d.precio_actual > 0) ? d.precio_original - d.precio_actual : 0;
+      const isMinHist = d.precio_historico_min > 0 && d.precio_actual <= d.precio_historico_min * 1.05;
+      const savingsHtml = ahorro > 0
+        ? `<div class="hero__savings-row">
+             <span class="hero__savings-pill">Ahorras ${fmtPrice(ahorro)}${isMinHist ? " · Precio mínimo histórico" : ""}</span>
+             <span class="hero__urgency">${_heroUrgencyText(d.timestamp)}</span>
+           </div>`
+        : "";
       return `
         <span class="hero__label">⭐ Oferta del Día · ${d.tienda || ""}</span>
         <div class="hero__body">
           ${d.imagen_url ? `
             <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="hero__img-link">
-              <img src="${d.imagen_url}" alt="${d.titulo || ""}" class="hero__img" loading="eager" />
+              <img src="${d.imagen_url}" alt="${cleanTitle}" class="hero__img" loading="eager" />
             </a>` : ""}
           <div class="hero__text">
             <a href="${buyUrl}" target="_blank" rel="noopener sponsored" style="text-decoration:none">
-              <h2 class="hero__title">${d.titulo || ""}</h2>
+              <h2 class="hero__title">${cleanTitle}</h2>
             </a>
             ${d.razonamiento ? `<p class="hero__reason">"${d.razonamiento}"</p>` : ""}
             <div class="hero__price-row">
@@ -2059,6 +2172,7 @@
               <span class="hero__price">${fmtPrice(d.precio_actual || 0)}</span>
               ${d.descuento_pct > 0 ? `<span class="hero__pct">−${d.descuento_pct}%</span>` : ""}
             </div>
+            ${savingsHtml}
             <div class="hero__cta">
               <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver en ${d.tienda || "tienda"} →</a>
               ${isReventa && d.precio_wallapop > 0
@@ -2503,22 +2617,22 @@
     let _allKnownStores = new Set();
 
     function buildStoreBar(extraStores) {
-      const bar = document.getElementById("js-store-bar");
+      const bar  = document.getElementById("js-store-bar");
+      const row  = document.getElementById("js-store-row");
       if (!bar) return;
       allDeals.forEach(d => d.tienda && _allKnownStores.add(d.tienda));
       if (extraStores) extraStores.forEach(s => s && _allKnownStores.add(s));
       const stores = [..._allKnownStores].filter(Boolean).sort();
-      if (stores.length === 0) { bar.style.display = "none"; return; }
+      if (stores.length === 0) { if (row) row.style.display = "none"; return; }
       const existing = [...bar.querySelectorAll(".store-pill[data-store]:not([data-store=''])")].map(b => b.dataset.store);
       if (existing.join(",") === stores.join(",")) return;
 
       bar.innerHTML =
-        `<span class="store-bar__label">Tienda</span>` +
         `<button class="store-pill${!activeStore ? " store-pill--active" : ""}" data-store="">Todas</button>` +
         stores.map(s =>
           `<button class="store-pill${activeStore === s ? " store-pill--active" : ""}" data-store="${s}">${s}</button>`
         ).join("");
-      bar.style.display = "flex";
+      if (row) row.style.display = "flex";
 
       bar.querySelectorAll(".store-pill").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -2593,13 +2707,6 @@
         document.head.appendChild(tag);
       }
       tag.textContent = JSON.stringify(schema);
-    }
-
-    // ── Date ─────────────────────────────────────────────────────
-    function setDate() {
-      const opts = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
-      document.getElementById("js-date").textContent =
-        new Date().toLocaleDateString("es-ES", opts).toUpperCase();
     }
 
     // ── Mobile view toggle ──────────────────────────────────────
@@ -2715,7 +2822,6 @@
     }, { passive: true });
 
     // ── Init ─────────────────────────────────────────────────────
-    setDate();
     buildCatBar();
     buildSubcatBar();
     buildSortTabs();
