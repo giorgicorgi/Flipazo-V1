@@ -508,6 +508,7 @@
       background: #1D9E75;
       color: #fff;
       border-color: #1D9E75;
+      border-radius: 8px;
       text-transform: none;
       font-size: 13px;
       letter-spacing: 0.02em;
@@ -2321,7 +2322,7 @@
         const isCatFilter = activeCategory !== "todas" || !!activeStore;
         const limit = isCatFilter ? 200 : PAGE_SIZE;
         const batch = await fetchDeals(limit, currentOffset);
-        if (batch.length < limit || isCatFilter) hasMore = false;
+        if (batch.length < limit) hasMore = false;
         if (batch.length === 0) { showLoading(false); isLoading = false; return; }
 
         // Guardar rowid máximo en la primera carga (para polling)
@@ -2357,6 +2358,14 @@
         }
         updateCount();
         buildStoreBar();
+
+        // Si el filtro activo dejó pocos resultados visibles, seguir cargando sin esperar scroll
+        if (isCatFilter && hasMore && grid.querySelectorAll(".deal").length < PAGE_SIZE) {
+          showLoading(false);
+          isLoading = false;
+          loadMore();
+          return;
+        }
 
       } catch (e) {
         console.error("Error cargando deals:", e);
