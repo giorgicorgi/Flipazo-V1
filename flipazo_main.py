@@ -16,7 +16,7 @@ import urllib.parse
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
-import anthropic
+# import anthropic  # pausado — zona gris resuelta con heurística local
 import requests
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright, BrowserContext, Page
@@ -2234,97 +2234,37 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
     if not zona_gris:
         return candidatos
 
-    # ── Etapa 2: Claude Haiku (solo zona gris) — prompt cacheado ──
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    # ── Etapa 2: Heurística local (zona gris, sin Claude) ──────────
+    # Reglas: marca de arbitraje + desc ≥45% → ARBITRAJE; marca conocida → OFERTA; resto → DESCARTAR
+    aprobados_gris = 0
+    for p in zona_gris:
+        titulo_lower = p.titulo.lower()
+        tiene_marca     = any(m in titulo_lower for m in _MARCAS_CONOCIDAS)
+        tiene_arbitraje = any(m in titulo_lower for m in _MARCAS_ARBITRAJE)
 
-    for i in range(0, len(zona_gris), BATCH_SIZE_CLAUDE):
-        batch = zona_gris[i : i + BATCH_SIZE_CLAUDE]
+        if tiene_arbitraje and p.descuento_pct >= 45:
+            p.tipo     = "ARBITRAJE"
+            p.score_ai = _score_local(p)
+            p.razonamiento = "marca con mercado de reventa + descuento sólido"
+        elif tiene_marca:
+            p.tipo         = "OFERTA"
+            p.score_oferta = _score_local(p)
+            p.razonamiento = "marca reconocida con descuento real"
+        else:
+            continue  # DESCARTAR silenciosamente
 
-        payload = [
-            {
-                "asin": p.asin,
-                "titulo": p.titulo,
-                "precio_actual": p.precio_actual,
-                "precio_original": p.precio_original,
-                "descuento_pct": p.descuento_pct,
-                "precio_historico_min": p.precio_historico_min,
-            }
-            for p in batch
-        ]
+        p.copy      = _copy_template(p)
+        p.categoria = _inferir_categoria(p)
+        p.pros      = [f"−{p.descuento_pct}% de descuento real"]
+        if tiene_marca:
+            p.pros.append("Marca con garantía oficial")
+        if p.precio_historico_min > 0 and p.precio_actual <= p.precio_historico_min:
+            p.pros.append("En mínimo histórico de precio")
+        p.contras = []
+        candidatos.append(p)
+        aprobados_gris += 1
 
-        # Retry con backoff exponencial (1s → 2s → 4s)
-        response = None
-        for intento in range(3):
-            try:
-                response = client.messages.create(
-                    model="claude-haiku-4-5-20251001",
-                    max_tokens=4096,
-                    system=[{
-                        "type": "text",
-                        "text": PROMPT_SCORING_SYSTEM,
-                        "cache_control": {"type": "ephemeral"},
-                    }],
-                    messages=[{
-                        "role": "user",
-                        "content": f"Analiza estos {len(batch)} productos:\n{json.dumps(payload, ensure_ascii=False, indent=2)}",
-                    }],
-                )
-                break
-            except Exception as e:
-                espera = 2 ** intento
-                print(f"   ⚠️  Claude API error (intento {intento+1}/3): {e} — reintentando en {espera}s")
-                if intento < 2:
-                    await asyncio.sleep(espera)
-                else:
-                    print(f"   ❌ Claude API: 3 intentos fallidos — batch omitido")
-
-        if response is None:
-            continue
-
-        try:
-            texto = response.content[0].text.strip()
-            texto = re.sub(r'^```json\s*|\s*```$', '', texto, flags=re.MULTILINE).strip()
-
-            # Rescatar JSON truncado: recortar hasta el último objeto completo
-            if '}' in texto:
-                texto = texto[:texto.rfind('}')+1]
-                # Cerrar el array si quedó abierto por truncación
-                if texto.lstrip().startswith('[') and not texto.rstrip().endswith(']'):
-                    texto += ']'
-
-            scores: list[dict] = json.loads(texto)
-            scores_by_asin = {s["asin"]: s for s in scores}
-
-            uso = response.usage
-            cache_hit = getattr(uso, 'cache_read_input_tokens', 0) or 0
-            cache_new = getattr(uso, 'cache_creation_input_tokens', 0) or 0
-            print(f"   💰 Tokens: {uso.input_tokens}in/{uso.output_tokens}out | caché hit={cache_hit} nuevo={cache_new}")
-
-            for p in batch:
-                s = scores_by_asin.get(p.asin, {})
-                p.score_ai       = int(s.get("score_reventa", 0))
-                p.score_liquidez = int(s.get("score_liquidez", 0))
-                p.score_oferta   = int(s.get("score_oferta", 0))
-                p.tipo           = s.get("tipo", "DESCARTAR")
-                p.categoria      = _inferir_categoria(p)
-                if p.precio_wallapop == 0.0:
-                    p.precio_wallapop = float(s.get("precio_wallapop_estimado", 0.0))
-
-                if p.tipo in ("ARBITRAJE", "OFERTA"):
-                    titulo_lower = p.titulo.lower()
-                    p.pros = [f"−{p.descuento_pct}% de descuento real"]
-                    if any(m in titulo_lower for m in _MARCAS_CONOCIDAS):
-                        p.pros.append("Marca con garantía oficial")
-                    if p.precio_historico_min > 0 and p.precio_actual <= p.precio_historico_min:
-                        p.pros.append("En mínimo histórico de precio")
-                    p.contras = []
-                    candidatos.append(p)
-
-            print(f"   🤖 Haiku batch {i//BATCH_SIZE_CLAUDE + 1}: {len(candidatos)} candidatos acumulados")
-
-        except (json.JSONDecodeError, KeyError) as e:
-            print(f"   ⚠️  Error parseando respuesta Claude: {e}")
-
+    print(f"   🔧 Zona gris: {aprobados_gris}/{len(zona_gris)} aprobados por heurística local")
     return candidatos
 
 # ════════════════════════════════════════════════════════════════
