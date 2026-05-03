@@ -468,52 +468,68 @@
       letter-spacing: 0.02em;
     }
 
-    /* ── Popup reventa ──────────────────────────────────────────── */
-    .reventa-popup-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.55);
-      z-index: 9000;
+    /* ── Badge reventa sobre imagen ─────────────────────────────── */
+    .deal__reventa-badge {
+      position: absolute;
+      top: 52px;
+      right: 8px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #3ed1bb;
+      border: none;
+      cursor: pointer;
+      display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      z-index: 2;
+      box-shadow: 0 2px 10px rgba(62,209,187,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+      padding: 6px;
     }
-    .reventa-popup-overlay.open { display: flex; }
+    .deal__reventa-badge:hover {
+      transform: scale(1.12);
+      box-shadow: 0 4px 18px rgba(62,209,187,0.55);
+    }
+    .deal__reventa-badge svg { width: 100%; height: 100%; display: block; }
 
-    .reventa-popup {
+    /* ── Popup globo de texto ────────────────────────────────────── */
+    .reventa-bubble {
+      display: none;
+      position: fixed;
+      z-index: 9000;
       background: var(--bg);
-      border: 2px solid var(--badge-rev);
-      max-width: 420px;
-      width: 100%;
-      padding: 24px 20px 20px;
-      position: relative;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+      border: 2px solid #3ed1bb;
+      border-radius: 14px;
+      width: 262px;
+      padding: 18px 16px 14px;
+      box-shadow: 0 6px 32px rgba(0,0,0,0.22);
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.65;
     }
-    .reventa-popup__close {
+    .reventa-bubble.open { display: block; }
+    .reventa-bubble__close {
       position: absolute;
-      top: 10px;
-      right: 14px;
-      background: none;
-      border: none;
-      font-size: 22px;
-      cursor: pointer;
-      color: var(--ink);
-      line-height: 1;
-      opacity: 0.6;
+      top: 8px; right: 10px;
+      background: none; border: none;
+      font-size: 20px; cursor: pointer;
+      color: var(--ink); opacity: 0.45; line-height: 1;
     }
-    .reventa-popup__close:hover { opacity: 1; }
-
-    .btn--reventa {
-      background: transparent;
-      border-color: var(--badge-rev);
-      color: var(--badge-rev);
-      font-size: 10px;
-      padding: 7px 12px;
+    .reventa-bubble__close:hover { opacity: 1; }
+    .reventa-bubble__arrow {
+      position: absolute;
+      width: 0; height: 0;
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
     }
-    .btn--reventa:hover {
-      background: var(--badge-rev);
-      color: #fff;
+    .reventa-bubble.arrow-bottom .reventa-bubble__arrow {
+      bottom: -10px;
+      border-top: 10px solid #3ed1bb;
+    }
+    .reventa-bubble.arrow-top .reventa-bubble__arrow {
+      top: -10px;
+      border-bottom: 10px solid #3ed1bb;
     }
 
     /* ── Razonamiento ───────────────────────────────────────────── */
@@ -1525,26 +1541,23 @@
 
 <body>
 
-  <!-- ── POPUP REVENTA ─────────────────────────────────────────── -->
-  <div id="reventa-popup-overlay" class="reventa-popup-overlay" onclick="closeReventaPopup(event)">
-    <div class="reventa-popup">
-      <button class="reventa-popup__close" onclick="closeReventaPopupDirect()" aria-label="Cerrar">×</button>
-      <div class="deal__reventa" style="margin:0 0 14px">
-        <span class="deal__reventa-title">💰 Oportunidad de Reventa</span>
-        <div class="deal__reventa-math">
-          <span id="reventa-popup-titulo" style="font-weight:700;font-size:12px;line-height:1.3;display:block;margin-bottom:6px"></span>
-          <span>Compra ahora: <strong id="reventa-popup-compra"></strong></span>
-          <span>Precio estimado en Wallapop: <strong id="reventa-popup-wallapop"></strong> · <a id="reventa-popup-link" href="#" target="_blank" rel="noopener" style="color:var(--badge-rev);font-size:11px">verificar →</a></span>
-          <span class="deal__reventa-profit" id="reventa-popup-ganancia"></span>
-        </div>
-      </div>
+  <!-- ── POPUP REVENTA (globo de texto) ──────────────────────── -->
+  <div id="reventa-bubble" class="reventa-bubble" role="dialog">
+    <div class="reventa-bubble__arrow"></div>
+    <button class="reventa-bubble__close" onclick="closeReventaPopupDirect()" aria-label="Cerrar">×</button>
+    <span class="deal__reventa-title">💰 Oportunidad de Reventa</span>
+    <div class="deal__reventa-math" style="margin-top:8px">
+      <span id="reventa-popup-titulo" style="font-weight:700;font-size:11px;line-height:1.35;display:block;margin-bottom:6px;color:var(--ink)"></span>
+      <span>Compra ahora: <strong id="reventa-popup-compra"></strong></span>
+      <span>Wallapop: <strong id="reventa-popup-wallapop"></strong> · <a id="reventa-popup-link" href="#" target="_blank" rel="noopener" style="color:#3ed1bb;font-size:11px">verificar →</a></span>
+      <span class="deal__reventa-profit" id="reventa-popup-ganancia"></span>
     </div>
   </div>
 
   <!-- ── MASTHEAD ─────────────────────────────────────────────── -->
   <header class="masthead">
     <p class="masthead__eyebrow">El canal de ofertas más flipante de España</p>
-    <h1 class="masthead__name">Flipazo</h1>
+    <h1 class="masthead__name" onclick="resetAll()" style="cursor:pointer" title="Volver al inicio">Flipazo</h1>
     <hr class="masthead__rule" />
     <div class="masthead__meta">
       <span class="masthead__tagline">Ofertas reales. Descuentos verificados.</span>
@@ -2029,8 +2042,8 @@
     ];
 
     // ── Utils ───────────────────────────────────────────────────
-    // ── Popup reventa ───────────────────────────────────────────
-    function openReventaPopup(dealId) {
+    // ── Popup reventa (globo de texto) ──────────────────────────
+    function openReventaPopup(dealId, buttonEl) {
       const d = allDeals.find(x => String(x.id) === String(dealId));
       if (!d) return;
       const wallapopUrl = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent(extractModelQuery(d.titulo))}`;
@@ -2039,22 +2052,75 @@
       document.getElementById('reventa-popup-wallapop').textContent = `~${fmtPrice(d.precio_wallapop)}`;
       document.getElementById('reventa-popup-ganancia').textContent = `Ganancia neta estimada: +${fmtPrice(d.beneficio_neto)}`;
       document.getElementById('reventa-popup-link').href = wallapopUrl;
-      document.getElementById('reventa-popup-overlay').classList.add('open');
-      document.body.style.overflow = 'hidden';
+
+      const bubble = document.getElementById('reventa-bubble');
+      bubble.style.display = 'block';
+      const bW = bubble.offsetWidth;
+      const bH = bubble.offsetHeight;
+      bubble.style.display = '';
+
+      const rect    = buttonEl.getBoundingClientRect();
+      const margin  = 12;
+      const showAbove = rect.top >= bH + margin + 8;
+      let top  = showAbove ? rect.top - bH - margin : rect.bottom + margin;
+      let left = rect.left + rect.width / 2 - bW / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - bW - 8));
+
+      bubble.style.top  = top + 'px';
+      bubble.style.left = left + 'px';
+      const arrowDir = showAbove ? 'arrow-bottom' : 'arrow-top';
+      bubble.className  = `reventa-bubble open ${arrowDir}`;
+
+      const btnCx = rect.left + rect.width / 2;
+      const arrowLeft = Math.max(14, Math.min(btnCx - left - 9, bW - 32));
+      bubble.querySelector('.reventa-bubble__arrow').style.left = arrowLeft + 'px';
     }
-    function closeReventaPopup(e) {
-      // Called from X button (no event) or overlay click (event with target check)
-      if (e && e.target !== document.getElementById('reventa-popup-overlay')) return;
-      document.getElementById('reventa-popup-overlay').classList.remove('open');
-      document.body.style.overflow = '';
-    }
+    function closeReventaPopup() {}
     function closeReventaPopupDirect() {
-      document.getElementById('reventa-popup-overlay').classList.remove('open');
-      document.body.style.overflow = '';
+      document.getElementById('reventa-bubble').classList.remove('open');
     }
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') closeReventaPopupDirect();
     });
+    document.addEventListener('click', e => {
+      const bubble = document.getElementById('reventa-bubble');
+      if (!bubble.classList.contains('open')) return;
+      if (!bubble.contains(e.target) && !e.target.closest('.deal__reventa-badge')) closeReventaPopupDirect();
+    });
+
+    // ── Reset all filters (logo click) ──────────────────────────
+    function resetAll() {
+      searchQuery = "";
+      const si = document.getElementById('js-search-input');
+      if (si) si.value = "";
+      const sb = document.getElementById('js-search-banner');
+      if (sb) sb.style.display = 'none';
+      const sc = document.getElementById('js-search-clear');
+      if (sc) sc.style.display = 'none';
+      const dd = document.getElementById('js-search-dropdown');
+      if (dd) dd.hidden = true;
+
+      activeSort = "recientes";
+      document.querySelectorAll('.sort-tab').forEach(b =>
+        b.classList.toggle('sort-tab--active', b.dataset.sort === 'recientes'));
+
+      activeCategory   = "todas";
+      activeTechSubcat = "todas";
+      document.querySelectorAll('.cat-pill').forEach(b =>
+        b.classList.toggle('cat-pill--active', b.dataset.cat === 'todas'));
+
+      activeStore = "";
+      document.querySelectorAll('.store-pill').forEach(b =>
+        b.classList.toggle('store-pill--active', b.dataset.store === ''));
+
+      const titleEl = document.getElementById('js-section-title');
+      if (titleEl) titleEl.textContent = "Clasificados";
+
+      allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false; _reventaLoaded = false;
+      document.getElementById('js-grid').innerHTML = "";
+      loadMore();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     function timeAgo(iso) {
       const date  = new Date(iso);
@@ -2087,9 +2153,23 @@
       const badgeLabel = d.tienda || "";
       const buyUrl     = d.url_affiliate || "#";
 
+      const revBadgeSvg = `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 10L8 6.5L14 10V17L8 20.5L2 17Z" fill="white" opacity="0.95"/>
+        <path d="M2 10L8 13.5L14 10M8 13.5V20.5" stroke="rgba(0,110,90,0.35)" stroke-width="1" fill="none"/>
+        <path d="M18 7C20.5 4.5 26.5 5 28.5 9" stroke="white" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        <polyline points="26.5,5.5 29,9.5 25,11" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M14 25C11.5 27.5 5.5 27 3.5 23" stroke="white" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        <polyline points="5.5,26.5 3,22.5 7,21" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="25" cy="25" r="7" fill="white"/>
+        <text x="25" y="29" text-anchor="middle" font-size="9" fill="#3ed1bb" font-weight="900" font-family="Georgia,serif">€</text>
+      </svg>`;
+      const revBadge = isReventa && d.precio_wallapop > 0
+        ? `<button class="deal__reventa-badge" onclick="openReventaPopup('${d.id}',this)" aria-label="Ver oportunidad de reventa">${revBadgeSvg}</button>` : "";
+
       const imgHtml = `<div class="deal__image-wrap">
              <span class="deal__badge ${badgeClass}">${badgeLabel}</span>
              ${d.descuento_pct > 0 ? `<span class="deal__discount-badge">−${d.descuento_pct}%</span>` : ""}
+             ${revBadge}
              ${d.imagen_url
                ? `<a href="${buyUrl}" target="_blank" rel="noopener sponsored">
                     <img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'" />
@@ -2112,8 +2192,6 @@
           ${contras.length ? `<div class="deal__contras"><ul class="deal__procon-list">${contras.map(c => `<li>${c}</li>`).join("")}</ul></div>` : ""}
         </div>` : "";
 
-      const wallaBtn = isReventa && d.precio_wallapop > 0
-        ? `<button class="btn btn--reventa" onclick="openReventaPopup('${d.id}')">💰 Revende y gana</button>` : "";
 
       const dealId  = d.id || "";
       const uVotes  = getUserVotes();
@@ -2156,7 +2234,6 @@
           ${proconHtml}
           <div class="deal__cta">
             <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver en ${d.tienda || "tienda"} →</a>
-            ${wallaBtn}
           </div>
           ${votesHtml}
           <div class="deal__bottom">
