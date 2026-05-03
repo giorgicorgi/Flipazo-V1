@@ -2411,6 +2411,9 @@ _TIPO_PRODUCTO_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r'\b(mochila|backpack)\b',                              re.I), 'mochila'),
     (re.compile(r'\b(perfume|eau\s+de|colonia)\b',                      re.I), 'perfume'),
     (re.compile(r'\b(casco\s+(?:bici|moto|ciclismo|ski|senderismo))',   re.I), 'casco'),
+    # Software/antivirus: distintas licencias del mismo producto deben contarse juntas
+    (re.compile(r'\b(antivirus|internet\s+security|total\s+protection|mcafee|norton|kaspersky|bitdefender|avast|avg\b|eset\b|panda\s+dome|trend\s+micro)', re.I), 'antivirus'),
+    (re.compile(r'\b(office\s+\d{4}|microsoft\s+365|adobe\s+(?:creative|acrobat)|autocad)', re.I), 'software'),
 ]
 
 
@@ -2420,6 +2423,44 @@ def _detectar_tipo_producto(titulo: str) -> str | None:
         if pattern.search(titulo):
             return tipo
     return None
+
+
+def _clave_familia(titulo: str) -> str:
+    """Clave de familia de producto: primeras 4 palabras significativas del título.
+
+    Agrupa variantes del mismo artículo (ej. McAfee 1 dispositivo / 3 dispositivos)
+    para evitar que inunden el feed en el mismo ciclo.
+    """
+    stop = {"de", "la", "el", "los", "las", "para", "con", "sin", "y", "o", "en", "un", "una"}
+    palabras = [w for w in titulo.lower().split() if len(w) >= 3 and w not in stop]
+    return " ".join(palabras[:4])
+
+
+def _dedup_variantes(deals: list["Producto"]) -> list["Producto"]:
+    """Dentro de un mismo ciclo, si hay varias variantes del mismo producto
+    (misma familia de título + misma tienda), conserva solo la de mayor score/descuento."""
+    from collections import defaultdict
+    grupos: dict[str, list["Producto"]] = defaultdict(list)
+    sin_familia: list["Producto"] = []
+
+    for p in deals:
+        familia = _clave_familia(p.titulo)
+        # Solo agrupar si el nombre tiene al menos 2 palabras relevantes
+        if len(familia.split()) >= 2:
+            grupos[f"{p.tienda}||{familia}"].append(p)
+        else:
+            sin_familia.append(p)
+
+    resultado: list["Producto"] = list(sin_familia)
+    for key, grupo in grupos.items():
+        if len(grupo) == 1:
+            resultado.extend(grupo)
+        else:
+            mejor = max(grupo, key=lambda p: (p.score_ai, p.descuento_pct))
+            resultado.append(mejor)
+            omitidos = [p.titulo[:45] for p in grupo if p is not mejor]
+            print(f"   🔁 Dedup variantes '{key.split('||')[1][:35]}': {len(grupo)} → 1 (omitidos: {omitidos})")
+    return resultado
 
 
 def _limitar_por_tipo(deals: list["Producto"]) -> list["Producto"]:
@@ -2814,8 +2855,9 @@ async def run_pipeline(modo: str = "completo"):
                 deals_finales.append(p)
                 print(f"   ⚡ OFERTA  {p.tienda:<12} {p.titulo[:40]:<40} | score {p.score_oferta}/100")
 
-            # ── Fase 4.5: Limitar flood del mismo tipo de producto ──
+            # ── Fase 4.5: Dedup variantes + limitar flood por tipo ──
             antes = len(deals_finales)
+            deals_finales = _dedup_variantes(deals_finales)
             deals_finales = _limitar_por_tipo(deals_finales)
             if len(deals_finales) < antes:
                 print(f"   ✂️  Flood control: {antes} → {len(deals_finales)} deals")
