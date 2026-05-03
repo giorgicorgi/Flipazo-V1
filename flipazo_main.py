@@ -704,6 +704,76 @@ async def _extraer_precios_busqueda(card) -> tuple[float, float]:
     return precio_actual, precio_original
 
 
+async def _buscar_precio_amazon_mas_barato(
+    titulo: str, precio_no_amazon: float, browser: BrowserContext
+) -> dict | None:
+    """
+    Busca el producto en Amazon.es sin el filtro URL ≥40%.
+    Usa el número de modelo como ancla (ej: WH-CH520, QC45) para evitar falsos positivos.
+    Retorna dict con datos de Amazon si Amazon tiene el mismo modelo más barato.
+    Retorna None si no se encuentra, el modelo no coincide, o Amazon es más caro o igual.
+    """
+    modelo_m = _MODELO_RE.search(titulo.upper())
+    if not modelo_m:
+        return None  # Sin número de modelo claro → riesgo alto de falso positivo
+
+    modelo = modelo_m.group(1).upper()
+    query  = urllib.parse.quote(modelo)
+    url    = f"https://www.amazon.es/s?k={query}&i=electronics"
+
+    page = await browser.new_page()
+    try:
+        await page.goto(url, timeout=20000, wait_until="domcontentloaded")
+        cards = await page.locator('[data-component-type="s-search-result"][data-asin]').all()
+
+        for card in cards[:5]:
+            try:
+                asin = await card.get_attribute("data-asin") or ""
+                if not asin or len(asin) != 10:
+                    continue
+
+                # Verificar que el resultado de Amazon contiene el mismo número de modelo
+                titulo_res = ""
+                for sel in ["h2 span", "h2 a span", ".a-text-normal"]:
+                    loc = card.locator(sel)
+                    if await loc.count() > 0:
+                        titulo_res = (await loc.first.inner_text()).strip()
+                        if titulo_res:
+                            break
+                if not titulo_res:
+                    continue
+
+                modelo_en_res = _MODELO_RE.search(titulo_res.upper())
+                if not modelo_en_res or modelo_en_res.group(1).upper() != modelo:
+                    continue  # Modelo diferente → falso positivo
+
+                precio_actual, precio_original = await _extraer_precios_busqueda(card)
+                if precio_actual <= 0 or precio_actual >= precio_no_amazon:
+                    continue  # Amazon no es más barato
+
+                imagen_url = ""
+                img_loc = card.locator("img.s-image")
+                if await img_loc.count() > 0:
+                    src = await img_loc.first.get_attribute("src") or ""
+                    if src and not src.startswith("data:"):
+                        imagen_url = src
+
+                return {
+                    "asin":           asin,
+                    "precio_actual":  precio_actual,
+                    "precio_original_amazon": precio_original,  # ref interna de Amazon (puede ser 0)
+                    "imagen_url":     imagen_url,
+                }
+            except Exception:
+                continue
+    except Exception as e:
+        print(f"   ⚠️  Amazon price-check error: {e}")
+    finally:
+        await page.close()
+
+    return None
+
+
 async def _extraer_de_deals(page: Page, vistos: set) -> list[Producto]:
     """
     Extrae productos de la página /deals de Amazon.
@@ -766,6 +836,13 @@ _TALLA_RE = re.compile(
     r'\bTalla\s+(?:XS|XXS|XXXL|XXL|XL|[SML])\b'
     r'|\bsize[:\s]+(?:XS|XXS|XXXL|XXL|XL|[SML])\b',
     re.IGNORECASE
+)
+
+# Número de modelo — ancla para el check cross-tienda de mejor precio Amazon.
+# Captura patrones tipo: WH-CH520, WH-1000XM5, QC45, RTX-4080, MX300, DS-4, K380
+_MODELO_RE = re.compile(
+    r'\b([A-Z]{1,5}-[A-Z]{0,3}[0-9]{2,5}[A-Z0-9]{0,5}'   # WH-CH520, WH-1000XM5
+    r'|[A-Z]{2,5}[0-9]{3,5}[A-Z0-9]{0,3})\b'              # QC45, WF1000XM5, RTX4080
 )
 
 # Prendas de ropa/moda: se permiten solo si hay marca conocida + descuento ≥50%
@@ -2746,6 +2823,42 @@ async def run_pipeline(modo: str = "completo"):
             if not productos:
                 print("⚠️  Sin productos en este ciclo.")
                 return
+
+            # ── Fase 1.5: Mejor precio Amazon para deals no-Amazon ───
+            # Para cada deal de otra tienda que tenga un número de modelo claro,
+            # comprueba si Amazon tiene el mismo producto más barato.
+            # Si sí → actualiza tienda/ASIN/precio para usar el link Amazon (mejor afiliado + precio).
+            # El precio_original del deal origen (strike_price regulado EU) se conserva como referencia.
+            if modo == "completo":
+                no_amazon_raw = [p for p in productos if p.tienda != "Amazon"]
+                if no_amazon_raw:
+                    print(f"\n💸 Comprobando precio Amazon para {len(no_amazon_raw)} deals no-Amazon...")
+                    mejorados = 0
+                    for p in no_amazon_raw:
+                        try:
+                            datos = await _buscar_precio_amazon_mas_barato(
+                                p.titulo, p.precio_actual, browser
+                            )
+                            if datos:
+                                ahorro = round(p.precio_actual - datos["precio_actual"], 2)
+                                p.asin          = datos["asin"]
+                                p.precio_actual = datos["precio_actual"]
+                                # Conservar precio_original del deal de origen (ref. EU-regulada);
+                                # si Amazon tiene uno mayor, usarlo (descuento más fiable)
+                                if datos["precio_original_amazon"] > p.precio_actual:
+                                    p.precio_original = max(p.precio_original, datos["precio_original_amazon"])
+                                if p.precio_original > 0:
+                                    p.descuento_pct = max(0, round((1 - p.precio_actual / p.precio_original) * 100))
+                                if datos["imagen_url"]:
+                                    p.imagen_url = datos["imagen_url"]
+                                tienda_orig = p.tienda
+                                p.tienda = "Amazon"
+                                mejorados += 1
+                                print(f"   💸 {tienda_orig}→Amazon  −{ahorro}€  {p.titulo[:45]}")
+                            await asyncio.sleep(1.2)
+                        except Exception as e:
+                            print(f"   ⚠️  Amazon price-check skip ({p.titulo[:30]}): {e}")
+                    print(f"   ✅ {mejorados}/{len(no_amazon_raw)} deals actualizados a precio Amazon")
 
             # ── Fase 2: CCC solo para productos de Amazon ─────────
             amazon_prods = [p for p in productos if p.tienda == "Amazon"]
