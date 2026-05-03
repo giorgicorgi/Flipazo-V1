@@ -417,6 +417,7 @@ DEBUG_SCREENSHOTS=false
 | Analytics tracker | ✅ Funcional | Puerto 8080, clicks en SQLite |
 | Feed TD MediaMarkt | ✅ Activo | `scrapers/tradedoubler_feed.py` — 544 deals/día, caché 23h |
 | Feed TD PCBox | ✅ Activo | fid=50247, ~11 deals/día ≥35%, monitores/cajas/componentes PC |
+| Feed TD Toni Pons | ✅ Activo | fid=118025, ~248 productos ≥40%, alpargatas/calzado femenino |
 | Feed TD Beep | ❌ Desactivado | PreviousPrice = MSRP fabricante → falsos descuentos sistemáticos |
 | Feed TD ToysRus | ❌ Sin precio original | fid=21529 sin campo precio ref → descuento incalculable |
 | Afiliados Amazon | ✅ Activo | tag flipazo-21 |
@@ -464,10 +465,11 @@ Módulo independiente (sin imports de `flipazo_main` — evita import circular).
 
 ### Feeds activos
 
-| Tienda | fid | Productos | Campo precio original | Deals/día ≥37% |
+| Tienda | fid | Productos | Campo precio original | Deals/día ≥40% |
 |---|---|---|---|---|
 | MediaMarkt | 24915 | ~17k | `strike_price` | ~544 |
-| PCBox | 50247 | ~24k | `PreviousPrice` | ~11/día ≥35% |
+| PCBox | 50247 | ~24k | `PreviousPrice` | ~11 ≥35% |
+| Toni Pons | 118025 | ~10k | `PreviousPRICE` | ~248 ≥40% — calzado femenino |
 | Beep | 51903 | ~23k | `PreviousPrice` (MSRP) | ❌ desactivado — falsos descuentos |
 | ToysRus | 21529 | ~32k | ❌ no existe | ❌ descuento incalculable |
 

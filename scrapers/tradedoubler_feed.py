@@ -5,6 +5,7 @@ Tiendas activas:
   MediaMarkt ES  fid=24915  strike_price = MSRP/precio ref. regulado
   PCBox ES       fid=50247  PreviousPrice = precio ref. regulado (monitores, cajas, componentes)
   Esdemarca ES   fid=116972 PreviousPRICE = precio ref. — solo marcas premium, descuento ≥50%
+  Toni Pons ES   fid=118025 PreviousPRICE = precio ref. — alpargatas/calzado mujer, descuento ≥40%
 
 Tiendas desactivadas:
   Beep ES        fid=51903  PreviousPrice = MSRP fabricante, no precio 30d → falsos descuentos
@@ -300,11 +301,86 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
     return resultado
 
 
+# ---------------------------------------------------------------------------
+# Constantes Toni Pons
+# ---------------------------------------------------------------------------
+
+_TONI_PONS_DESCUENTO_MIN = 40
+_TONI_PONS_PRECIO_MIN    = 25.0
+_TONI_PONS_PRECIO_MAX    = 200.0   # alpargatas raramente superan los 200€
+
+
+def _filtrar_toni_pons(raw: list[dict], precio_minimo: float, precio_maximo: float) -> list[dict]:
+    """
+    Filtro para Toni Pons: calzado femenino (alpargatas/espadrilles).
+    Usa PreviousPRICE como referencia de precio original.
+    """
+    resultado: list[dict] = []
+    vistos: set[str] = set()
+
+    for item in raw:
+        try:
+            titulo = (item.get("name") or "").strip()
+            if not titulo or len(titulo) < 8:
+                continue
+
+            offers = item.get("offers") or []
+            if not offers:
+                continue
+            offer = offers[0]
+
+            price_history = offer.get("priceHistory") or []
+            precio_actual = _parse_precio(
+                (price_history[0].get("price") or {}).get("value") if price_history else None
+            )
+            if not (_TONI_PONS_PRECIO_MIN <= precio_actual <= _TONI_PONS_PRECIO_MAX):
+                continue
+
+            fields_raw = item.get("fields", {})
+            strike_raw = (
+                _get_field(fields_raw, "PreviousPRICE")
+                or _get_field(fields_raw, "PreviousPrice")
+                or _get_field(fields_raw, "strike_price")
+            )
+            precio_original = _parse_precio(strike_raw)
+            if precio_original <= precio_actual:
+                continue
+
+            descuento_pct = int((1 - precio_actual / precio_original) * 100)
+            if descuento_pct < _TONI_PONS_DESCUENTO_MIN:
+                continue
+
+            disponibilidad = (offer.get("availability") or "").lower()
+            if disponibilidad not in ("in stock", "available", "en stock"):
+                continue
+
+            ean = ((item.get("identifiers") or {}).get("ean") or "")
+            clave = ean if ean else titulo[:50].lower()
+            if clave in vistos:
+                continue
+            vistos.add(clave)
+
+            resultado.append({
+                "titulo":          titulo,
+                "asin":            offer.get("productUrl", ""),
+                "precio_actual":   precio_actual,
+                "precio_original": precio_original,
+                "descuento_pct":   descuento_pct,
+                "tienda":          "Toni Pons",
+                "imagen_url":      ((item.get("productImage") or {}).get("url") or ""),
+            })
+        except Exception:
+            continue
+
+    return resultado
+
+
 # Cada feed puede tener filtrar_fn propio. None → _filtrar estándar.
 _FEEDS = [
-    {"tienda": "MediaMarkt", "fid": "24915", "filtrar_fn": None},
-    {"tienda": "PCBox",      "fid": "50247", "filtrar_fn": None},
+    {"tienda": "MediaMarkt", "fid": "24915",  "filtrar_fn": None},
+    {"tienda": "PCBox",      "fid": "50247",  "filtrar_fn": None},
     {"tienda": "Esdemarca",  "fid": "116972", "filtrar_fn": _filtrar_esdemarca},
+    {"tienda": "Toni Pons",  "fid": "118025", "filtrar_fn": _filtrar_toni_pons},
     # Beep: PreviousPrice es MSRP fabricante, no precio 30d → falsos descuentos sistemáticos.
     # {"tienda": "Beep", "fid": "51903", "filtrar_fn": None},
     # ToysRus: feed sin precio original → descuento incalculable.
@@ -344,7 +420,8 @@ def fetch_tradedoubler_productos(
             filtrados = filtrar_fn(raw, precio_minimo, precio_maximo)
         else:
             filtrados = _filtrar(raw, tienda, descuento_minimo, precio_minimo, precio_maximo)
-        desc_min = _ESDEMARCA_DESCUENTO_MIN if tienda == "Esdemarca" else descuento_minimo
+        desc_min_map = {"Esdemarca": _ESDEMARCA_DESCUENTO_MIN, "Toni Pons": _TONI_PONS_DESCUENTO_MIN}
+        desc_min = desc_min_map.get(tienda, descuento_minimo)
         print(f"      → {len(raw)} descargados, {len(filtrados)} con ≥{desc_min}% descuento")
         todos.extend(filtrados)
 
