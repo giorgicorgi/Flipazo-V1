@@ -275,6 +275,107 @@
       .sidebar { display: none; }
       .row-2, .row-3 { grid-template-columns: 1fr; }
     }
+
+    /* ── Main nav tabs ── */
+    .main-nav {
+      background: #1c1c1c;
+      padding: 0 20px;
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid #333;
+    }
+    .main-nav__tab {
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.45);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      user-select: none;
+      transition: color .15s;
+    }
+    .main-nav__tab:hover { color: rgba(255,255,255,0.8); }
+    .main-nav__tab.active { color: #fff; border-bottom-color: var(--accent); }
+
+    /* ── Deals section ── */
+    .deals-section {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 72px);
+      overflow: hidden;
+    }
+    .deals-toolbar {
+      padding: 12px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .deals-toolbar__left  { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+    .deals-toolbar__left h2 { font-size: 14px; font-weight: 700; white-space: nowrap; }
+    .deals-toolbar__right { display: flex; align-items: center; gap: 8px; }
+    .deals-search {
+      max-width: 280px; width: 100%;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      font-size: 13px;
+      background: var(--surface);
+    }
+    .deals-table-wrap { flex: 1; overflow-y: auto; }
+    table.deals-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .deals-table th {
+      background: var(--bg);
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-3);
+      border-bottom: 2px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      white-space: nowrap;
+    }
+    .deals-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .deals-table tbody tr:hover td { background: #fafaf8; }
+    .deals-table tbody tr.selected td { background: #fff8f7; }
+    .deal-thumb {
+      width: 40px; height: 40px; object-fit: contain;
+      border: 1px solid var(--border); border-radius: 4px; background: #f9f9f9; display: block;
+    }
+    .deal-thumb--ph {
+      width: 40px; height: 40px; background: var(--border); border-radius: 4px; display: inline-block;
+    }
+    .deal-title { max-width: 300px; font-weight: 600; }
+    .deal-title span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .badge--store   { background: #e8f4fd; color: #1a6fa8; }
+    .badge--arb     { background: #d4edda; color: #155724; }
+    .badge--oferta  { background: #cce5ff; color: #004085; }
+    .badge--pct     { background: #fce4e4; color: var(--accent); }
+    .deals-pagination {
+      padding: 12px 20px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+    .deals-pagination__btns { display: flex; gap: 8px; }
+    .col-chk  { width: 36px; }
+    .col-img  { width: 56px; }
+    .col-pct  { width: 70px; }
+    .col-px   { width: 84px; }
+    .col-clk  { width: 60px; text-align: right; }
+    .col-dt   { width: 90px; }
+    .col-del  { width: 44px; }
   </style>
 </head>
 <body>
@@ -307,6 +408,12 @@
     </div>
   </div>
 
+  <nav class="main-nav">
+    <div class="main-nav__tab active" data-section="blog">Blog</div>
+    <div class="main-nav__tab" data-section="deals">Deals</div>
+  </nav>
+
+  <div id="section-blog">
   <div class="layout">
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -389,6 +496,54 @@
       </div>
     </div>
   </div>
+  </div><!-- /section-blog -->
+
+  <!-- ── Deals section ── -->
+  <div id="section-deals" style="display:none" class="deals-section">
+    <div class="deals-toolbar">
+      <div class="deals-toolbar__left">
+        <h2>Deals</h2>
+        <input class="deals-search" id="deals-search" type="text" placeholder="Buscar por título…" />
+      </div>
+      <div class="deals-toolbar__right">
+        <span id="deals-count-label" style="color:var(--ink-3);font-size:12px"></span>
+        <button id="bulk-delete-btn" class="btn btn--danger" style="display:none" onclick="bulkDelete()">
+          Eliminar selección (<span id="bulk-count">0</span>)
+        </button>
+      </div>
+    </div>
+
+    <div class="deals-table-wrap">
+      <div id="deals-loading" style="display:none;padding:40px;text-align:center;color:var(--ink-3)">Cargando…</div>
+      <table class="deals-table" id="deals-table" style="display:none">
+        <thead>
+          <tr>
+            <th class="col-chk"><input type="checkbox" id="select-all-deals" /></th>
+            <th class="col-img"></th>
+            <th>Título</th>
+            <th>Tienda</th>
+            <th>Tipo</th>
+            <th class="col-pct">Desc.</th>
+            <th class="col-px">Precio</th>
+            <th class="col-clk">Clicks</th>
+            <th class="col-dt">Fecha</th>
+            <th class="col-del"></th>
+          </tr>
+        </thead>
+        <tbody id="deals-tbody"></tbody>
+      </table>
+      <div id="deals-empty" style="display:none;padding:60px;text-align:center;color:var(--ink-3);font-size:14px">Sin deals.</div>
+    </div>
+
+    <div class="deals-pagination">
+      <span id="deals-pag-info"></span>
+      <div class="deals-pagination__btns">
+        <button class="btn btn--secondary" id="deals-prev" onclick="dealsPage(-1)">← Anterior</button>
+        <button class="btn btn--secondary" id="deals-next" onclick="dealsPage(1)">Siguiente →</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div id="toast"></div>
@@ -619,6 +774,181 @@
     fetch(`${API}/admin/blog`, { headers: { "Authorization": `Bearer ${JWT}` } })
       .then(r => { if (r.ok) startApp(); else { JWT = ""; localStorage.removeItem("flipazo_admin_jwt"); } })
       .catch(() => {});
+  }
+
+  // ── Section nav ─────────────────────────────────────────────────────
+  function switchSection(section) {
+    document.querySelectorAll(".main-nav__tab").forEach(t =>
+      t.classList.toggle("active", t.dataset.section === section)
+    );
+    document.getElementById("section-blog").style.display   = section === "blog"  ? "" : "none";
+    document.getElementById("section-deals").style.display  = section === "deals" ? "" : "none";
+    if (section === "deals" && dealsState.total === -1) loadDeals(true);
+  }
+
+  document.querySelectorAll(".main-nav__tab").forEach(tab =>
+    tab.addEventListener("click", () => switchSection(tab.dataset.section))
+  );
+
+  // ── Deals ────────────────────────────────────────────────────────────
+  const DEALS_LIMIT = 50;
+  const selectedDeals = new Set();
+  const dealsState = { deals: [], total: -1, offset: 0, search: "" };
+  let dealsSearchTimer = null;
+
+  function _esc(s) {
+    return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function _price(p) {
+    return p ? new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(p) : "–";
+  }
+  function _reldate(iso) {
+    if (!iso) return "–";
+    return new Date(iso).toLocaleDateString("es-ES",{day:"2-digit",month:"short"});
+  }
+
+  async function loadDeals(reset = false) {
+    if (reset) { dealsState.offset = 0; selectedDeals.clear(); }
+    document.getElementById("deals-loading").style.display = "";
+    document.getElementById("deals-table").style.display   = "none";
+    document.getElementById("deals-empty").style.display   = "none";
+
+    const p = new URLSearchParams({ limit: DEALS_LIMIT, offset: dealsState.offset });
+    if (dealsState.search) p.set("busqueda", dealsState.search);
+
+    try {
+      const res  = await fetch(`${API}/admin/deals?${p}`, { headers: { "Authorization": `Bearer ${JWT}` } });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error || "Error cargando deals", true); return; }
+      dealsState.deals = data.deals || [];
+      dealsState.total = data.total || 0;
+      renderDeals();
+    } catch (e) { toast("Error de conexión", true); }
+    finally { document.getElementById("deals-loading").style.display = "none"; }
+  }
+
+  function renderDeals() {
+    const { deals, total, offset } = dealsState;
+    const tbody = document.getElementById("deals-tbody");
+
+    if (!deals.length) {
+      document.getElementById("deals-empty").style.display = "";
+      document.getElementById("deals-table").style.display = "none";
+    } else {
+      document.getElementById("deals-table").style.display = "";
+      tbody.innerHTML = deals.map(d => {
+        const sel = selectedDeals.has(d.deal_id);
+        const img = d.imagen_url
+          ? `<img class="deal-thumb" src="${_esc(d.imagen_url)}" loading="lazy" onerror="this.style.display='none'">`
+          : `<span class="deal-thumb--ph"></span>`;
+        const tipo = d.tipo === "ARBITRAJE"
+          ? `<span class="badge badge--arb">ARB</span>`
+          : `<span class="badge badge--oferta">OFERTA</span>`;
+        return `<tr class="${sel?"selected":""}" data-id="${_esc(d.deal_id)}">
+          <td class="col-chk"><input type="checkbox" class="deal-chk" data-id="${_esc(d.deal_id)}"${sel?" checked":""}></td>
+          <td class="col-img">${img}</td>
+          <td><div class="deal-title"><span title="${_esc(d.titulo)}">${_esc(d.titulo)}</span></div></td>
+          <td><span class="badge badge--store">${_esc(d.tienda)}</span></td>
+          <td>${tipo}</td>
+          <td class="col-pct"><span class="badge badge--pct">-${d.descuento_pct}%</span></td>
+          <td class="col-px"><strong>${_price(d.precio_actual)}</strong></td>
+          <td class="col-clk">${d.clicks_total||0}</td>
+          <td class="col-dt">${_reldate(d.publicado_en)}</td>
+          <td class="col-del">
+            <button class="btn btn--danger" style="padding:3px 7px;font-size:11px"
+              onclick="deleteSingleDeal('${_esc(d.deal_id)}')">✕</button>
+          </td>
+        </tr>`;
+      }).join("");
+
+      tbody.querySelectorAll(".deal-chk").forEach(cb => {
+        cb.addEventListener("change", () => {
+          const id = cb.dataset.id;
+          cb.checked ? selectedDeals.add(id) : selectedDeals.delete(id);
+          cb.closest("tr").classList.toggle("selected", cb.checked);
+          _syncSelectAll();
+          _updateBulkBtn();
+        });
+      });
+    }
+
+    // Pagination
+    const from = offset + 1, to = Math.min(offset + DEALS_LIMIT, total);
+    document.getElementById("deals-pag-info").textContent =
+      total ? `${from}–${to} de ${total} deals` : "0 deals";
+    document.getElementById("deals-count-label").textContent =
+      total ? `${total} deals` : "";
+    document.getElementById("deals-prev").disabled = offset === 0;
+    document.getElementById("deals-next").disabled = offset + DEALS_LIMIT >= total;
+
+    _syncSelectAll();
+    _updateBulkBtn();
+  }
+
+  function _syncSelectAll() {
+    const checks = Array.from(document.querySelectorAll(".deal-chk"));
+    const sa = document.getElementById("select-all-deals");
+    const allChecked  = checks.length > 0 && checks.every(c => c.checked);
+    const someChecked = checks.some(c => c.checked);
+    sa.checked       = allChecked;
+    sa.indeterminate = someChecked && !allChecked;
+  }
+
+  function _updateBulkBtn() {
+    const n = selectedDeals.size;
+    document.getElementById("bulk-delete-btn").style.display = n ? "" : "none";
+    document.getElementById("bulk-count").textContent = n;
+  }
+
+  document.getElementById("select-all-deals").addEventListener("change", function() {
+    document.querySelectorAll(".deal-chk").forEach(cb => {
+      cb.checked = this.checked;
+      this.checked ? selectedDeals.add(cb.dataset.id) : selectedDeals.delete(cb.dataset.id);
+      cb.closest("tr").classList.toggle("selected", this.checked);
+    });
+    _updateBulkBtn();
+  });
+
+  document.getElementById("deals-search").addEventListener("input", function() {
+    clearTimeout(dealsSearchTimer);
+    dealsState.search = this.value.trim();
+    dealsSearchTimer = setTimeout(() => loadDeals(true), 400);
+  });
+
+  function dealsPage(dir) {
+    dealsState.offset = Math.max(0, dealsState.offset + dir * DEALS_LIMIT);
+    loadDeals();
+  }
+
+  async function deleteSingleDeal(dealId) {
+    if (!confirm("¿Eliminar este deal?")) return;
+    try {
+      const res = await fetch(`${API}/admin/deals/${encodeURIComponent(dealId)}`, {
+        method: "DELETE", headers: { "Authorization": `Bearer ${JWT}` }
+      });
+      if (!res.ok) { toast("Error al eliminar", true); return; }
+      selectedDeals.delete(dealId);
+      toast("Deal eliminado");
+      await loadDeals();
+    } catch (e) { toast("Error de conexión", true); }
+  }
+
+  async function bulkDelete() {
+    const ids = Array.from(selectedDeals);
+    if (!ids.length) return;
+    if (!confirm(`¿Eliminar ${ids.length} deal${ids.length !== 1 ? "s" : ""}? Esta acción no se puede deshacer.`)) return;
+    try {
+      const res = await fetch(`${API}/admin/deals/bulk`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${JWT}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ deal_ids: ids })
+      });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error || "Error al eliminar", true); return; }
+      selectedDeals.clear();
+      toast(`${data.deleted} deal${data.deleted !== 1 ? "s" : ""} eliminados ✓`);
+      await loadDeals(true);
+    } catch (e) { toast("Error de conexión", true); }
   }
 </script>
 </body>

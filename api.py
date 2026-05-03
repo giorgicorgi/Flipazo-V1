@@ -12,6 +12,7 @@ Endpoints públicos:
 Endpoints admin (requieren JWT con role=admin en Authorization header):
   POST   /admin/login              → autenticar admin, recibe JWT
   GET    /admin/deals              → deals con métricas (clicks + votos)
+  DELETE /admin/deals/bulk         → eliminar varios deals (body: {deal_ids:[...]})
   DELETE /admin/deals/{deal_id}    → eliminar deal
   GET    /admin/stats              → estadísticas generales
 
@@ -344,6 +345,9 @@ class PatchDealBody(BaseModel):
     titulo:       Optional[str] = None
     url_afiliado: Optional[str] = None
 
+class BulkDeleteDealsBody(BaseModel):
+    deal_ids: list[str]
+
 class RegisterBody(BaseModel):
     email:    str
     password: str
@@ -592,6 +596,23 @@ def admin_deals(
         deals.append(d)
 
     return {"deals": deals, "total": total, "limit": limit, "offset": offset}
+
+
+@app.delete("/admin/deals/bulk")
+def admin_bulk_delete_deals(body: BulkDeleteDealsBody, request: Request):
+    """Elimina múltiples deals en una sola operación. Requiere JWT admin."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    if not body.deal_ids:
+        return {"deleted": 0}
+    placeholders = ",".join("?" * len(body.deal_ids))
+    with _get_db() as con:
+        deleted = con.execute(
+            f"DELETE FROM deals_publicados WHERE deal_id IN ({placeholders})",
+            body.deal_ids,
+        ).rowcount
+        con.commit()
+    return {"deleted": deleted}
 
 
 @app.delete("/admin/deals/{deal_id}")
