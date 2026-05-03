@@ -171,17 +171,19 @@
       text-align: center;
     }
 
-    /* Barra "Actualización automática" — debajo del masthead, encima del sort-tabs */
-    .masthead__live-bar {
+    .sort-tabs__live {
+      margin-left: auto;
       display: flex;
-      justify-content: center;
       align-items: center;
-      padding: 5px 40px;
-      border-top: 1px solid var(--border-faint);
+      padding: 0 22px;
       font-family: var(--mono);
       font-size: 10px;
+      font-weight: 700;
       letter-spacing: 0.1em;
       text-transform: uppercase;
+      color: #1D9E75;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .masthead__desc {
@@ -1488,14 +1490,12 @@
         <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema claro/oscuro" title="Cambiar tema">☾</button>
       </span>
     </div>
-    <div class="masthead__live-bar">
-      <span class="masthead__live"><span class="live-dot"></span>Actualización automática cada hora</span>
-    </div>
     <nav class="sort-tabs" id="js-sort-tabs" aria-label="Ordenar por">
       <button class="sort-tab sort-tab--active" data-sort="recientes">Recientes</button>
       <button class="sort-tab" data-sort="descuento">Mayor Descuento</button>
       <button class="sort-tab" data-sort="votados">Más Votados</button>
       <button class="sort-tab" data-sort="reventa">Para Revender</button>
+      <span class="sort-tabs__live"><span class="live-dot"></span>Actualización automática</span>
     </nav>
   </header>
 
