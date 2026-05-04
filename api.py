@@ -32,9 +32,11 @@ import hashlib
 import hmac as _hmac
 import json
 import os
+import re as _re
 import secrets
 import smtplib
 import sqlite3
+import threading
 import time
 import urllib.parse
 from datetime import datetime, timezone
@@ -83,6 +85,10 @@ EMAIL_APP_PASSWORD = os.getenv("EMAIL_APP_PASSWORD", "")
 
 # ── OAuth state store en memoria (anti-CSRF) ───────────────────────────────────
 _oauth_states: dict[str, float] = {}
+
+# ── Rate-limit para flags de expiración (IP:deal_id → expiry timestamp) ────────
+_flag_rate_limit: dict[str, float] = {}
+_FLAG_COOLDOWN = 3600  # 1 h por IP por deal — evita multivoto del mismo usuario
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -228,6 +234,77 @@ def _upsert_user(user_id: str, email: str, name: str, avatar_url: str, provider:
         con.commit()
 
 
+# ── Verificación ligera de precio expirado ─────────────────────────────────────
+
+def _check_price_expired(url_afiliado: str) -> bool:
+    """
+    Comprueba con requests (sin Playwright) si el producto ya no está disponible.
+    Retorna True solo con evidencia clara (404, agotado, no disponible).
+    En caso de duda o error de red retorna False para no marcar como expirado.
+    """
+    try:
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept-Language": "es-ES,es;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        }
+        resp = _http.get(url_afiliado, headers=headers, timeout=12, allow_redirects=True)
+        if resp.status_code in (404, 410):
+            return True
+        content = resp.text.lower()
+        signals = [
+            "actualmente no disponible", "currently unavailable",
+            "no está disponible", "este artículo no está disponible",
+            "temporalmente sin existencias", "agotado", "out of stock",
+            "producto no encontrado", "página no encontrada",
+        ]
+        return any(s in content for s in signals)
+    except Exception:
+        return False  # En caso de error de red no marcamos como expirado
+
+
+def _background_check_expiry(deal_id: str, url_afiliado: str, titulo: str) -> None:
+    """
+    Hilo background: verifica si la oferta expiró y actualiza la BD.
+    Notifica al admin por Telegram con el resultado.
+    """
+    try:
+        expirado = _check_price_expired(url_afiliado)
+        with _get_db() as con:
+            if expirado:
+                con.execute(
+                    "UPDATE deals_publicados SET expirado = 1 WHERE deal_id = ?",
+                    (deal_id,),
+                )
+                con.commit()
+                print(f"🔴 Deal marcado expirado: {titulo[:50]}")
+
+        token    = os.getenv("TELEGRAM_BOT_TOKEN", "")
+        admin_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")
+        if token and admin_id:
+            estado = (
+                "❌ <b>EXPIRADO</b> — marcado como no disponible en web"
+                if expirado else
+                "✅ Precio verificado — sigue activo"
+            )
+            msg = (
+                f"🚩 <b>Alerta de oferta expirada</b>\n\n"
+                f"{estado}\n\n"
+                f"<b>{titulo[:70]}</b>\n"
+                f"<code>{deal_id}</code>"
+            )
+            _http.post(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                json={"chat_id": admin_id, "text": msg, "parse_mode": "HTML"},
+                timeout=10,
+            )
+    except Exception as e:
+        print(f"❌ Background expiry check error: {e}")
+
+
 # ── Startup: migraciones en caliente ─────────────────────────────────────────
 
 @app.on_event("startup")
@@ -236,11 +313,13 @@ def _ensure_schema():
     with _get_db() as con:
         # Columnas nuevas en deals_publicados
         for col_def in [
-            "votes_up   INTEGER DEFAULT 0",
-            "votes_down INTEGER DEFAULT 0",
-            "categoria  TEXT    DEFAULT ''",
-            "pros       TEXT    DEFAULT '[]'",
-            "contras    TEXT    DEFAULT '[]'",
+            "votes_up        INTEGER DEFAULT 0",
+            "votes_down      INTEGER DEFAULT 0",
+            "categoria       TEXT    DEFAULT ''",
+            "pros            TEXT    DEFAULT '[]'",
+            "contras         TEXT    DEFAULT '[]'",
+            "flags_expirado  INTEGER DEFAULT 0",
+            "expirado        INTEGER DEFAULT 0",
         ]:
             try:
                 con.execute(f"ALTER TABLE deals_publicados ADD COLUMN {col_def}")
@@ -413,11 +492,13 @@ def get_deals(
             precio_wallapop,
             beneficio_neto,
             razonamiento,
-            COALESCE(votes_up,   0) AS votes_up,
-            COALESCE(votes_down, 0) AS votes_down,
-            COALESCE(categoria,  '') AS categoria,
-            COALESCE(pros,    '[]') AS pros,
-            COALESCE(contras, '[]') AS contras,
+            COALESCE(votes_up,       0) AS votes_up,
+            COALESCE(votes_down,     0) AS votes_down,
+            COALESCE(categoria,     '') AS categoria,
+            COALESCE(pros,        '[]') AS pros,
+            COALESCE(contras,     '[]') AS contras,
+            COALESCE(flags_expirado, 0) AS flags_expirado,
+            COALESCE(expirado,       0) AS expirado,
             publicado_en    AS timestamp
         FROM deals_publicados
         {where_sql}
@@ -441,7 +522,9 @@ def get_deals(
         d["razonamiento"]    = d["razonamiento"]     or ""
         d["votes_up"]        = d["votes_up"]         or 0
         d["votes_down"]      = d["votes_down"]       or 0
-        d["categoria"]       = d["categoria"]        or ""
+        d["categoria"]        = d["categoria"]         or ""
+        d["flags_expirado"]   = int(d.get("flags_expirado", 0) or 0)
+        d["expirado"]         = bool(d.get("expirado", 0))
         try:    d["pros"]    = json.loads(d["pros"]    or "[]")
         except: d["pros"]    = []
         try:    d["contras"] = json.loads(d["contras"] or "[]")
@@ -489,6 +572,57 @@ def vote_deal(deal_id: str, body: VoteBody):
             (deal_id,),
         ).fetchone()
     return {"votes_up": row["votes_up"], "votes_down": row["votes_down"]}
+
+
+@app.post("/api/deals/{deal_id}/flag-expired")
+def flag_expired(deal_id: str, request: Request):
+    """
+    Registra un voto de 'oferta expirada'.
+    Anti-spam: mismo IP no puede flaggear el mismo deal más de una vez por hora.
+    Con ≥2 flags activa una verificación de precio en background y notifica al admin.
+    """
+    ip       = request.client.host if request.client else "unknown"
+    rate_key = f"{ip}:{deal_id}"
+    now      = time.time()
+
+    # Limpiar entradas antiguas + comprobar rate limit
+    expired_keys = [k for k, v in _flag_rate_limit.items() if v <= now]
+    for k in expired_keys:
+        _flag_rate_limit.pop(k, None)
+
+    if _flag_rate_limit.get(rate_key, 0) > now:
+        return JSONResponse(status_code=429, content={"error": "Ya has reportado esta oferta recientemente"})
+
+    _flag_rate_limit[rate_key] = now + _FLAG_COOLDOWN
+
+    with _get_db() as con:
+        row = con.execute(
+            "SELECT titulo, url_afiliado, precio, flags_expirado, expirado "
+            "FROM deals_publicados WHERE deal_id = ?",
+            (deal_id,),
+        ).fetchone()
+        if not row:
+            return JSONResponse(status_code=404, content={"error": "Deal no encontrado"})
+
+        if row["expirado"]:
+            return {"flags": row["flags_expirado"] or 0, "expirado": True}
+
+        new_flags = (row["flags_expirado"] or 0) + 1
+        con.execute(
+            "UPDATE deals_publicados SET flags_expirado = ? WHERE deal_id = ?",
+            (new_flags, deal_id),
+        )
+        con.commit()
+
+    # Con ≥2 flags → verificar precio en hilo background
+    if new_flags >= 2:
+        threading.Thread(
+            target=_background_check_expiry,
+            args=(deal_id, row["url_afiliado"] or "", row["titulo"] or ""),
+            daemon=True,
+        ).start()
+
+    return {"flags": new_flags, "expirado": False}
 
 
 @app.get("/r/{deal_id}")

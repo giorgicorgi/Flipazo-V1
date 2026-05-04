@@ -1365,9 +1365,29 @@
       line-height: 1;
     }
     .vote-btn:hover { border-color: var(--ink); color: var(--ink); }
-    .vote-btn--up.voted  { border-color: var(--badge-rev); color: var(--badge-rev); background: var(--reventa-bg); }
-    .vote-btn--down.voted { border-color: #e67e22; color: #e67e22; background: var(--downvote-bg); }
+    .vote-btn--up.voted   { border-color: var(--badge-rev); color: var(--badge-rev); background: var(--reventa-bg); }
+    .vote-btn--flag.voted { border-color: #c0392b; color: #c0392b; background: rgba(192,57,43,0.07); }
     .vote-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+    /* ── Oferta expirada ────────────────────────────────────────── */
+    .deal--expirado { filter: grayscale(100%); opacity: 0.62; }
+    .deal--expirado .deal__discount-badge,
+    .deal--expirado .deal__reventa-badge { display: none; }
+    .deal__expired-label {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(0,0,0,0.70);
+      color: #ccc;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 6px 4px;
+      z-index: 3;
+      pointer-events: none;
+    }
 
     /* ── View toggle (solo mobile) ──────────────────────────────── */
     .view-toggle {
@@ -2163,18 +2183,22 @@
         <circle cx="25" cy="25" r="7" fill="white"/>
         <text x="25" y="29" text-anchor="middle" font-size="9" fill="#3ed1bb" font-weight="900" font-family="Georgia,serif">€</text>
       </svg>`;
-      const revBadge = isReventa && d.precio_wallapop > 0
+      const isExpired   = !!d.expirado;
+      const revBadge = isReventa && d.precio_wallapop > 0 && !isExpired
         ? `<button class="deal__reventa-badge" onclick="openReventaPopup('${d.id}',this)" aria-label="Ver oportunidad de reventa">${revBadgeSvg}</button>` : "";
+      const expiredBand = isExpired
+        ? `<div class="deal__expired-label">Oferta expirada</div>` : "";
 
       const imgHtml = `<div class="deal__image-wrap">
              <span class="deal__badge ${badgeClass}">${badgeLabel}</span>
-             ${d.descuento_pct > 0 ? `<span class="deal__discount-badge">−${d.descuento_pct}%</span>` : ""}
+             ${d.descuento_pct > 0 && !isExpired ? `<span class="deal__discount-badge">−${d.descuento_pct}%</span>` : ""}
              ${revBadge}
              ${d.imagen_url
                ? `<a href="${buyUrl}" target="_blank" rel="noopener sponsored">
                     <img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'" />
                   </a>`
                : `<span class="deal__image-placeholder">sin imagen</span>`}
+             ${expiredBand}
            </div>`;
 
       const ahorro = d.precio_original > d.precio_actual ? d.precio_original - d.precio_actual : 0;
@@ -2196,8 +2220,9 @@
       const dealId  = d.id || "";
       const uVotes  = getUserVotes();
       const uVote   = uVotes[dealId] || null;
-      const votesUp   = d.votes_up   || 0;
-      const votesDown = d.votes_down || 0;
+      const votesUp    = d.votes_up      || 0;
+      const flagCount  = d.flags_expirado || 0;
+      const isFlagged  = !!(_getFlagged()[dealId]);
 
       const votesHtml = `
         <div class="deal__votes" id="votes-${dealId}">
@@ -2210,19 +2235,20 @@
             <span class="vote-count">${votesUp}</span>
             <span style="font-size:8px;letter-spacing:.12em">Flipazo</span>
           </button>
-          <button class="vote-btn vote-btn--down${uVote === "down" ? " voted" : ""}"
-                  onclick="vote('${dealId}', 'down', this)"
-                  aria-label="Meh" title="Meh">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"/>
+          <button class="vote-btn vote-btn--flag${isExpired || isFlagged ? " voted" : ""}"
+                  onclick="flagExpired('${dealId}', this)"
+                  aria-label="Reportar oferta expirada" title="¿Ya no disponible?">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+              <line x1="4" y1="22" x2="4" y2="15"/>
             </svg>
-            <span class="vote-count">${votesDown}</span>
-            <span style="font-size:8px;letter-spacing:.12em">Meh</span>
+            <span class="vote-count">${flagCount}</span>
+            <span style="font-size:8px;letter-spacing:.12em">Expiró</span>
           </button>
         </div>`;
 
       return `
-        <article class="deal${d.descuento_pct > 50 ? ' deal--featured' : ''}">
+        <article class="deal${d.descuento_pct > 50 ? ' deal--featured' : ''}${isExpired ? ' deal--expirado' : ''}">
           ${imgHtml}
           <h2 class="deal__title">${d.titulo || ""}</h2>
           <div class="deal__pricing">
@@ -2402,30 +2428,75 @@
       try { localStorage.setItem("flipazo_votes", JSON.stringify(v)); } catch {}
     }
 
+    function _getFlagged() {
+      try { return JSON.parse(localStorage.getItem('flipazo_flagged') || '{}'); } catch { return {}; }
+    }
+    function _saveFlagged(obj) {
+      try { localStorage.setItem('flipazo_flagged', JSON.stringify(obj)); } catch {}
+    }
+
+    async function flagExpired(dealId, btn) {
+      if (!dealId) return;
+      const flagged = _getFlagged();
+      if (flagged[dealId]) { btn.title = 'Ya has reportado esta oferta'; return; }
+
+      // Optimista: activar botón y sumar contador
+      btn.classList.add('voted');
+      const countEl = btn.querySelector('.vote-count');
+      if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
+
+      flagged[dealId] = Date.now();
+      _saveFlagged(flagged);
+
+      const deal = allDeals.find(d => String(d.id) === String(dealId));
+      if (deal) deal.flags_expirado = (deal.flags_expirado || 0) + 1;
+
+      if (!USE_MOCK) {
+        try {
+          const res = await fetch(`${API_BASE}/api/deals/${dealId}/flag-expired`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.expirado) {
+              // Marcar card como expirada en el DOM sin re-renderizar
+              const card = btn.closest('article.deal');
+              if (card && !card.classList.contains('deal--expirado')) {
+                card.classList.add('deal--expirado');
+                const wrap = card.querySelector('.deal__image-wrap');
+                if (wrap && !wrap.querySelector('.deal__expired-label')) {
+                  const band = document.createElement('div');
+                  band.className = 'deal__expired-label';
+                  band.textContent = 'Oferta expirada';
+                  wrap.appendChild(band);
+                }
+                const discBadge  = card.querySelector('.deal__discount-badge');
+                const revBadgeEl = card.querySelector('.deal__reventa-badge');
+                if (discBadge)  discBadge.style.display  = 'none';
+                if (revBadgeEl) revBadgeEl.style.display = 'none';
+              }
+              if (deal) deal.expirado = true;
+            }
+          }
+        } catch {}
+      }
+    }
+
     async function vote(dealId, direction, btn) {
       if (!dealId) return;
       const votes  = getUserVotes();
       const prev   = votes[dealId];
-      if (prev === direction) return;  // ya votado en esta dirección
+      if (prev === direction) return;
 
       const container = btn.closest(".deal__votes");
       if (!container) return;
       const upBtn    = container.querySelector(".vote-btn--up");
-      const downBtn  = container.querySelector(".vote-btn--down");
-      const upCount  = upBtn.querySelector(".vote-count");
-      const downCount = downBtn.querySelector(".vote-count");
+      const upCount  = upBtn?.querySelector(".vote-count");
 
-      // Actualización optimista
+      // Actualización optimista (solo dirección "up" — Meh ya no existe)
       if (direction === "up") {
-        upBtn.classList.add("voted");
-        downBtn.classList.remove("voted");
-        upCount.textContent   = parseInt(upCount.textContent)   + 1;
-        if (prev === "down") downCount.textContent = Math.max(0, parseInt(downCount.textContent) - 1);
-      } else {
-        downBtn.classList.add("voted");
-        upBtn.classList.remove("voted");
-        downCount.textContent = parseInt(downCount.textContent) + 1;
-        if (prev === "up") upCount.textContent = Math.max(0, parseInt(upCount.textContent) - 1);
+        upBtn?.classList.add("voted");
+        if (upCount) upCount.textContent = parseInt(upCount.textContent) + 1;
       }
 
       votes[dealId] = direction;
