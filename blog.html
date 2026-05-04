@@ -93,11 +93,20 @@
 
     a { color: inherit; text-decoration: none; }
 
+    /* ── Top accent bar (identidad index.html) ── */
+    body::before {
+      content: '';
+      display: block;
+      height: 4px;
+      background: var(--accent);
+    }
+
     /* ── Masthead (matches index.html visual identity) ── */
     .masthead {
       border-bottom: 3px double var(--border);
       padding: 22px 32px 16px;
       text-align: center;
+      background: var(--surface);
     }
 
     .masthead__eyebrow {
@@ -111,15 +120,18 @@
 
     .masthead__brand {
       font-family: var(--font-serif);
-      font-size: clamp(36px, 7vw, 68px);
+      font-size: clamp(42px, 8vw, 72px);
       font-weight: 900;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.03em;
       color: var(--ink);
       text-decoration: none;
       display: inline-block;
       line-height: 1;
     }
     .masthead__brand span { color: var(--accent); }
+    @media (prefers-color-scheme: dark) {
+      .masthead { background: #1e1c1b; border-color: #3a3634; }
+    }
 
     .masthead__rule {
       border: none;
