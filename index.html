@@ -609,18 +609,18 @@
       display: none;
       position: fixed;
       z-index: 9000;
-      background: var(--paper);
-      border: 1px solid var(--border);
+      background: #fff;
+      border: 1px solid #d8d5d0;
       border-radius: 14px;
       width: 360px;
       max-width: calc(100vw - 20px);
       max-height: 440px;
-      box-shadow: 0 6px 32px rgba(0,0,0,0.16);
+      box-shadow: 0 6px 32px rgba(0,0,0,0.14);
       flex-direction: column;
       overflow: hidden;
     }
     .comments-bubble.open { display: flex; }
-    [data-theme="dark"] .comments-bubble { background: #1e1c1b; }
+    [data-theme="dark"] .comments-bubble { background: #1e1c1b; border-color: #3a3634; }
     .comments-bubble__arrow {
       position: absolute;
       width: 0; height: 0;
@@ -2380,8 +2380,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
-            <span class="vote-count">${d.comment_count || 0}</span>
-            <span style="font-size:8px;letter-spacing:.12em">Comentar</span>
+            ${d.comment_count > 0 ? `<span class="vote-count">${d.comment_count}</span>` : ''}
           </button>
         </div>`;
 
@@ -3385,51 +3384,76 @@
     if (typeof hasMore !== 'undefined') hasMore = false;
   }
 
-  // ── Comments modal ────────────────────────────────────────────
+  // ── Comments bubble ───────────────────────────────────────────
   let _currentCommentDealId = null;
+  let _commentBtn = null;
+  let _commentArrowDir = 'arrow-bottom';
+  let _commentScrollStart = 0;
+  let _commentScrollHandler = null;
+
+  function _positionCommentsBubble(btn, arrowDir) {
+    const bubble = document.getElementById('comments-bubble');
+    const bW = bubble.offsetWidth;
+    const bH = bubble.offsetHeight;
+    const rect = btn.getBoundingClientRect();
+    const margin = 10;
+    const above = arrowDir === 'arrow-bottom';
+    let top  = above ? rect.top - bH - margin : rect.bottom + margin;
+    let left = rect.left + rect.width / 2 - bW / 2;
+    left = Math.max(10, Math.min(left, window.innerWidth  - bW - 10));
+    top  = Math.max(10, Math.min(top,  window.innerHeight - bH - 10));
+    bubble.style.top  = top  + 'px';
+    bubble.style.left = left + 'px';
+    const btnCx = rect.left + rect.width / 2;
+    const arrowLeft = Math.max(14, Math.min(btnCx - left - 9, bW - 32));
+    bubble.querySelector('.comments-bubble__arrow').style.left = arrowLeft + 'px';
+  }
 
   function openComments(dealId, btn) {
     _currentCommentDealId = dealId;
+    _commentBtn = btn;
+    _commentScrollStart = window.scrollY;
     const bubble = document.getElementById('comments-bubble');
 
-    // Show/hide input based on login state
     const loggedIn = isLoggedIn();
     document.getElementById('comments-login-cta').style.display = loggedIn ? 'none' : '';
     document.getElementById('comments-input-row').style.display = loggedIn ? '' : 'none';
 
-    // Position the bubble near the button (same logic as reventa-bubble)
+    // Measure bubble height before showing
     bubble.style.visibility = 'hidden';
     bubble.classList.add('open');
-    const bW = bubble.offsetWidth;
     const bH = bubble.offsetHeight;
-    bubble.classList.remove('open');
+    const rect = btn.getBoundingClientRect();
+    const showAbove = rect.top >= bH + 18;
+    _commentArrowDir = showAbove ? 'arrow-bottom' : 'arrow-top';
+    bubble.className = 'comments-bubble open ' + _commentArrowDir;
     bubble.style.visibility = '';
 
-    const rect = btn.getBoundingClientRect();
-    const margin = 10;
-    const showAbove = rect.top >= bH + margin + 8;
-    let top  = showAbove ? rect.top - bH - margin : rect.bottom + margin;
-    let left = rect.left + rect.width / 2 - bW / 2;
-    left = Math.max(10, Math.min(left, window.innerWidth - bW - 10));
-    top  = Math.max(10, Math.min(top, window.innerHeight - bH - 10));
+    _positionCommentsBubble(btn, _commentArrowDir);
 
-    bubble.style.top  = top + 'px';
-    bubble.style.left = left + 'px';
-
-    const arrowDir = showAbove ? 'arrow-bottom' : 'arrow-top';
-    bubble.className = 'comments-bubble open ' + arrowDir;
-
-    const btnCx = rect.left + rect.width / 2;
-    const arrowLeft = Math.max(14, Math.min(btnCx - left - 9, bW - 32));
-    bubble.querySelector('.comments-bubble__arrow').style.left = arrowLeft + 'px';
+    // Close after 10px of scroll; until then track button position
+    if (_commentScrollHandler) window.removeEventListener('scroll', _commentScrollHandler);
+    _commentScrollHandler = function() {
+      if (Math.abs(window.scrollY - _commentScrollStart) >= 10) {
+        closeComments();
+      } else {
+        _positionCommentsBubble(_commentBtn, _commentArrowDir);
+      }
+    };
+    window.addEventListener('scroll', _commentScrollHandler, { passive: true });
 
     loadComments(dealId);
   }
 
   function closeComments() {
+    if (_commentScrollHandler) {
+      window.removeEventListener('scroll', _commentScrollHandler);
+      _commentScrollHandler = null;
+    }
     const bubble = document.getElementById('comments-bubble');
     bubble.classList.remove('open', 'arrow-top', 'arrow-bottom');
     _currentCommentDealId = null;
+    _commentBtn = null;
   }
 
   async function loadComments(dealId) {
