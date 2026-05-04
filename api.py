@@ -450,6 +450,20 @@ def _ensure_schema():
             except Exception:
                 pass
 
+        # Comentarios de deals
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS deal_comments (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                deal_id     TEXT    NOT NULL,
+                user_id     TEXT    NOT NULL,
+                user_name   TEXT    NOT NULL DEFAULT '',
+                user_avatar TEXT    NOT NULL DEFAULT '',
+                content     TEXT    NOT NULL,
+                created_at  TEXT    NOT NULL
+            )
+        """)
+        con.execute("CREATE INDEX IF NOT EXISTS idx_dc_deal ON deal_comments(deal_id, created_at)")
+
         con.commit()
 
 
@@ -483,6 +497,10 @@ class EmailLoginBody(BaseModel):
 
 class NewsletterBody(BaseModel):
     subscribed: bool
+
+
+class CommentBody(BaseModel):
+    content: str
 
 
 class BlogPostBody(BaseModel):
@@ -548,7 +566,8 @@ def get_deals(
             COALESCE(contras,     '[]') AS contras,
             COALESCE(flags_expirado, 0) AS flags_expirado,
             COALESCE(expirado,       0) AS expirado,
-            publicado_en    AS timestamp
+            publicado_en    AS timestamp,
+            (SELECT COUNT(*) FROM deal_comments WHERE deal_id = deals_publicados.deal_id) AS comment_count
         FROM deals_publicados
         {where_sql}
         ORDER BY publicado_en DESC
@@ -574,6 +593,7 @@ def get_deals(
         d["categoria"]        = d["categoria"]         or ""
         d["flags_expirado"]   = int(d.get("flags_expirado", 0) or 0)
         d["expirado"]         = bool(d.get("expirado", 0))
+        d["comment_count"]    = int(d.get("comment_count", 0) or 0)
         try:    d["pros"]    = json.loads(d["pros"]    or "[]")
         except: d["pros"]    = []
         try:    d["contras"] = json.loads(d["contras"] or "[]")
@@ -621,6 +641,45 @@ def vote_deal(deal_id: str, body: VoteBody):
             (deal_id,),
         ).fetchone()
     return {"votes_up": row["votes_up"], "votes_down": row["votes_down"]}
+
+
+@app.get("/api/deals/{deal_id}/comments")
+def get_comments(deal_id: str):
+    """Lista de comentarios de un deal, orden cronológico."""
+    with _get_db() as con:
+        rows = con.execute(
+            "SELECT id, user_name, user_avatar, content, created_at "
+            "FROM deal_comments WHERE deal_id = ? ORDER BY created_at ASC",
+            (deal_id,)
+        ).fetchall()
+    return JSONResponse(content=[dict(r) for r in rows])
+
+
+@app.post("/api/deals/{deal_id}/comments")
+def add_comment(deal_id: str, body: CommentBody, request: Request):
+    """Añade un comentario. Requiere JWT de usuario."""
+    user = _require_user(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Debes iniciar sesión para comentar"})
+    content = body.content.strip()
+    if not content or len(content) > 500:
+        return JSONResponse(status_code=400, content={"error": "El comentario debe tener entre 1 y 500 caracteres"})
+    now = datetime.now(timezone.utc).isoformat()
+    with _get_db() as con:
+        cur = con.execute(
+            "INSERT INTO deal_comments (deal_id, user_id, user_name, user_avatar, content, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (deal_id, user["sub"], user.get("name", ""), user.get("avatar", ""), content, now)
+        )
+        comment_id = cur.lastrowid
+        con.commit()
+    return {
+        "id": comment_id,
+        "user_name": user.get("name", ""),
+        "user_avatar": user.get("avatar", ""),
+        "content": content,
+        "created_at": now,
+    }
 
 
 @app.post("/api/deals/{deal_id}/flag-expired")

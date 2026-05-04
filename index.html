@@ -542,6 +542,119 @@
       margin-bottom: 14px;
     }
 
+    /* ── Vote btn comentarios ───────────────────────────────────── */
+    .vote-btn--comment { color: var(--text-mid); }
+    .vote-btn--comment:hover { color: var(--ink); }
+    .vote-btn--comment svg { width: 16px; height: 16px; }
+
+    /* ── Paywall ────────────────────────────────────────────────── */
+    #paywall-overlay {
+      position: relative;
+      z-index: 20;
+      margin-top: -280px;
+      padding: 280px 20px 80px;
+      background: linear-gradient(to bottom, transparent 0%, var(--paper) 52%);
+      text-align: center;
+    }
+    [data-theme="dark"] #paywall-overlay {
+      background: linear-gradient(to bottom, transparent 0%, #1a1918 52%);
+    }
+    .paywall-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 36px;
+      max-width: 420px;
+      margin: 0 auto;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.10);
+    }
+    [data-theme="dark"] .paywall-card { background: #232120; border-color: #3a3634; }
+    .paywall-card h2 { font-family: var(--serif); font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .paywall-card p  { font-size: 14px; color: var(--text-mid); margin-bottom: 24px; }
+    .paywall-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      text-decoration: none; margin-bottom: 10px; transition: opacity 0.15s;
+    }
+    .paywall-btn:hover { opacity: 0.88; }
+    .paywall-btn--google { background: #fff; color: #111; border: 1px solid #ddd; }
+    [data-theme="dark"] .paywall-btn--google { background: #2a2a2a; color: #e2e2e2; border-color: #444; }
+    .paywall-btn--email  { background: var(--ink); color: var(--bg); border: none; }
+    .paywall-link { font-size: 13px; color: var(--text-mid); text-decoration: underline; display: block; margin-top: 14px; }
+
+    /* ── Modal de login (gate) ──────────────────────────────────── */
+    .login-gate-overlay {
+      position: fixed; inset: 0; z-index: 900;
+      background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .login-gate-card {
+      background: var(--paper); border: 1px solid var(--border); border-radius: 16px;
+      padding: 40px 36px; max-width: 400px; width: 100%; text-align: center; position: relative;
+    }
+    [data-theme="dark"] .login-gate-card { background: #232120; border-color: #3a3634; }
+    .login-gate-card h2 { font-family: var(--serif); font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    .login-gate-card p  { font-size: 13px; color: var(--text-mid); margin-bottom: 24px; }
+    .login-gate-close {
+      position: absolute; top: 14px; right: 16px; background: none; border: none;
+      font-size: 20px; cursor: pointer; color: var(--text-mid); line-height: 1;
+    }
+
+    /* ── Modal de comentarios ───────────────────────────────────── */
+    .comments-overlay {
+      position: fixed; inset: 0; z-index: 900;
+      background: rgba(0,0,0,0.55); display: flex; align-items: flex-end; justify-content: center;
+      padding: 0;
+    }
+    @media (min-width: 600px) { .comments-overlay { align-items: center; padding: 20px; } }
+    .comments-modal {
+      background: var(--paper); border-radius: 20px 20px 0 0; width: 100%; max-width: 560px;
+      max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 -4px 40px rgba(0,0,0,0.18);
+    }
+    @media (min-width: 600px) { .comments-modal { border-radius: 16px; max-height: 75vh; } }
+    [data-theme="dark"] .comments-modal { background: #1e1c1b; }
+    .comments-modal__header {
+      padding: 18px 20px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .comments-modal__header h3 { font-family: var(--serif); font-size: 18px; font-weight: 700; }
+    .comments-modal__close {
+      background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-mid);
+      line-height: 1; padding: 4px;
+    }
+    .comments-thread {
+      flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;
+    }
+    .comment-item { display: flex; gap: 10px; }
+    .comment-avatar {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+      overflow: hidden; color: var(--ink);
+    }
+    .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .comment-body { flex: 1; }
+    .comment-meta { font-size: 11px; color: var(--text-mid); margin-bottom: 3px; }
+    .comment-meta strong { color: var(--ink); font-size: 12px; }
+    .comment-text { font-size: 13px; line-height: 1.5; }
+    .comments-empty { color: var(--text-mid); font-size: 13px; text-align: center; padding: 32px 0; }
+    .comments-modal__footer { padding: 14px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .comments-input-row { display: flex; gap: 10px; align-items: flex-end; }
+    .comments-input-row textarea {
+      flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+      background: var(--bg); color: var(--ink); font-family: inherit; font-size: 13px;
+      resize: none; min-height: 40px; max-height: 120px; outline: none; line-height: 1.4;
+    }
+    [data-theme="dark"] .comments-input-row textarea { background: #111; color: #e2e2e2; border-color: #3a3634; }
+    .comments-input-row textarea:focus { border-color: var(--accent-green); }
+    .comments-send-btn {
+      background: var(--accent-green); color: #fff; border: none; border-radius: 10px;
+      padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+      transition: opacity 0.15s; flex-shrink: 0;
+    }
+    .comments-send-btn:hover { opacity: 0.88; }
+    .comments-send-btn:disabled { opacity: 0.4; cursor: default; }
+    .comments-login-cta { text-align: center; padding: 8px 0; font-size: 13px; color: var(--text-mid); }
+
     /* ── Pros / Contras ─────────────────────────────────────────── */
     .deal__procon {
       display: flex;
@@ -2238,6 +2351,15 @@
             <span class="vote-count">${flagCount}</span>
             <span style="font-size:8px;letter-spacing:.12em">Expiró</span>
           </button>
+          <button class="vote-btn vote-btn--comment"
+                  onclick="openComments('${dealId}', this)"
+                  aria-label="Comentarios" title="Ver comentarios">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span class="vote-count">${d.comment_count || 0}</span>
+            <span style="font-size:8px;letter-spacing:.12em">Comentar</span>
+          </button>
         </div>`;
 
       return `
@@ -2429,6 +2551,7 @@
 
     async function flagExpired(dealId, btn) {
       if (!dealId) return;
+      if (!isLoggedIn()) { showLoginGate("Inicia sesión para reportar ofertas expiradas"); return; }
       const flagged = _getFlagged();
       if (flagged[dealId]) { btn.title = 'Ya has reportado esta oferta'; return; }
 
@@ -2476,6 +2599,7 @@
 
     async function vote(dealId, direction, btn) {
       if (!dealId) return;
+      if (!isLoggedIn()) { showLoginGate("Inicia sesión para votar"); return; }
       const votes  = getUserVotes();
       const prev   = votes[dealId];
       if (prev === direction) return;
@@ -2743,6 +2867,8 @@
           loadMore();
           return;
         }
+
+        checkPaywall();
 
       } catch (e) {
         console.error("Error cargando deals:", e);
@@ -3142,5 +3268,199 @@
     }
   </script>
 
+<!-- ── Comment Modal ──────────────────────────────────────────── -->
+<div class="comments-overlay" id="comments-overlay" style="display:none" onclick="if(event.target===this)closeComments()">
+  <div class="comments-modal" role="dialog" aria-modal="true" aria-label="Comentarios">
+    <div class="comments-modal__header">
+      <h3>Comentarios</h3>
+      <button class="comments-modal__close" onclick="closeComments()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="comments-thread" id="comments-thread">
+      <p class="comments-empty">Cargando…</p>
+    </div>
+    <div class="comments-modal__footer" id="comments-footer">
+      <div class="comments-login-cta" id="comments-login-cta" style="display:none">
+        <a href="/cuenta" style="color:var(--accent-green);font-weight:600">Inicia sesión</a> para dejar un comentario
+      </div>
+      <div class="comments-input-row" id="comments-input-row">
+        <textarea id="comment-textarea" placeholder="Escribe un comentario…" rows="1"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitComment();}"></textarea>
+        <button class="comments-send-btn" id="comments-send-btn" onclick="submitComment()">Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Login Gate Modal ───────────────────────────────────────── -->
+<div class="login-gate-overlay" id="login-gate-overlay" style="display:none" onclick="if(event.target===this)closeLoginGate()">
+  <div class="login-gate-card">
+    <button class="login-gate-close" onclick="closeLoginGate()" aria-label="Cerrar">✕</button>
+    <h2>Únete a Flipazo</h2>
+    <p id="login-gate-msg">Crea una cuenta gratuita para votar y comentar</p>
+    <a href="/auth/google" class="paywall-btn paywall-btn--google">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 2.9l5.7-5.7C34.5 6.5 29.5 4 24 4 12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.8 1.1 8 2.9l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.2 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8H6.3C9.6 35.7 16.3 44 24 44z" /><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.2 5.2C37 39.8 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+      Continuar con Google
+    </a>
+    <a href="/cuenta" class="paywall-btn paywall-btn--email">Entrar con email</a>
+    <a href="/cuenta" class="paywall-link">Crear cuenta gratuita →</a>
+  </div>
+</div>
+
+<script>
+  // ── Auth helpers ──────────────────────────────────────────────
+  function isLoggedIn() {
+    const t = localStorage.getItem('flipazo_user_token');
+    if (!t) return false;
+    try {
+      const payload = JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+      return payload.exp > Date.now() / 1000;
+    } catch { return false; }
+  }
+
+  // ── Login gate modal ──────────────────────────────────────────
+  function showLoginGate(msg) {
+    document.getElementById('login-gate-msg').textContent = msg || 'Crea una cuenta gratuita para votar y comentar';
+    document.getElementById('login-gate-overlay').style.display = 'flex';
+  }
+  function closeLoginGate() {
+    document.getElementById('login-gate-overlay').style.display = 'none';
+  }
+
+  // ── Paywall ───────────────────────────────────────────────────
+  const PAYWALL_LIMIT = 15;
+  let paywallShown = false;
+
+  function checkPaywall() {
+    if (paywallShown || isLoggedIn()) return;
+    const grid = document.getElementById('js-grid');
+    if (!grid) return;
+    if (grid.querySelectorAll('article.deal').length >= PAYWALL_LIMIT) {
+      showPaywall(grid);
+    }
+  }
+
+  function showPaywall(grid) {
+    if (paywallShown) return;
+    paywallShown = true;
+
+    const div = document.createElement('div');
+    div.id = 'paywall-overlay';
+    div.innerHTML = `
+      <div class="paywall-card">
+        <h2>Ve todas las ofertas</h2>
+        <p>Crea una cuenta gratuita para acceder a todas las ofertas en tiempo real y recibir alertas</p>
+        <a href="/auth/google" class="paywall-btn paywall-btn--google">
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 2.9l5.7-5.7C34.5 6.5 29.5 4 24 4 12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.8 1.1 8 2.9l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.2 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8H6.3C9.6 35.7 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.2 5.2C37 39.8 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+          Continuar con Google
+        </a>
+        <a href="/cuenta" class="paywall-btn paywall-btn--email">Entrar con email</a>
+        <a href="/cuenta" class="paywall-link">Crear cuenta gratuita →</a>
+      </div>`;
+    grid.after(div);
+
+    // Stop infinite scroll for non-logged-in users
+    if (typeof hasMore !== 'undefined') hasMore = false;
+  }
+
+  // ── Comments modal ────────────────────────────────────────────
+  let _currentCommentDealId = null;
+
+  function openComments(dealId, btn) {
+    _currentCommentDealId = dealId;
+    const overlay = document.getElementById('comments-overlay');
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Show/hide input based on login state
+    const loggedIn = isLoggedIn();
+    document.getElementById('comments-login-cta').style.display = loggedIn ? 'none' : '';
+    document.getElementById('comments-input-row').style.display = loggedIn ? '' : 'none';
+
+    loadComments(dealId);
+  }
+
+  function closeComments() {
+    document.getElementById('comments-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+    _currentCommentDealId = null;
+  }
+
+  async function loadComments(dealId) {
+    const thread = document.getElementById('comments-thread');
+    thread.innerHTML = '<p class="comments-empty">Cargando…</p>';
+    try {
+      const res = await fetch(`${API_BASE}/api/deals/${dealId}/comments`);
+      const comments = await res.json();
+      if (!comments.length) {
+        thread.innerHTML = '<p class="comments-empty">Sé el primero en comentar</p>';
+        return;
+      }
+      thread.innerHTML = comments.map(c => {
+        const initial = (c.user_name || '?')[0].toUpperCase();
+        const avatarHtml = c.user_avatar
+          ? `<img src="${c.user_avatar}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+          : '';
+        const ts = new Date(c.created_at).toLocaleDateString('es-ES', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+        return `
+          <div class="comment-item">
+            <div class="comment-avatar">${avatarHtml}<span style="${c.user_avatar?'display:none':''}">${initial}</span></div>
+            <div class="comment-body">
+              <div class="comment-meta"><strong>${c.user_name || 'Usuario'}</strong> · ${ts}</div>
+              <div class="comment-text">${c.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+            </div>
+          </div>`;
+      }).join('');
+      thread.scrollTop = thread.scrollHeight;
+    } catch {
+      thread.innerHTML = '<p class="comments-empty">Error cargando comentarios</p>';
+    }
+  }
+
+  async function submitComment() {
+    const dealId = _currentCommentDealId;
+    if (!dealId) return;
+    if (!isLoggedIn()) { showLoginGate('Inicia sesión para comentar'); return; }
+
+    const ta = document.getElementById('comment-textarea');
+    const content = ta.value.trim();
+    if (!content) return;
+
+    const btn = document.getElementById('comments-send-btn');
+    btn.disabled = true;
+
+    const token = localStorage.getItem('flipazo_user_token');
+    try {
+      const res = await fetch(`${API_BASE}/api/deals/${dealId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ content }),
+      });
+      if (res.status === 401) { closeComments(); showLoginGate('Sesión expirada, vuelve a iniciar sesión'); return; }
+      if (!res.ok) { const d = await res.json(); alert(d.error || 'Error al enviar'); return; }
+
+      ta.value = '';
+      ta.style.height = 'auto';
+
+      // Actualizar contador en la card
+      const card = document.querySelector(`article.deal [onclick*="openComments('${dealId}')"]`);
+      if (card) {
+        const countEl = card.querySelector('.vote-count');
+        if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
+      }
+      // Refrescar hilo
+      await loadComments(dealId);
+    } catch { alert('Error de conexión'); }
+    finally { btn.disabled = false; }
+  }
+
+  // Cerrar con Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeComments();
+      closeLoginGate();
+    }
+  });
+</script>
 </body>
 </html>
