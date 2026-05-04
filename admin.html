@@ -116,6 +116,7 @@
     }
     .badge--pub  { background: #d4edda; color: #155724; }
     .badge--draft { background: #fff3cd; color: #856404; }
+    .badge--exp { background: #fce4e4; color: #c0392b; }
 
     /* ── Editor area ── */
     .editor-area {
@@ -375,6 +376,7 @@
     .col-px   { width: 84px; }
     .col-clk  { width: 60px; text-align: right; }
     .col-dt   { width: 90px; }
+    .col-exp  { width: 46px; }
     .col-del  { width: 44px; }
   </style>
 </head>
@@ -475,6 +477,35 @@
             </div>
           </div>
 
+          <!-- SEO / AEO -->
+          <div style="border-top:1px solid var(--border);margin:4px 0 0;padding-top:12px">
+            <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-bottom:10px">
+              SEO / AEO
+            </p>
+            <div class="field">
+              <label>Meta Description (Google) <span id="meta-desc-count" style="font-weight:400;font-size:11px"></span></label>
+              <textarea id="field-meta-desc" rows="2" maxlength="160" style="min-height:0;resize:none" placeholder="Si vacío, se usa el resumen. Ideal: 140-160 caracteres…"></textarea>
+            </div>
+            <div class="row-2">
+              <div class="field">
+                <label>Tags / Palabras clave</label>
+                <input type="text" id="field-tags" placeholder="ofertas, amazon, tecnología (separar por coma)" />
+              </div>
+              <div class="field">
+                <label>Schema AEO</label>
+                <select id="field-schema-type" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);font-size:14px;font-family:inherit;background:var(--surface);color:var(--ink)">
+                  <option value="Article">Article</option>
+                  <option value="FAQPage">FAQ Page</option>
+                  <option value="HowTo">How-To</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label>OG Title (redes sociales)</label>
+              <input type="text" id="field-og-title" placeholder="Si vacío, se usa el título principal…" />
+            </div>
+          </div>
+
           <!-- Tabs: Editor / Preview -->
           <div class="editor-tabs">
             <div class="editor-tab active" data-tab="write">✏️ Markdown</div>
@@ -507,6 +538,9 @@
       </div>
       <div class="deals-toolbar__right">
         <span id="deals-count-label" style="color:var(--ink-3);font-size:12px"></span>
+        <button id="filter-expired-btn" class="btn btn--secondary" onclick="toggleExpiredFilter()" title="Mostrar solo deals expirados">
+          🚩 Expirados
+        </button>
         <button id="bulk-delete-btn" class="btn btn--danger" style="display:none" onclick="bulkDelete()">
           Eliminar selección (<span id="bulk-count">0</span>)
         </button>
@@ -527,6 +561,7 @@
             <th class="col-px">Precio</th>
             <th class="col-clk">Clicks</th>
             <th class="col-dt">Fecha</th>
+            <th class="col-exp" style="width:46px">Exp.</th>
             <th class="col-del"></th>
           </tr>
         </thead>
@@ -672,6 +707,10 @@
     document.getElementById("field-imagen").value = "";
     document.getElementById("field-contenido").value = "";
     document.getElementById("field-publicado").checked = false;
+    document.getElementById("field-meta-desc").value = "";
+    document.getElementById("field-tags").value = "";
+    document.getElementById("field-schema-type").value = "Article";
+    document.getElementById("field-og-title").value = "";
     renderSidebar();
     showEditor(true);
   }
@@ -687,6 +726,10 @@
     document.getElementById("field-imagen").value      = p.imagen_url || "";
     document.getElementById("field-contenido").value   = p.contenido || "";
     document.getElementById("field-publicado").checked = !!p.publicado;
+    document.getElementById("field-meta-desc").value  = p.meta_description || "";
+    document.getElementById("field-tags").value        = p.tags || "";
+    document.getElementById("field-schema-type").value = p.schema_type || "Article";
+    document.getElementById("field-og-title").value    = p.og_title || "";
     renderSidebar();
     showEditor(false);
   }
@@ -706,10 +749,15 @@
     const imagen   = document.getElementById("field-imagen").value.trim();
     const contenido = document.getElementById("field-contenido").value;
     const publicado = document.getElementById("field-publicado").checked;
+    const meta_description = document.getElementById("field-meta-desc").value.trim();
+    const tags             = document.getElementById("field-tags").value.trim();
+    const schema_type      = document.getElementById("field-schema-type").value;
+    const og_title         = document.getElementById("field-og-title").value.trim();
 
     if (!titulo || !slug) { toast("Título y slug son obligatorios", true); return; }
 
-    const body = { slug, titulo, resumen, contenido, imagen_url: imagen, publicado };
+    const body = { slug, titulo, resumen, contenido, imagen_url: imagen, publicado,
+                   meta_description, tags, schema_type, og_title };
     const isNew = !id;
     const url  = isNew ? `${API}/admin/blog` : `${API}/admin/blog/${id}`;
     const method = isNew ? "POST" : "PUT";
@@ -795,6 +843,14 @@
   const selectedDeals = new Set();
   const dealsState = { deals: [], total: -1, offset: 0, search: "" };
   let dealsSearchTimer = null;
+  let dealsExpiredFilter = false;
+
+  function toggleExpiredFilter() {
+    dealsExpiredFilter = !dealsExpiredFilter;
+    document.getElementById("filter-expired-btn").classList.toggle("btn--primary", dealsExpiredFilter);
+    document.getElementById("filter-expired-btn").classList.toggle("btn--secondary", !dealsExpiredFilter);
+    loadDeals(true);
+  }
 
   function _esc(s) {
     return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -815,6 +871,7 @@
 
     const p = new URLSearchParams({ limit: DEALS_LIMIT, offset: dealsState.offset });
     if (dealsState.search) p.set("busqueda", dealsState.search);
+    if (dealsExpiredFilter) p.set("expirado", "1");
 
     try {
       const res  = await fetch(`${API}/admin/deals?${p}`, { headers: { "Authorization": `Bearer ${JWT}` } });
@@ -854,6 +911,7 @@
           <td class="col-px"><strong>${_price(d.precio_actual)}</strong></td>
           <td class="col-clk">${d.clicks_total||0}</td>
           <td class="col-dt">${_reldate(d.publicado_en)}</td>
+          <td class="col-exp">${d.expirado ? '<span class="badge badge--exp" title="Oferta expirada">✓</span>' : (d.flags_expirado > 0 ? `<span style="color:#c0392b;font-size:11px">🚩${d.flags_expirado}</span>` : '')}</td>
           <td class="col-del">
             <button class="btn btn--danger" style="padding:3px 7px;font-size:11px"
               onclick="deleteSingleDeal('${_esc(d.deal_id)}')">✕</button>
@@ -909,6 +967,13 @@
     _updateBulkBtn();
   });
 
+  document.getElementById("field-meta-desc").addEventListener("input", function() {
+    const n = this.value.length;
+    const el = document.getElementById("meta-desc-count");
+    el.textContent = `${n}/160`;
+    el.style.color = n > 155 ? "#c0392b" : "var(--ink-3)";
+  });
+
   document.getElementById("deals-search").addEventListener("input", function() {
     clearTimeout(dealsSearchTimer);
     dealsState.search = this.value.trim();
@@ -936,6 +1001,7 @@
   async function bulkDelete() {
     const ids = Array.from(selectedDeals);
     if (!ids.length) return;
+    if (!JWT) { toast("Sesión no válida", true); return; }
     if (!confirm(`¿Eliminar ${ids.length} deal${ids.length !== 1 ? "s" : ""}? Esta acción no se puede deshacer.`)) return;
     try {
       const res = await fetch(`${API}/admin/deals/bulk`, {
@@ -948,7 +1014,13 @@
       selectedDeals.clear();
       toast(`${data.deleted} deal${data.deleted !== 1 ? "s" : ""} eliminados ✓`);
       await loadDeals(true);
-    } catch (e) { toast("Error de conexión", true); }
+    } catch (e) {
+      if (e.message && e.message.includes("401")) {
+        toast("Sesión expirada, por favor vuelve a iniciar sesión", true);
+      } else {
+        toast("Error de conexión", true);
+      }
+    }
   }
 </script>
 </body>

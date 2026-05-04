@@ -420,19 +420,36 @@ def _ensure_schema():
         # Blog posts
         con.execute("""
             CREATE TABLE IF NOT EXISTS blog_posts (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                slug        TEXT    UNIQUE NOT NULL,
-                titulo      TEXT    NOT NULL,
-                resumen     TEXT    DEFAULT '',
-                contenido   TEXT    DEFAULT '',
-                imagen_url  TEXT    DEFAULT '',
-                publicado   INTEGER DEFAULT 0,
-                created_at  TEXT    NOT NULL,
-                updated_at  TEXT    NOT NULL
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug             TEXT    UNIQUE NOT NULL,
+                titulo           TEXT    NOT NULL,
+                resumen          TEXT    DEFAULT '',
+                contenido        TEXT    DEFAULT '',
+                imagen_url       TEXT    DEFAULT '',
+                publicado        INTEGER DEFAULT 0,
+                created_at       TEXT    NOT NULL,
+                updated_at       TEXT    NOT NULL,
+                meta_description TEXT    DEFAULT '',
+                tags             TEXT    DEFAULT '',
+                og_title         TEXT    DEFAULT '',
+                schema_type      TEXT    DEFAULT 'Article'
             )
         """)
         con.execute("CREATE INDEX IF NOT EXISTS idx_blog_slug ON blog_posts(slug)")
         con.execute("CREATE INDEX IF NOT EXISTS idx_blog_pub  ON blog_posts(publicado, created_at)")
+
+        # Columnas SEO/AEO en blog_posts (migracion suave)
+        for col_def in [
+            "meta_description TEXT DEFAULT ''",
+            "tags             TEXT DEFAULT ''",
+            "og_title         TEXT DEFAULT ''",
+            "schema_type      TEXT DEFAULT 'Article'",
+        ]:
+            try:
+                con.execute(f"ALTER TABLE blog_posts ADD COLUMN {col_def}")
+            except Exception:
+                pass
+
         con.commit()
 
 
@@ -469,12 +486,16 @@ class NewsletterBody(BaseModel):
 
 
 class BlogPostBody(BaseModel):
-    slug:       str
-    titulo:     str
-    resumen:    str = ""
-    contenido:  str = ""
-    imagen_url: str = ""
-    publicado:  bool = False
+    slug:             str
+    titulo:           str
+    resumen:          str = ""
+    contenido:        str = ""
+    imagen_url:       str = ""
+    publicado:        bool = False
+    meta_description: str = ""
+    tags:             str = ""
+    og_title:         str = ""
+    schema_type:      str = "Article"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -695,12 +716,13 @@ def admin_login(body: AdminLoginBody):
 
 @app.get("/admin/deals")
 def admin_deals(
-    request:  Request,
-    limit:    int = Query(default=50, ge=1, le=200),
-    offset:   int = Query(default=0,  ge=0),
-    tipo:     Optional[str] = Query(default=None),
-    tienda:   Optional[str] = Query(default=None),
-    busqueda: Optional[str] = Query(default=None),
+    request:   Request,
+    limit:     int = Query(default=50, ge=1, le=200),
+    offset:    int = Query(default=0,  ge=0),
+    tipo:      Optional[str] = Query(default=None),
+    tienda:    Optional[str] = Query(default=None),
+    busqueda:  Optional[str] = Query(default=None),
+    expirado:  Optional[int] = Query(default=None),
 ):
     """Lista deals con métricas de clicks y votos. Requiere JWT admin."""
     if not _require_admin(request):
@@ -713,6 +735,8 @@ def admin_deals(
         where.append("d.tienda = ?"); params.append(tienda)
     if busqueda:
         where.append("d.titulo LIKE ?"); params.append(f"%{busqueda}%")
+    if expirado is not None:
+        where.append("COALESCE(d.expirado, 0) = ?"); params.append(expirado)
 
     where_sql = "WHERE " + " AND ".join(where) if where else ""
 
@@ -723,9 +747,11 @@ def admin_deals(
             d.precio_original, d.descuento_pct,
             d.imagen_url,      d.publicado_en,
             d.url_afiliado,
-            COALESCE(d.votes_up,   0) AS votes_up,
-            COALESCE(d.votes_down, 0) AS votes_down,
-            COALESCE(d.categoria,  '') AS categoria,
+            COALESCE(d.votes_up,      0) AS votes_up,
+            COALESCE(d.votes_down,    0) AS votes_down,
+            COALESCE(d.categoria,    '') AS categoria,
+            COALESCE(d.flags_expirado,0) AS flags_expirado,
+            COALESCE(d.expirado,      0) AS expirado,
             COUNT(c.id)                                          AS clicks_total,
             SUM(CASE WHEN c.canal = 'telegram' THEN 1 ELSE 0 END) AS clicks_telegram,
             SUM(CASE WHEN c.canal = 'web'      THEN 1 ELSE 0 END) AS clicks_web
@@ -1230,7 +1256,8 @@ def list_blog_posts(limit: int = Query(default=20, ge=1, le=100), offset: int = 
     """Devuelve posts publicados ordenados del más reciente al más antiguo."""
     with _get_db() as con:
         rows = con.execute(
-            "SELECT id, slug, titulo, resumen, imagen_url, created_at, updated_at "
+            "SELECT id, slug, titulo, resumen, imagen_url, created_at, updated_at, "
+            "meta_description, tags, og_title, schema_type "
             "FROM blog_posts WHERE publicado = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?",
             (limit, offset)
         ).fetchall()
@@ -1261,7 +1288,8 @@ def admin_list_blog(request: Request):
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
     with _get_db() as con:
         rows = con.execute(
-            "SELECT id, slug, titulo, resumen, contenido, imagen_url, publicado, created_at, updated_at "
+            "SELECT id, slug, titulo, resumen, contenido, imagen_url, publicado, "
+            "created_at, updated_at, meta_description, tags, og_title, schema_type "
             "FROM blog_posts ORDER BY created_at DESC"
         ).fetchall()
     return {"posts": [dict(r) for r in rows]}
@@ -1276,10 +1304,13 @@ def create_blog_post(body: BlogPostBody, request: Request):
     try:
         with _get_db() as con:
             cur = con.execute(
-                "INSERT INTO blog_posts (slug, titulo, resumen, contenido, imagen_url, publicado, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO blog_posts "
+                "(slug, titulo, resumen, contenido, imagen_url, publicado, created_at, updated_at, "
+                "meta_description, tags, og_title, schema_type) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (body.slug, body.titulo, body.resumen, body.contenido,
-                 body.imagen_url, 1 if body.publicado else 0, now, now)
+                 body.imagen_url, 1 if body.publicado else 0, now, now,
+                 body.meta_description, body.tags, body.og_title, body.schema_type or "Article")
             )
             con.commit()
             post_id = cur.lastrowid
@@ -1299,9 +1330,12 @@ def update_blog_post(post_id: int, body: BlogPostBody, request: Request):
     with _get_db() as con:
         updated = con.execute(
             "UPDATE blog_posts SET slug=?, titulo=?, resumen=?, contenido=?, "
-            "imagen_url=?, publicado=?, updated_at=? WHERE id=?",
+            "imagen_url=?, publicado=?, updated_at=?, "
+            "meta_description=?, tags=?, og_title=?, schema_type=? WHERE id=?",
             (body.slug, body.titulo, body.resumen, body.contenido,
-             body.imagen_url, 1 if body.publicado else 0, now, post_id)
+             body.imagen_url, 1 if body.publicado else 0, now,
+             body.meta_description, body.tags, body.og_title, body.schema_type or "Article",
+             post_id)
         ).rowcount
         con.commit()
     if not updated:
