@@ -236,11 +236,11 @@ def _upsert_user(user_id: str, email: str, name: str, avatar_url: str, provider:
 
 # ── Verificación ligera de precio expirado ─────────────────────────────────────
 
-def _check_price_expired(url_afiliado: str) -> bool:
+def _check_price_expired(url_afiliado: str) -> bool | None:
     """
-    Comprueba con requests (sin Playwright) si el producto ya no está disponible.
-    Retorna True solo con evidencia clara (404, agotado, no disponible).
-    En caso de duda o error de red retorna False para no marcar como expirado.
+    Comprueba si el producto ya no está disponible.
+    Retorna True (expirado), False (activo), o None (no se pudo verificar → revisión manual).
+    Links de Tradedoubler usan JS redirect — se construye URL directa de MediaMarkt.
     """
     try:
         headers = {
@@ -251,10 +251,31 @@ def _check_price_expired(url_afiliado: str) -> bool:
             "Accept-Language": "es-ES,es;q=0.9",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
-        resp = _http.get(url_afiliado, headers=headers, timeout=12, allow_redirects=True)
+
+        url = url_afiliado
+
+        # Links de Tradedoubler (pdt.tradedoubler.com) usan meta-refresh JS —
+        # extraemos el product ID y construimos URL directa de MediaMarkt
+        td_m = _re.search(r'product\(\d+-(\d+)\)', url_afiliado)
+        if td_m and "tradedoubler" in url_afiliado:
+            product_id = td_m.group(1)
+            url = f"https://www.mediamarkt.es/es/product/_{product_id}.html"
+
+        resp = _http.get(url, headers=headers, timeout=12, allow_redirects=True)
+
         if resp.status_code in (404, 410):
             return True
+
+        # Cloudflare o página de error genérica — no sabemos el estado real
+        if resp.status_code in (403, 503) or "challenge" in resp.url:
+            return None
+
         content = resp.text.lower()
+
+        # Cloudflare challenge HTML
+        if 'id="challenge-form"' in content or "just a moment" in content:
+            return None
+
         signals = [
             "actualmente no disponible", "currently unavailable",
             "no está disponible", "este artículo no está disponible",
@@ -262,8 +283,9 @@ def _check_price_expired(url_afiliado: str) -> bool:
             "producto no encontrado", "página no encontrada",
         ]
         return any(s in content for s in signals)
+
     except Exception:
-        return False  # En caso de error de red no marcamos como expirado
+        return None  # Error de red → revisión manual
 
 
 def _background_check_expiry(deal_id: str, url_afiliado: str, titulo: str) -> None:
@@ -272,9 +294,10 @@ def _background_check_expiry(deal_id: str, url_afiliado: str, titulo: str) -> No
     Notifica al admin por Telegram con el resultado.
     """
     try:
-        expirado = _check_price_expired(url_afiliado)
+        resultado = _check_price_expired(url_afiliado)
+
         with _get_db() as con:
-            if expirado:
+            if resultado is True:
                 con.execute(
                     "UPDATE deals_publicados SET expirado = 1 WHERE deal_id = ?",
                     (deal_id,),
@@ -285,16 +308,20 @@ def _background_check_expiry(deal_id: str, url_afiliado: str, titulo: str) -> No
         token    = os.getenv("TELEGRAM_BOT_TOKEN", "")
         admin_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")
         if token and admin_id:
-            estado = (
-                "❌ <b>EXPIRADO</b> — marcado como no disponible en web"
-                if expirado else
-                "✅ Precio verificado — sigue activo"
-            )
+            if resultado is True:
+                estado = "❌ <b>EXPIRADO</b> — marcado automáticamente en web"
+            elif resultado is False:
+                estado = "✅ Precio verificado — sigue activo"
+            else:
+                estado = (
+                    "⚠️ <b>No verificable automáticamente</b> (Cloudflare/JS redirect)\n"
+                    "Por favor, revisa manualmente y marca desde el panel admin."
+                )
             msg = (
-                f"🚩 <b>Alerta de oferta expirada</b>\n\n"
+                f"🚩 <b>Alerta de oferta expirada</b> (2 votos usuarios)\n\n"
                 f"{estado}\n\n"
                 f"<b>{titulo[:70]}</b>\n"
-                f"<code>{deal_id}</code>"
+                f"🔗 <code>/api/deals/{deal_id}/flag-expired</code>"
             )
             _http.post(
                 f"https://api.telegram.org/bot{token}/sendMessage",
@@ -421,8 +448,9 @@ class AdminLoginBody(BaseModel):
 
 
 class PatchDealBody(BaseModel):
-    titulo:       Optional[str] = None
-    url_afiliado: Optional[str] = None
+    titulo:       Optional[str]  = None
+    url_afiliado: Optional[str]  = None
+    expirado:     Optional[bool] = None
 
 class BulkDeleteDealsBody(BaseModel):
     deal_ids: list[str]
@@ -774,6 +802,8 @@ def admin_patch_deal(deal_id: str, body: PatchDealBody, request: Request):
         updates["titulo"] = body.titulo.strip()
     if body.url_afiliado is not None:
         updates["url_afiliado"] = body.url_afiliado.strip()
+    if body.expirado is not None:
+        updates["expirado"] = int(body.expirado)
     if not updates:
         return JSONResponse(status_code=400, content={"error": "Nada que actualizar"})
     set_clause = ", ".join(f"{k} = ?" for k in updates)
