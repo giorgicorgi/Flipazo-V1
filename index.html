@@ -542,10 +542,15 @@
       margin-bottom: 14px;
     }
 
-    /* ── Vote btn comentarios ───────────────────────────────────── */
-    .vote-btn--comment { color: var(--text-mid); }
-    .vote-btn--comment:hover { color: var(--ink); }
-    .vote-btn--comment svg { width: 16px; height: 16px; }
+    /* ── Vote btn comentarios (icon-only, sin borde) ────────────── */
+    .vote-btn--comment {
+      border: none !important;
+      background: none !important;
+      padding: 3px 5px;
+      color: var(--text-faint);
+    }
+    .vote-btn--comment:hover { color: var(--ink); border: none !important; }
+    .vote-btn--comment svg { width: 15px; height: 15px; }
 
     /* ── Paywall ────────────────────────────────────────────────── */
     #paywall-overlay {
@@ -599,61 +604,78 @@
       font-size: 20px; cursor: pointer; color: var(--text-mid); line-height: 1;
     }
 
-    /* ── Modal de comentarios ───────────────────────────────────── */
-    .comments-overlay {
-      position: fixed; inset: 0; z-index: 900;
-      background: rgba(0,0,0,0.55); display: flex; align-items: flex-end; justify-content: center;
-      padding: 0;
+    /* ── Burbuja de comentarios ─────────────────────────────────── */
+    .comments-bubble {
+      display: none;
+      position: fixed;
+      z-index: 9000;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 360px;
+      max-width: calc(100vw - 20px);
+      max-height: 440px;
+      box-shadow: 0 6px 32px rgba(0,0,0,0.16);
+      flex-direction: column;
+      overflow: hidden;
     }
-    @media (min-width: 600px) { .comments-overlay { align-items: center; padding: 20px; } }
-    .comments-modal {
-      background: var(--paper); border-radius: 20px 20px 0 0; width: 100%; max-width: 560px;
-      max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;
-      box-shadow: 0 -4px 40px rgba(0,0,0,0.18);
+    .comments-bubble.open { display: flex; }
+    [data-theme="dark"] .comments-bubble { background: #1e1c1b; }
+    .comments-bubble__arrow {
+      position: absolute;
+      width: 0; height: 0;
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
     }
-    @media (min-width: 600px) { .comments-modal { border-radius: 16px; max-height: 75vh; } }
-    [data-theme="dark"] .comments-modal { background: #1e1c1b; }
-    .comments-modal__header {
-      padding: 18px 20px 14px; border-bottom: 1px solid var(--border);
+    .comments-bubble.arrow-bottom .comments-bubble__arrow {
+      bottom: -10px; border-top: 10px solid var(--border);
+    }
+    .comments-bubble.arrow-top .comments-bubble__arrow {
+      top: -10px; border-bottom: 10px solid var(--border);
+    }
+    .comments-bubble__header {
+      padding: 12px 14px 10px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
     }
-    .comments-modal__header h3 { font-family: var(--serif); font-size: 18px; font-weight: 700; }
-    .comments-modal__close {
-      background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-mid);
-      line-height: 1; padding: 4px;
+    .comments-bubble__title { font-family: var(--serif); font-size: 14px; font-weight: 700; }
+    .comments-bubble__close {
+      background: none; border: none; font-size: 18px; cursor: pointer;
+      color: var(--text-mid); opacity: 0.55; line-height: 1; padding: 2px;
     }
+    .comments-bubble__close:hover { opacity: 1; }
     .comments-thread {
-      flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;
+      flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px;
+      min-height: 60px;
     }
     .comment-item { display: flex; gap: 10px; }
     .comment-avatar {
-      width: 32px; height: 32px; border-radius: 50%; background: var(--border); flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+      width: 28px; height: 28px; border-radius: 50%; background: var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
       overflow: hidden; color: var(--ink);
     }
     .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .comment-body { flex: 1; }
-    .comment-meta { font-size: 11px; color: var(--text-mid); margin-bottom: 3px; }
-    .comment-meta strong { color: var(--ink); font-size: 12px; }
-    .comment-text { font-size: 13px; line-height: 1.5; }
-    .comments-empty { color: var(--text-mid); font-size: 13px; text-align: center; padding: 32px 0; }
-    .comments-modal__footer { padding: 14px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
-    .comments-input-row { display: flex; gap: 10px; align-items: flex-end; }
+    .comment-body { flex: 1; min-width: 0; }
+    .comment-meta { font-size: 10px; color: var(--text-mid); margin-bottom: 2px; }
+    .comment-meta strong { color: var(--ink); font-size: 11px; }
+    .comment-text { font-size: 12px; line-height: 1.5; word-break: break-word; }
+    .comments-empty { color: var(--text-mid); font-size: 12px; text-align: center; padding: 24px 0; }
+    .comments-bubble__footer { padding: 10px 14px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .comments-input-row { display: flex; gap: 8px; align-items: flex-end; }
     .comments-input-row textarea {
-      flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
-      background: var(--bg); color: var(--ink); font-family: inherit; font-size: 13px;
-      resize: none; min-height: 40px; max-height: 120px; outline: none; line-height: 1.4;
+      flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg); color: var(--ink); font-family: inherit; font-size: 12px;
+      resize: none; min-height: 36px; max-height: 100px; outline: none; line-height: 1.4;
     }
     [data-theme="dark"] .comments-input-row textarea { background: #111; color: #e2e2e2; border-color: #3a3634; }
     .comments-input-row textarea:focus { border-color: var(--accent-green); }
     .comments-send-btn {
-      background: var(--accent-green); color: #fff; border: none; border-radius: 10px;
-      padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+      background: var(--accent-green); color: #fff; border: none; border-radius: 8px;
+      padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
       transition: opacity 0.15s; flex-shrink: 0;
     }
     .comments-send-btn:hover { opacity: 0.88; }
     .comments-send-btn:disabled { opacity: 0.4; cursor: default; }
-    .comments-login-cta { text-align: center; padding: 8px 0; font-size: 13px; color: var(--text-mid); }
+    .comments-login-cta { text-align: center; padding: 6px 0; font-size: 12px; color: var(--text-mid); }
 
     /* ── Pros / Contras ─────────────────────────────────────────── */
     .deal__procon {
@@ -1459,6 +1481,7 @@
       align-items: center;
       gap: 6px;
       margin-top: 10px;
+      flex-wrap: wrap;
     }
     .vote-btn {
       display: flex;
@@ -3268,26 +3291,25 @@
     }
   </script>
 
-<!-- ── Comment Modal ──────────────────────────────────────────── -->
-<div class="comments-overlay" id="comments-overlay" style="display:none" onclick="if(event.target===this)closeComments()">
-  <div class="comments-modal" role="dialog" aria-modal="true" aria-label="Comentarios">
-    <div class="comments-modal__header">
-      <h3>Comentarios</h3>
-      <button class="comments-modal__close" onclick="closeComments()" aria-label="Cerrar">✕</button>
+<!-- ── Burbuja de comentarios ──────────────────────────────────── -->
+<div id="comments-bubble" class="comments-bubble" role="dialog" aria-label="Comentarios">
+  <div class="comments-bubble__arrow"></div>
+  <div class="comments-bubble__header">
+    <span class="comments-bubble__title">Comentarios</span>
+    <button class="comments-bubble__close" onclick="closeComments()" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="comments-thread" id="comments-thread">
+    <p class="comments-empty">Cargando…</p>
+  </div>
+  <div class="comments-bubble__footer" id="comments-footer">
+    <div class="comments-login-cta" id="comments-login-cta" style="display:none">
+      <a href="/cuenta" style="color:var(--accent-green);font-weight:600">Inicia sesión</a> para dejar un comentario
     </div>
-    <div class="comments-thread" id="comments-thread">
-      <p class="comments-empty">Cargando…</p>
-    </div>
-    <div class="comments-modal__footer" id="comments-footer">
-      <div class="comments-login-cta" id="comments-login-cta" style="display:none">
-        <a href="/cuenta" style="color:var(--accent-green);font-weight:600">Inicia sesión</a> para dejar un comentario
-      </div>
-      <div class="comments-input-row" id="comments-input-row">
-        <textarea id="comment-textarea" placeholder="Escribe un comentario…" rows="1"
-          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitComment();}"></textarea>
-        <button class="comments-send-btn" id="comments-send-btn" onclick="submitComment()">Enviar</button>
-      </div>
+    <div class="comments-input-row" id="comments-input-row">
+      <textarea id="comment-textarea" placeholder="Escribe un comentario…" rows="1"
+        oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitComment();}"></textarea>
+      <button class="comments-send-btn" id="comments-send-btn" onclick="submitComment()">Enviar</button>
     </div>
   </div>
 </div>
@@ -3368,21 +3390,45 @@
 
   function openComments(dealId, btn) {
     _currentCommentDealId = dealId;
-    const overlay = document.getElementById('comments-overlay');
-    overlay.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    const bubble = document.getElementById('comments-bubble');
 
     // Show/hide input based on login state
     const loggedIn = isLoggedIn();
     document.getElementById('comments-login-cta').style.display = loggedIn ? 'none' : '';
     document.getElementById('comments-input-row').style.display = loggedIn ? '' : 'none';
 
+    // Position the bubble near the button (same logic as reventa-bubble)
+    bubble.style.visibility = 'hidden';
+    bubble.classList.add('open');
+    const bW = bubble.offsetWidth;
+    const bH = bubble.offsetHeight;
+    bubble.classList.remove('open');
+    bubble.style.visibility = '';
+
+    const rect = btn.getBoundingClientRect();
+    const margin = 10;
+    const showAbove = rect.top >= bH + margin + 8;
+    let top  = showAbove ? rect.top - bH - margin : rect.bottom + margin;
+    let left = rect.left + rect.width / 2 - bW / 2;
+    left = Math.max(10, Math.min(left, window.innerWidth - bW - 10));
+    top  = Math.max(10, Math.min(top, window.innerHeight - bH - 10));
+
+    bubble.style.top  = top + 'px';
+    bubble.style.left = left + 'px';
+
+    const arrowDir = showAbove ? 'arrow-bottom' : 'arrow-top';
+    bubble.className = 'comments-bubble open ' + arrowDir;
+
+    const btnCx = rect.left + rect.width / 2;
+    const arrowLeft = Math.max(14, Math.min(btnCx - left - 9, bW - 32));
+    bubble.querySelector('.comments-bubble__arrow').style.left = arrowLeft + 'px';
+
     loadComments(dealId);
   }
 
   function closeComments() {
-    document.getElementById('comments-overlay').style.display = 'none';
-    document.body.style.overflow = '';
+    const bubble = document.getElementById('comments-bubble');
+    bubble.classList.remove('open', 'arrow-top', 'arrow-bottom');
     _currentCommentDealId = null;
   }
 
@@ -3454,12 +3500,17 @@
     finally { btn.disabled = false; }
   }
 
-  // Cerrar con Escape
+  // Cerrar burbuja con Escape o click fuera
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       closeComments();
       closeLoginGate();
     }
+  });
+  document.addEventListener('click', e => {
+    const bubble = document.getElementById('comments-bubble');
+    if (!bubble.classList.contains('open')) return;
+    if (!bubble.contains(e.target) && !e.target.closest('.vote-btn--comment')) closeComments();
   });
 </script>
 </body>
