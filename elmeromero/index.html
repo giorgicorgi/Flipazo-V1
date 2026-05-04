@@ -3,1024 +3,871 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin — Flipazo</title>
+  <title>Flipazo — Admin</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --ink:       #0f0f0f;
-      --ink-2:     #444;
-      --ink-3:     #888;
-      --bg:        #f5f4f1;
-      --surface:   #ffffff;
-      --border:    #ddd;
-      --accent:    #c0392b;
-      --green:     #27ae60;
-      --r:         6px;
-      --sidebar-w: 260px;
+      --bg:       #0f0f0f;
+      --surface:  #161616;
+      --surface2: #1e1e1e;
+      --border:   #2a2a2a;
+      --text:     #e2e2e2;
+      --muted:    #777;
+      --accent:   #c0392b;
+      --green:    #27ae60;
+      --blue:     #2980b9;
+      --serif:    'Playfair Display', Georgia, serif;
+      --mono:     'Courier Prime', monospace;
     }
+    body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; font-size: 13px; }
 
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--ink); }
+    /* ── Login ── */
+    #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .login-box { background: var(--surface); border: 1px solid var(--border); padding: 48px 44px; width: 100%; max-width: 380px; }
+    .login-logo { font-family: var(--serif); font-size: 36px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; margin-bottom: 4px; }
+    .login-sub { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 36px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .field input, .field textarea, .field select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      font-family: var(--mono); font-size: 13px; padding: 10px 12px; outline: none; transition: border-color 0.15s;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field select { appearance: none; cursor: pointer; }
+    .btn-primary {
+      width: 100%; background: var(--accent); color: #fff; border: none; font-family: var(--mono);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 12px; cursor: pointer; margin-top: 8px; transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.4; cursor: default; }
+    .login-error { color: var(--accent); font-size: 11px; margin-top: 12px; display: none; }
 
-    /* ── Login screen ── */
-    #login-screen {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .login-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      padding: 40px 36px;
-      width: 100%;
-      max-width: 360px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .login-box h1 {
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: -0.3px;
-    }
-    .login-box h1 span { color: var(--accent); }
-    .login-box p { font-size: 13px; color: var(--ink-3); }
+    /* ── Layout ── */
+    #admin-panel { display: flex; min-height: 100vh; }
 
-    /* ── App shell ── */
-    #app { display: none; min-height: 100vh; }
-
-    .topbar {
-      background: var(--ink);
-      color: #fff;
-      padding: 0 20px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .topbar__brand {
-      font-weight: 700;
-      font-size: 15px;
-      letter-spacing: -0.3px;
-    }
-    .topbar__brand span { color: var(--accent); }
-    .topbar__actions { display: flex; gap: 12px; align-items: center; }
-
-    .layout {
-      display: grid;
-      grid-template-columns: var(--sidebar-w) 1fr;
-      min-height: calc(100vh - 48px);
-    }
-
-    /* ── Sidebar ── */
     .sidebar {
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
+      width: 216px; min-height: 100vh; background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
     }
-    .sidebar__header {
-      padding: 16px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    .sidebar__brand { padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
+    .sidebar__name { font-family: var(--serif); font-size: 20px; font-weight: 900; line-height: 1; }
+    .sidebar__label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+    .nav-section { padding: 14px 0 0; }
+    .nav-section-title { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); padding: 0 20px 8px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 12px;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); cursor: pointer;
+      border-left: 2px solid transparent; transition: all 0.12s; user-select: none;
     }
-    .sidebar__header h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); }
-    .sidebar__list { overflow-y: auto; flex: 1; }
-    .sidebar-item {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
+    .nav-item:hover { color: var(--text); background: var(--surface2); }
+    .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--surface2); }
+    .nav-item svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .sidebar__footer { margin-top: auto; padding: 14px 20px; border-top: 1px solid var(--border); }
+    .logout-btn {
+      background: none; border: none; color: var(--muted); font-family: var(--mono);
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; padding: 0; transition: color 0.12s;
     }
-    .sidebar-item:hover { background: var(--bg); }
-    .sidebar-item.active { background: #fef3f2; border-left: 3px solid var(--accent); }
-    .sidebar-item__title { font-size: 13px; font-weight: 600; line-height: 1.3; }
-    .sidebar-item__meta { font-size: 11px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
-    .badge {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 20px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-    .badge--pub  { background: #d4edda; color: #155724; }
-    .badge--draft { background: #fff3cd; color: #856404; }
-    .badge--exp { background: #fce4e4; color: #c0392b; }
+    .logout-btn:hover { color: var(--accent); }
 
-    /* ── Editor area ── */
-    .editor-area {
-      display: flex;
-      flex-direction: column;
-    }
+    /* ── Main ── */
+    .main-content { flex: 1; padding: 32px 36px; overflow-x: hidden; min-width: 0; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-header { margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+    .page-header h2 { font-family: var(--serif); font-size: 26px; font-weight: 700; }
+    .page-header p  { color: var(--muted); font-size: 11px; margin-top: 4px; letter-spacing: 0.06em; }
 
-    .editor-toolbar {
-      padding: 12px 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
-      background: var(--surface);
-    }
-    .editor-toolbar h2 { font-size: 14px; font-weight: 700; }
-    .editor-toolbar__btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    /* ── Stat Cards ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 32px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); padding: 18px 20px; }
+    .stat-card__label { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .stat-card__value { font-family: var(--serif); font-size: 30px; font-weight: 700; line-height: 1; }
+    .stat-card__sub { font-size: 10px; color: var(--muted); margin-top: 6px; }
 
-    .editor-body { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 16px; max-width: 900px; }
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th {
+      background: var(--surface); color: var(--muted); font-size: 9px; letter-spacing: 0.14em;
+      text-transform: uppercase; padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tbody tr:hover td { background: var(--surface); }
+    .deal-thumb { width: 42px; height: 42px; object-fit: contain; background: #fff; border: 1px solid var(--border); display: block; }
+    .deal-title { max-width: 260px; }
+    .deal-title strong { display: block; line-height: 1.35; }
+    .deal-title span { color: var(--muted); font-size: 10px; }
+    .badge { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; }
+    .badge-oferta    { background: rgba(41,128,185,0.15); color: #6db3e8; }
+    .badge-arbitraje { background: rgba(192,57,43,0.15);  color: var(--accent); }
+    .badge-exp       { background: rgba(192,57,43,0.12); color: #e57373; font-size: 8px; }
+    .badge-flags     { background: rgba(255,165,0,0.12); color: #ffa726; font-size: 8px; }
+    .store-tag { font-size: 10px; color: var(--muted); }
+    .del-btn, .edit-btn {
+      background: none; border: 1px solid var(--border); color: var(--muted); font-family: var(--mono);
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; cursor: pointer; transition: all 0.12s; white-space: nowrap;
+    }
+    .del-btn:hover  { border-color: var(--accent); color: var(--accent); }
+    .edit-btn:hover { border-color: var(--blue);   color: var(--blue); }
+    .del-btn:disabled, .edit-btn:disabled { opacity: 0.3; cursor: default; }
+    input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
 
-    .field { display: flex; flex-direction: column; gap: 6px; }
-    .field label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+    /* ── Filters & Actions ── */
+    .filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filter-input, .filter-select {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      font-family: var(--mono); font-size: 12px; padding: 7px 12px; outline: none; transition: border-color 0.15s;
+    }
+    .filter-input:focus, .filter-select:focus { border-color: var(--accent); }
+    .filter-input { flex: 1; min-width: 160px; }
+    .btn-action {
+      background: none; border: 1px solid var(--border); color: var(--text); font-family: var(--mono);
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 7px 14px;
+      cursor: pointer; transition: all 0.12s; white-space: nowrap;
+    }
+    .btn-action:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-action.active { border-color: var(--accent); color: var(--accent); background: rgba(192,57,43,0.08); }
+    .btn-action.danger { border-color: var(--accent); color: var(--accent); display: none; }
+    .btn-action.danger.visible { display: inline-block; }
+    .btn-action.success { border-color: var(--green); color: var(--green); }
 
-    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .row-3 { display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end; }
+    /* ── Pagination ── */
+    .pagination { display: flex; gap: 8px; margin-top: 16px; align-items: center; }
+    .pg-btn {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      font-family: var(--mono); font-size: 11px; padding: 6px 14px; cursor: pointer; transition: border-color 0.12s;
+    }
+    .pg-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .pg-btn:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+    .pg-info { font-size: 11px; color: var(--muted); flex: 1; }
 
-    /* ── Editor tabs ── */
-    .editor-tabs { display: flex; border-bottom: 1px solid var(--border); margin: 0 -24px; padding: 0 24px; gap: 0; }
-    .editor-tab {
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      color: var(--ink-3);
-    }
-    .editor-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    /* ── Bar chart ── */
+    .section-title { font-family: var(--serif); font-size: 15px; font-weight: 700; margin-bottom: 14px; margin-top: 28px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+    .bar-label { font-size: 11px; color: var(--muted); width: 200px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { flex: 1; height: 5px; background: var(--border); }
+    .bar-fill  { height: 100%; transition: width 0.4s ease; }
+    .bar-fill--red   { background: var(--accent); }
+    .bar-fill--green { background: var(--green); }
+    .bar-count { font-size: 11px; color: var(--muted); width: 36px; text-align: right; flex-shrink: 0; }
 
-    .editor-pane { display: none; }
-    .editor-pane.active { display: block; }
+    /* ── Analytics ── */
+    .analytics-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    .canal-pills { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+    .canal-pill { background: var(--surface); border: 1px solid var(--border); padding: 10px 16px; text-align: center; min-width: 100px; }
+    .canal-pill__val { font-family: var(--serif); font-size: 22px; font-weight: 700; }
+    .canal-pill__lbl { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
 
-    textarea.content-editor {
-      min-height: 480px;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      resize: vertical;
-    }
+    /* ── Loading / Empty ── */
+    .loading-msg { color: var(--muted); font-size: 12px; padding: 40px; text-align: center; letter-spacing: 0.1em; }
 
-    .preview-pane {
-      min-height: 480px;
-      padding: 20px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      overflow-y: auto;
-    }
-    /* Markdown preview styles (same as blog.html post-content) */
-    .preview-pane h1, .preview-pane h2, .preview-pane h3 { font-family: Georgia, serif; margin: 1.6em 0 0.4em; line-height: 1.3; }
-    .preview-pane h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
-    .preview-pane p { margin-bottom: 1em; font-size: 16px; line-height: 1.7; }
-    .preview-pane ul, .preview-pane ol { margin: 0 0 1em 1.6em; }
-    .preview-pane blockquote { border-left: 3px solid var(--accent); padding-left: 14px; color: var(--ink-2); font-style: italic; margin: 1.2em 0; }
-    .preview-pane code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-size: 0.9em; }
-    .preview-pane img { max-width: 100%; border-radius: var(--r); }
-    .preview-pane strong { font-weight: 700; }
-    .preview-pane a { color: var(--accent); }
-    .preview-pane table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
-    .preview-pane th, .preview-pane td { border: 1px solid var(--border); padding: 7px 10px; text-align: left; }
-    .preview-pane th { background: var(--bg); }
+    /* ── Edit Modal ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 200; }
+    .modal-box { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--blue); width: 560px; max-width: 95vw; padding: 28px 32px; }
+    .modal-box h3 { font-family: var(--serif); font-size: 20px; font-weight: 700; margin-bottom: 22px; }
+    .modal-field { margin-bottom: 16px; }
+    .modal-field label { display: block; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .modal-field input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 13px; padding: 10px 12px; outline: none; transition: border-color 0.15s; }
+    .modal-field input:focus { border-color: var(--blue); }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+    .btn-modal-save { background: var(--blue); color: #fff; border: none; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 9px 24px; cursor: pointer; transition: opacity 0.15s; }
+    .btn-modal-save:hover { opacity: 0.85; }
+    .btn-modal-cancel { background: none; border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 9px 18px; cursor: pointer; }
+    .btn-modal-cancel:hover { border-color: var(--muted); color: var(--text); }
 
-    /* ── Forms ── */
-    input[type="text"], input[type="password"], input[type="url"], textarea {
-      width: 100%;
-      padding: 9px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      font-size: 14px;
-      font-family: inherit;
-      background: var(--surface);
-      color: var(--ink);
-      transition: border-color .15s;
-      outline: none;
+    /* ── Blog layout ── */
+    #page-blog.active { display: grid; grid-template-columns: 240px 1fr; gap: 0; margin: -32px -36px; }
+    .blog-list-panel {
+      border-right: 1px solid var(--border); display: flex; flex-direction: column;
+      max-height: calc(100vh); overflow-y: auto; background: var(--surface);
     }
-    input:focus, textarea:focus { border-color: var(--accent); }
+    .blog-list-header {
+      padding: 20px 16px 14px; border-bottom: 1px solid var(--border); display: flex;
+      align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface); z-index: 1;
+    }
+    .blog-list-header h3 { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+    .btn-new-post {
+      background: var(--accent); color: #fff; border: none; font-family: var(--mono);
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 10px; cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-new-post:hover { opacity: 0.85; }
+    .post-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+    .post-item:hover { background: var(--surface2); }
+    .post-item.active { background: var(--surface2); border-left: 2px solid var(--accent); }
+    .post-item__title { font-size: 12px; font-weight: 600; line-height: 1.35; margin-bottom: 4px; }
+    .post-item__meta { display: flex; gap: 8px; align-items: center; font-size: 10px; color: var(--muted); }
+    .post-badge { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; padding: 1px 5px; }
+    .post-badge-pub   { background: rgba(39,174,96,0.15);  color: var(--green); }
+    .post-badge-draft { background: rgba(119,119,119,0.15); color: var(--muted); }
 
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 14px;
-      font-weight: 600;
-    }
-    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+    .blog-editor-panel { overflow-y: auto; padding: 28px 32px; }
+    .blog-welcome { display: flex; align-items: center; justify-content: center; min-height: 300px; color: var(--muted); text-align: center; flex-direction: column; gap: 12px; }
+    .blog-welcome h3 { font-family: var(--serif); font-size: 20px; color: var(--text); }
+    .blog-editor-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .blog-editor-toolbar h3 { font-family: var(--serif); font-size: 20px; font-weight: 700; }
+    .blog-editor-actions { display: flex; gap: 8px; }
+    .blog-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .blog-form-full { margin-bottom: 14px; }
+    .toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+    .toggle-row label { font-size: 12px; cursor: pointer; }
 
-    /* ── Buttons ── */
-    .btn {
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 700;
-      border: none;
-      border-radius: var(--r);
-      cursor: pointer;
-      letter-spacing: 0.04em;
-      white-space: nowrap;
-    }
-    .btn--primary { background: var(--accent); color: #fff; }
-    .btn--primary:hover { background: #a93226; }
-    .btn--secondary { background: var(--bg); color: var(--ink); border: 1px solid var(--border); }
-    .btn--secondary:hover { background: var(--border); }
-    .btn--danger { background: #fff0f0; color: #c0392b; border: 1px solid #f5c6c6; }
-    .btn--danger:hover { background: #fce4e4; }
-    .btn--ghost { background: transparent; color: #fff; font-size: 13px; padding: 6px 12px; border: 1px solid rgba(255,255,255,0.25); border-radius: var(--r); cursor: pointer; }
-    .btn--ghost:hover { background: rgba(255,255,255,0.1); }
+    /* Markdown tabs */
+    .md-tabs { display: flex; gap: 0; }
+    .md-tab { padding: 7px 16px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); transition: all 0.12s; }
+    .md-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+    .md-pane { display: none; }
+    .md-pane.active { display: block; }
+    #blog-field-contenido { width: 100%; min-height: 220px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 13px; padding: 12px; resize: vertical; outline: none; transition: border-color 0.15s; }
+    #blog-field-contenido:focus { border-color: var(--accent); }
+    .md-preview { min-height: 220px; background: var(--bg); border: 1px solid var(--border); padding: 12px; font-size: 13px; line-height: 1.7; color: var(--text); overflow-y: auto; }
+    .md-preview h1, .md-preview h2, .md-preview h3 { font-family: var(--serif); margin: 16px 0 8px; }
+    .md-preview p { margin-bottom: 10px; }
+    .md-preview code { background: var(--surface); padding: 2px 5px; font-family: var(--mono); font-size: 12px; }
+    .md-preview a { color: var(--blue); }
+    .seo-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .seo-section-title { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
 
-    /* ── Empty/welcome state ── */
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex: 1;
-      gap: 12px;
-      color: var(--ink-3);
-      padding: 80px;
-      text-align: center;
+    /* ── Responsive ── */
+    @media (max-width: 800px) {
+      .sidebar { width: 100%; min-height: auto; height: auto; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); position: static; }
+      .sidebar__brand { border-bottom: none; padding: 12px 16px; }
+      .nav-section { display: flex; flex-direction: row; padding: 0; }
+      .nav-section-title { display: none; }
+      .nav-item { border-left: none; border-bottom: 2px solid transparent; padding: 12px 14px; font-size: 10px; }
+      .nav-item.active { border-left-color: transparent; border-bottom-color: var(--accent); }
+      .sidebar__footer { display: none; }
+      #admin-panel { flex-direction: column; }
+      .main-content { padding: 20px 16px; }
+      .analytics-cols { grid-template-columns: 1fr; }
+      #page-blog.active { grid-template-columns: 1fr; margin: -20px -16px; }
     }
-    .empty-state h2 { font-size: 18px; font-weight: 700; color: var(--ink-2); }
-    .empty-state p { font-size: 14px; }
-
-    /* ── Toast ── */
-    #toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      padding: 12px 20px;
-      background: var(--ink);
-      color: #fff;
-      border-radius: var(--r);
-      font-size: 14px;
-      font-weight: 600;
-      opacity: 0;
-      transition: opacity .25s;
-      pointer-events: none;
-      z-index: 9999;
-    }
-    #toast.show { opacity: 1; }
-    #toast.error { background: var(--accent); }
-
-    /* ── Error text ── */
-    .error-msg { font-size: 13px; color: var(--accent); }
-
-    @media (max-width: 700px) {
-      .layout { grid-template-columns: 1fr; }
-      .sidebar { display: none; }
-      .row-2, .row-3 { grid-template-columns: 1fr; }
-    }
-
-    /* ── Main nav tabs ── */
-    .main-nav {
-      background: #1c1c1c;
-      padding: 0 20px;
-      display: flex;
-      gap: 0;
-      border-bottom: 1px solid #333;
-    }
-    .main-nav__tab {
-      padding: 10px 18px;
-      font-size: 13px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.45);
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      user-select: none;
-      transition: color .15s;
-    }
-    .main-nav__tab:hover { color: rgba(255,255,255,0.8); }
-    .main-nav__tab.active { color: #fff; border-bottom-color: var(--accent); }
-
-    /* ── Deals section ── */
-    .deals-section {
-      display: flex;
-      flex-direction: column;
-      height: calc(100vh - 72px);
-      overflow: hidden;
-    }
-    .deals-toolbar {
-      padding: 12px 20px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .deals-toolbar__left  { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
-    .deals-toolbar__left h2 { font-size: 14px; font-weight: 700; white-space: nowrap; }
-    .deals-toolbar__right { display: flex; align-items: center; gap: 8px; }
-    .deals-search {
-      max-width: 280px; width: 100%;
-      padding: 7px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      font-size: 13px;
-      background: var(--surface);
-    }
-    .deals-table-wrap { flex: 1; overflow-y: auto; }
-    table.deals-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .deals-table th {
-      background: var(--bg);
-      padding: 9px 12px;
-      text-align: left;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--ink-3);
-      border-bottom: 2px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      white-space: nowrap;
-    }
-    .deals-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-    .deals-table tbody tr:hover td { background: #fafaf8; }
-    .deals-table tbody tr.selected td { background: #fff8f7; }
-    .deal-thumb {
-      width: 40px; height: 40px; object-fit: contain;
-      border: 1px solid var(--border); border-radius: 4px; background: #f9f9f9; display: block;
-    }
-    .deal-thumb--ph {
-      width: 40px; height: 40px; background: var(--border); border-radius: 4px; display: inline-block;
-    }
-    .deal-title { max-width: 300px; font-weight: 600; }
-    .deal-title span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .badge--store   { background: #e8f4fd; color: #1a6fa8; }
-    .badge--arb     { background: #d4edda; color: #155724; }
-    .badge--oferta  { background: #cce5ff; color: #004085; }
-    .badge--pct     { background: #fce4e4; color: var(--accent); }
-    .deals-pagination {
-      padding: 12px 20px;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 13px;
-      color: var(--ink-2);
-    }
-    .deals-pagination__btns { display: flex; gap: 8px; }
-    .col-chk  { width: 36px; }
-    .col-img  { width: 56px; }
-    .col-pct  { width: 70px; }
-    .col-px   { width: 84px; }
-    .col-clk  { width: 60px; text-align: right; }
-    .col-dt   { width: 90px; }
-    .col-exp  { width: 46px; }
-    .col-del  { width: 44px; }
   </style>
 </head>
 <body>
 
-<!-- ─────────── LOGIN ─────────── -->
+<!-- ══ LOGIN ══════════════════════════════════════════════════════════════ -->
 <div id="login-screen">
   <div class="login-box">
-    <h1>Flip<span>azo</span> Admin</h1>
-    <p>Introduce tus credenciales para acceder.</p>
-    <div class="field">
-      <label>Usuario</label>
-      <input type="text" id="login-user" autocomplete="username" placeholder="admin" />
-    </div>
-    <div class="field">
-      <label>Contraseña</label>
-      <input type="password" id="login-pass" autocomplete="current-password" placeholder="••••••••" />
-    </div>
-    <p class="error-msg" id="login-error" style="display:none"></p>
-    <button class="btn btn--primary" id="login-btn">Entrar</button>
+    <div class="login-logo">Flipazo</div>
+    <div class="login-sub">Panel de administración</div>
+    <div class="field"><label for="username">Usuario</label><input id="username" type="text" autocomplete="username" placeholder="admin" /></div>
+    <div class="field"><label for="password">Contraseña</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••" /></div>
+    <button class="btn-primary" id="login-btn" onclick="login()">Entrar</button>
+    <p class="login-error" id="login-error"></p>
   </div>
 </div>
 
-<!-- ─────────── APP ─────────── -->
-<div id="app">
-  <div class="topbar">
-    <span class="topbar__brand">Flip<span>azo</span> Admin</span>
-    <div class="topbar__actions">
-      <a href="/blog.html" target="_blank" class="btn btn--ghost">Ver blog →</a>
-      <button class="btn btn--ghost" id="logout-btn">Salir</button>
-    </div>
-  </div>
+<!-- ══ ADMIN PANEL ══════════════════════════════════════════════════════════ -->
+<div id="admin-panel" style="display:none">
 
-  <nav class="main-nav">
-    <div class="main-nav__tab active" data-section="blog">Blog</div>
-    <div class="main-nav__tab" data-section="deals">Deals</div>
+  <nav class="sidebar">
+    <div class="sidebar__brand">
+      <div class="sidebar__name">Flipazo</div>
+      <div class="sidebar__label">Admin</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">Panel</div>
+      <div class="nav-item active" id="nav-overview" onclick="showPage('overview')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Overview
+      </div>
+      <div class="nav-item" id="nav-deals" onclick="showPage('deals')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        Deals
+      </div>
+      <div class="nav-item" id="nav-blog" onclick="showPage('blog')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Blog
+      </div>
+      <div class="nav-item" id="nav-analytics" onclick="showPage('analytics')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Analytics
+      </div>
+      <div class="nav-item" id="nav-votos" onclick="showPage('votos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>
+        Votos
+      </div>
+      <div class="nav-item" id="nav-usuarios" onclick="showPage('usuarios')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Usuarios
+      </div>
+    </div>
+    <div class="sidebar__footer">
+      <button class="logout-btn" onclick="logout()">&#8617; Cerrar sesión</button>
+    </div>
   </nav>
 
-  <div id="section-blog">
-  <div class="layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar__header">
-        <h2>Posts</h2>
-        <button class="btn btn--primary" id="new-post-btn" style="padding:5px 10px;font-size:12px">+ Nuevo</button>
-      </div>
-      <div class="sidebar__list" id="js-sidebar-list">
-        <div style="padding:20px;color:var(--ink-3);font-size:13px">Cargando…</div>
-      </div>
-    </aside>
+  <main class="main-content">
 
-    <!-- Editor -->
-    <div class="editor-area" id="js-editor-area">
-      <div class="empty-state" id="js-welcome">
-        <h2>Panel de Blog</h2>
-        <p>Selecciona un post para editarlo o crea uno nuevo.</p>
-        <button class="btn btn--primary" onclick="newPost()">+ Crear primer post</button>
-      </div>
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="page-header"><h2>Overview</h2><p>Resumen del estado del pipeline</p></div>
+      <div class="stats-grid" id="stats-grid"><div class="loading-msg">Cargando&#8230;</div></div>
+      <div class="section-title">Top deals por clicks</div>
+      <div id="top-deals-bars"><div class="loading-msg">Cargando&#8230;</div></div>
+      <div class="section-title">Distribución por tienda</div>
+      <div id="tienda-bars"><div class="loading-msg">Cargando&#8230;</div></div>
+    </div>
 
-      <div id="js-editor" style="display:none; display:flex; flex-direction:column; flex:1">
-        <div class="editor-toolbar">
-          <h2 id="js-editor-title">Nuevo post</h2>
-          <div class="editor-toolbar__btns">
-            <button class="btn btn--danger" id="delete-btn" style="display:none" onclick="deletePost()">Eliminar</button>
-            <button class="btn btn--secondary" onclick="cancelEdit()">Cancelar</button>
-            <button class="btn btn--primary" onclick="savePost()">Guardar</button>
-          </div>
+    <!-- DEALS -->
+    <div class="page" id="page-deals">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div><h2>Deals</h2><p id="deals-label">&#8212;</p></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button id="filter-expired-btn" class="btn-action" onclick="toggleExpiredFilter()">&#128681; Solo expirados</button>
+          <button id="bulk-delete-btn" class="btn-action danger" onclick="bulkDelete()">Borrar selección (<span id="sel-count">0</span>)</button>
         </div>
-        <div class="editor-body">
-          <input type="hidden" id="field-id" />
+      </div>
+      <div class="filters">
+        <input class="filter-input" id="busqueda" type="search" placeholder="Buscar por título&#8230;" oninput="debouncedLoad()" />
+        <select class="filter-select" id="tipo-filter" onchange="dealsOffset=0;loadDeals()">
+          <option value="">Todos los tipos</option>
+          <option value="OFERTA">Oferta</option>
+          <option value="ARBITRAJE">Arbitraje</option>
+        </select>
+        <select class="filter-select" id="tienda-filter" onchange="dealsOffset=0;loadDeals()">
+          <option value="">Todas las tiendas</option>
+          <option>Amazon</option><option>MediaMarkt</option><option>PcComponentes</option>
+          <option>Decathlon</option><option>Worten</option><option>Mammoth Bikes</option>
+          <option>Esdemarca</option><option>PCBox</option><option>Toni Pons</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)" /></th>
+              <th></th>
+              <th>Título / Tienda</th>
+              <th>Tipo</th>
+              <th>Precio</th>
+              <th>Dto.</th>
+              <th>Votos</th>
+              <th>Clicks</th>
+              <th>Exp.</th>
+              <th>Publicado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="deals-tbody"><tr><td colspan="11" class="loading-msg">Cargando&#8230;</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <button class="pg-btn" id="pg-prev" onclick="changePage(-1)">&#8592; Anterior</button>
+        <span class="pg-info" id="pg-info"></span>
+        <button class="pg-btn" id="pg-next" onclick="changePage(1)">Siguiente &#8594;</button>
+      </div>
+    </div>
 
-          <div class="row-2">
-            <div class="field">
-              <label>Título *</label>
-              <input type="text" id="field-titulo" placeholder="Título del artículo" oninput="autoSlug()" />
-            </div>
-            <div class="field">
-              <label>Slug (URL) *</label>
-              <input type="text" id="field-slug" placeholder="mi-articulo-en-url" />
+    <!-- BLOG -->
+    <div class="page" id="page-blog">
+      <div class="blog-list-panel">
+        <div class="blog-list-header">
+          <h3>Posts</h3>
+          <button class="btn-new-post" onclick="newBlogPost()">+ Nuevo</button>
+        </div>
+        <div id="blog-post-list"><div class="loading-msg">Cargando&#8230;</div></div>
+      </div>
+      <div class="blog-editor-panel">
+        <div class="blog-welcome" id="blog-welcome">
+          <h3>Panel de Blog</h3>
+          <p style="font-size:12px">Selecciona un post o crea uno nuevo.</p>
+          <button class="btn-new-post" onclick="newBlogPost()" style="margin-top:8px">+ Crear primer post</button>
+        </div>
+        <div id="blog-editor-form" style="display:none">
+          <input type="hidden" id="blog-field-id" />
+          <div class="blog-editor-toolbar">
+            <h3 id="blog-editor-title">Nuevo post</h3>
+            <div class="blog-editor-actions">
+              <button id="blog-delete-btn" class="btn-action danger" style="display:none" onclick="deleteBlogPost()">Eliminar</button>
+              <button class="btn-action" onclick="cancelBlogEdit()">Cancelar</button>
+              <button class="btn-action success" onclick="saveBlogPost()">Guardar</button>
             </div>
           </div>
-
-          <div class="field">
-            <label>Resumen (subtítulo / excerpt)</label>
-            <input type="text" id="field-resumen" placeholder="Una frase que resume el artículo…" />
+          <div class="blog-form-grid">
+            <div class="field"><label>Título *</label><input type="text" id="blog-field-titulo" placeholder="Título del artículo" oninput="autoSlug()" /></div>
+            <div class="field"><label>Slug (URL) *</label><input type="text" id="blog-field-slug" placeholder="mi-articulo-en-url" /></div>
           </div>
-
-          <div class="row-2">
-            <div class="field">
-              <label>URL de imagen de portada</label>
-              <input type="url" id="field-imagen" placeholder="https://…" />
-            </div>
-            <div class="field" style="justify-content:flex-end">
+          <div class="blog-form-full">
+            <div class="field"><label>Resumen (excerpt)</label><input type="text" id="blog-field-resumen" placeholder="Una frase que resume el artículo&#8230;" /></div>
+          </div>
+          <div class="blog-form-grid">
+            <div class="field"><label>URL imagen portada</label><input type="url" id="blog-field-imagen" placeholder="https://&#8230;" /></div>
+            <div style="display:flex;align-items:flex-end;padding-bottom:2px">
               <div class="toggle-row">
-                <input type="checkbox" id="field-publicado" />
-                <label for="field-publicado" style="font-size:14px;font-weight:600;cursor:pointer">Publicado</label>
+                <input type="checkbox" id="blog-field-publicado" />
+                <label for="blog-field-publicado">Publicado</label>
               </div>
             </div>
           </div>
-
-          <!-- SEO / AEO -->
-          <div style="border-top:1px solid var(--border);margin:4px 0 0;padding-top:12px">
-            <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-bottom:10px">
-              SEO / AEO
-            </p>
-            <div class="field">
-              <label>Meta Description (Google) <span id="meta-desc-count" style="font-weight:400;font-size:11px"></span></label>
-              <textarea id="field-meta-desc" rows="2" maxlength="160" style="min-height:0;resize:none" placeholder="Si vacío, se usa el resumen. Ideal: 140-160 caracteres…"></textarea>
-            </div>
-            <div class="row-2">
-              <div class="field">
-                <label>Tags / Palabras clave</label>
-                <input type="text" id="field-tags" placeholder="ofertas, amazon, tecnología (separar por coma)" />
+          <div class="blog-form-full">
+            <div class="field" style="margin-bottom:0">
+              <label>Contenido (Markdown)</label>
+              <div class="md-tabs">
+                <div class="md-tab active" data-tab="write" onclick="switchMdTab('write')">Editar</div>
+                <div class="md-tab" data-tab="preview" onclick="switchMdTab('preview')">Preview</div>
               </div>
+            </div>
+            <div class="md-pane active" id="md-pane-write">
+              <textarea id="blog-field-contenido" placeholder="Escribe en Markdown&#8230;"></textarea>
+            </div>
+            <div class="md-pane" id="md-pane-preview">
+              <div class="md-preview" id="blog-preview"></div>
+            </div>
+          </div>
+          <div class="seo-section">
+            <div class="seo-section-title">SEO / AEO</div>
+            <div class="field">
+              <label>Meta Description <span id="meta-desc-count" style="font-weight:400;color:var(--muted);font-size:10px"></span></label>
+              <textarea id="blog-field-meta-desc" rows="2" maxlength="160" style="min-height:0;resize:none" placeholder="Ideal 140-160 chars. Si vacío, se usa el resumen."></textarea>
+            </div>
+            <div class="blog-form-grid">
+              <div class="field"><label>Tags (coma-separados)</label><input type="text" id="blog-field-tags" placeholder="ofertas, tecnología, amazon" /></div>
               <div class="field">
-                <label>Schema AEO</label>
-                <select id="field-schema-type" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);font-size:14px;font-family:inherit;background:var(--surface);color:var(--ink)">
+                <label>Schema type</label>
+                <select id="blog-field-schema-type">
                   <option value="Article">Article</option>
-                  <option value="FAQPage">FAQ Page</option>
-                  <option value="HowTo">How-To</option>
+                  <option value="FAQPage">FAQPage</option>
+                  <option value="HowTo">HowTo</option>
                 </select>
               </div>
             </div>
-            <div class="field">
-              <label>OG Title (redes sociales)</label>
-              <input type="text" id="field-og-title" placeholder="Si vacío, se usa el título principal…" />
-            </div>
-          </div>
-
-          <!-- Tabs: Editor / Preview -->
-          <div class="editor-tabs">
-            <div class="editor-tab active" data-tab="write">✏️ Markdown</div>
-            <div class="editor-tab" data-tab="preview">👁 Preview</div>
-          </div>
-
-          <div class="editor-pane active" id="pane-write">
-            <textarea class="content-editor" id="field-contenido" placeholder="Escribe aquí en Markdown...
-# Título
-**negrita** *cursiva* [link](url)
-- lista
-
-> cita"></textarea>
-          </div>
-          <div class="editor-pane" id="pane-preview">
-            <div class="preview-pane" id="js-preview"></div>
+            <div class="field"><label>OG Title (override)</label><input type="text" id="blog-field-og-title" placeholder="Si vacío, se usa el título" /></div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  </div><!-- /section-blog -->
 
-  <!-- ── Deals section ── -->
-  <div id="section-deals" style="display:none" class="deals-section">
-    <div class="deals-toolbar">
-      <div class="deals-toolbar__left">
-        <h2>Deals</h2>
-        <input class="deals-search" id="deals-search" type="text" placeholder="Buscar por título…" />
-      </div>
-      <div class="deals-toolbar__right">
-        <span id="deals-count-label" style="color:var(--ink-3);font-size:12px"></span>
-        <button id="filter-expired-btn" class="btn btn--secondary" onclick="toggleExpiredFilter()" title="Mostrar solo deals expirados">
-          🚩 Expirados
-        </button>
-        <button id="bulk-delete-btn" class="btn btn--danger" style="display:none" onclick="bulkDelete()">
-          Eliminar selección (<span id="bulk-count">0</span>)
-        </button>
-      </div>
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="page-header"><h2>Analytics</h2><p>Clicks por canal y deal</p></div>
+      <div id="analytics-content"><div class="loading-msg">Cargando&#8230;</div></div>
     </div>
 
-    <div class="deals-table-wrap">
-      <div id="deals-loading" style="display:none;padding:40px;text-align:center;color:var(--ink-3)">Cargando…</div>
-      <table class="deals-table" id="deals-table" style="display:none">
-        <thead>
-          <tr>
-            <th class="col-chk"><input type="checkbox" id="select-all-deals" /></th>
-            <th class="col-img"></th>
-            <th>Título</th>
-            <th>Tienda</th>
-            <th>Tipo</th>
-            <th class="col-pct">Desc.</th>
-            <th class="col-px">Precio</th>
-            <th class="col-clk">Clicks</th>
-            <th class="col-dt">Fecha</th>
-            <th class="col-exp" style="width:46px">Exp.</th>
-            <th class="col-del"></th>
-          </tr>
-        </thead>
-        <tbody id="deals-tbody"></tbody>
-      </table>
-      <div id="deals-empty" style="display:none;padding:60px;text-align:center;color:var(--ink-3);font-size:14px">Sin deals.</div>
+    <!-- VOTOS -->
+    <div class="page" id="page-votos">
+      <div class="page-header"><h2>Votos</h2><p>Ranking de deals por votos positivos</p></div>
+      <div id="votos-content"><div class="loading-msg">Cargando&#8230;</div></div>
     </div>
 
-    <div class="deals-pagination">
-      <span id="deals-pag-info"></span>
-      <div class="deals-pagination__btns">
-        <button class="btn btn--secondary" id="deals-prev" onclick="dealsPage(-1)">← Anterior</button>
-        <button class="btn btn--secondary" id="deals-next" onclick="dealsPage(1)">Siguiente →</button>
-      </div>
+    <!-- USUARIOS -->
+    <div class="page" id="page-usuarios">
+      <div class="page-header"><h2>Usuarios</h2><p>Cuentas registradas</p></div>
+      <div id="usuarios-content"><div class="loading-msg">Cargando&#8230;</div></div>
     </div>
-  </div>
 
+  </main>
 </div>
 
-<div id="toast"></div>
+<!-- ══ DEALS EDIT MODAL ════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="edit-modal" style="display:none">
+  <div class="modal-box">
+    <h3>Editar publicación</h3>
+    <div class="modal-field"><label>Título</label><input type="text" id="edit-titulo" placeholder="Título del deal" /></div>
+    <div class="modal-field"><label>Link (URL de compra)</label><input type="url" id="edit-link" placeholder="https://&#8230;" /></div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeEdit()">Cancelar</button>
+      <button class="btn-modal-save" id="edit-save-btn" onclick="saveEdit()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
 
 <script>
-  const API    = "https://api.flipazo.es";
-  let JWT      = localStorage.getItem("flipazo_admin_jwt") || "";
-  let posts    = [];
-  let editingId = null;
+  const API = 'https://api.flipazo.es';
+  const PAGE_SZ = 50;
+  let token = localStorage.getItem('flipazo_admin_token');
+  let dealsOffset = 0;
+  let filterTimer = null;
+  let expiredFilter = false;
+  const selectedDeals = new Set();
+  let blogPosts = [];
+  let blogEditingId = null;
 
-  // ── Utils ──────────────────────────────────────────────────────────
-  function toast(msg, isError = false) {
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.className = "show" + (isError ? " error" : "");
-    clearTimeout(t._to);
-    t._to = setTimeout(() => t.className = "", 3000);
+  // ── Utils ─────────────────────────────────────────────
+  function h()   { return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }; }
+  function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function eur(n){ return Number(n||0).toLocaleString('es',{style:'currency',currency:'EUR',maximumFractionDigits:0}); }
+  function fdate(s){ if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString('es',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}); }
+  function fmtDate(iso){ return new Date(iso).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}); }
+  function barRow(label,val,max,color){ const pct=max>0?Math.round(val/max*100):0; return '<div class="bar-row"><span class="bar-label" title="'+label+'">'+label+'</span><div class="bar-track"><div class="bar-fill bar-fill--'+color+'" style="width:'+pct+'%"></div></div><span class="bar-count">'+val+'</span></div>'; }
+  function slugify(s){ return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-').replace(/-+/g,'-'); }
+
+  // ── Auth ─────────────────────────────────────────────
+  if (token) {
+    showPanel();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    ['username','password'].forEach(function(id){ document.getElementById(id).addEventListener('keydown', function(e){ if(e.key==='Enter') login(); }); });
   }
 
-  function slugify(str) {
-    return str.toLowerCase()
-      .normalize("NFD").replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-z0-9\s-]/g, "")
-      .trim().replace(/\s+/g, "-")
-      .replace(/-+/g, "-");
-  }
-
-  function autoSlug() {
-    const slugField = document.getElementById("field-slug");
-    // Solo auto-generar si el slug está vacío o coincide con el slug anterior del título
-    const titulo = document.getElementById("field-titulo").value;
-    slugField.value = slugify(titulo);
-  }
-
-  function fmtDate(iso) {
-    return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
-  }
-
-  // ── Auth ───────────────────────────────────────────────────────────
   async function login() {
-    const user = document.getElementById("login-user").value.trim();
-    const pass = document.getElementById("login-pass").value;
-    const errEl = document.getElementById("login-error");
-    errEl.style.display = "none";
-
-    if (!user || !pass) { errEl.textContent = "Introduce usuario y contraseña."; errEl.style.display = ""; return; }
-
+    var btn=document.getElementById('login-btn'), errEl=document.getElementById('login-error');
+    var username=document.getElementById('username').value.trim(), password=document.getElementById('password').value;
+    btn.disabled=true; btn.textContent='Verificando…'; errEl.style.display='none';
     try {
-      const res = await fetch(`${API}/admin/login`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: user, password: pass })
-      });
-      const data = await res.json();
-      if (!res.ok) { errEl.textContent = data.error || "Error al iniciar sesión."; errEl.style.display = ""; return; }
-      JWT = data.token;
-      localStorage.setItem("flipazo_admin_jwt", JWT);
-      startApp();
-    } catch (e) {
-      errEl.textContent = "Error de conexión."; errEl.style.display = "";
-    }
+      var res=await fetch(API+'/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+      var data=await res.json();
+      if(!res.ok){errEl.textContent=data.error||'Credenciales incorrectas';errEl.style.display='block';btn.disabled=false;btn.textContent='Entrar';return;}
+      token=data.token; localStorage.setItem('flipazo_admin_token',token); showPanel();
+    } catch(e){errEl.textContent='Error de conexión con la API';errEl.style.display='block';btn.disabled=false;btn.textContent='Entrar';}
   }
 
   function logout() {
-    JWT = "";
-    localStorage.removeItem("flipazo_admin_jwt");
-    location.reload();
+    localStorage.removeItem('flipazo_admin_token'); token=null;
+    document.getElementById('admin-panel').style.display='none';
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('password').value='';
+    document.getElementById('login-btn').disabled=false; document.getElementById('login-btn').textContent='Entrar';
   }
 
-  // ── App init ───────────────────────────────────────────────────────
-  function startApp() {
-    document.getElementById("login-screen").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    loadPosts();
+  function showPanel() {
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('admin-panel').style.display='flex';
+    loadOverview();
   }
 
-  // ── Posts list ─────────────────────────────────────────────────────
-  async function loadPosts() {
+  // ── Page routing ─────────────────────────────────────
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+    document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+    document.getElementById('page-'+name).classList.add('active');
+    document.getElementById('nav-'+name).classList.add('active');
+    if(name==='deals')     loadDeals();
+    if(name==='blog')      loadBlogPosts();
+    if(name==='analytics') loadAnalytics();
+    if(name==='votos')     loadVotos();
+    if(name==='usuarios')  loadUsuarios();
+  }
+
+  // ── Overview ─────────────────────────────────────────
+  async function loadOverview() {
     try {
-      const data = await fetch(`${API}/admin/blog`, {
-        headers: { "Authorization": `Bearer ${JWT}` }
-      }).then(r => r.json());
-      posts = data.posts || [];
-      renderSidebar();
-    } catch (e) {
-      toast("Error cargando posts", true);
-    }
+      var res=await fetch(API+'/admin/stats',{headers:h()});
+      if(res.status===401) return logout();
+      var d=await res.json();
+      document.getElementById('stats-grid').innerHTML=[
+        {label:'Deals totales',   value:d.total_deals,  sub:(d.today_deals||0)+' hoy'},
+        {label:'Clicks totales',  value:d.total_clicks, sub:(d.today_clicks||0)+' hoy'},
+        {label:'Usuarios',        value:d.total_users,  sub:(d.premium_users||0)+' premium'},
+        {label:'Clicks Telegram', value:(d.clicks_canal&&d.clicks_canal.telegram)||0, sub:''},
+        {label:'Clicks Web',      value:(d.clicks_canal&&d.clicks_canal.web)||0,      sub:''},
+      ].map(function(c){return '<div class="stat-card"><div class="stat-card__label">'+c.label+'</div><div class="stat-card__value">'+((c.value||0).toLocaleString('es'))+'</div>'+(c.sub?'<div class="stat-card__sub">'+c.sub+'</div>':'')+'</div>';}).join('');
+
+      var top=d.top_deals||[], maxC=Math.max.apply(null,top.map(function(x){return x.clicks;}).concat([1]));
+      document.getElementById('top-deals-bars').innerHTML=top.length?top.map(function(x){return barRow(esc((x.titulo||'').substring(0,48)),x.clicks,maxC,'red');}).join(''):'<div class="loading-msg">Sin datos de clicks aún.</div>';
+
+      var tiendas=Object.entries(d.deals_tienda||{}), maxT=Math.max.apply(null,tiendas.map(function(e){return e[1];}).concat([1]));
+      document.getElementById('tienda-bars').innerHTML=tiendas.length?tiendas.map(function(e){return barRow(e[0],e[1],maxT,'green');}).join(''):'<div class="loading-msg">Sin datos.</div>';
+    } catch(e){document.getElementById('stats-grid').innerHTML='<div class="loading-msg">Error cargando estadísticas.</div>';}
   }
 
-  function renderSidebar() {
-    const list = document.getElementById("js-sidebar-list");
-    if (!posts.length) {
-      list.innerHTML = `<div style="padding:20px;color:var(--ink-3);font-size:13px">Sin posts aún.</div>`;
-      return;
-    }
-    list.innerHTML = posts.map(p => `
-      <div class="sidebar-item${editingId === p.id ? " active" : ""}" data-id="${p.id}">
-        <span class="sidebar-item__title">${p.titulo}</span>
-        <span class="sidebar-item__meta">
-          ${fmtDate(p.updated_at)}
-          <span class="badge ${p.publicado ? "badge--pub" : "badge--draft"}">${p.publicado ? "Publicado" : "Borrador"}</span>
-        </span>
-      </div>
-    `).join("");
-    list.querySelectorAll(".sidebar-item").forEach(item => {
-      item.addEventListener("click", () => openPost(parseInt(item.dataset.id)));
-    });
-  }
+  // ── Deals ────────────────────────────────────────────
+  async function loadDeals() {
+    var busqueda=document.getElementById('busqueda').value.trim();
+    var tipo=document.getElementById('tipo-filter').value;
+    var tienda=document.getElementById('tienda-filter').value;
+    var tbody=document.getElementById('deals-tbody');
+    tbody.innerHTML='<tr><td colspan="11" class="loading-msg">Cargando…</td></tr>';
+    selectedDeals.clear(); updateBulkBtn();
 
-  // ── Editor ─────────────────────────────────────────────────────────
-  function showEditor(isNew) {
-    document.getElementById("js-welcome").style.display = "none";
-    document.getElementById("js-editor").style.display = "flex";
-    document.getElementById("delete-btn").style.display = isNew ? "none" : "";
-    document.getElementById("js-editor-title").textContent = isNew ? "Nuevo post" : "Editar post";
-    // Reset tab to write
-    document.querySelectorAll(".editor-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === "write"));
-    document.querySelectorAll(".editor-pane").forEach(p => p.classList.toggle("active", p.id === "pane-write"));
-  }
-
-  function newPost() {
-    editingId = null;
-    document.getElementById("field-id").value = "";
-    document.getElementById("field-titulo").value = "";
-    document.getElementById("field-slug").value = "";
-    document.getElementById("field-resumen").value = "";
-    document.getElementById("field-imagen").value = "";
-    document.getElementById("field-contenido").value = "";
-    document.getElementById("field-publicado").checked = false;
-    document.getElementById("field-meta-desc").value = "";
-    document.getElementById("field-tags").value = "";
-    document.getElementById("field-schema-type").value = "Article";
-    document.getElementById("field-og-title").value = "";
-    renderSidebar();
-    showEditor(true);
-  }
-
-  function openPost(id) {
-    const p = posts.find(x => x.id === id);
-    if (!p) return;
-    editingId = id;
-    document.getElementById("field-id").value          = p.id;
-    document.getElementById("field-titulo").value      = p.titulo;
-    document.getElementById("field-slug").value        = p.slug;
-    document.getElementById("field-resumen").value     = p.resumen || "";
-    document.getElementById("field-imagen").value      = p.imagen_url || "";
-    document.getElementById("field-contenido").value   = p.contenido || "";
-    document.getElementById("field-publicado").checked = !!p.publicado;
-    document.getElementById("field-meta-desc").value  = p.meta_description || "";
-    document.getElementById("field-tags").value        = p.tags || "";
-    document.getElementById("field-schema-type").value = p.schema_type || "Article";
-    document.getElementById("field-og-title").value    = p.og_title || "";
-    renderSidebar();
-    showEditor(false);
-  }
-
-  function cancelEdit() {
-    editingId = null;
-    renderSidebar();
-    document.getElementById("js-welcome").style.display = "";
-    document.getElementById("js-editor").style.display = "none";
-  }
-
-  async function savePost() {
-    const id       = document.getElementById("field-id").value;
-    const titulo   = document.getElementById("field-titulo").value.trim();
-    const slug     = document.getElementById("field-slug").value.trim();
-    const resumen  = document.getElementById("field-resumen").value.trim();
-    const imagen   = document.getElementById("field-imagen").value.trim();
-    const contenido = document.getElementById("field-contenido").value;
-    const publicado = document.getElementById("field-publicado").checked;
-    const meta_description = document.getElementById("field-meta-desc").value.trim();
-    const tags             = document.getElementById("field-tags").value.trim();
-    const schema_type      = document.getElementById("field-schema-type").value;
-    const og_title         = document.getElementById("field-og-title").value.trim();
-
-    if (!titulo || !slug) { toast("Título y slug son obligatorios", true); return; }
-
-    const body = { slug, titulo, resumen, contenido, imagen_url: imagen, publicado,
-                   meta_description, tags, schema_type, og_title };
-    const isNew = !id;
-    const url  = isNew ? `${API}/admin/blog` : `${API}/admin/blog/${id}`;
-    const method = isNew ? "POST" : "PUT";
+    var p=new URLSearchParams({limit:PAGE_SZ,offset:dealsOffset});
+    if(busqueda)      p.set('busqueda',busqueda);
+    if(tipo)          p.set('tipo',tipo);
+    if(tienda)        p.set('tienda',tienda);
+    if(expiredFilter) p.set('expirado','1');
 
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Authorization": `Bearer ${JWT}`, "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json();
-      if (!res.ok) { toast(data.error || "Error al guardar", true); return; }
-      toast(isNew ? "Post creado ✓" : "Post guardado ✓");
-      if (isNew) { editingId = data.id; document.getElementById("field-id").value = data.id; }
-      await loadPosts();
-      renderSidebar();
-    } catch (e) {
-      toast("Error de conexión", true);
-    }
+      var res=await fetch(API+'/admin/deals?'+p,{headers:h()});
+      if(res.status===401) return logout();
+      var data=await res.json();
+      document.getElementById('deals-label').textContent=(data.total).toLocaleString('es')+' deals';
+      document.getElementById('pg-info').textContent='Página '+(Math.floor(dealsOffset/PAGE_SZ)+1)+' / '+Math.ceil(data.total/PAGE_SZ);
+      document.getElementById('pg-prev').disabled=dealsOffset===0;
+      document.getElementById('pg-next').disabled=dealsOffset+PAGE_SZ>=data.total;
+      document.getElementById('select-all').checked=false;
+
+      if(!data.deals.length){tbody.innerHTML='<tr><td colspan="11" class="loading-msg">Sin resultados.</td></tr>';return;}
+
+      tbody.innerHTML=data.deals.map(function(d){
+        var expBadge=d.expirado?'<span class="badge badge-exp">Exp</span>':d.flags_expirado?'<span class="badge badge-flags">&#128681;'+d.flags_expirado+'</span>':'–';
+        return '<tr id="row-'+d.deal_id+'">'
+          +'<td><input type="checkbox" class="row-cb" data-id="'+d.deal_id+'" onchange="toggleSelect(\''+d.deal_id+'\',this.checked)" /></td>'
+          +'<td><img class="deal-thumb" src="'+esc(d.imagen_url)+'" alt="" onerror="this.style.display=\'none\'" /></td>'
+          +'<td class="deal-title"><strong>'+esc((d.titulo||'').substring(0,72))+'</strong><span class="store-tag">'+esc(d.tienda)+'</span></td>'
+          +'<td><span class="badge badge-'+(d.tipo||'').toLowerCase()+'">'+d.tipo+'</span></td>'
+          +'<td><strong>'+eur(d.precio_actual)+'</strong><br><span style="color:var(--muted);font-size:10px;text-decoration:line-through">'+eur(d.precio_original)+'</span></td>'
+          +'<td style="color:var(--accent);font-weight:700">'+d.descuento_pct+'%</td>'
+          +'<td style="white-space:nowrap"><span style="color:var(--green)">&#8593;'+d.votes_up+'</span> <span style="color:var(--muted)">&#8595;'+d.votes_down+'</span></td>'
+          +'<td>'+d.clicks_total+'<br><span style="color:var(--muted);font-size:10px">&#128241;'+d.clicks_telegram+' &#127760;'+d.clicks_web+'</span></td>'
+          +'<td>'+expBadge+'</td>'
+          +'<td style="color:var(--muted);font-size:10px;white-space:nowrap">'+fdate(d.publicado_en)+'</td>'
+          +'<td style="white-space:nowrap">'
+            +'<button class="edit-btn" data-titulo="'+esc(d.titulo||'')+'" data-link="'+esc(d.url_afiliado||'')+'" onclick="openEdit(\''+d.deal_id+'\',this)">Editar</button> '
+            +'<button class="del-btn" onclick="deleteDeal(\''+d.deal_id+'\')">Borrar</button>'
+          +'</td>'
+          +'</tr>';
+      }).join('');
+    } catch(e){tbody.innerHTML='<tr><td colspan="11" class="loading-msg">Error cargando deals.</td></tr>';}
   }
 
-  async function deletePost() {
-    const id = document.getElementById("field-id").value;
-    if (!id || !confirm("¿Eliminar este post? Esta acción no se puede deshacer.")) return;
+  function debouncedLoad(){ dealsOffset=0; clearTimeout(filterTimer); filterTimer=setTimeout(loadDeals,380); }
+  function changePage(dir){ dealsOffset=Math.max(0,dealsOffset+dir*PAGE_SZ); loadDeals(); }
+
+  function toggleExpiredFilter(){
+    expiredFilter=!expiredFilter;
+    document.getElementById('filter-expired-btn').classList.toggle('active',expiredFilter);
+    dealsOffset=0; loadDeals();
+  }
+  function toggleSelect(id,checked){ checked?selectedDeals.add(id):selectedDeals.delete(id); updateBulkBtn(); }
+  function toggleSelectAll(checked){ document.querySelectorAll('.row-cb').forEach(function(cb){cb.checked=checked;toggleSelect(cb.dataset.id,checked);}); }
+  function updateBulkBtn(){
+    var n=selectedDeals.size;
+    document.getElementById('sel-count').textContent=n;
+    document.getElementById('bulk-delete-btn').classList.toggle('visible',n>0);
+  }
+
+  async function bulkDelete(){
+    var ids=[...selectedDeals];
+    if(!ids.length) return;
+    if(!confirm('¿Eliminar '+ids.length+' deal(s) permanentemente?')) return;
     try {
-      const res = await fetch(`${API}/admin/blog/${id}`, {
-        method: "DELETE", headers: { "Authorization": `Bearer ${JWT}` }
-      });
-      if (!res.ok) { toast("Error al eliminar", true); return; }
-      toast("Post eliminado");
-      editingId = null;
-      cancelEdit();
-      await loadPosts();
-    } catch (e) {
-      toast("Error de conexión", true);
+      var res=await fetch(API+'/admin/deals/bulk',{method:'DELETE',headers:h(),body:JSON.stringify({deal_ids:ids})});
+      if(res.status===401) return logout();
+      if(res.ok){selectedDeals.clear();loadDeals();}
+    } catch(e){}
+  }
+
+  async function deleteDeal(id){
+    if(!confirm('¿Eliminar este deal? Esta acción no se puede deshacer.')) return;
+    var row=document.getElementById('row-'+id);
+    var btn=row&&row.querySelector('.del-btn');
+    if(btn){btn.disabled=true;btn.textContent='…';}
+    try {
+      var res=await fetch(API+'/admin/deals/'+id,{method:'DELETE',headers:h()});
+      if(res.ok) row&&row.remove(); else if(btn){btn.textContent='Error';btn.style.color='var(--accent)';}
+    } catch(e){if(btn){btn.disabled=false;btn.textContent='Borrar';}}
+  }
+
+  // ── Deals edit modal ─────────────────────────────────
+  var editDealId=null;
+  function openEdit(id,btn){ editDealId=id; document.getElementById('edit-titulo').value=btn.dataset.titulo||''; document.getElementById('edit-link').value=btn.dataset.link||''; document.getElementById('edit-modal').style.display='flex'; document.getElementById('edit-titulo').focus(); }
+  function closeEdit(){ document.getElementById('edit-modal').style.display='none'; editDealId=null; }
+  async function saveEdit(){
+    if(!editDealId) return;
+    var titulo=document.getElementById('edit-titulo').value.trim();
+    var url_afiliado=document.getElementById('edit-link').value.trim();
+    if(!titulo){alert('El título no puede estar vacío');return;}
+    var saveBtn=document.getElementById('edit-save-btn'); saveBtn.disabled=true; saveBtn.textContent='Guardando…';
+    try {
+      var res=await fetch(API+'/admin/deals/'+editDealId,{method:'PATCH',headers:h(),body:JSON.stringify({titulo,url_afiliado})});
+      if(res.status===401) return logout();
+      if(!res.ok){alert('Error al guardar el deal');return;}
+      closeEdit(); loadDeals();
+    } catch(e){alert('Error de conexión');}
+    finally{saveBtn.disabled=false;saveBtn.textContent='Guardar cambios';}
+  }
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeEdit();if(e.key==='Enter'&&document.getElementById('edit-modal').style.display!=='none')saveEdit();});
+  document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===document.getElementById('edit-modal'))closeEdit();});
+
+  // ── Blog ─────────────────────────────────────────────
+  async function loadBlogPosts(){
+    try {
+      var data=await fetch(API+'/admin/blog',{headers:h()}).then(function(r){return r.json();});
+      if(data.error) return logout();
+      blogPosts=data.posts||[]; renderBlogList();
+    } catch(e){document.getElementById('blog-post-list').innerHTML='<div class="loading-msg">Error cargando posts.</div>';}
+  }
+
+  function renderBlogList(){
+    var el=document.getElementById('blog-post-list');
+    if(!blogPosts.length){el.innerHTML='<div class="loading-msg">Sin posts aún.</div>';return;}
+    el.innerHTML=blogPosts.map(function(p){
+      return '<div class="post-item'+(blogEditingId===p.id?' active':'')+'" onclick="openBlogPost('+p.id+')">'
+        +'<div class="post-item__title">'+esc(p.titulo)+'</div>'
+        +'<div class="post-item__meta">'+fmtDate(p.updated_at)
+        +' <span class="post-badge '+(p.publicado?'post-badge-pub':'post-badge-draft')+'">'+(p.publicado?'Pub':'Draft')+'</span></div>'
+        +'</div>';
+    }).join('');
+  }
+
+  function showBlogEditor(isNew){
+    document.getElementById('blog-welcome').style.display='none';
+    document.getElementById('blog-editor-form').style.display='block';
+    document.getElementById('blog-delete-btn').style.display=isNew?'none':'inline-block';
+    document.getElementById('blog-editor-title').textContent=isNew?'Nuevo post':'Editar post';
+    switchMdTab('write');
+  }
+
+  function newBlogPost(){
+    blogEditingId=null;
+    ['blog-field-id','blog-field-titulo','blog-field-slug','blog-field-resumen','blog-field-imagen','blog-field-contenido','blog-field-meta-desc','blog-field-tags','blog-field-og-title'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+    document.getElementById('blog-field-publicado').checked=false;
+    document.getElementById('blog-field-schema-type').value='Article';
+    document.getElementById('meta-desc-count').textContent='';
+    renderBlogList(); showBlogEditor(true);
+  }
+
+  function openBlogPost(id){
+    var p=blogPosts.find(function(x){return x.id===id;});
+    if(!p) return;
+    blogEditingId=id;
+    document.getElementById('blog-field-id').value=p.id;
+    document.getElementById('blog-field-titulo').value=p.titulo||'';
+    document.getElementById('blog-field-slug').value=p.slug||'';
+    document.getElementById('blog-field-resumen').value=p.resumen||'';
+    document.getElementById('blog-field-imagen').value=p.imagen_url||'';
+    document.getElementById('blog-field-contenido').value=p.contenido||'';
+    document.getElementById('blog-field-publicado').checked=!!p.publicado;
+    document.getElementById('blog-field-meta-desc').value=p.meta_description||'';
+    document.getElementById('blog-field-tags').value=p.tags||'';
+    document.getElementById('blog-field-schema-type').value=p.schema_type||'Article';
+    document.getElementById('blog-field-og-title').value=p.og_title||'';
+    var n=(p.meta_description||'').length;
+    document.getElementById('meta-desc-count').textContent=n?n+'/160':'';
+    renderBlogList(); showBlogEditor(false);
+  }
+
+  function cancelBlogEdit(){
+    blogEditingId=null;
+    document.getElementById('blog-welcome').style.display='';
+    document.getElementById('blog-editor-form').style.display='none';
+    renderBlogList();
+  }
+
+  async function saveBlogPost(){
+    var id=document.getElementById('blog-field-id').value;
+    var titulo=document.getElementById('blog-field-titulo').value.trim();
+    var slug=document.getElementById('blog-field-slug').value.trim();
+    if(!titulo||!slug){alert('Título y slug son obligatorios');return;}
+    var body={
+      slug,titulo,
+      resumen:          document.getElementById('blog-field-resumen').value.trim(),
+      contenido:        document.getElementById('blog-field-contenido').value,
+      imagen_url:       document.getElementById('blog-field-imagen').value.trim(),
+      publicado:        document.getElementById('blog-field-publicado').checked,
+      meta_description: document.getElementById('blog-field-meta-desc').value.trim(),
+      tags:             document.getElementById('blog-field-tags').value.trim(),
+      schema_type:      document.getElementById('blog-field-schema-type').value,
+      og_title:         document.getElementById('blog-field-og-title').value.trim(),
+    };
+    var isNew=!id, url=isNew?API+'/admin/blog':API+'/admin/blog/'+id, method=isNew?'POST':'PUT';
+    try {
+      var res=await fetch(url,{method,headers:h(),body:JSON.stringify(body)});
+      if(res.status===401) return logout();
+      if(!res.ok){alert('Error al guardar el post');return;}
+      var data=await res.json();
+      blogEditingId=data.id||parseInt(id);
+      document.getElementById('blog-field-id').value=blogEditingId;
+      document.getElementById('blog-delete-btn').style.display='inline-block';
+      document.getElementById('blog-editor-title').textContent='Editar post';
+      await loadBlogPosts();
+    } catch(e){alert('Error de conexión');}
+  }
+
+  async function deleteBlogPost(){
+    var id=document.getElementById('blog-field-id').value;
+    if(!id||!confirm('¿Eliminar este post permanentemente?')) return;
+    try {
+      var res=await fetch(API+'/admin/blog/'+id,{method:'DELETE',headers:h()});
+      if(res.status===401) return logout();
+      if(res.ok){cancelBlogEdit();await loadBlogPosts();}
+    } catch(e){alert('Error de conexión');}
+  }
+
+  function autoSlug(){ document.getElementById('blog-field-slug').value=slugify(document.getElementById('blog-field-titulo').value); }
+
+  function switchMdTab(tab){
+    document.querySelectorAll('.md-tab').forEach(function(t){t.classList.toggle('active',t.dataset.tab===tab);});
+    document.getElementById('md-pane-write').classList.toggle('active',tab==='write');
+    document.getElementById('md-pane-preview').classList.toggle('active',tab==='preview');
+    if(tab==='preview'){
+      var md=document.getElementById('blog-field-contenido').value;
+      document.getElementById('blog-preview').innerHTML=typeof marked!=='undefined'?marked.parse(md||'*Sin contenido*'):md;
     }
   }
 
-  // ── Tabs ────────────────────────────────────────────────────────────
-  document.querySelectorAll(".editor-tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-      const t = tab.dataset.tab;
-      document.querySelectorAll(".editor-tab").forEach(x => x.classList.toggle("active", x.dataset.tab === t));
-      document.getElementById("pane-write").classList.toggle("active", t === "write");
-      document.getElementById("pane-preview").classList.toggle("active", t === "preview");
-      if (t === "preview") {
-        const md = document.getElementById("field-contenido").value;
-        document.getElementById("js-preview").innerHTML = marked.parse(md || "*Sin contenido*");
-      }
-    });
+  document.getElementById('blog-field-meta-desc').addEventListener('input',function(){
+    var n=this.value.length, el=document.getElementById('meta-desc-count');
+    el.textContent=n+'/160'; el.style.color=n>155?'var(--accent)':'var(--muted)';
   });
 
-  // ── Events ──────────────────────────────────────────────────────────
-  document.getElementById("login-btn").addEventListener("click", login);
-  document.getElementById("login-pass").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
-  document.getElementById("logout-btn").addEventListener("click", logout);
-  document.getElementById("new-post-btn").addEventListener("click", newPost);
-
-  // ── Boot ────────────────────────────────────────────────────────────
-  if (JWT) {
-    // Validate token before going to app
-    fetch(`${API}/admin/blog`, { headers: { "Authorization": `Bearer ${JWT}` } })
-      .then(r => { if (r.ok) startApp(); else { JWT = ""; localStorage.removeItem("flipazo_admin_jwt"); } })
-      .catch(() => {});
-  }
-
-  // ── Section nav ─────────────────────────────────────────────────────
-  function switchSection(section) {
-    document.querySelectorAll(".main-nav__tab").forEach(t =>
-      t.classList.toggle("active", t.dataset.section === section)
-    );
-    document.getElementById("section-blog").style.display   = section === "blog"  ? "" : "none";
-    document.getElementById("section-deals").style.display  = section === "deals" ? "" : "none";
-    if (section === "deals" && dealsState.total === -1) loadDeals(true);
-  }
-
-  document.querySelectorAll(".main-nav__tab").forEach(tab =>
-    tab.addEventListener("click", () => switchSection(tab.dataset.section))
-  );
-
-  // ── Deals ────────────────────────────────────────────────────────────
-  const DEALS_LIMIT = 50;
-  const selectedDeals = new Set();
-  const dealsState = { deals: [], total: -1, offset: 0, search: "" };
-  let dealsSearchTimer = null;
-  let dealsExpiredFilter = false;
-
-  function toggleExpiredFilter() {
-    dealsExpiredFilter = !dealsExpiredFilter;
-    document.getElementById("filter-expired-btn").classList.toggle("btn--primary", dealsExpiredFilter);
-    document.getElementById("filter-expired-btn").classList.toggle("btn--secondary", !dealsExpiredFilter);
-    loadDeals(true);
-  }
-
-  function _esc(s) {
-    return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
-  function _price(p) {
-    return p ? new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(p) : "–";
-  }
-  function _reldate(iso) {
-    if (!iso) return "–";
-    return new Date(iso).toLocaleDateString("es-ES",{day:"2-digit",month:"short"});
-  }
-
-  async function loadDeals(reset = false) {
-    if (reset) { dealsState.offset = 0; selectedDeals.clear(); }
-    document.getElementById("deals-loading").style.display = "";
-    document.getElementById("deals-table").style.display   = "none";
-    document.getElementById("deals-empty").style.display   = "none";
-
-    const p = new URLSearchParams({ limit: DEALS_LIMIT, offset: dealsState.offset });
-    if (dealsState.search) p.set("busqueda", dealsState.search);
-    if (dealsExpiredFilter) p.set("expirado", "1");
-
+  // ── Analytics ────────────────────────────────────────
+  async function loadAnalytics(){
+    var el=document.getElementById('analytics-content');
+    el.innerHTML='<div class="loading-msg">Cargando…</div>';
     try {
-      const res  = await fetch(`${API}/admin/deals?${p}`, { headers: { "Authorization": `Bearer ${JWT}` } });
-      const data = await res.json();
-      if (!res.ok) { toast(data.error || "Error cargando deals", true); return; }
-      dealsState.deals = data.deals || [];
-      dealsState.total = data.total || 0;
-      renderDeals();
-    } catch (e) { toast("Error de conexión", true); }
-    finally { document.getElementById("deals-loading").style.display = "none"; }
+      var statsRes=await fetch(API+'/admin/stats',{headers:h()});
+      if(statsRes.status===401) return logout();
+      var stats=await statsRes.json();
+      var dealsRes=await fetch(API+'/admin/deals?limit=100&offset=0',{headers:h()});
+      var data=await dealsRes.json(), deals=data.deals||[];
+
+      var canal=stats.clicks_canal||{};
+      var canalHtml=Object.entries(canal).map(function(e){return '<div class="canal-pill"><div class="canal-pill__val">'+e[1].toLocaleString('es')+'</div><div class="canal-pill__lbl">'+e[0]+'</div></div>';}).join('')||'<div class="loading-msg">Sin clicks registrados aún.</div>';
+
+      var byClicks=[...deals].sort(function(a,b){return b.clicks_total-a.clicks_total;}).slice(0,15);
+      var byVotes=[...deals].sort(function(a,b){return b.votes_up-a.votes_up;}).slice(0,15);
+      var maxC=Math.max.apply(null,byClicks.map(function(d){return d.clicks_total;}).concat([1]));
+      var maxV=Math.max.apply(null,byVotes.map(function(d){return d.votes_up;}).concat([1]));
+
+      el.innerHTML='<div class="section-title" style="margin-top:0">Clicks por canal</div>'
+        +'<div class="canal-pills">'+canalHtml+'</div>'
+        +'<div class="analytics-cols"><div>'
+        +'<div class="section-title">Top por clicks</div>'
+        +(byClicks.map(function(d){return barRow(esc((d.titulo||'').substring(0,42)),d.clicks_total,maxC,'red');}).join('')||'<div class="loading-msg">Sin datos.</div>')
+        +'</div><div>'
+        +'<div class="section-title">Top por votos ↑</div>'
+        +(byVotes.map(function(d){return barRow(esc((d.titulo||'').substring(0,42)),d.votes_up,maxV,'green');}).join('')||'<div class="loading-msg">Sin datos.</div>')
+        +'</div></div>';
+    } catch(e){el.innerHTML='<div class="loading-msg">Error cargando analytics.</div>';}
   }
 
-  function renderDeals() {
-    const { deals, total, offset } = dealsState;
-    const tbody = document.getElementById("deals-tbody");
-
-    if (!deals.length) {
-      document.getElementById("deals-empty").style.display = "";
-      document.getElementById("deals-table").style.display = "none";
-    } else {
-      document.getElementById("deals-table").style.display = "";
-      tbody.innerHTML = deals.map(d => {
-        const sel = selectedDeals.has(d.deal_id);
-        const img = d.imagen_url
-          ? `<img class="deal-thumb" src="${_esc(d.imagen_url)}" loading="lazy" onerror="this.style.display='none'">`
-          : `<span class="deal-thumb--ph"></span>`;
-        const tipo = d.tipo === "ARBITRAJE"
-          ? `<span class="badge badge--arb">ARB</span>`
-          : `<span class="badge badge--oferta">OFERTA</span>`;
-        return `<tr class="${sel?"selected":""}" data-id="${_esc(d.deal_id)}">
-          <td class="col-chk"><input type="checkbox" class="deal-chk" data-id="${_esc(d.deal_id)}"${sel?" checked":""}></td>
-          <td class="col-img">${img}</td>
-          <td><div class="deal-title"><span title="${_esc(d.titulo)}">${_esc(d.titulo)}</span></div></td>
-          <td><span class="badge badge--store">${_esc(d.tienda)}</span></td>
-          <td>${tipo}</td>
-          <td class="col-pct"><span class="badge badge--pct">-${d.descuento_pct}%</span></td>
-          <td class="col-px"><strong>${_price(d.precio_actual)}</strong></td>
-          <td class="col-clk">${d.clicks_total||0}</td>
-          <td class="col-dt">${_reldate(d.publicado_en)}</td>
-          <td class="col-exp">${d.expirado ? '<span class="badge badge--exp" title="Oferta expirada">✓</span>' : (d.flags_expirado > 0 ? `<span style="color:#c0392b;font-size:11px">🚩${d.flags_expirado}</span>` : '')}</td>
-          <td class="col-del">
-            <button class="btn btn--danger" style="padding:3px 7px;font-size:11px"
-              onclick="deleteSingleDeal('${_esc(d.deal_id)}')">✕</button>
-          </td>
-        </tr>`;
-      }).join("");
-
-      tbody.querySelectorAll(".deal-chk").forEach(cb => {
-        cb.addEventListener("change", () => {
-          const id = cb.dataset.id;
-          cb.checked ? selectedDeals.add(id) : selectedDeals.delete(id);
-          cb.closest("tr").classList.toggle("selected", cb.checked);
-          _syncSelectAll();
-          _updateBulkBtn();
-        });
-      });
-    }
-
-    // Pagination
-    const from = offset + 1, to = Math.min(offset + DEALS_LIMIT, total);
-    document.getElementById("deals-pag-info").textContent =
-      total ? `${from}–${to} de ${total} deals` : "0 deals";
-    document.getElementById("deals-count-label").textContent =
-      total ? `${total} deals` : "";
-    document.getElementById("deals-prev").disabled = offset === 0;
-    document.getElementById("deals-next").disabled = offset + DEALS_LIMIT >= total;
-
-    _syncSelectAll();
-    _updateBulkBtn();
-  }
-
-  function _syncSelectAll() {
-    const checks = Array.from(document.querySelectorAll(".deal-chk"));
-    const sa = document.getElementById("select-all-deals");
-    const allChecked  = checks.length > 0 && checks.every(c => c.checked);
-    const someChecked = checks.some(c => c.checked);
-    sa.checked       = allChecked;
-    sa.indeterminate = someChecked && !allChecked;
-  }
-
-  function _updateBulkBtn() {
-    const n = selectedDeals.size;
-    document.getElementById("bulk-delete-btn").style.display = n ? "" : "none";
-    document.getElementById("bulk-count").textContent = n;
-  }
-
-  document.getElementById("select-all-deals").addEventListener("change", function() {
-    document.querySelectorAll(".deal-chk").forEach(cb => {
-      cb.checked = this.checked;
-      this.checked ? selectedDeals.add(cb.dataset.id) : selectedDeals.delete(cb.dataset.id);
-      cb.closest("tr").classList.toggle("selected", this.checked);
-    });
-    _updateBulkBtn();
-  });
-
-  document.getElementById("field-meta-desc").addEventListener("input", function() {
-    const n = this.value.length;
-    const el = document.getElementById("meta-desc-count");
-    el.textContent = `${n}/160`;
-    el.style.color = n > 155 ? "#c0392b" : "var(--ink-3)";
-  });
-
-  document.getElementById("deals-search").addEventListener("input", function() {
-    clearTimeout(dealsSearchTimer);
-    dealsState.search = this.value.trim();
-    dealsSearchTimer = setTimeout(() => loadDeals(true), 400);
-  });
-
-  function dealsPage(dir) {
-    dealsState.offset = Math.max(0, dealsState.offset + dir * DEALS_LIMIT);
-    loadDeals();
-  }
-
-  async function deleteSingleDeal(dealId) {
-    if (!confirm("¿Eliminar este deal?")) return;
+  // ── Votos ────────────────────────────────────────────
+  async function loadVotos(){
+    var el=document.getElementById('votos-content');
+    el.innerHTML='<div class="loading-msg">Cargando…</div>';
     try {
-      const res = await fetch(`${API}/admin/deals/${encodeURIComponent(dealId)}`, {
-        method: "DELETE", headers: { "Authorization": `Bearer ${JWT}` }
-      });
-      if (!res.ok) { toast("Error al eliminar", true); return; }
-      selectedDeals.delete(dealId);
-      toast("Deal eliminado");
-      await loadDeals();
-    } catch (e) { toast("Error de conexión", true); }
+      var res=await fetch(API+'/admin/deals?limit=200&offset=0',{headers:h()});
+      if(res.status===401) return logout();
+      var data=await res.json();
+      var deals=[...(data.deals||[])].sort(function(a,b){return(b.votes_up-b.votes_down)-(a.votes_up-a.votes_down);});
+      el.innerHTML='<div class="table-wrap"><table>'
+        +'<thead><tr><th>#</th><th>Título</th><th>Tienda</th><th>Tipo</th><th style="text-align:right">↑</th><th style="text-align:right">↓</th><th style="text-align:right">Neto</th></tr></thead>'
+        +'<tbody>'+deals.slice(0,100).map(function(d,i){
+          var neto=d.votes_up-d.votes_down;
+          return '<tr>'
+            +'<td style="color:var(--muted)">'+(i+1)+'</td>'
+            +'<td class="deal-title"><strong>'+esc((d.titulo||'').substring(0,70))+'</strong></td>'
+            +'<td class="store-tag">'+esc(d.tienda)+'</td>'
+            +'<td><span class="badge badge-'+(d.tipo||'').toLowerCase()+'">'+d.tipo+'</span></td>'
+            +'<td style="text-align:right;color:var(--green);font-weight:700">'+d.votes_up+'</td>'
+            +'<td style="text-align:right;color:var(--muted)">'+d.votes_down+'</td>'
+            +'<td style="text-align:right;font-weight:700;color:'+(neto>=0?'var(--green)':'var(--accent)')+'">'+( neto>0?'+':'')+neto+'</td>'
+            +'</tr>';
+        }).join('')+'</tbody></table></div>';
+    } catch(e){el.innerHTML='<div class="loading-msg">Error cargando votos.</div>';}
   }
 
-  async function bulkDelete() {
-    const ids = Array.from(selectedDeals);
-    if (!ids.length) return;
-    if (!JWT) { toast("Sesión no válida", true); return; }
-    if (!confirm(`¿Eliminar ${ids.length} deal${ids.length !== 1 ? "s" : ""}? Esta acción no se puede deshacer.`)) return;
+  // ── Usuarios ─────────────────────────────────────────
+  async function loadUsuarios(){
+    var el=document.getElementById('usuarios-content');
+    el.innerHTML='<div class="loading-msg">Cargando…</div>';
     try {
-      const res = await fetch(`${API}/admin/deals/bulk`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${JWT}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ deal_ids: ids })
-      });
-      const data = await res.json();
-      if (!res.ok) { toast(data.error || "Error al eliminar", true); return; }
-      selectedDeals.clear();
-      toast(`${data.deleted} deal${data.deleted !== 1 ? "s" : ""} eliminados ✓`);
-      await loadDeals(true);
-    } catch (e) {
-      if (e.message && e.message.includes("401")) {
-        toast("Sesión expirada, por favor vuelve a iniciar sesión", true);
-      } else {
-        toast("Error de conexión", true);
-      }
-    }
+      var res=await fetch(API+'/admin/stats',{headers:h()});
+      if(res.status===401) return logout();
+      var d=await res.json();
+      el.innerHTML='<div class="stats-grid" style="max-width:400px">'
+        +'<div class="stat-card"><div class="stat-card__label">Total usuarios</div><div class="stat-card__value">'+(d.total_users||0)+'</div></div>'
+        +'<div class="stat-card"><div class="stat-card__label">Premium</div><div class="stat-card__value">'+(d.premium_users||0)+'</div></div>'
+        +'</div>'
+        +'<p style="color:var(--muted);font-size:11px;margin-top:16px;max-width:500px;line-height:1.6">Los usuarios registrados con Google o Apple aparecerán aquí. La gestión premium se habilitará con Stripe.</p>';
+    } catch(e){el.innerHTML='<div class="loading-msg">Error cargando usuarios.</div>';}
   }
 </script>
 </body>
