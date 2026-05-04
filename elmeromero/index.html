@@ -598,7 +598,7 @@
         var expBadge=d.expirado?'<span class="badge badge-exp">Exp</span>':d.flags_expirado?'<span class="badge badge-flags">&#128681;'+d.flags_expirado+'</span>':'–';
         return '<tr id="row-'+d.deal_id+'">'
           +'<td><input type="checkbox" class="row-cb" data-id="'+d.deal_id+'" onchange="toggleSelect(\''+d.deal_id+'\',this.checked)" /></td>'
-          +'<td><img class="deal-thumb" src="'+esc(d.imagen_url)+'" alt="" onerror="this.style.display=\'none\'" /></td>'
+          +'<td><a href="'+esc(d.url_afiliado)+'" target="_blank" rel="noopener" title="Ver deal"><img class="deal-thumb" src="'+esc(d.imagen_url)+'" alt="" onerror="this.style.display=\'none\'" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity=\'0.75\'" onmouseout="this.style.opacity=\'1\'" /></a></td>'
           +'<td class="deal-title"><strong>'+esc((d.titulo||'').substring(0,72))+'</strong><span class="store-tag">'+esc(d.tienda)+'</span></td>'
           +'<td><span class="badge badge-'+(d.tipo||'').toLowerCase()+'">'+d.tipo+'</span></td>'
           +'<td><strong>'+eur(d.precio_actual)+'</strong><br><span style="color:var(--muted);font-size:10px;text-decoration:line-through">'+eur(d.precio_original)+'</span></td>'
