@@ -2208,13 +2208,6 @@
 
       const razonHtml = d.razonamiento ? `<p class="deal__reason">"${d.razonamiento}"</p>` : "";
 
-      const pros    = Array.isArray(d.pros)    ? d.pros    : [];
-      const contras = Array.isArray(d.contras) ? d.contras : [];
-      const proconHtml = (pros.length || contras.length) ? `
-        <div class="deal__procon">
-          ${pros.length ? `<div class="deal__pros"><ul class="deal__procon-list">${pros.map(p => `<li>${p}</li>`).join("")}</ul></div>` : ""}
-          ${contras.length ? `<div class="deal__contras"><ul class="deal__procon-list">${contras.map(c => `<li>${c}</li>`).join("")}</ul></div>` : ""}
-        </div>` : "";
 
 
       const dealId  = d.id || "";
@@ -2257,7 +2250,6 @@
           </div>
           ${ahorroHtml}
           ${razonHtml}
-          ${proconHtml}
           <div class="deal__cta">
             <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver en ${d.tienda || "tienda"} →</a>
           </div>
