@@ -184,6 +184,8 @@
     }
 
     .site-logo svg { display: block; }
+    .site-logo__img { display: block; height: 36px; width: auto; mix-blend-mode: multiply; }
+    [data-theme="dark"] .site-logo__img { mix-blend-mode: screen; }
 
     /* ── Header search (desktop) ─────────────────────────────────── */
     .header-search-wrap {
@@ -1430,8 +1432,9 @@
       .scroll-btns { bottom: 16px; right: 16px; }
       .view-toggle { display: flex; }
       .header-nav__live { display: none; }
-      .landing-strip { padding: 12px 18px; }
-      .landing-strip__title { font-size: 15px; }
+      .landing-strip { padding: 36px 24px 30px; max-height: 600px; }
+      .landing-strip__title { font-size: 28px; }
+      .landing-strip__sub { font-size: 13px; }
       .filter-bar-header { padding: 6px 18px; }
       .footer__grid { grid-template-columns: 1fr; gap: 28px; }
     }
@@ -1440,37 +1443,60 @@
       .deals-grid--mosaic { --grid-cols: 2; }
     }
 
-    /* ── Landing Strip ──────────────────────────────────────────── */
+    /* ── Landing Hero ────────────────────────────────────────────── */
     .landing-strip {
-      display: flex; align-items: center;
-      justify-content: space-between; gap: 16px;
-      padding: 14px 40px;
+      text-align: center;
+      padding: 56px 40px 48px;
       background: var(--bg);
       border-bottom: 1px solid var(--border);
       overflow: hidden;
+      max-height: 500px;
       transition: max-height 0.35s ease, opacity 0.35s, padding 0.35s;
+      position: relative;
     }
-    .landing-strip__inner {
-      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    .landing-strip__badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-family: var(--sans); font-size: 11px; font-weight: 700;
+      color: var(--text-mid); background: var(--surface);
+      border: 1px solid var(--border); border-radius: 9999px;
+      padding: 5px 14px; margin-bottom: 20px;
     }
     .landing-strip__title {
-      font-family: var(--serif); font-size: 18px; font-weight: 700;
-      color: var(--ink); white-space: nowrap;
+      font-family: var(--serif); font-weight: 700;
+      font-size: clamp(28px, 4.5vw, 52px);
+      line-height: 1.15; color: var(--ink);
+      margin-bottom: 16px;
     }
-    .landing-strip__pills {
-      display: flex; align-items: center; gap: 6px;
-      list-style: none; flex-wrap: wrap;
+    .landing-strip__sub {
+      font-family: var(--sans); font-size: 15px;
+      color: var(--text-mid); max-width: 520px;
+      margin: 0 auto 32px; line-height: 1.7;
     }
-    .landing-strip__pill {
-      display: flex; align-items: center; gap: 4px;
-      font-family: var(--sans); font-size: 11px; font-weight: 600;
-      color: var(--teal); background: var(--teal-light);
-      padding: 4px 11px; border-radius: 9999px; white-space: nowrap;
+    .landing-strip__ctas {
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
     }
+    .landing-strip__cta-primary {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--sans); font-size: 14px; font-weight: 700;
+      color: #fff; background: var(--ink);
+      padding: 12px 28px; border-radius: 9999px;
+      transition: background 0.15s; text-decoration: none;
+    }
+    .landing-strip__cta-primary:hover { background: var(--brand); }
+    .landing-strip__cta-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--sans); font-size: 14px; font-weight: 700;
+      color: var(--ink); background: none;
+      border: 2px solid var(--border-soft);
+      padding: 12px 24px; border-radius: 9999px;
+      transition: border-color 0.15s, color 0.15s; text-decoration: none;
+    }
+    .landing-strip__cta-secondary:hover { border-color: var(--ink); }
     .landing-strip__close {
+      position: absolute; top: 12px; right: 16px;
       background: none; border: none; cursor: pointer;
-      font-size: 16px; color: var(--text-dim); flex-shrink: 0;
-      padding: 4px 6px; border-radius: 4px; line-height: 1;
+      font-size: 18px; color: var(--text-dim); line-height: 1;
+      padding: 4px 8px; border-radius: 4px;
       transition: color 0.15s;
     }
     .landing-strip__close:hover { color: var(--ink); }
@@ -1569,7 +1595,9 @@
 
       <!-- Logo -->
       <div class="site-logo" onclick="resetAll()" title="Volver al inicio" role="button" aria-label="Flipazo — inicio">
-        <svg viewBox="0 0 218 52" xmlns="http://www.w3.org/2000/svg" height="38" aria-hidden="true">
+        <img src="/flipazo-logo.png" alt="Flipazo" height="36" class="site-logo__img"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
+        <svg viewBox="0 0 218 52" xmlns="http://www.w3.org/2000/svg" height="38" aria-hidden="true" style="display:none">
           <text x="2" y="43"
             font-family="'Fredoka One', cursive"
             font-size="50"
@@ -1605,10 +1633,6 @@
 
       <!-- Nav -->
       <nav class="header-nav" aria-label="Navegación principal">
-        <div class="header-nav__live">
-          <span class="live-dot"></span>
-          En vivo
-        </div>
         <a href="/blog.html" class="header-nav__link">Blog</a>
         <a href="/cuenta" id="js-cuenta-link" class="header-nav__link">Mi&nbsp;Cuenta</a>
         <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema" title="Cambiar tema">☾</button>
@@ -1622,24 +1646,26 @@
       <button class="sort-tab" data-sort="descuento">Mayor Descuento</button>
       <button class="sort-tab" data-sort="votados">Más Votados</button>
       <button class="sort-tab" data-sort="reventa">Para Revender</button>
-      <span class="sort-tabs__live">
-        <span class="live-dot"></span>
-        Actualización automática
-      </span>
+      <button class="sort-tab" data-sort="low_cost">💸 Low Cost</button>
     </nav>
   </header>
 
-  <!-- ── LANDING STRIP ─────────────────────────────────────────── -->
+  <!-- ── LANDING HERO ──────────────────────────────────────────── -->
   <section class="landing-strip" id="js-landing-strip" aria-label="Sobre Flipazo">
-    <div class="landing-strip__inner">
-      <h1 class="landing-strip__title">Pocas ofertas. Las correctas.</h1>
-      <ul class="landing-strip__pills" aria-label="Nuestros principios">
-        <li class="landing-strip__pill"><span aria-hidden="true">✓</span>&nbsp;Descuentos verificados</li>
-        <li class="landing-strip__pill"><span aria-hidden="true">✓</span>&nbsp;Marcas reconocidas</li>
-        <li class="landing-strip__pill"><span aria-hidden="true">✓</span>&nbsp;Modelo transparente</li>
-      </ul>
+    <div class="landing-strip__badge">
+      <span class="live-dot"></span>
+      Actualizado automáticamente cada hora
     </div>
-    <button class="landing-strip__close" onclick="closeLandingStrip()" aria-label="Cerrar mensaje de bienvenida">×</button>
+    <h1 class="landing-strip__title">Pocas ofertas.<br>Las correctas.</h1>
+    <p class="landing-strip__sub">Una selección diaria de descuentos reales en España. Revisamos cientos de productos y publicamos únicamente las ofertas superiores al 40% de marcas reconocidas en electrónica, deportes, hogar y más.</p>
+    <div class="landing-strip__ctas">
+      <a href="#js-grid" onclick="document.getElementById('js-grid').scrollIntoView({behavior:'smooth'}); return false;" class="landing-strip__cta-primary">Ver las ofertas →</a>
+      <a href="https://t.me/flipazo" target="_blank" rel="noopener" class="landing-strip__cta-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.89 8.15l-2.02 9.52c-.15.68-.54.85-1.09.53l-3-2.21-1.45 1.39c-.16.16-.29.29-.6.29l.21-3.04 5.5-4.97c.24-.21-.05-.33-.37-.12L6.63 14.4l-2.96-.93c-.64-.2-.65-.64.13-.95l11.55-4.45c.54-.19 1.01.13.54 2.08z"/></svg>
+        Unirse a Telegram
+      </a>
+    </div>
+    <button class="landing-strip__close" onclick="closeLandingStrip()" aria-label="Cerrar">×</button>
   </section>
 
   <!-- ── FILTER BAR HEADER ────────────────────────────────────── -->
@@ -2017,7 +2043,6 @@
     { id: "belleza",      label: "Belleza",       test: d => _RX.belleza.test(d.titulo) },
     { id: "juguetes",     label: "Juguetes",      test: d => _RX.juguetes.test(d.titulo) },
     { id: "moda",         label: "Moda",          test: d => _RX.moda.test(d.titulo) },
-    { id: "low_cost",     label: "Low Cost",      test: d => (d.precio_actual || 0) < 25 },
   ];
 
   function dealMatchesCategory(deal, catId) {
@@ -2285,6 +2310,7 @@
       });
     }
     if (activeSort === "reventa") return deals.filter(d => d.tipo === "REVENTA" || d.tipo === "ARBITRAJE");
+    if (activeSort === "low_cost") return [...deals].filter(d => (d.precio_actual || 0) < 25).sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0));
     return deals;
   }
 
@@ -2435,7 +2461,6 @@
 
   async function flagExpired(dealId, btn) {
     if (!dealId) return;
-    if (!isLoggedIn()) { showLoginGate("Inicia sesión para reportar ofertas expiradas"); return; }
     const flagged = _getFlagged();
     if (flagged[dealId]) { btn.title = 'Ya has reportado esta oferta'; return; }
 
@@ -2807,7 +2832,7 @@
         activeSort = btn.dataset.sort;
         document.querySelectorAll(".sort-tab").forEach(b => b.classList.remove("sort-tab--active"));
         btn.classList.add("sort-tab--active");
-        const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Oportunidades de Reventa" };
+        const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Oportunidades de Reventa", low_cost: "Low Cost · Menos de 25€" };
         document.getElementById("js-section-title").textContent = titles[activeSort] || "Clasificados";
 
         if (allDeals.length > 0) {
@@ -3131,6 +3156,7 @@
   let paywallShown = false;
 
   function checkPaywall() {
+    return; // paywall desactivado temporalmente — reactivar cuando se implemente premium
     if (paywallShown || isLoggedIn()) return;
     const grid = document.getElementById('js-grid');
     if (!grid) return;
