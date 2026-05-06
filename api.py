@@ -234,9 +234,65 @@ def _upsert_user(user_id: str, email: str, name: str, avatar_url: str, provider:
         con.commit()
 
 
+# ── Cache de precios del feed Tradedoubler (para chequeo de subida de precio) ───
+
+_td_price_cache: dict[str, float] = {}   # url_key → precio_actual
+_td_price_cache_ts: dict[str, float] = {} # fid → timestamp de última descarga
+_TD_PRICE_CACHE_TTL = 6 * 3600           # 6 horas
+
+
+def _load_td_prices(fid: str) -> None:
+    """Descarga el feed completo de un fid y rellena la caché de precios."""
+    token = os.getenv("TRADEDOUBLER_TOKEN", "")
+    if not token:
+        return
+    try:
+        url = f"https://api.tradedoubler.com/1.0/productsUnlimited.json;fid={fid}?token={token}"
+        r = _http.get(url, timeout=60)
+        if r.status_code != 200:
+            return
+        for p in r.json().get("products", []):
+            offers = p.get("offers") or []
+            if not offers:
+                continue
+            p_url = offers[0].get("productUrl", "")
+            ph    = offers[0].get("priceHistory") or []
+            if not p_url or not ph:
+                continue
+            price_str = (ph[0].get("price") or {}).get("value", "")
+            try:
+                price = float(price_str)
+            except (ValueError, TypeError):
+                continue
+            m = _re.search(r'product\((\d+)-(\d+)\)', p_url)
+            if m:
+                _td_price_cache[f"{m.group(1)}-{m.group(2)}"] = price
+        _td_price_cache_ts[fid] = time.time()
+        print(f"📦 TD price cache fid={fid}: {len(_td_price_cache)} productos cargados")
+    except Exception as e:
+        print(f"⚠️ TD price cache fid={fid} error: {e}")
+
+
+def _td_current_price(click_url: str) -> float | None:
+    """
+    Devuelve el precio actual en el feed TD para una URL pdt.tradedoubler.com.
+    Descarga el feed completo la primera vez (caché 6h).
+    Retorna None si el producto no está en el feed (puede haber sido retirado).
+    """
+    m = _re.search(r'product\((\d+)-(\d+)\)', click_url)
+    if not m:
+        return None
+    fid, pid = m.group(1), m.group(2)
+    # Refrescar caché si es necesaria
+    ts = _td_price_cache_ts.get(fid, 0)
+    if time.time() - ts > _TD_PRICE_CACHE_TTL:
+        _load_td_prices(fid)
+    return _td_price_cache.get(f"{fid}-{pid}")  # None si producto no en feed
+
+
 # ── Verificación ligera de precio expirado ─────────────────────────────────────
 
-def _check_price_expired(url_afiliado: str, timeout: int = 5) -> bool | None:
+def _check_price_expired(url_afiliado: str, precio_stored: float = 0, timeout: int = 5) -> bool | None:
     """
     Comprueba si el producto ya no está disponible.
     Retorna True (expirado), False (activo), o None (no se pudo verificar → revisión manual).
@@ -253,16 +309,24 @@ def _check_price_expired(url_afiliado: str, timeout: int = 5) -> bool | None:
 
         url = url_afiliado
 
-        # Links Tradedoubler MediaMarkt (pdt.tradedoubler.com) — extraemos product ID y
-        # construimos URL directa de MediaMarkt para evitar el JS meta-refresh
-        td_m = _re.search(r'product\(\d+-(\d+)\)', url_afiliado)
-        if td_m and "tradedoubler.com" in url_afiliado:
-            product_id = td_m.group(1)
-            url = f"https://www.mediamarkt.es/es/product/_{product_id}.html"
-        elif "tdvisit." in url_afiliado or (
-            _re.search(r'product\(\d+-\d+', url_afiliado) and "tradedoubler" not in url_afiliado
-        ):
-            # TD white-label (tdvisit.esdemarca.com, etc.) — JS redirect, no verificable
+        # Links Tradedoubler estándar (pdt.tradedoubler.com) — verificación doble:
+        # 1) Precio actual via TD API (caché 6h): si subió >15% → expirado
+        # 2) URL directa MediaMarkt para check de disponibilidad (404)
+        if "tradedoubler.com" in url_afiliado and _re.search(r'product\(\d+-\d+\)', url_afiliado):
+            td_current = _td_current_price(url_afiliado)
+            if td_current is None:
+                # Producto no encontrado en feed → retirado / expirado
+                return True
+            if precio_stored > 0 and td_current > precio_stored * 1.15:
+                # Precio subió más del 15% respecto al precio del deal → expirado
+                return True
+            # Precio sin cambio significativo → construir URL directa para check disponibilidad
+            td_m = _re.search(r'product\(\d+-(\d+)\)', url_afiliado)
+            if td_m:
+                url = f"https://www.mediamarkt.es/es/product/_{td_m.group(1)}.html"
+
+        elif "tdvisit." in url_afiliado:
+            # TD white-label (tdvisit.esdemarca.com, etc.) — JS redirect, no verificable via web
             return None
 
         resp = _http.get(url, headers=headers, timeout=timeout, allow_redirects=True)
@@ -331,13 +395,13 @@ def _notify_admin_expiry(deal_id: str, titulo: str, resultado: bool | None) -> N
         print(f"❌ Notify admin error: {e}")
 
 
-def _background_check_expiry(deal_id: str, url_afiliado: str, titulo: str) -> None:
+def _background_check_expiry(deal_id: str, url_afiliado: str, titulo: str, precio_stored: float = 0) -> None:
     """
     Hilo background: verifica si la oferta expiró, actualiza BD y notifica al admin.
     Usado cuando la verificación sincrónica no pudo confirmar el estado.
     """
     try:
-        resultado = _check_price_expired(url_afiliado)
+        resultado = _check_price_expired(url_afiliado, precio_stored=precio_stored)
 
         with _get_db() as con:
             if resultado is True:
@@ -744,11 +808,12 @@ def flag_expired(deal_id: str, request: Request):
         )
         con.commit()
 
-    url_afiliado = row["url_afiliado"] or ""
-    titulo       = row["titulo"] or ""
+    url_afiliado   = row["url_afiliado"] or ""
+    titulo         = row["titulo"] or ""
+    precio_stored  = float(row["precio"] or 0)
 
-    # Verificar precio sincrónicamente (max 5s) — devuelve el resultado real al cliente
-    resultado = _check_price_expired(url_afiliado, timeout=5)
+    # Verificar precio sincrónicamente — check de disponibilidad + subida de precio
+    resultado = _check_price_expired(url_afiliado, precio_stored=precio_stored, timeout=5)
 
     if resultado is True:
         with _get_db() as con:
@@ -781,7 +846,7 @@ def flag_expired(deal_id: str, request: Request):
     # No confirmado (activo o no verificable con <3 flags) — background verifica y notifica
     threading.Thread(
         target=_background_check_expiry,
-        args=(deal_id, url_afiliado, titulo),
+        args=(deal_id, url_afiliado, titulo, precio_stored),
         daemon=True,
     ).start()
     return {"flags": new_flags, "expirado": False}
