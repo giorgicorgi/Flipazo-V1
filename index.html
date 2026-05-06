@@ -184,7 +184,7 @@
     }
 
     .site-logo svg { display: block; }
-    .site-logo__img { display: block; height: 44px; width: auto; mix-blend-mode: multiply; }
+    .site-logo__img { display: block; height: 49px; width: auto; mix-blend-mode: multiply; }
     [data-theme="dark"] .site-logo__img { mix-blend-mode: screen; }
 
     /* ── Header search (desktop) ─────────────────────────────────── */
@@ -1583,7 +1583,7 @@
 
       <!-- Logo -->
       <div class="site-logo" onclick="resetAll()" title="Volver al inicio" role="button" aria-label="Flipazo — inicio">
-        <img src="/flipazo-logo.png" alt="Flipazo" height="44" class="site-logo__img"
+        <img src="/flipazo-logo.png" alt="Flipazo" height="49" class="site-logo__img"
              onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
         <svg viewBox="0 0 218 52" xmlns="http://www.w3.org/2000/svg" height="38" aria-hidden="true" style="display:none">
           <text x="2" y="43"
@@ -1647,20 +1647,6 @@
     </nav>
   </header>
 
-  <!-- ── LANDING HERO ──────────────────────────────────────────── -->
-  <section class="landing-strip" id="js-landing-strip" aria-label="Sobre Flipazo">
-    <h1 class="landing-strip__title">Ofertas reales. Precios verificados.</h1>
-    <p class="landing-strip__sub">Una selección diaria de descuentos reales en España. Revisamos cientos de productos y publicamos únicamente las ofertas superiores al 40% de marcas reconocidas en electrónica, deportes, hogar y más.</p>
-    <div class="landing-strip__ctas">
-      <a href="#js-grid" onclick="document.getElementById('js-grid').scrollIntoView({behavior:'smooth'}); return false;" class="landing-strip__cta-primary">Ver las ofertas →</a>
-      <a href="https://t.me/flipazo" target="_blank" rel="noopener" class="landing-strip__cta-secondary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.89 8.15l-2.02 9.52c-.15.68-.54.85-1.09.53l-3-2.21-1.45 1.39c-.16.16-.29.29-.6.29l.21-3.04 5.5-4.97c.24-.21-.05-.33-.37-.12L6.63 14.4l-2.96-.93c-.64-.2-.65-.64.13-.95l11.55-4.45c.54-.19 1.01.13.54 2.08z"/></svg>
-        Unirse a Telegram
-      </a>
-    </div>
-    <button class="landing-strip__close" onclick="closeLandingStrip()" aria-label="Cerrar">×</button>
-  </section>
-
   <!-- ── FILTER BLOCK ───────────────────────────────────────────── -->
   <div class="filter-block" id="js-filter-block">
     <div class="filter-row" id="js-cat-row">
@@ -1676,6 +1662,20 @@
       </div>
     </div>
   </div>
+
+  <!-- ── LANDING HERO ──────────────────────────────────────────── -->
+  <section class="landing-strip" id="js-landing-strip" aria-label="Sobre Flipazo">
+    <h1 class="landing-strip__title">Ofertas reales. Precios verificados.</h1>
+    <p class="landing-strip__sub">Una selección diaria de descuentos reales en España. Revisamos cientos de productos y publicamos únicamente las ofertas superiores al 40% de marcas reconocidas en electrónica, deportes, hogar y más.</p>
+    <div class="landing-strip__ctas">
+      <a href="#js-grid" onclick="document.getElementById('js-grid').scrollIntoView({behavior:'smooth'}); return false;" class="landing-strip__cta-primary">Ver las ofertas →</a>
+      <a href="https://t.me/flipazo" target="_blank" rel="noopener" class="landing-strip__cta-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.89 8.15l-2.02 9.52c-.15.68-.54.85-1.09.53l-3-2.21-1.45 1.39c-.16.16-.29.29-.6.29l.21-3.04 5.5-4.97c.24-.21-.05-.33-.37-.12L6.63 14.4l-2.96-.93c-.64-.2-.65-.64.13-.95l11.55-4.45c.54-.19 1.01.13.54 2.08z"/></svg>
+        Unirse a Telegram
+      </a>
+    </div>
+    <button class="landing-strip__close" onclick="closeLandingStrip()" aria-label="Cerrar">×</button>
+  </section>
 
   <!-- ── TECH SUBCAT BAR ────────────────────────────────────────── -->
   <nav class="subcat-bar" id="js-subcat-bar" aria-label="Subcategorías de tecnología"></nav>
