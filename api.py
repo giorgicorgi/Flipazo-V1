@@ -236,7 +236,7 @@ def _upsert_user(user_id: str, email: str, name: str, avatar_url: str, provider:
 
 # ── Verificación ligera de precio expirado ─────────────────────────────────────
 
-def _check_price_expired(url_afiliado: str) -> bool | None:
+def _check_price_expired(url_afiliado: str, timeout: int = 5) -> bool | None:
     """
     Comprueba si el producto ya no está disponible.
     Retorna True (expirado), False (activo), o None (no se pudo verificar → revisión manual).
@@ -261,7 +261,7 @@ def _check_price_expired(url_afiliado: str) -> bool | None:
             product_id = td_m.group(1)
             url = f"https://www.mediamarkt.es/es/product/_{product_id}.html"
 
-        resp = _http.get(url, headers=headers, timeout=12, allow_redirects=True)
+        resp = _http.get(url, headers=headers, timeout=timeout, allow_redirects=True)
 
         if resp.status_code in (404, 410):
             return True
@@ -288,10 +288,41 @@ def _check_price_expired(url_afiliado: str) -> bool | None:
         return None  # Error de red → revisión manual
 
 
+def _notify_admin_expiry(deal_id: str, titulo: str, resultado: bool | None) -> None:
+    """Envía notificación Telegram al admin con el resultado de la verificación."""
+    try:
+        token    = os.getenv("TELEGRAM_BOT_TOKEN", "")
+        admin_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")
+        if not token or not admin_id:
+            return
+        if resultado is True:
+            estado = "❌ <b>EXPIRADO</b> — marcado automáticamente en web"
+        elif resultado is False:
+            estado = "✅ Precio verificado — sigue activo"
+        else:
+            estado = (
+                "⚠️ <b>No verificable automáticamente</b> (Cloudflare/JS redirect)\n"
+                "Por favor, revisa manualmente y marca desde el panel admin."
+            )
+        msg = (
+            f"🚩 <b>Alerta de oferta expirada</b>\n\n"
+            f"{estado}\n\n"
+            f"<b>{titulo[:70]}</b>\n"
+            f"🔗 <code>/api/deals/{deal_id}/flag-expired</code>"
+        )
+        _http.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": admin_id, "text": msg, "parse_mode": "HTML"},
+            timeout=10,
+        )
+    except Exception as e:
+        print(f"❌ Notify admin error: {e}")
+
+
 def _background_check_expiry(deal_id: str, url_afiliado: str, titulo: str) -> None:
     """
-    Hilo background: verifica si la oferta expiró y actualiza la BD.
-    Notifica al admin por Telegram con el resultado.
+    Hilo background: verifica si la oferta expiró, actualiza BD y notifica al admin.
+    Usado cuando la verificación sincrónica no pudo confirmar el estado.
     """
     try:
         resultado = _check_price_expired(url_afiliado)
@@ -303,31 +334,9 @@ def _background_check_expiry(deal_id: str, url_afiliado: str, titulo: str) -> No
                     (deal_id,),
                 )
                 con.commit()
-                print(f"🔴 Deal marcado expirado: {titulo[:50]}")
+                print(f"🔴 Deal marcado expirado (bg): {titulo[:50]}")
 
-        token    = os.getenv("TELEGRAM_BOT_TOKEN", "")
-        admin_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")
-        if token and admin_id:
-            if resultado is True:
-                estado = "❌ <b>EXPIRADO</b> — marcado automáticamente en web"
-            elif resultado is False:
-                estado = "✅ Precio verificado — sigue activo"
-            else:
-                estado = (
-                    "⚠️ <b>No verificable automáticamente</b> (Cloudflare/JS redirect)\n"
-                    "Por favor, revisa manualmente y marca desde el panel admin."
-                )
-            msg = (
-                f"🚩 <b>Alerta de oferta expirada</b> (2 votos usuarios)\n\n"
-                f"{estado}\n\n"
-                f"<b>{titulo[:70]}</b>\n"
-                f"🔗 <code>/api/deals/{deal_id}/flag-expired</code>"
-            )
-            _http.post(
-                f"https://api.telegram.org/bot{token}/sendMessage",
-                json={"chat_id": admin_id, "text": msg, "parse_mode": "HTML"},
-                timeout=10,
-            )
+        _notify_admin_expiry(deal_id, titulo, resultado)
     except Exception as e:
         print(f"❌ Background expiry check error: {e}")
 
@@ -687,7 +696,8 @@ def flag_expired(deal_id: str, request: Request):
     """
     Registra un voto de 'oferta expirada'.
     Anti-spam: mismo IP no puede flaggear el mismo deal más de una vez por hora.
-    Con ≥2 flags activa una verificación de precio en background y notifica al admin.
+    Con ≥1 flag verifica el precio sincrónicamente (timeout 5s) y devuelve
+    el estado real al cliente para que marque la card inmediatamente si expiró.
     """
     ip       = request.client.host if request.client else "unknown"
     rate_key = f"{ip}:{deal_id}"
@@ -722,14 +732,32 @@ def flag_expired(deal_id: str, request: Request):
         )
         con.commit()
 
-    # Con ≥1 flag → verificar precio en hilo background
-    if new_flags >= 1:
-        threading.Thread(
-            target=_background_check_expiry,
-            args=(deal_id, row["url_afiliado"] or "", row["titulo"] or ""),
-            daemon=True,
-        ).start()
+    url_afiliado = row["url_afiliado"] or ""
+    titulo       = row["titulo"] or ""
 
+    # Verificar precio sincrónicamente (max 5s) — devuelve el resultado real al cliente
+    resultado = _check_price_expired(url_afiliado, timeout=5)
+
+    if resultado is True:
+        with _get_db() as con:
+            con.execute(
+                "UPDATE deals_publicados SET expirado = 1 WHERE deal_id = ?",
+                (deal_id,),
+            )
+            con.commit()
+        print(f"🔴 Deal marcado expirado (flag web): {titulo[:50]}")
+        # Notificación al admin en background (no re-verifica precio, ya confirmado)
+        threading.Thread(
+            target=_notify_admin_expiry, args=(deal_id, titulo, True), daemon=True
+        ).start()
+        return {"flags": new_flags, "expirado": True}
+
+    # No confirmado (activo o no verificable) — background verifica y notifica
+    threading.Thread(
+        target=_background_check_expiry,
+        args=(deal_id, url_afiliado, titulo),
+        daemon=True,
+    ).start()
     return {"flags": new_flags, "expirado": False}
 
 

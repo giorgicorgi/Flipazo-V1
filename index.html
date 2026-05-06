@@ -1885,6 +1885,14 @@
   let activeStore    = "";
   let lastSeenRowid  = 0;
 
+  // Razonamientos genéricos del pipeline que no aportan valor al usuario
+  const _RAZON_GENERICAS = new Set([
+    "marca reconocida con descuento real",
+    "descuento alto + marca reconocida",
+    "marca premium + descuento alto → reventa viable",
+    "marca con mercado de reventa + descuento sólido",
+  ]);
+
   // ── Mock data ────────────────────────────────────────────────
   const MOCK_DEALS = [
     { id:1, tipo:"REVENTA", tienda:"Amazon", titulo:"Sony WH-1000XM5 Auriculares Inalámbricos con Cancelación de Ruido", precio_actual:189.00, precio_original:279.00, descuento_pct:32, imagen_url:"https://m.media-amazon.com/images/I/61hNGBUPF3L._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:245.0, beneficio_neto:47.0, precio_historico_min:0, razonamiento:"", timestamp:new Date(Date.now()-8*60000).toISOString() },
@@ -2039,7 +2047,8 @@
     const ahorroHtml = ahorro > 1
       ? `<div class="deal__savings">Ahorras ${fmtPrice(ahorro)}${isMinHistorico ? " · Precio mínimo histórico" : ""}</div>` : "";
 
-    const razonHtml = d.razonamiento ? `<p class="deal__reason">"${d.razonamiento}"</p>` : "";
+    const razonamiento = (!d.razonamiento || _RAZON_GENERICAS.has(d.razonamiento.trim())) ? "" : d.razonamiento;
+    const razonHtml = razonamiento ? `<p class="deal__reason">"${razonamiento}"</p>` : "";
 
     const dealId    = d.id || "";
     const uVotes    = getUserVotes();
@@ -2201,7 +2210,7 @@
           <a href="${buyUrl}" target="_blank" rel="noopener sponsored" style="text-decoration:none">
             <h2 class="hero__title">${cleanTitle}</h2>
           </a>
-          ${d.razonamiento ? `<p class="hero__reason">"${d.razonamiento}"</p>` : ""}
+          ${(d.razonamiento && !_RAZON_GENERICAS.has(d.razonamiento.trim())) ? `<p class="hero__reason">"${d.razonamiento}"</p>` : ""}
           <div class="hero__price-row">
             ${d.precio_original > 0 ? `<span class="hero__original">${fmtPrice(d.precio_original)}</span>` : ""}
             <span class="hero__price">${fmtPrice(d.precio_actual || 0)}</span>
