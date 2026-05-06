@@ -461,6 +461,14 @@
     .filter-block {
       background: var(--bg);
       border-bottom: 1px solid var(--border);
+      overflow: hidden;
+      max-height: 300px;
+      transition: max-height 0.3s ease, opacity 0.3s;
+    }
+    .filter-block--collapsed {
+      max-height: 0 !important;
+      opacity: 0;
+      border-bottom-color: transparent;
     }
 
     .filter-row {
@@ -1422,11 +1430,121 @@
       .scroll-btns { bottom: 16px; right: 16px; }
       .view-toggle { display: flex; }
       .header-nav__live { display: none; }
+      .landing-strip { padding: 12px 18px; }
+      .landing-strip__title { font-size: 15px; }
+      .filter-bar-header { padding: 6px 18px; }
+      .footer__grid { grid-template-columns: 1fr; gap: 28px; }
     }
     @media (max-width: 480px) {
       :root { --grid-cols: 1; }
       .deals-grid--mosaic { --grid-cols: 2; }
     }
+
+    /* ── Landing Strip ──────────────────────────────────────────── */
+    .landing-strip {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 16px;
+      padding: 14px 40px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+      transition: max-height 0.35s ease, opacity 0.35s, padding 0.35s;
+    }
+    .landing-strip__inner {
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    }
+    .landing-strip__title {
+      font-family: var(--serif); font-size: 18px; font-weight: 700;
+      color: var(--ink); white-space: nowrap;
+    }
+    .landing-strip__pills {
+      display: flex; align-items: center; gap: 6px;
+      list-style: none; flex-wrap: wrap;
+    }
+    .landing-strip__pill {
+      display: flex; align-items: center; gap: 4px;
+      font-family: var(--sans); font-size: 11px; font-weight: 600;
+      color: var(--teal); background: var(--teal-light);
+      padding: 4px 11px; border-radius: 9999px; white-space: nowrap;
+    }
+    .landing-strip__close {
+      background: none; border: none; cursor: pointer;
+      font-size: 16px; color: var(--text-dim); flex-shrink: 0;
+      padding: 4px 6px; border-radius: 4px; line-height: 1;
+      transition: color 0.15s;
+    }
+    .landing-strip__close:hover { color: var(--ink); }
+
+    /* ── Filter bar header (toggle) ─────────────────────────────── */
+    .filter-bar-header {
+      display: flex; align-items: center;
+      padding: 6px 40px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border-faint);
+    }
+    .filter-toggle {
+      display: flex; align-items: center; gap: 5px;
+      font-family: var(--sans); font-size: 12px; font-weight: 700;
+      color: var(--text-mid); background: none;
+      border: 1.5px solid var(--border-soft);
+      border-radius: 9999px; padding: 5px 12px;
+      cursor: pointer; transition: color 0.15s, border-color 0.15s;
+    }
+    .filter-toggle:hover { color: var(--navy); border-color: var(--navy); }
+    .filter-toggle__arrow {
+      display: inline-block; transition: transform 0.28s ease;
+      font-size: 9px; color: var(--text-dim);
+    }
+    .filter-toggle--collapsed .filter-toggle__arrow { transform: rotate(-90deg); }
+
+    /* ── Footer grid ─────────────────────────────────────────────── */
+    .footer__grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 44px;
+      padding-bottom: 36px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .footer__col-title {
+      font-family: var(--sans); font-size: 10px; font-weight: 800;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-faint); margin-bottom: 12px;
+    }
+    .footer__tagline {
+      font-family: var(--sans); font-size: 13px;
+      color: var(--text-body); line-height: 1.75; margin-top: 8px;
+    }
+    .footer__principles {
+      list-style: none; display: flex; flex-direction: column; gap: 10px;
+    }
+    .footer__principles li {
+      font-family: var(--sans); font-size: 12px; color: var(--text-body);
+      line-height: 1.6; padding-left: 18px; position: relative;
+    }
+    .footer__principles li::before {
+      content: "✓"; position: absolute; left: 0;
+      color: var(--teal); font-weight: 900; font-size: 11px;
+    }
+    .footer__urgency-text {
+      font-family: var(--serif); font-style: italic;
+      font-size: 14px; color: var(--text-body);
+      line-height: 1.7; margin-bottom: 14px;
+    }
+    .footer__cta-text {
+      font-family: var(--serif); font-weight: 900;
+      font-size: 17px; color: var(--brand);
+      line-height: 1.3; margin-bottom: 14px;
+    }
+    .footer__cta-btn {
+      display: inline-block;
+      font-family: var(--sans); font-size: 13px; font-weight: 700;
+      color: #fff; background: var(--brand);
+      padding: 9px 20px; border-radius: 9999px;
+      transition: background 0.15s;
+    }
+    .footer__cta-btn:hover { background: var(--brand-hover); }
+    .footer__bottom { display: flex; flex-direction: column; gap: 6px; }
   </style>
 </head>
 
@@ -1511,6 +1629,30 @@
     </nav>
   </header>
 
+  <!-- ── LANDING STRIP ─────────────────────────────────────────── -->
+  <section class="landing-strip" id="js-landing-strip" aria-label="Sobre Flipazo">
+    <div class="landing-strip__inner">
+      <h1 class="landing-strip__title">Pocas ofertas. Las correctas.</h1>
+      <ul class="landing-strip__pills" aria-label="Nuestros principios">
+        <li class="landing-strip__pill"><span aria-hidden="true">✓</span>&nbsp;Descuentos verificados</li>
+        <li class="landing-strip__pill"><span aria-hidden="true">✓</span>&nbsp;Marcas reconocidas</li>
+        <li class="landing-strip__pill"><span aria-hidden="true">✓</span>&nbsp;Modelo transparente</li>
+      </ul>
+    </div>
+    <button class="landing-strip__close" onclick="closeLandingStrip()" aria-label="Cerrar mensaje de bienvenida">×</button>
+  </section>
+
+  <!-- ── FILTER BAR HEADER ────────────────────────────────────── -->
+  <div class="filter-bar-header">
+    <button class="filter-toggle" id="js-filter-toggle" onclick="toggleFilters()" aria-expanded="true" aria-label="Mostrar u ocultar filtros">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+        <line x1="2" y1="4" x2="14" y2="4"/><line x1="4" y1="8" x2="12" y2="8"/><line x1="6" y1="12" x2="10" y2="12"/>
+      </svg>
+      Filtros
+      <span class="filter-toggle__arrow">▾</span>
+    </button>
+  </div>
+
   <!-- ── FILTER BLOCK ───────────────────────────────────────────── -->
   <div class="filter-block" id="js-filter-block">
     <div class="filter-row" id="js-cat-row">
@@ -1588,15 +1730,6 @@
   <!-- ── ABOUT ─────────────────────────────────────────────────── -->
   <section class="about" aria-label="Sobre Flipazo">
     <div class="about__block">
-      <h3>Qué es Flipazo</h3>
-      <p>
-        Una selección diaria de descuentos reales en España. Revisamos cientos de productos
-        y publicamos únicamente las ofertas superiores al 40% de marcas reconocidas en
-        electrónica, deportes, hogar y más.<br /><br />
-        <em>Pocas ofertas. Las correctas.</em>
-      </p>
-    </div>
-    <div class="about__block">
       <h3>Recíbelas en Telegram</h3>
       <p>
         Alertas en tiempo real directamente en tu móvil. Sin ruido, sin spam —
@@ -1616,22 +1749,51 @@
   </section>
 
   <!-- ── FOOTER ────────────────────────────────────────────────── -->
-  <footer class="footer">
-    <div class="footer__top">
-      <span class="footer__brand">Flipazo</span>
-      <nav class="footer__links" aria-label="Legal">
-        <a href="/privacidad.html">Privacidad</a>
-        <a href="/cookies.html">Cookies</a>
-        <a href="/aviso-legal.html">Aviso Legal</a>
-        <a href="mailto:hola@flipazo.es">Contacto</a>
-      </nav>
+  <footer class="footer" id="js-footer">
+    <div class="footer__grid">
+
+      <!-- Col 1: Brand + tagline -->
+      <div class="footer__col">
+        <span class="footer__brand">Flipazo</span>
+        <p class="footer__tagline">Flipazo analiza miles de productos cada hora y publica solo los que superan el 40% de descuento. De marcas que ya conoces. Sin relleno. Sin patrocinios. Solo oportunidades que merecen tu atención.</p>
+      </div>
+
+      <!-- Col 2: Cómo funciona -->
+      <div class="footer__col">
+        <h4 class="footer__col-title">Cómo funciona</h4>
+        <ul class="footer__principles">
+          <li><strong>Descuentos verificados</strong> — solo si superan el 40% sobre el precio histórico documentado</li>
+          <li><strong>Marcas reconocidas</strong> — sin marcas blancas, sin productos sin historial</li>
+          <li><strong>Modelo transparente</strong> — usamos enlaces de afiliado. Ninguna marca paga para ser publicada.</li>
+        </ul>
+      </div>
+
+      <!-- Col 3: Urgency + CTA -->
+      <div class="footer__col">
+        <h4 class="footer__col-title">Para los que miran dos veces</h4>
+        <p class="footer__urgency-text">Algunas de estas ofertas no son solo un ahorro. Son productos que puedes comprar hoy y vender mañana en Wallapop con margen. Calculamos el coste neto real para que decidas con los números encima de la mesa.</p>
+        <p class="footer__cta-text">Siempre llegas tarde a los chollos. Hasta hoy.</p>
+        <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'}); return false;" class="footer__cta-btn">Ver deals →</a>
+      </div>
+
     </div>
-    <p class="footer__affiliate">
-      Algunos enlaces son de afiliado: si compras a través de ellos podemos recibir una comisión
-      sin coste adicional para ti. Participamos en Amazon Associates (tag: flipazo-21) y Awin.
-      Los precios y la disponibilidad pueden cambiar.
-    </p>
-    <p class="footer__copy">© 2025 Flipazo · Barcelona, España · Precios sujetos a cambio sin previo aviso</p>
+    <div class="footer__bottom">
+      <div class="footer__top">
+        <nav class="footer__links" aria-label="Legal">
+          <a href="/privacidad.html">Privacidad</a>
+          <a href="/cookies.html">Cookies</a>
+          <a href="/aviso-legal.html">Aviso Legal</a>
+          <a href="mailto:hola@flipazo.es">Contacto</a>
+          <a href="https://t.me/flipazo" target="_blank" rel="noopener">Telegram</a>
+        </nav>
+      </div>
+      <p class="footer__affiliate">
+        Algunos enlaces son de afiliado: si compras a través de ellos podemos recibir una comisión
+        sin coste adicional para ti. Participamos en Amazon Associates (tag: flipazo-21) y Awin.
+        Los precios y la disponibilidad pueden cambiar.
+      </p>
+      <p class="footer__copy">© 2025 Flipazo · Barcelona, España · Precios sujetos a cambio sin previo aviso</p>
+    </div>
   </footer>
 
   <!-- ── SCROLL BUTTONS ─────────────────────────────────────────── -->
@@ -2843,6 +3005,54 @@
     else btn.classList.remove("visible");
   }, { passive: true });
 
+  // ── Landing strip ─────────────────────────────────────────────
+  function closeLandingStrip() {
+    try { localStorage.setItem("flipazo_landing_v1", "1"); } catch {}
+    const s = document.getElementById("js-landing-strip");
+    if (!s) return;
+    s.style.maxHeight = "0";
+    s.style.opacity = "0";
+    s.style.paddingTop = "0";
+    s.style.paddingBottom = "0";
+    setTimeout(() => { s.style.display = "none"; }, 360);
+  }
+  (function initLandingStrip() {
+    let hidden = false;
+    try { hidden = !!localStorage.getItem("flipazo_landing_v1"); } catch {}
+    if (hidden) {
+      const s = document.getElementById("js-landing-strip");
+      if (s) s.style.display = "none";
+    }
+  })();
+
+  // ── Filter toggle ──────────────────────────────────────────────
+  let filtersOpen = true;
+  (function initFilterToggle() {
+    try {
+      const saved = localStorage.getItem("flipazo_filters_open");
+      filtersOpen = saved === null ? true : saved === "1";
+    } catch {}
+    const fb  = document.getElementById("js-filter-block");
+    const btn = document.getElementById("js-filter-toggle");
+    if (!fb || !btn) return;
+    if (!filtersOpen) {
+      fb.classList.add("filter-block--collapsed");
+      btn.classList.add("filter-toggle--collapsed");
+      btn.setAttribute("aria-expanded", "false");
+    }
+  })();
+
+  function toggleFilters() {
+    const fb  = document.getElementById("js-filter-block");
+    const btn = document.getElementById("js-filter-toggle");
+    if (!fb || !btn) return;
+    filtersOpen = !filtersOpen;
+    try { localStorage.setItem("flipazo_filters_open", filtersOpen ? "1" : "0"); } catch {}
+    fb.classList.toggle("filter-block--collapsed", !filtersOpen);
+    btn.classList.toggle("filter-toggle--collapsed", !filtersOpen);
+    btn.setAttribute("aria-expanded", filtersOpen ? "true" : "false");
+  }
+
   // ── Init ──────────────────────────────────────────────────────
   fetchTotalCount();
   buildCatBar();
@@ -3085,7 +3295,13 @@
       opacity: 0, y: -20, duration: 0.55, ease: 'power3.out', clearProps: 'all'
     });
 
-    // Filter block entrada
+    // Landing strip + filter bar entrada
+    gsap.from('.landing-strip', {
+      opacity: 0, y: -8, duration: 0.4, delay: 0.08, ease: 'power2.out', clearProps: 'all'
+    });
+    gsap.from('.filter-bar-header', {
+      opacity: 0, y: -6, duration: 0.38, delay: 0.14, ease: 'power2.out', clearProps: 'all'
+    });
     gsap.from('.filter-block', {
       opacity: 0, y: -10, duration: 0.45, delay: 0.12, ease: 'power2.out', clearProps: 'all'
     });

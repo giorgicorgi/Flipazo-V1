@@ -1884,10 +1884,12 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     # ── Tradedoubler feeds (MediaMarkt/ToysRus/Beep) — caché 23h ──────────────
     try:
         td_raw = await asyncio.to_thread(
-            fetch_tradedoubler_productos, DESCUENTO_MINIMO, PRECIO_MINIMO, PRECIO_MAXIMO
+            fetch_tradedoubler_productos, DESCUENTO_MINIMO, PRECIO_MINIMO_LC, PRECIO_MAXIMO
         )
         for d in td_raw:
             if not _es_producto_valido(d["titulo"], d["descuento_pct"]):
+                continue
+            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
                 continue
             p = Producto(**d)
             clave = f"{p.tienda}:{p.titulo[:40].lower()}"
@@ -2171,6 +2173,10 @@ _TIENDA_CAT = {
 
 def _inferir_categoria(p: "Producto") -> str:
     """Asigna una categoría al producto basándose en título y tienda."""
+    # Low cost tiene prioridad — precio < PRECIO_MINIMO con descuento exigente
+    if PRECIO_MINIMO_LC <= p.precio_actual < PRECIO_MINIMO and p.descuento_pct >= DESCUENTO_LC_MINIMO:
+        return "low_cost"
+
     if p.tienda in _TIENDA_CAT:
         # Aun así verificar si el título sugiere otra categoría más específica
         tienda_cat = _TIENDA_CAT[p.tienda]
@@ -2213,6 +2219,8 @@ def _score_local(p: "Producto") -> int:
         score += 8
     elif p.precio_actual <= 4000:
         score += 5  # bicicletas, eBikes y productos premium de precio alto
+    elif PRECIO_MINIMO_LC <= p.precio_actual < PRECIO_MINIMO and p.descuento_pct >= DESCUENTO_LC_MINIMO:
+        score += 10  # bonus low-cost: garantiza zona gris en lugar de auto-descarte
 
     # Historial de precio CCC (hasta 15 pts, penalización si inflado)
     if p.precio_historico_min > 0:
@@ -2338,6 +2346,11 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
             p.tipo         = "OFERTA"
             p.score_oferta = _score_local(p)
             p.razonamiento = ""
+        elif PRECIO_MINIMO_LC <= p.precio_actual < PRECIO_MINIMO and p.descuento_pct >= DESCUENTO_LC_MINIMO:
+            p.tipo         = "OFERTA"
+            p.score_oferta = _score_local(p)
+            p.categoria    = "low_cost"
+            p.razonamiento = f"low cost -{p.descuento_pct}%"
         else:
             continue  # DESCARTAR silenciosamente
 
