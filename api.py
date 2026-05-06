@@ -240,7 +240,6 @@ def _check_price_expired(url_afiliado: str, timeout: int = 5) -> bool | None:
     """
     Comprueba si el producto ya no está disponible.
     Retorna True (expirado), False (activo), o None (no se pudo verificar → revisión manual).
-    Links de Tradedoubler usan JS redirect — se construye URL directa de MediaMarkt.
     """
     try:
         headers = {
@@ -254,26 +253,39 @@ def _check_price_expired(url_afiliado: str, timeout: int = 5) -> bool | None:
 
         url = url_afiliado
 
-        # Links de Tradedoubler (pdt.tradedoubler.com) usan meta-refresh JS —
-        # extraemos el product ID y construimos URL directa de MediaMarkt
+        # Links Tradedoubler MediaMarkt (pdt.tradedoubler.com) — extraemos product ID y
+        # construimos URL directa de MediaMarkt para evitar el JS meta-refresh
         td_m = _re.search(r'product\(\d+-(\d+)\)', url_afiliado)
-        if td_m and "tradedoubler" in url_afiliado:
+        if td_m and "tradedoubler.com" in url_afiliado:
             product_id = td_m.group(1)
             url = f"https://www.mediamarkt.es/es/product/_{product_id}.html"
+        elif "tdvisit." in url_afiliado or (
+            _re.search(r'product\(\d+-\d+', url_afiliado) and "tradedoubler" not in url_afiliado
+        ):
+            # TD white-label (tdvisit.esdemarca.com, etc.) — JS redirect, no verificable
+            return None
 
         resp = _http.get(url, headers=headers, timeout=timeout, allow_redirects=True)
 
         if resp.status_code in (404, 410):
             return True
 
-        # Cloudflare o página de error genérica — no sabemos el estado real
+        # Cloudflare, WAF o error de servidor — no sabemos el estado real
         if resp.status_code in (403, 503) or "challenge" in resp.url:
             return None
 
         content = resp.text.lower()
 
+        # Amazon CAPTCHA (opfcaptcha.amazon.es) — el VPS Hetzner recibe esto sistemáticamente
+        if "opfcaptcha" in content or "api-services-support@amazon.com" in content:
+            return None
+
         # Cloudflare challenge HTML
         if 'id="challenge-form"' in content or "just a moment" in content:
+            return None
+
+        # TD white-label JS redirect (TradeDoublerGUID meta tag)
+        if "tradedoublerguid" in content:
             return None
 
         signals = [
@@ -746,13 +758,27 @@ def flag_expired(deal_id: str, request: Request):
             )
             con.commit()
         print(f"🔴 Deal marcado expirado (flag web): {titulo[:50]}")
-        # Notificación al admin en background (no re-verifica precio, ya confirmado)
         threading.Thread(
             target=_notify_admin_expiry, args=(deal_id, titulo, True), daemon=True
         ).start()
         return {"flags": new_flags, "expirado": True}
 
-    # No confirmado (activo o no verificable) — background verifica y notifica
+    # Umbral de comunidad: ≥3 flags sin poder verificar → expirar por consenso
+    # (Amazon CAPTCHA y TD white-label impiden verificación automática desde el VPS)
+    if resultado is None and new_flags >= 3:
+        with _get_db() as con:
+            con.execute(
+                "UPDATE deals_publicados SET expirado = 1 WHERE deal_id = ?",
+                (deal_id,),
+            )
+            con.commit()
+        print(f"🔴 Deal marcado expirado (comunidad ≥3 flags): {titulo[:50]}")
+        threading.Thread(
+            target=_notify_admin_expiry, args=(deal_id, titulo, None), daemon=True
+        ).start()
+        return {"flags": new_flags, "expirado": True}
+
+    # No confirmado (activo o no verificable con <3 flags) — background verifica y notifica
     threading.Thread(
         target=_background_check_expiry,
         args=(deal_id, url_afiliado, titulo),
