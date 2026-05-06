@@ -1852,6 +1852,7 @@
     { id: "belleza",      label: "Belleza",       test: d => _RX.belleza.test(d.titulo) },
     { id: "juguetes",     label: "Juguetes",      test: d => _RX.juguetes.test(d.titulo) },
     { id: "moda",         label: "Moda",          test: d => _RX.moda.test(d.titulo) },
+    { id: "low_cost",     label: "Low Cost",      test: d => (d.precio_actual || 0) < 25 },
   ];
 
   function dealMatchesCategory(deal, catId) {

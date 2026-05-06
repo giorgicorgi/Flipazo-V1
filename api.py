@@ -722,8 +722,8 @@ def flag_expired(deal_id: str, request: Request):
         )
         con.commit()
 
-    # Con ≥2 flags → verificar precio en hilo background
-    if new_flags >= 2:
+    # Con ≥1 flag → verificar precio en hilo background
+    if new_flags >= 1:
         threading.Thread(
             target=_background_check_expiry,
             args=(deal_id, row["url_afiliado"] or "", row["titulo"] or ""),

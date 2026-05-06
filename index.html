@@ -1043,6 +1043,9 @@
     }
     .btn--primary:hover { background: var(--brand-hover); opacity: 1; }
 
+    /* Hero CTA: buttons natural width, not stretched */
+    .hero__cta .btn { width: auto; }
+
     .btn--secondary {
       background: var(--surface);
       color: var(--ink);
@@ -1852,6 +1855,7 @@
     { id: "belleza",      label: "Belleza",       test: d => _RX.belleza.test(d.titulo) },
     { id: "juguetes",     label: "Juguetes",      test: d => _RX.juguetes.test(d.titulo) },
     { id: "moda",         label: "Moda",          test: d => _RX.moda.test(d.titulo) },
+    { id: "low_cost",     label: "Low Cost",      test: d => (d.precio_actual || 0) < 25 },
   ];
 
   function dealMatchesCategory(deal, catId) {
@@ -2140,13 +2144,27 @@
   function cleanHeroTitle(raw) {
     if (!raw) return raw;
     let t = raw;
+    // 1. Trim at 2nd "·" segment — keep brand + product type max
+    const segs = t.split(/\s*·\s*/).map(s => s.trim()).filter(s => s.length > 2);
+    if (segs.length > 2) t = segs.slice(0, 2).join(" · ");
+    else t = segs.join(" · ");
+    // 2. Remove standalone 5+ digit codes (EAN, ref numbers)
     t = t.replace(/\b\d{5,}\b/g, "");
-    t = t.replace(/\s*\([^)]{1,25}\)\s*$/, "");
-    t = t.replace(/(?:,\s*[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ\s]+){2,}\s*$/, "");
+    // 3. Trim at first comma that comes after a long enough base (keeps "Sony WH-1000XM5 Auriculares")
+    const ci = t.search(/,\s*/);
+    if (ci > 30) t = t.slice(0, ci);
+    // 4. Remove trailing parenthetical with variant/size info
+    t = t.replace(/\s*\([^)]{1,35}\)\s*$/, "");
+    // 5. Remove trailing color/talla/variant tags
+    t = t.replace(/,?\s*(?:negro|blanco|plata|gris|azul|rojo|verde|rosa|beige|crema|dorado|plateado|talla\s+\w+|color\s+\w+)[\s,].*$/i, "");
+    // 6. "para hombre/mujer/niño" pattern → reorder
     const paraRx = /^(.+?)\s+para\s+(?:hombre|mujer|ni[ñn][oa])\.\s*(.+)/i;
     const m = t.match(paraRx);
     if (m) t = `${m[1].trim()} — ${m[2].trim()}`;
-    t = t.replace(/\s{2,}/g, " ").trim().replace(/[,\.]\s*$/, "");
+    // 7. Max 72 chars at word boundary
+    if (t.length > 72) t = t.slice(0, 72).replace(/\s+\S*$/, "");
+    // 8. Cleanup
+    t = t.replace(/\s{2,}/g, " ").trim().replace(/[,\.\s·]+$/, "");
     return t;
   }
 

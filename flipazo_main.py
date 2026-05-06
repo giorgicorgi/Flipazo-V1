@@ -47,6 +47,10 @@ RATIO_PRECIO_REF_INFLADO = 1.25 # Si precio_original > 125% del promedio histór
 SCORE_OFERTA_MINIMO     = 58    # Score calidad/valor mínimo
 DESCUENTO_OFERTA_MINIMO = 40    # % mínimo para ofertas puras
 
+# ── Low Cost (productos < PRECIO_MINIMO) ──────────────────────────
+PRECIO_MINIMO_LC    = 8.0   # € mínimo para aceptar items low cost
+DESCUENTO_LC_MINIMO = 50    # % mínimo para items low cost (umbral más exigente)
+
 # ── Pipeline ─────────────────────────────────────────────────────
 BATCH_SIZE_CLAUDE       = 15    # Productos por llamada a la API
 DEBUG_SCREENSHOTS       = os.getenv("DEBUG_SCREENSHOTS", "false").lower() == "true"
@@ -628,7 +632,7 @@ async def _extraer_de_busqueda(page: Page, vistos: set) -> list[Producto]:
             if descuento > 90:
                 continue
 
-            if descuento < DESCUENTO_MINIMO or not (PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO):
+            if not _precio_aceptable(precio_actual, descuento):
                 continue
 
             # Título
@@ -793,7 +797,7 @@ async def _extraer_de_deals(page: Page, vistos: set) -> list[Producto]:
 
             texto = await card.inner_text()
             match_desc = re.search(r'(\d+)\s*%', texto)
-            if not match_desc or int(match_desc.group(1)) < DESCUENTO_MINIMO:
+            if not match_desc:
                 continue
             descuento = int(match_desc.group(1))
 
@@ -801,7 +805,7 @@ async def _extraer_de_deals(page: Page, vistos: set) -> list[Producto]:
             if not precios:
                 continue
             precio_actual = float(precios[0].replace(',', '.'))
-            if not (PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO):
+            if not _precio_aceptable(precio_actual, descuento):
                 continue
             precio_original = (
                 float(precios[1].replace(',', '.')) if len(precios) > 1
@@ -888,6 +892,15 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0) -> bool:
     if "cecotec" in t and descuento_pct < 60:
         return False
     return True
+
+
+def _precio_aceptable(precio_actual: float, descuento: int) -> bool:
+    """Devuelve True si pasa el filtro estándar O el filtro low-cost."""
+    if PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO and descuento >= DESCUENTO_MINIMO:
+        return True
+    if PRECIO_MINIMO_LC <= precio_actual < PRECIO_MINIMO and descuento >= DESCUENTO_LC_MINIMO:
+        return True
+    return False
 
 
 async def _aceptar_cookies(page: Page):
@@ -1036,7 +1049,7 @@ async def scrape_mediamarkt(context: BrowserContext) -> list[Producto]:
                             if precio_original > precio_actual > 0 else 0
                         )
 
-                        if descuento < DESCUENTO_MINIMO or not (PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO):
+                        if not _precio_aceptable(precio_actual, descuento):
                             continue
 
                         productos.append(Producto(
@@ -1177,7 +1190,7 @@ async def scrape_pccomponentes(context: BrowserContext) -> list[Producto]:
                             if precio_original > precio_actual > 0 else 0
                         )
 
-                        if descuento < DESCUENTO_MINIMO or not (PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO):
+                        if not _precio_aceptable(precio_actual, descuento):
                             continue
 
                         productos.append(Producto(
@@ -1287,7 +1300,7 @@ async def _scrape_tienda_generica(
                         if precio_actual <= 0 or precio_original <= precio_actual:
                             continue
                         descuento = round((1 - precio_actual / precio_original) * 100)
-                        if descuento < DESCUENTO_MINIMO or not (PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO):
+                        if not _precio_aceptable(precio_actual, descuento):
                             continue
                         productos.append(Producto(
                             titulo=titulo,
@@ -1500,7 +1513,7 @@ async def scrape_privatesportshop(context: BrowserContext, urls: list[str] | Non
                         continue
 
                     descuento = round((1 - precio_actual / precio_original) * 100)
-                    if descuento < DESCUENTO_MINIMO or not (PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO):
+                    if not _precio_aceptable(precio_actual, descuento):
                         continue
 
                     vistos_href.add(href)
@@ -1790,9 +1803,7 @@ async def scrape_barrabes(context: BrowserContext) -> list[Producto]:
                         if descuento == 0 and precio_original > precio_actual > 0:
                             descuento = round((1 - precio_actual / precio_original) * 100)
 
-                        if descuento < DESCUENTO_MINIMO:
-                            continue
-                        if not (PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO):
+                        if not _precio_aceptable(precio_actual, descuento):
                             continue
                         if not _es_producto_valido(titulo, descuento):
                             continue
@@ -2291,7 +2302,7 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
             else:
                 p.tipo         = "OFERTA"
                 p.score_oferta = s
-                p.razonamiento = "descuento alto + marca reconocida"
+                p.razonamiento = ""
             p.copy      = _copy_template(p)
             p.categoria = _inferir_categoria(p)
             # Pros básicos para deals auto-aprobados (sin llamada IA)
@@ -2326,7 +2337,7 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
         elif tiene_marca:
             p.tipo         = "OFERTA"
             p.score_oferta = _score_local(p)
-            p.razonamiento = "marca reconocida con descuento real"
+            p.razonamiento = ""
         else:
             continue  # DESCARTAR silenciosamente
 
