@@ -278,6 +278,11 @@
       padding: 0 40px;
     }
     .sort-tabs::-webkit-scrollbar { display: none; }
+    .sort-tabs__filter-wrap {
+      margin-left: auto;
+      padding-left: 12px;
+      flex-shrink: 0;
+    }
 
     .sort-tab {
       font-family: var(--sans);
@@ -1432,10 +1437,9 @@
       .scroll-btns { bottom: 16px; right: 16px; }
       .view-toggle { display: flex; }
       .header-nav__live { display: none; }
-      .landing-strip { padding: 36px 24px 30px; max-height: 600px; }
-      .landing-strip__title { font-size: 28px; }
-      .landing-strip__sub { font-size: 13px; }
-      .filter-bar-header { padding: 6px 18px; }
+      .landing-strip { padding: 36px 20px 28px; }
+      .landing-strip__title { font-size: 30px; }
+      .landing-strip__sub { font-size: 14px; }
       .footer__grid { grid-template-columns: 1fr; gap: 28px; }
     }
     @media (max-width: 480px) {
@@ -1451,47 +1455,40 @@
       border-bottom: 1px solid var(--border);
       overflow: hidden;
       max-height: 500px;
-      transition: max-height 0.35s ease, opacity 0.35s, padding 0.35s;
+      transition: opacity 0.2s ease;
       position: relative;
     }
-    .landing-strip__badge {
-      display: inline-flex; align-items: center; gap: 7px;
-      font-family: var(--sans); font-size: 11px; font-weight: 700;
-      color: var(--text-mid); background: var(--surface);
-      border: 1px solid var(--border); border-radius: 9999px;
-      padding: 5px 14px; margin-bottom: 20px;
-    }
     .landing-strip__title {
-      font-family: var(--serif); font-weight: 700;
-      font-size: clamp(28px, 4.5vw, 52px);
-      line-height: 1.15; color: var(--ink);
-      margin-bottom: 16px;
+      font-family: var(--serif); font-weight: 900;
+      font-size: clamp(32px, 5vw, 60px);
+      line-height: 1.1; color: var(--ink);
+      margin-bottom: 18px; letter-spacing: -0.01em;
     }
     .landing-strip__sub {
-      font-family: var(--sans); font-size: 15px;
+      font-family: var(--sans); font-size: 16px; font-weight: 500;
       color: var(--text-mid); max-width: 520px;
-      margin: 0 auto 32px; line-height: 1.7;
+      margin: 0 auto 32px; line-height: 1.65;
     }
     .landing-strip__ctas {
       display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
     }
     .landing-strip__cta-primary {
       display: inline-flex; align-items: center; gap: 6px;
-      font-family: var(--sans); font-size: 14px; font-weight: 700;
-      color: #fff; background: var(--ink);
-      padding: 12px 28px; border-radius: 9999px;
-      transition: background 0.15s; text-decoration: none;
+      font-family: var(--sans); font-size: 14px; font-weight: 800;
+      color: #fff; background: var(--brand);
+      padding: 13px 28px; border-radius: 9999px;
+      transition: opacity 0.15s; text-decoration: none;
     }
-    .landing-strip__cta-primary:hover { background: var(--brand); }
+    .landing-strip__cta-primary:hover { opacity: 0.88; }
     .landing-strip__cta-secondary {
       display: inline-flex; align-items: center; gap: 8px;
       font-family: var(--sans); font-size: 14px; font-weight: 700;
-      color: var(--ink); background: none;
-      border: 2px solid var(--border-soft);
-      padding: 12px 24px; border-radius: 9999px;
-      transition: border-color 0.15s, color 0.15s; text-decoration: none;
+      color: var(--navy); background: none;
+      border: 2px solid var(--navy);
+      padding: 11px 24px; border-radius: 9999px;
+      transition: background 0.15s, color 0.15s; text-decoration: none;
     }
-    .landing-strip__cta-secondary:hover { border-color: var(--ink); }
+    .landing-strip__cta-secondary:hover { background: var(--navy); color: #fff; }
     .landing-strip__close {
       position: absolute; top: 12px; right: 16px;
       background: none; border: none; cursor: pointer;
@@ -1501,13 +1498,7 @@
     }
     .landing-strip__close:hover { color: var(--ink); }
 
-    /* ── Filter bar header (toggle) ─────────────────────────────── */
-    .filter-bar-header {
-      display: flex; align-items: center;
-      padding: 6px 40px;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border-faint);
-    }
+    /* .filter-bar-header removed — filter toggle moved into sort-tabs */
     .filter-toggle {
       display: flex; align-items: center; gap: 5px;
       font-family: var(--sans); font-size: 12px; font-weight: 700;
@@ -1646,16 +1637,21 @@
       <button class="sort-tab" data-sort="descuento">Mayor Descuento</button>
       <button class="sort-tab" data-sort="votados">Más Votados</button>
       <button class="sort-tab" data-sort="reventa">Para Revender</button>
-      <button class="sort-tab" data-sort="low_cost">💸 Low Cost</button>
+      <button class="sort-tab" data-sort="low_cost">Deals Low Cost</button>
+      <div class="sort-tabs__filter-wrap">
+        <button class="filter-toggle" id="js-filter-toggle" onclick="toggleFilters()" aria-expanded="true" aria-label="Mostrar u ocultar filtros">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <line x1="2" y1="4" x2="14" y2="4"/><line x1="4" y1="8" x2="12" y2="8"/><line x1="6" y1="12" x2="10" y2="12"/>
+          </svg>
+          Filtros
+          <span class="filter-toggle__arrow">▾</span>
+        </button>
+      </div>
     </nav>
   </header>
 
   <!-- ── LANDING HERO ──────────────────────────────────────────── -->
   <section class="landing-strip" id="js-landing-strip" aria-label="Sobre Flipazo">
-    <div class="landing-strip__badge">
-      <span class="live-dot"></span>
-      Actualizado automáticamente cada hora
-    </div>
     <h1 class="landing-strip__title">Pocas ofertas.<br>Las correctas.</h1>
     <p class="landing-strip__sub">Una selección diaria de descuentos reales en España. Revisamos cientos de productos y publicamos únicamente las ofertas superiores al 40% de marcas reconocidas en electrónica, deportes, hogar y más.</p>
     <div class="landing-strip__ctas">
@@ -1667,17 +1663,6 @@
     </div>
     <button class="landing-strip__close" onclick="closeLandingStrip()" aria-label="Cerrar">×</button>
   </section>
-
-  <!-- ── FILTER BAR HEADER ────────────────────────────────────── -->
-  <div class="filter-bar-header">
-    <button class="filter-toggle" id="js-filter-toggle" onclick="toggleFilters()" aria-expanded="true" aria-label="Mostrar u ocultar filtros">
-      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
-        <line x1="2" y1="4" x2="14" y2="4"/><line x1="4" y1="8" x2="12" y2="8"/><line x1="6" y1="12" x2="10" y2="12"/>
-      </svg>
-      Filtros
-      <span class="filter-toggle__arrow">▾</span>
-    </button>
-  </div>
 
   <!-- ── FILTER BLOCK ───────────────────────────────────────────── -->
   <div class="filter-block" id="js-filter-block">
@@ -3028,6 +3013,18 @@
     const btn = document.getElementById("js-btn-top");
     if (window.scrollY > 320) btn.classList.add("visible");
     else btn.classList.remove("visible");
+
+    // Landing fade-out on scroll
+    const strip = document.getElementById("js-landing-strip");
+    if (strip && strip.style.display !== "none") {
+      const h = strip.offsetHeight;
+      if (h > 0) {
+        const ratio = Math.max(0, 1 - window.scrollY / (h * 0.7));
+        strip.style.opacity = ratio;
+        if (ratio === 0) strip.style.pointerEvents = "none";
+        else strip.style.pointerEvents = "";
+      }
+    }
   }, { passive: true });
 
   // ── Landing strip ─────────────────────────────────────────────
@@ -3324,9 +3321,6 @@
     // Landing strip + filter bar entrada
     gsap.from('.landing-strip', {
       opacity: 0, y: -8, duration: 0.4, delay: 0.08, ease: 'power2.out', clearProps: 'all'
-    });
-    gsap.from('.filter-bar-header', {
-      opacity: 0, y: -6, duration: 0.38, delay: 0.14, ease: 'power2.out', clearProps: 'all'
     });
     gsap.from('.filter-block', {
       opacity: 0, y: -10, duration: 0.45, delay: 0.12, ease: 'power2.out', clearProps: 'all'
