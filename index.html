@@ -2405,8 +2405,12 @@
     if (!shouldShowHero() || allDeals.length === 0) {
       hero.style.display = "none"; heroMode = false; _heroId = null; return;
     }
-    heroMode = true;
     const eligible = allDeals.filter(d => (d.precio_actual || 0) >= 25);
+    // Si aún no hay deals normales pero hay más páginas, esperar
+    if (eligible.length === 0 && hasMore) {
+      hero.style.display = "none"; heroMode = false; _heroId = null; return;
+    }
+    heroMode = true;
     const dealOfDay = getDealOfDay(eligible.length ? eligible : allDeals);
     if (!dealOfDay) { hero.style.display = "none"; heroMode = false; _heroId = null; return; }
     _heroId = dealOfDay.id;
@@ -2724,7 +2728,7 @@
       updateCount();
       buildStoreBar();
 
-      if (isCatFilter && hasMore && grid.querySelectorAll(".deal").length < PAGE_SIZE) {
+      if (hasMore && grid.querySelectorAll(".deal").length < 8) {
         showLoading(false); isLoading = false; loadMore(); return;
       }
       checkPaywall();
