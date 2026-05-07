@@ -143,7 +143,8 @@
     [data-theme="dark"] .filter-block { background: #111827; border-color: #1F2937; }
 
     /* ── Base ────────────────────────────────────────────────────── */
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
+    body { overflow-x: hidden; max-width: 100%; }
 
     body {
       background: var(--bg);
@@ -1430,7 +1431,21 @@
     }
     @media (max-width: 768px) {
       :root { --grid-cols: 2; --grid-gap: 12px; }
-      .site-header__inner { padding: 0 18px; }
+
+      /* Header: 2 rows — row1: logo + nav links, row2: search + toggle */
+      .site-header__inner {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 10px 18px 8px;
+        row-gap: 8px;
+        column-gap: 12px;
+        align-items: center;
+      }
+      .site-logo { order: 1; flex-shrink: 0; }
+      .header-nav { order: 2; flex: 1; justify-content: flex-end; }
+      .header-search-wrap { order: 3; flex: 1 1 0; max-width: none; }
+      .site-header__inner > .theme-toggle { order: 4; flex-shrink: 0; }
+
       .sort-tabs { padding: 0 18px; }
       .search-bar { padding: 10px 18px; }
       .filter-row { padding: 8px 18px; }
@@ -1638,8 +1653,9 @@
       <nav class="header-nav" aria-label="Navegación principal">
         <a href="/blog" class="header-nav__link">Blog</a>
         <a href="/cuenta" id="js-cuenta-link" class="header-nav__link">Mi&nbsp;Cuenta</a>
-        <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema" title="Cambiar tema">☾</button>
       </nav>
+
+      <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema" title="Cambiar tema">☾</button>
 
     </div>
 
@@ -1750,56 +1766,8 @@
   <div id="js-load-indicator" style="display:none">Cargando más ofertas…</div>
   <div id="js-sentinel" style="height:1px;"></div>
 
-  <!-- ── ABOUT ─────────────────────────────────────────────────── -->
-  <section class="about" aria-label="Sobre Flipazo">
-    <div class="about__block">
-      <h3>Recíbelas en Telegram</h3>
-      <p>
-        Alertas en tiempo real directamente en tu móvil. Sin ruido, sin spam —
-        solo las mejores ofertas del día.<br /><br />
-        <a href="https://t.me/flipazo" target="_blank" rel="noopener">Unirse al canal de Telegram →</a>
-      </p>
-    </div>
-    <div class="about__block">
-      <h3>Contacto</h3>
-      <p>
-        <a href="mailto:hola@flipazo.es">hola@flipazo.es</a><br /><br />
-        <a href="/privacidad.html">Política de privacidad</a><br />
-        <a href="/cookies.html">Política de cookies</a><br />
-        <a href="/aviso-legal.html">Aviso legal y afiliados</a>
-      </p>
-    </div>
-  </section>
-
   <!-- ── FOOTER ────────────────────────────────────────────────── -->
   <footer class="footer" id="js-footer">
-    <div class="footer__grid">
-
-      <!-- Col 1: Brand + tagline -->
-      <div class="footer__col">
-        <span class="footer__brand">Flipazo</span>
-        <p class="footer__tagline">Flipazo analiza miles de productos cada hora y publica solo los que superan el 40% de descuento. De marcas que ya conoces. Sin relleno. Sin patrocinios. Solo oportunidades que merecen tu atención.</p>
-      </div>
-
-      <!-- Col 2: Cómo funciona -->
-      <div class="footer__col">
-        <h4 class="footer__col-title">Cómo funciona</h4>
-        <ul class="footer__principles">
-          <li><strong>Descuentos verificados</strong> — solo si superan el 40% sobre el precio histórico documentado</li>
-          <li><strong>Marcas reconocidas</strong> — sin marcas blancas, sin productos sin historial</li>
-          <li><strong>Modelo transparente</strong> — usamos enlaces de afiliado. Ninguna marca paga para ser publicada.</li>
-        </ul>
-      </div>
-
-      <!-- Col 3: Urgency + CTA -->
-      <div class="footer__col">
-        <h4 class="footer__col-title">Para los que miran dos veces</h4>
-        <p class="footer__urgency-text">Algunas de estas ofertas no son solo un ahorro. Son productos que puedes comprar hoy y vender mañana en Wallapop con margen. Calculamos el coste neto real para que decidas con los números encima de la mesa.</p>
-        <p class="footer__cta-text">Siempre llegas tarde a los chollos. Hasta hoy.</p>
-        <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'}); return false;" class="footer__cta-btn">Ver deals →</a>
-      </div>
-
-    </div>
     <div class="footer__bottom">
       <div class="footer__top">
         <nav class="footer__links" aria-label="Legal">
