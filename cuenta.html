@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Mi Cuenta — Flipazo</title>
+  <meta name="description" content="Accede a tu cuenta Flipazo. Guarda tus ofertas favoritas y recibe alertas personalizadas." />
+  <meta name="robots" content="noindex" />
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23F52834'/><text x='50%' y='74%' font-family='Georgia,serif' font-weight='900' font-size='22' fill='white' text-anchor='middle'>F</text></svg>">
+
+  <!-- Anti-FOUC -->
+  <script>
+    (function(){
+      var t = localStorage.getItem('flipazo_theme') || 'light';
+      if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset ──────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Variables (mirrors index.html exactly) ─────────────────── */
+    :root {
+      --brand:          #F52834;
+      --brand-hover:    #D41F2A;
+      --navy:           #2C3E50;
+      --teal:           #14C1AE;
+      --teal-light:     #E6F9F7;
+      --ink:            #111827;
+      --ink-light:      #4B5563;
+      --bg:             #FEFEF8;
+      --sans:           'Nunito', system-ui, sans-serif;
+      --serif:          'Playfair Display', Georgia, serif;
+      --surface:        #F3F4F6;
+      --surface-hover:  #F9FAFB;
+      --card-bg:        #FFFFFF;
+      --border:         #E5E7EB;
+      --border-soft:    #D1D5DB;
+      --border-faint:   #F3F4F6;
+      --text-body:      #374151;
+      --text-mid:       #6B7280;
+      --text-dim:       #9CA3AF;
+      --text-faint:     #D1D5DB;
+      --paper:          #FFFFFF;
+      --card-radius:    16px;
+      --card-shadow:    0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+      --card-shadow-hover: 0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    /* ── Dark mode ───────────────────────────────────────────────── */
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --ink:          #F9FAFB;
+      --ink-light:    #D1D5DB;
+      --bg:           #111827;
+      --surface:      #1F2937;
+      --surface-hover:#1a2332;
+      --card-bg:      #1F2937;
+      --border:       #374151;
+      --border-soft:  #4B5563;
+      --border-faint: #1F2937;
+      --text-body:    #D1D5DB;
+      --text-mid:     #9CA3AF;
+      --text-dim:     #6B7280;
+      --text-faint:   #4B5563;
+      --paper:        #1F2937;
+    }
+    [data-theme="dark"] .site-header { background: #111827; border-color: #1F2937; }
+    [data-theme="dark"] .auth-card   { background: #1F2937; border-color: #374151; }
+    [data-theme="dark"] .auth-input  { background: #111827; border-color: #374151; color: #F9FAFB; }
+    [data-theme="dark"] .auth-input:focus { border-color: var(--brand); }
+    [data-theme="dark"] .dash-card   { background: #1F2937; border-color: #374151; }
+
+    /* ── Base ────────────────────────────────────────────────────── */
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Site header (exact match to index.html) ─────────────────── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .site-header__inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 64px;
+      gap: 24px;
+    }
+
+    /* ── Logo ────────────────────────────────────────────────────── */
+    .site-logo {
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .site-logo__img { display: block; height: 49px; width: auto; mix-blend-mode: multiply; }
+    [data-theme="dark"] .site-logo__img { mix-blend-mode: screen; }
+
+    /* ── Header nav ──────────────────────────────────────────────── */
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+    .header-nav__link {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-mid);
+      letter-spacing: 0.01em;
+      transition: color 0.15s;
+    }
+    .header-nav__link:hover { color: var(--ink); }
+    .header-nav__link--active { color: var(--brand); }
+
+    .theme-toggle {
+      background: none; border: none; cursor: pointer;
+      font-size: 15px; color: var(--text-mid); padding: 6px;
+      border-radius: 8px; line-height: 1;
+      transition: color 0.15s, background 0.15s; user-select: none;
+    }
+    .theme-toggle:hover { color: var(--ink); background: var(--surface); }
+
+    /* ── Page layout ─────────────────────────────────────────────── */
+    .page-wrap {
+      min-height: calc(100vh - 64px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px 80px;
+    }
+
+    /* ── Auth card ───────────────────────────────────────────────── */
+    .auth-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 44px 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--card-shadow-hover);
+      text-align: center;
+    }
+
+    .auth-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 52px; height: 52px;
+      background: var(--brand);
+      border-radius: 14px;
+      margin-bottom: 22px;
+    }
+    .auth-logo svg { width: 28px; height: 28px; }
+
+    .auth-card__title {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 26px;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .auth-card__sub {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--text-mid);
+      line-height: 1.5;
+      margin-bottom: 32px;
+    }
+
+    /* ── OAuth button ────────────────────────────────────────────── */
+    .auth-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 13px 20px;
+      border-radius: 12px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      margin-bottom: 12px;
+      transition: opacity 0.15s, transform 0.1s;
+      cursor: pointer;
+      border: none;
+    }
+    .auth-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .auth-btn:active { transform: translateY(0); }
+
+    .auth-btn--google {
+      background: var(--paper);
+      color: var(--ink);
+      border: 1.5px solid var(--border);
+    }
+    .auth-btn--email {
+      background: var(--brand);
+      color: #fff;
+    }
+
+    /* ── Divider ─────────────────────────────────────────────────── */
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    .auth-divider::before,
+    .auth-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Email form ──────────────────────────────────────────────── */
+    #form-email { text-align: left; }
+
+    .auth-field { margin-bottom: 14px; }
+    .auth-label {
+      display: block;
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-mid);
+      margin-bottom: 6px;
+    }
+    .auth-input {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .auth-input:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(245,40,52,0.08);
+    }
+    .auth-input::placeholder { color: var(--text-faint); }
+
+    .auth-submit {
+      width: 100%;
+      padding: 13px;
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 4px;
+    }
+    .auth-submit:hover { background: #1e2d3d; transform: translateY(-1px); }
+
+    .auth-switch {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--text-mid);
+      margin-top: 16px;
+    }
+    .auth-switch a, .auth-switch button {
+      color: var(--brand);
+      font-weight: 700;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+      font-size: inherit;
+    }
+    .auth-switch a:hover, .auth-switch button:hover { text-decoration: underline; }
+
+    .auth-error {
+      background: rgba(245,40,52,0.08);
+      border: 1px solid rgba(245,40,52,0.2);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--brand);
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    /* ── Dashboard ───────────────────────────────────────────────── */
+    #view-dashboard { display: none; width: 100%; max-width: 680px; }
+
+    .dash-greeting {
+      font-family: var(--serif);
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+    .dash-sub {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--text-mid);
+      margin-bottom: 32px;
+    }
+
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .dash-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 22px 20px;
+      box-shadow: var(--card-shadow);
+    }
+    .dash-card__label {
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 6px;
+    }
+    .dash-card__value {
+      font-family: var(--serif);
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--ink);
+      line-height: 1;
+    }
+    .dash-card__desc {
+      font-family: var(--sans);
+      font-size: 12px;
+      color: var(--text-mid);
+      margin-top: 4px;
+    }
+
+    .dash-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .dash-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      text-decoration: none;
+    }
+    .dash-btn:hover { transform: translateY(-1px); }
+    .dash-btn--primary { background: var(--brand); color: #fff; }
+    .dash-btn--primary:hover { background: var(--brand-hover); }
+    .dash-btn--secondary { background: var(--surface); color: var(--ink); border: 1.5px solid var(--border); }
+    .dash-btn--secondary:hover { background: var(--border); }
+    .dash-btn--danger { background: transparent; color: var(--text-mid); border: 1.5px solid var(--border); font-size: 12px; padding: 8px 16px; }
+    .dash-btn--danger:hover { color: var(--brand); border-color: var(--brand); background: rgba(245,40,52,0.05); }
+
+    .dash-section-title {
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 14px;
+    }
+
+    .dash-favs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .dash-fav-card {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: box-shadow 0.15s;
+      text-decoration: none;
+      color: var(--ink);
+    }
+    .dash-fav-card:hover { box-shadow: var(--card-shadow); }
+    .dash-fav-img {
+      width: 48px; height: 48px;
+      object-fit: contain;
+      background: var(--surface);
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .dash-fav-info { flex: 1; min-width: 0; }
+    .dash-fav-title {
+      font-family: var(--serif);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.3;
+      color: var(--ink);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .dash-fav-price {
+      font-family: var(--sans);
+      font-weight: 800;
+      font-size: 14px;
+      color: #0581FC;
+      margin-top: 3px;
+    }
+    .dash-empty {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--text-faint);
+      font-style: italic;
+      text-align: center;
+      padding: 28px;
+      background: var(--surface);
+      border-radius: 12px;
+    }
+
+    /* ── Profile section ─────────────────────────────────────────── */
+    .profile-section {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 22px 20px;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 24px;
+    }
+    .profile-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .profile-avatar {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: var(--navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 22px;
+      color: #fff;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-info { flex: 1; min-width: 0; }
+    .profile-name {
+      font-family: var(--sans);
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--ink);
+    }
+    .profile-email {
+      font-family: var(--sans);
+      font-size: 12px;
+      color: var(--text-mid);
+      margin-top: 2px;
+    }
+    .profile-plan {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      background: var(--teal-light);
+      color: #0D7A6F;
+      margin-top: 4px;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 40px 60px;
+      background: var(--bg);
+    }
+    .footer__bottom { display: flex; flex-direction: column; gap: 6px; }
+    .footer__top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .footer__links { display: flex; gap: 20px; flex-wrap: wrap; }
+    .footer__links a { font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--text-mid); transition: color 0.15s; }
+    .footer__links a:hover { color: var(--brand); }
+    .footer__copy { font-family: var(--sans); font-size: 11px; color: var(--text-faint); }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .site-header__inner { padding: 0 18px; }
+      .page-wrap { padding: 32px 16px 60px; }
+      .auth-card { padding: 32px 24px; }
+      .dash-grid { grid-template-columns: 1fr; }
+      .dash-favs { grid-template-columns: 1fr; }
+      .footer { padding: 20px 18px 48px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── SITE HEADER ────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="site-header__inner">
+
+      <!-- Logo -->
+      <a href="/" class="site-logo" title="Volver al inicio" aria-label="Flipazo — inicio">
+        <img src="/flipazo-logo.png" alt="Flipazo" height="49" class="site-logo__img"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
+        <svg viewBox="0 0 218 52" xmlns="http://www.w3.org/2000/svg" height="38" aria-hidden="true" style="display:none">
+          <text x="2" y="43" font-family="'Nunito', sans-serif" font-size="50" font-weight="900" fill="#F52834" letter-spacing="-0.5">Flipazo</text>
+        </svg>
+      </a>
+
+      <!-- Nav -->
+      <nav class="header-nav" aria-label="Navegación principal">
+        <a href="/" class="header-nav__link">Ofertas</a>
+        <a href="/blog" class="header-nav__link">Blog</a>
+        <a href="/cuenta" class="header-nav__link header-nav__link--active" aria-current="page">Mi&nbsp;Cuenta</a>
+        <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema" title="Cambiar tema">☾</button>
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- ── PAGE CONTENT ───────────────────────────────────────────── -->
+  <div class="page-wrap" id="js-page-wrap">
+
+    <!-- AUTH VIEWS -->
+    <div id="view-auth">
+
+      <!-- Step 1: Choose method -->
+      <div class="auth-card" id="step-choose">
+        <div class="auth-logo">
+          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M14 4L4 9V19L14 24L24 19V9L14 4Z" fill="white" opacity="0.9"/>
+            <path d="M14 4L14 14M14 14L4 9M14 14L24 9M14 14V24" stroke="rgba(245,40,52,0.4)" stroke-width="1" fill="none"/>
+          </svg>
+        </div>
+        <h1 class="auth-card__title">Únete a Flipazo</h1>
+        <p class="auth-card__sub">Guarda tus ofertas favoritas y recibe alertas de chollos en tiempo real.</p>
+
+        <a href="https://api.flipazo.es/auth/google" class="auth-btn auth-btn--google">
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 2.9l5.7-5.7C34.5 6.5 29.5 4 24 4 12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20c0-1.3-.1-2.6-.4-3.9z"/>
+            <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.8 1.1 8 2.9l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
+            <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.2 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8H6.3C9.6 35.7 16.3 44 24 44z"/>
+            <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.2 5.2C37 39.8 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/>
+          </svg>
+          Continuar con Google
+        </a>
+
+        <div class="auth-divider">o</div>
+
+        <button class="auth-btn auth-btn--email" onclick="showEmailForm('login')">Entrar con email</button>
+
+        <p class="auth-switch">¿No tienes cuenta? <button onclick="showEmailForm('register')">Créala gratis →</button></p>
+      </div>
+
+      <!-- Step 2a: Login with email -->
+      <div class="auth-card" id="step-login" style="display:none">
+        <h1 class="auth-card__title">Iniciar sesión</h1>
+        <p class="auth-card__sub" style="margin-bottom:24px">Introduce tu email y contraseña.</p>
+        <div class="auth-error" id="login-error"></div>
+        <form id="form-login" onsubmit="submitLogin(event)">
+          <div class="auth-field">
+            <label class="auth-label" for="login-email">Email</label>
+            <input type="email" id="login-email" class="auth-input" placeholder="tu@email.com" required autocomplete="email" />
+          </div>
+          <div class="auth-field">
+            <label class="auth-label" for="login-password">Contraseña</label>
+            <input type="password" id="login-password" class="auth-input" placeholder="••••••••" required autocomplete="current-password" />
+          </div>
+          <button type="submit" class="auth-submit" id="login-submit">Entrar →</button>
+        </form>
+        <p class="auth-switch" style="margin-top:14px">
+          <button onclick="showEmailForm('register')">Crear cuenta nueva</button>
+          &nbsp;·&nbsp;
+          <button onclick="showStep('choose')">← Volver</button>
+        </p>
+      </div>
+
+      <!-- Step 2b: Register with email -->
+      <div class="auth-card" id="step-register" style="display:none">
+        <h1 class="auth-card__title">Crear cuenta</h1>
+        <p class="auth-card__sub" style="margin-bottom:24px">Gratis. Sin spam. Solo los mejores chollos.</p>
+        <div class="auth-error" id="register-error"></div>
+        <form id="form-register" onsubmit="submitRegister(event)">
+          <div class="auth-field">
+            <label class="auth-label" for="reg-name">Tu nombre</label>
+            <input type="text" id="reg-name" class="auth-input" placeholder="Jorge" required autocomplete="given-name" />
+          </div>
+          <div class="auth-field">
+            <label class="auth-label" for="reg-email">Email</label>
+            <input type="email" id="reg-email" class="auth-input" placeholder="tu@email.com" required autocomplete="email" />
+          </div>
+          <div class="auth-field">
+            <label class="auth-label" for="reg-password">Contraseña</label>
+            <input type="password" id="reg-password" class="auth-input" placeholder="Mínimo 8 caracteres" required minlength="8" autocomplete="new-password" />
+          </div>
+          <button type="submit" class="auth-submit" id="register-submit">Crear mi cuenta →</button>
+        </form>
+        <p class="auth-switch" style="margin-top:14px">
+          ¿Ya tienes cuenta? <button onclick="showEmailForm('login')">Inicia sesión</button>
+          &nbsp;·&nbsp;
+          <button onclick="showStep('choose')">← Volver</button>
+        </p>
+      </div>
+
+    </div><!-- /view-auth -->
+
+    <!-- DASHBOARD (shown when logged in) -->
+    <div id="view-dashboard">
+
+      <p class="dash-greeting" id="dash-greeting">Hola 👋</p>
+      <p class="dash-sub" id="dash-sub">Aquí tienes un resumen de tu actividad.</p>
+
+      <!-- Profile card -->
+      <div class="profile-section">
+        <div class="profile-row">
+          <div class="profile-avatar" id="dash-avatar">?</div>
+          <div class="profile-info">
+            <p class="profile-name" id="dash-name">—</p>
+            <p class="profile-email" id="dash-email">—</p>
+            <span class="profile-plan">✓ Plan gratuito</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats grid -->
+      <div class="dash-grid" style="margin-bottom:28px">
+        <div class="dash-card">
+          <p class="dash-card__label">Favoritos guardados</p>
+          <p class="dash-card__value" id="dash-fav-count">—</p>
+          <p class="dash-card__desc">Deals en tu lista</p>
+        </div>
+        <div class="dash-card">
+          <p class="dash-card__label">Miembro desde</p>
+          <p class="dash-card__value" style="font-size:18px;padding-top:8px" id="dash-since">—</p>
+          <p class="dash-card__desc">Siempre a tiempo en los chollos</p>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="dash-actions">
+        <a href="/" class="dash-btn dash-btn--primary">Ver ofertas →</a>
+        <a href="https://t.me/flipazo" target="_blank" rel="noopener" class="dash-btn dash-btn--secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.89 8.15l-2.02 9.52c-.15.68-.54.85-1.09.53l-3-2.21-1.45 1.39c-.16.16-.29.29-.6.29l.21-3.04 5.5-4.97c.24-.21-.05-.33-.37-.12L6.63 14.4l-2.96-.93c-.64-.2-.65-.64.13-.95l11.55-4.45c.54-.19 1.01.13.54 2.08z"/></svg>
+          Telegram
+        </a>
+        <button class="dash-btn dash-btn--danger" onclick="logout()">Cerrar sesión</button>
+      </div>
+
+      <!-- Favorites -->
+      <p class="dash-section-title">Mis favoritos recientes</p>
+      <div id="dash-favs-grid" class="dash-favs">
+        <div class="dash-empty">Aún no has guardado ningún deal. Explora las ofertas y usa el ♥ para guardar.</div>
+      </div>
+
+    </div><!-- /view-dashboard -->
+
+  </div><!-- /page-wrap -->
+
+  <!-- ── FOOTER ────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer__bottom">
+      <div class="footer__top">
+        <nav class="footer__links" aria-label="Legal">
+          <a href="/privacidad.html">Privacidad</a>
+          <a href="/cookies.html">Cookies</a>
+          <a href="/aviso-legal.html">Aviso Legal</a>
+          <a href="mailto:hola@flipazo.es">Contacto</a>
+          <a href="https://t.me/flipazo" target="_blank" rel="noopener">Telegram</a>
+        </nav>
+      </div>
+      <p class="footer__copy">© 2025 Flipazo · Barcelona, España</p>
+    </div>
+  </footer>
+
+  <script>
+    "use strict";
+
+    const API = "https://api.flipazo.es";
+
+    /* ── Theme ── */
+    function toggleTheme() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const next   = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('flipazo_theme', next);
+      document.getElementById('theme-toggle').textContent = next === 'dark' ? '☀' : '☾';
+    }
+    (function initThemeIcon() {
+      const t = document.documentElement.getAttribute('data-theme') || 'light';
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = t === 'dark' ? '☀' : '☾';
+    })();
+
+    /* ── Auth helpers ── */
+    function getToken() { return localStorage.getItem('flipazo_user_token'); }
+    function isLoggedIn() {
+      const t = getToken();
+      if (!t) return false;
+      try {
+        const payload = JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+        return payload.exp > Date.now() / 1000;
+      } catch { return false; }
+    }
+
+    /* ── Step navigation ── */
+    function showStep(id) {
+      ['choose', 'login', 'register'].forEach(s => {
+        const el = document.getElementById(`step-${s}`);
+        if (el) el.style.display = s === id ? '' : 'none';
+      });
+    }
+    function showEmailForm(mode) { showStep(mode); }
+
+    /* ── Login form ── */
+    async function submitLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('login-submit');
+      const err = document.getElementById('login-error');
+      btn.disabled = true; btn.textContent = 'Entrando…';
+      err.style.display = 'none';
+
+      try {
+        const res = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email:    document.getElementById('login-email').value.trim(),
+            password: document.getElementById('login-password').value,
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Email o contraseña incorrectos');
+        localStorage.setItem('flipazo_user_token', data.access_token);
+        showDashboard();
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.style.display = '';
+        btn.disabled = false;
+        btn.textContent = 'Entrar →';
+      }
+    }
+
+    /* ── Register form ── */
+    async function submitRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('register-submit');
+      const err = document.getElementById('register-error');
+      btn.disabled = true; btn.textContent = 'Creando cuenta…';
+      err.style.display = 'none';
+
+      try {
+        const res = await fetch(`${API}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name:     document.getElementById('reg-name').value.trim(),
+            email:    document.getElementById('reg-email').value.trim(),
+            password: document.getElementById('reg-password').value,
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'No se pudo crear la cuenta');
+        localStorage.setItem('flipazo_user_token', data.access_token);
+        showDashboard();
+      } catch (ex) {
+        err.textContent = ex.message;
+        err.style.display = '';
+        btn.disabled = false;
+        btn.textContent = 'Crear mi cuenta →';
+      }
+    }
+
+    /* ── Logout ── */
+    function logout() {
+      localStorage.removeItem('flipazo_user_token');
+      document.getElementById('view-dashboard').style.display = 'none';
+      document.getElementById('view-auth').style.display = '';
+      showStep('choose');
+    }
+
+    /* ── Dashboard ── */
+    async function showDashboard() {
+      document.getElementById('view-auth').style.display = 'none';
+      const dash = document.getElementById('view-dashboard');
+      dash.style.display = '';
+
+      const token = getToken();
+      if (!token) { logout(); return; }
+
+      try {
+        const res  = await fetch(`${API}/api/user/profile`, { headers: { Authorization: `Bearer ${token}` } });
+        const user = await res.json();
+
+        const name = user.name || user.email?.split('@')[0] || 'Usuario';
+        document.getElementById('dash-greeting').textContent = `Hola, ${name} 👋`;
+        document.getElementById('dash-name').textContent     = name;
+        document.getElementById('dash-email').textContent    = user.email || '';
+        document.getElementById('dash-since').textContent    = user.created_at
+          ? new Date(user.created_at).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+          : '—';
+
+        const initial = name[0].toUpperCase();
+        const avatarEl = document.getElementById('dash-avatar');
+        if (user.avatar_url) {
+          avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${name}" onerror="this.style.display='none'" />`;
+        } else {
+          avatarEl.textContent = initial;
+        }
+      } catch {}
+
+      try {
+        const res  = await fetch(`${API}/api/user/favorites`, { headers: { Authorization: `Bearer ${getToken()}` } });
+        const favs = await res.ok ? await res.json() : [];
+
+        document.getElementById('dash-fav-count').textContent = favs.length || '0';
+
+        const grid = document.getElementById('dash-favs-grid');
+        if (!favs.length) {
+          grid.innerHTML = '<div class="dash-empty">Aún no has guardado ningún deal. Explora las ofertas y usa el ♥ para guardar.</div>';
+        } else {
+          grid.innerHTML = favs.slice(0, 6).map(d => `
+            <a href="${d.url_affiliate || '#'}" target="_blank" rel="noopener sponsored" class="dash-fav-card">
+              ${d.imagen_url
+                ? `<img class="dash-fav-img" src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">`
+                : `<div class="dash-fav-img"></div>`}
+              <div class="dash-fav-info">
+                <p class="dash-fav-title">${d.titulo || ''}</p>
+                <p class="dash-fav-price">${Number(d.precio_actual).toLocaleString('es-ES', { minimumFractionDigits: 2 }) + ' €'}</p>
+              </div>
+            </a>`).join('');
+        }
+      } catch {}
+    }
+
+    /* ── Handle OAuth redirect (token in URL hash/query) ── */
+    (function handleOAuthRedirect() {
+      const params = new URLSearchParams(location.search);
+      const hashParams = new URLSearchParams(location.hash.slice(1));
+      const token = params.get('token') || hashParams.get('token');
+      if (token) {
+        localStorage.setItem('flipazo_user_token', token);
+        history.replaceState({}, '', '/cuenta');
+      }
+    })();
+
+    /* ── Init ── */
+    if (isLoggedIn()) {
+      showDashboard();
+    } else {
+      document.getElementById('view-auth').style.display = '';
+      document.getElementById('view-dashboard').style.display = 'none';
+      showStep('choose');
+    }
+  </script>
+
+</body>
+</html>

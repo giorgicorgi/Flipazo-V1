@@ -8,14 +8,14 @@
   <!-- Primary SEO -->
   <title id="js-page-title">Blog — Flipazo</title>
   <meta name="description" id="js-meta-desc" content="Guías, análisis y consejos para comprar mejor. El blog de Flipazo." />
-  <link rel="canonical" id="js-canonical" href="https://flipazo.es/blog.html" />
+  <link rel="canonical" id="js-canonical" href="https://flipazo.es/blog" />
 
   <!-- Open Graph -->
   <meta property="og:type" id="js-og-type" content="website" />
   <meta property="og:title" id="js-og-title" content="Blog — Flipazo" />
   <meta property="og:description" id="js-og-desc" content="Guías, análisis y consejos para comprar mejor." />
   <meta property="og:image" id="js-og-image" content="https://flipazo.es/og-default.jpg" />
-  <meta property="og:url" id="js-og-url" content="https://flipazo.es/blog.html" />
+  <meta property="og:url" id="js-og-url" content="https://flipazo.es/blog" />
   <meta property="og:site_name" content="Flipazo" />
 
   <!-- Twitter Card -->
@@ -24,448 +24,518 @@
   <meta name="twitter:description" id="js-tw-desc" content="Guías, análisis y consejos para comprar mejor." />
   <meta name="twitter:image" id="js-tw-image" content="https://flipazo.es/og-default.jpg" />
 
-  <!-- Schema.org JSON-LD — updated dynamically per post -->
+  <!-- Schema.org JSON-LD -->
   <script type="application/ld+json" id="js-schema-ld">
   {
     "@context": "https://schema.org",
     "@type": "Blog",
     "name": "Flipazo Blog",
-    "url": "https://flipazo.es/blog.html",
+    "url": "https://flipazo.es/blog",
     "description": "Guías, análisis y consejos para comprar mejor."
   }
   </script>
 
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23111111'/><text x='50%' y='74%' font-family='Georgia,serif' font-weight='900' font-size='24' fill='white' text-anchor='middle'>F</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23F52834'/><text x='50%' y='74%' font-family='Georgia,serif' font-weight='900' font-size='22' fill='white' text-anchor='middle'>F</text></svg>">
+
+  <!-- Anti-FOUC -->
+  <script>
+    (function(){
+      var t = localStorage.getItem('flipazo_theme') || 'light';
+      if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
   <!-- marked.js for Markdown rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-  <!-- Google Fonts — same as index.html -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
-
   <style>
-    /* ── Reset ── */
+    /* ── Reset ──────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── Variables (aligned with index.html palette) ── */
+    /* ── Variables — light mode (matches index.html exactly) ─────── */
     :root {
-      --ink:          #111111;
-      --ink-2:        #444444;
-      --ink-3:        #777777;
-      --paper:        #f4f2ef;
-      --surface:      #ffffff;
-      --border:       #d8d3c8;
-      --border-soft:  #cccccc;
-      --accent:       #c0392b;
-      --accent-dk:    #922b21;
-      --font-serif:   'Playfair Display', Georgia, 'Times New Roman', serif;
-      --font-mono:    'Courier Prime', 'Courier New', Courier, monospace;
-      --font-sans:    'Helvetica Neue', Arial, sans-serif;
-      --max-w:        860px;
-      --r:            4px;
+      --brand:          #F52834;
+      --brand-hover:    #D41F2A;
+      --navy:           #2C3E50;
+      --teal:           #14C1AE;
+      --teal-light:     #E6F9F7;
+      --slate:          #B5CCD7;
+      --ink:            #111827;
+      --ink-light:      #4B5563;
+      --rule:           #E5E7EB;
+      --bg:             #FEFEF8;
+      --accent:         #F52834;
+      --sans:           'Nunito', system-ui, sans-serif;
+      --serif:          'Playfair Display', Georgia, serif;
+      --surface:        #F3F4F6;
+      --surface-hover:  #F9FAFB;
+      --card-bg:        #FFFFFF;
+      --border:         #E5E7EB;
+      --border-soft:    #D1D5DB;
+      --border-faint:   #F3F4F6;
+      --text-body:      #374151;
+      --text-mid:       #6B7280;
+      --text-dim:       #9CA3AF;
+      --text-faint:     #D1D5DB;
+      --paper:          #FFFFFF;
+      --card-radius:    16px;
+      --card-shadow:    0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+      --card-shadow-hover: 0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.05);
     }
 
-    /* ── Dark mode ── */
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --ink:         #e2e2e2;
-        --ink-2:       #aaaaaa;
-        --ink-3:       #888888;
-        --paper:       #1a1918;
-        --surface:     #232120;
-        --border:      #363230;
-        --border-soft: #3d3a38;
-        --accent:      #e74c3c;
-        --accent-dk:   #c0392b;
-      }
+    /* ── Dark mode ───────────────────────────────────────────────── */
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --ink:          #F9FAFB;
+      --ink-light:    #D1D5DB;
+      --rule:         #374151;
+      --bg:           #111827;
+      --surface:      #1F2937;
+      --surface-hover:#1a2332;
+      --card-bg:      #1F2937;
+      --border:       #374151;
+      --border-soft:  #4B5563;
+      --border-faint: #1F2937;
+      --text-body:    #D1D5DB;
+      --text-mid:     #9CA3AF;
+      --text-dim:     #6B7280;
+      --text-faint:   #4B5563;
+      --paper:        #1F2937;
     }
+    [data-theme="dark"] .site-header { background: #111827; border-color: #1F2937; }
 
-    /* ── Base ── */
+    /* ── Base ────────────────────────────────────────────────────── */
+    html { scroll-behavior: smooth; }
     body {
-      font-family: var(--font-sans);
-      background: var(--paper);
+      background: var(--bg);
       color: var(--ink);
-      line-height: 1.6;
+      font-family: var(--sans);
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
     }
-
     a { color: inherit; text-decoration: none; }
 
-    /* ── Top accent bar (identidad index.html) ── */
-    body::before {
-      content: '';
-      display: block;
-      height: 4px;
-      background: var(--accent);
+    /* ── Site header (matches index.html) ────────────────────────── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
-
-    /* ── Masthead (matches index.html visual identity) ── */
-    .masthead {
-      border-bottom: 3px double var(--border);
-      padding: 22px 32px 16px;
-      text-align: center;
-      background: var(--surface);
-    }
-
-    .masthead__eyebrow {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--ink-2);
-      margin-bottom: 8px;
-    }
-
-    .masthead__brand {
-      font-family: var(--font-serif);
-      font-size: clamp(42px, 8vw, 72px);
-      font-weight: 900;
-      letter-spacing: -0.03em;
-      color: var(--ink);
-      text-decoration: none;
-      display: inline-block;
-      line-height: 1;
-    }
-    .masthead__brand span { color: var(--accent); }
-    @media (prefers-color-scheme: dark) {
-      .masthead { background: #1e1c1b; border-color: #3a3634; }
-    }
-
-    .masthead__rule {
-      border: none;
-      border-top: 1.5px solid var(--border);
-      margin: 14px 0 10px;
-    }
-
-    .masthead__nav {
+    .site-header__inner {
       display: flex;
-      justify-content: center;
       align-items: center;
-      gap: 28px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--ink-2);
-    }
-    .masthead__nav a { color: var(--ink-2); transition: color 0.15s; }
-    .masthead__nav a:hover { color: var(--accent); }
-    .masthead__nav a.active {
-      color: var(--accent);
-      font-weight: 700;
-      border-bottom: 2px solid var(--accent);
-      padding-bottom: 2px;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 64px;
+      gap: 24px;
     }
 
-    /* ── Layout ── */
+    /* ── Logo ────────────────────────────────────────────────────── */
+    .site-logo {
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .site-logo__img { display: block; height: 49px; width: auto; mix-blend-mode: multiply; }
+    [data-theme="dark"] .site-logo__img { mix-blend-mode: screen; }
+
+    /* ── Header nav ──────────────────────────────────────────────── */
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+    .header-nav__link {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-mid);
+      letter-spacing: 0.01em;
+      transition: color 0.15s;
+    }
+    .header-nav__link:hover { color: var(--ink); }
+    .header-nav__link--active { color: var(--brand); }
+
+    .theme-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      color: var(--text-mid);
+      padding: 6px;
+      border-radius: 8px;
+      line-height: 1;
+      transition: color 0.15s, background 0.15s;
+      user-select: none;
+    }
+    .theme-toggle:hover { color: var(--ink); background: var(--surface); }
+
+    /* ── Blog breadcrumb nav ─────────────────────────────────────── */
+    .blog-subnav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 40px;
+      height: 40px;
+      border-top: 1px solid var(--border-faint);
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-mid);
+      background: var(--bg);
+    }
+    .blog-subnav a { color: var(--text-mid); transition: color 0.15s; }
+    .blog-subnav a:hover { color: var(--ink); }
+    .blog-subnav__sep { color: var(--text-faint); font-size: 10px; }
+    .blog-subnav__current { color: var(--brand); }
+
+    /* ── Layout ──────────────────────────────────────────────────── */
     .container {
-      max-width: var(--max-w);
+      max-width: 860px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 0 40px;
     }
 
-    /* ── Blog list view ── */
-    #view-list { padding: 44px 0 60px; }
+    /* ── Blog list view ──────────────────────────────────────────── */
+    #view-list { padding: 44px 0 80px; }
 
     .blog-header {
-      border-bottom: 2px solid var(--ink);
-      padding-bottom: 14px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 16px;
       margin-bottom: 36px;
     }
     .blog-header__label {
-      font-family: var(--font-mono);
+      font-family: var(--sans);
       font-size: 10px;
-      letter-spacing: 0.18em;
+      font-weight: 800;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: var(--ink-3);
+      color: var(--text-faint);
       margin-bottom: 8px;
     }
     .blog-header h1 {
-      font-family: var(--font-serif);
-      font-size: clamp(24px, 4vw, 36px);
+      font-family: var(--serif);
+      font-size: clamp(24px, 4vw, 38px);
       font-weight: 900;
-      letter-spacing: -0.5px;
-      line-height: 1.1;
+      line-height: 1.15;
+      color: var(--ink);
     }
     .blog-header__desc {
-      color: var(--ink-3);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      letter-spacing: 0.04em;
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--text-mid);
       margin-top: 8px;
+      line-height: 1.6;
     }
 
-    /* ── Post cards grid ── */
-    .posts-grid {
-      display: grid;
-      gap: 0;
-    }
+    /* ── Post cards ──────────────────────────────────────────────── */
+    .posts-grid { display: flex; flex-direction: column; gap: 0; }
 
     .post-card {
       display: grid;
       grid-template-columns: 1fr;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--border-faint);
       padding: 28px 0;
       cursor: pointer;
       gap: 14px;
       transition: background 0.15s;
     }
-    .post-card:first-child { border-top: 1px solid var(--border); }
-    .post-card:hover { background: var(--surface); margin: 0 -24px; padding-left: 24px; padding-right: 24px; }
+    .post-card:first-child { border-top: 1px solid var(--border-faint); }
+    .post-card:hover { background: var(--surface-hover); margin: 0 -24px; padding-left: 24px; padding-right: 24px; }
 
     @media (min-width: 600px) {
-      .post-card {
-        grid-template-columns: 200px 1fr;
-        align-items: start;
-        gap: 22px;
-      }
-      .post-card--no-img {
-        grid-template-columns: 1fr;
-      }
+      .post-card { grid-template-columns: 200px 1fr; align-items: start; gap: 24px; }
+      .post-card--no-img { grid-template-columns: 1fr; }
     }
 
     .post-card__img {
       width: 100%;
       aspect-ratio: 16 / 9;
       object-fit: cover;
-      border-radius: var(--r);
+      border-radius: 10px;
       background: var(--border);
       display: block;
     }
     .post-card__body { display: flex; flex-direction: column; gap: 8px; }
     .post-card__meta {
-      font-family: var(--font-mono);
+      font-family: var(--sans);
       font-size: 10px;
-      letter-spacing: 0.14em;
+      font-weight: 700;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--ink-3);
+      color: var(--text-faint);
     }
     .post-card__title {
-      font-family: var(--font-serif);
+      font-family: var(--serif);
       font-size: clamp(18px, 3vw, 24px);
       font-weight: 700;
       line-height: 1.25;
       color: var(--ink);
     }
-    .post-card:hover .post-card__title { color: var(--accent); }
+    .post-card:hover .post-card__title { color: var(--brand); }
     .post-card__excerpt {
+      font-family: var(--sans);
       font-size: 14px;
-      color: var(--ink-2);
+      color: var(--text-mid);
       line-height: 1.6;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
-    .post-card__tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      margin-top: 2px;
-    }
+    .post-card__tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
     .post-card__tag {
-      font-family: var(--font-mono);
+      font-family: var(--sans);
       font-size: 9px;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      padding: 2px 7px;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      color: var(--ink-3);
+      padding: 3px 9px;
+      border: 1.5px solid var(--border-soft);
+      border-radius: 9999px;
+      color: var(--text-mid);
     }
     .post-card__readmore {
-      font-family: var(--font-mono);
+      font-family: var(--sans);
       font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
+      font-weight: 800;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--accent);
-      margin-top: auto;
+      color: var(--brand);
+      margin-top: 4px;
     }
 
     .empty-blog {
       text-align: center;
       padding: 80px 20px;
-      color: var(--ink-3);
-      font-family: var(--font-serif);
+      font-family: var(--serif);
       font-style: italic;
       font-size: 20px;
+      color: var(--text-dim);
     }
 
-    /* ── Single post view ── */
-    #view-post { display: none; padding: 40px 0 72px; }
+    /* ── Spinner ─────────────────────────────────────────────────── */
+    .spinner {
+      text-align: center;
+      padding: 72px 20px;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    /* ── Single post view ────────────────────────────────────────── */
+    #view-post { display: none; padding: 40px 0 80px; }
 
     .post-back {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-family: var(--font-mono);
+      font-family: var(--sans);
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--ink-3);
+      color: var(--text-mid);
       cursor: pointer;
       margin-bottom: 32px;
       transition: color 0.15s;
+      background: none;
+      border: none;
+      padding: 0;
     }
-    .post-back:hover { color: var(--accent); }
-    .post-back svg { flex-shrink: 0; }
+    .post-back:hover { color: var(--brand); }
 
     .post-hero-img {
       width: 100%;
       max-height: 420px;
       object-fit: cover;
-      border-radius: var(--r);
+      border-radius: var(--card-radius);
       margin-bottom: 32px;
       display: block;
     }
 
     .post-meta {
-      font-family: var(--font-mono);
-      font-size: 11px;
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 800;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: var(--ink-3);
-      margin-bottom: 14px;
+      color: var(--text-faint);
+      margin-bottom: 12px;
     }
     .post-title {
-      font-family: var(--font-serif);
+      font-family: var(--serif);
       font-size: clamp(28px, 5vw, 46px);
       font-weight: 900;
       line-height: 1.15;
-      letter-spacing: -0.5px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
+      color: var(--ink);
     }
     .post-excerpt {
-      font-size: 18px;
-      color: var(--ink-2);
-      line-height: 1.6;
-      border-left: 3px solid var(--accent);
+      font-family: var(--sans);
+      font-size: 17px;
+      color: var(--text-mid);
+      line-height: 1.65;
+      border-left: 3px solid var(--brand);
       padding-left: 18px;
-      margin-bottom: 20px;
-      font-style: italic;
-      font-family: var(--font-serif);
+      margin-bottom: 24px;
     }
 
-    /* ── Tags on post page ── */
-    .post-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 28px;
-    }
+    /* ── Tags ────────────────────────────────────────────────────── */
+    .post-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 28px; }
     .post-tag {
-      font-size: 10px;
-      font-weight: 700;
+      font-family: var(--sans);
+      font-size: 9px;
+      font-weight: 800;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      padding: 3px 8px;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      color: var(--ink-3);
-      font-family: 'Courier New', monospace;
+      padding: 4px 10px;
+      border: 1.5px solid var(--border-soft);
+      border-radius: 9999px;
+      color: var(--text-mid);
       transition: border-color 0.15s, color 0.15s;
+      cursor: default;
     }
-    .post-tag:hover { border-color: var(--accent); color: var(--accent); }
+    .post-tag:hover { border-color: var(--brand); color: var(--brand); }
 
     .post-divider {
       border: none;
-      border-top: 2px solid var(--ink);
+      border-top: 2px solid var(--border);
       margin: 0 0 36px;
     }
 
-    /* ── Markdown content ── */
+    /* ── Markdown content ────────────────────────────────────────── */
     .post-content {
+      font-family: var(--sans);
       font-size: 17px;
       line-height: 1.8;
-      color: var(--ink);
+      color: var(--text-body);
     }
     .post-content h1,
     .post-content h2,
     .post-content h3,
     .post-content h4 {
-      font-family: var(--font-serif);
+      font-family: var(--serif);
       margin: 2em 0 0.6em;
       line-height: 1.25;
       color: var(--ink);
     }
     .post-content h2 {
       font-size: 1.5em;
-      border-bottom: 1.5px solid var(--border);
+      border-bottom: 1px solid var(--border-faint);
       padding-bottom: 6px;
     }
     .post-content h3 { font-size: 1.2em; }
-    .post-content h4 { font-size: 1em; font-weight: 700; }
-    .post-content p { margin-bottom: 1.3em; }
+    .post-content p  { margin-bottom: 1.3em; }
     .post-content ul,
     .post-content ol { margin: 0 0 1.3em 1.8em; }
     .post-content li { margin-bottom: 0.45em; }
-    .post-content strong { font-weight: 700; }
+    .post-content strong { font-weight: 800; }
     .post-content em { font-style: italic; }
-    .post-content a { color: var(--accent); text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.15s; }
-    .post-content a:hover { text-decoration-color: var(--accent); }
+    .post-content a { color: var(--brand); text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.15s; }
+    .post-content a:hover { text-decoration-color: var(--brand); }
     .post-content blockquote {
-      border-left: 3px solid var(--accent);
+      border-left: 3px solid var(--teal);
       padding-left: 18px;
       margin: 1.8em 0;
-      color: var(--ink-2);
+      color: var(--text-mid);
       font-style: italic;
-      font-family: var(--font-serif);
     }
     .post-content code {
-      background: var(--border);
+      background: var(--surface);
+      border: 1px solid var(--border);
       padding: 2px 6px;
-      border-radius: 3px;
+      border-radius: 5px;
       font-size: 0.88em;
-      font-family: var(--font-mono);
+      font-family: 'Courier New', monospace;
     }
     .post-content pre {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--r);
+      border-radius: var(--card-radius);
       padding: 18px;
       overflow-x: auto;
       margin-bottom: 1.3em;
     }
-    .post-content pre code { background: none; padding: 0; }
-    .post-content img { max-width: 100%; border-radius: var(--r); margin: 1.2em 0; display: block; }
+    .post-content pre code { background: none; border: none; padding: 0; }
+    .post-content img { max-width: 100%; border-radius: 10px; margin: 1.2em 0; display: block; }
     .post-content table { width: 100%; border-collapse: collapse; margin-bottom: 1.3em; font-size: 15px; }
     .post-content th,
     .post-content td { border: 1px solid var(--border); padding: 9px 14px; text-align: left; }
-    .post-content th { background: var(--surface); font-weight: 700; font-family: var(--font-serif); }
+    .post-content th { background: var(--surface); font-weight: 800; font-family: var(--sans); }
     .post-content hr { border: none; border-top: 1px solid var(--border); margin: 2.2em 0; }
 
-    /* ── Spinner ── */
-    .spinner {
-      text-align: center;
-      padding: 72px 20px;
-      color: var(--ink-3);
-      font-family: var(--font-mono);
-      font-size: 13px;
-      letter-spacing: 0.06em;
-    }
-
-    /* ── Footer (matches index.html) ── */
-    footer {
+    /* ── Footer ──────────────────────────────────────────────────── */
+    .footer {
       border-top: 1px solid var(--border);
-      padding: 28px 24px;
-      text-align: center;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      color: var(--ink-3);
+      padding: 28px 40px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--bg);
     }
-    footer a { color: var(--ink-3); transition: color 0.15s; }
-    footer a:hover { color: var(--accent); }
-    footer .sep { margin: 0 8px; opacity: 0.5; }
+    .footer__grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 44px;
+      padding-bottom: 36px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .footer__col-title {
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 12px;
+    }
+    .footer__brand { font-size: 22px; font-weight: 900; color: var(--brand); font-family: var(--sans); }
+    .footer__tagline { font-family: var(--sans); font-size: 13px; color: var(--text-body); line-height: 1.75; margin-top: 8px; }
+    .footer__principles { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .footer__principles li { font-family: var(--sans); font-size: 12px; color: var(--text-body); line-height: 1.6; padding-left: 18px; position: relative; }
+    .footer__principles li::before { content: "✓"; position: absolute; left: 0; color: var(--teal); font-weight: 900; font-size: 11px; }
+    .footer__urgency-text { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--text-body); line-height: 1.7; margin-bottom: 14px; }
+    .footer__cta-text { font-family: var(--serif); font-weight: 900; font-size: 17px; color: var(--brand); line-height: 1.3; margin-bottom: 14px; }
+    .footer__cta-btn { display: inline-block; font-family: var(--sans); font-size: 13px; font-weight: 700; color: #fff; background: var(--brand); padding: 9px 20px; border-radius: 9999px; transition: background 0.15s; }
+    .footer__cta-btn:hover { background: var(--brand-hover); }
+    .footer__bottom { display: flex; flex-direction: column; gap: 6px; }
+    .footer__top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .footer__links { display: flex; gap: 20px; flex-wrap: wrap; }
+    .footer__links a { font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--text-mid); transition: color 0.15s; }
+    .footer__links a:hover { color: var(--brand); }
+    .footer__copy { font-family: var(--sans); font-size: 11px; color: var(--text-faint); line-height: 1.8; }
+    .footer__affiliate { font-family: var(--sans); font-size: 11px; color: var(--text-dim); line-height: 1.7; max-width: 680px; }
 
-    /* ── Responsive tweaks ── */
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .footer__grid { grid-template-columns: 1fr; gap: 28px; }
+    }
+    @media (max-width: 768px) {
+      .site-header__inner { padding: 0 18px; }
+      .blog-subnav { padding: 0 18px; }
+      .container { padding: 0 18px; }
+      .footer { padding: 24px 18px 60px; }
+      .post-card:hover { margin: 0 -18px; padding-left: 18px; padding-right: 18px; }
+    }
     @media (max-width: 480px) {
-      .masthead { padding: 18px 20px 14px; }
       .container { padding: 0 16px; }
       .post-card:hover { margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
     }
@@ -473,18 +543,38 @@
 </head>
 <body>
 
-  <!-- Masthead -->
-  <header class="masthead">
-    <p class="masthead__eyebrow">Las mejores ofertas de España</p>
-    <a href="/" class="masthead__brand">Flip<span>azo</span></a>
-    <hr class="masthead__rule" />
-    <nav class="masthead__nav" aria-label="Navegación principal">
-      <a href="/">Ofertas</a>
-      <a href="/blog.html" class="active" aria-current="page">Blog</a>
+  <!-- ── SITE HEADER ────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="site-header__inner">
+
+      <!-- Logo -->
+      <a href="/" class="site-logo" title="Volver al inicio" aria-label="Flipazo — inicio">
+        <img src="/flipazo-logo.png" alt="Flipazo" height="49" class="site-logo__img"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
+        <svg viewBox="0 0 218 52" xmlns="http://www.w3.org/2000/svg" height="38" aria-hidden="true" style="display:none">
+          <text x="2" y="43" font-family="'Nunito', sans-serif" font-size="50" font-weight="900" fill="#F52834" letter-spacing="-0.5">Flipazo</text>
+        </svg>
+      </a>
+
+      <!-- Nav -->
+      <nav class="header-nav" aria-label="Navegación principal">
+        <a href="/" class="header-nav__link">Ofertas</a>
+        <a href="/blog" class="header-nav__link header-nav__link--active" aria-current="page">Blog</a>
+        <a href="/cuenta" class="header-nav__link">Mi&nbsp;Cuenta</a>
+        <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema" title="Cambiar tema">☾</button>
+      </nav>
+
+    </div>
+
+    <!-- Blog breadcrumb bar -->
+    <nav class="blog-subnav" id="js-blog-subnav" aria-label="Ubicación">
+      <a href="/">Inicio</a>
+      <span class="blog-subnav__sep">›</span>
+      <span class="blog-subnav__current" id="js-subnav-current">Blog</span>
     </nav>
   </header>
 
-  <!-- Vista: lista de posts -->
+  <!-- ── BLOG LIST VIEW ─────────────────────────────────────────── -->
   <main id="view-list">
     <div class="container">
       <div class="blog-header">
@@ -498,7 +588,7 @@
     </div>
   </main>
 
-  <!-- Vista: post individual -->
+  <!-- ── SINGLE POST VIEW ───────────────────────────────────────── -->
   <article id="view-post" aria-live="polite">
     <div class="container">
 
@@ -515,23 +605,51 @@
       <h1 class="post-title" id="js-post-title"></h1>
       <p class="post-excerpt" id="js-post-excerpt"></p>
 
-      <!-- Tags -->
       <div id="js-post-tags" class="post-tags" style="display:none" aria-label="Etiquetas"></div>
-
       <hr class="post-divider" />
       <div class="post-content" id="js-post-content"></div>
 
     </div>
   </article>
 
-  <footer>
-    <a href="/">Flipazo</a>
-    <span class="sep">·</span>
-    <a href="/aviso-legal.html">Aviso legal</a>
-    <span class="sep">·</span>
-    <a href="/privacidad.html">Privacidad</a>
-    <span class="sep">·</span>
-    <a href="/cookies.html">Cookies</a>
+  <!-- ── FOOTER ────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer__grid">
+      <div class="footer__col">
+        <span class="footer__brand">Flipazo</span>
+        <p class="footer__tagline">Flipazo analiza miles de productos cada hora y publica solo los que superan el 40% de descuento. De marcas que ya conoces. Sin relleno. Sin patrocinios.</p>
+      </div>
+      <div class="footer__col">
+        <h4 class="footer__col-title">Cómo funciona</h4>
+        <ul class="footer__principles">
+          <li><strong>Descuentos verificados</strong> — solo si superan el 40% sobre el precio histórico</li>
+          <li><strong>Marcas reconocidas</strong> — sin marcas blancas, sin productos sin historial</li>
+          <li><strong>Modelo transparente</strong> — usamos enlaces de afiliado. Ninguna marca paga para ser publicada.</li>
+        </ul>
+      </div>
+      <div class="footer__col">
+        <h4 class="footer__col-title">Para los que miran dos veces</h4>
+        <p class="footer__urgency-text">Algunas de estas ofertas no son solo un ahorro. Son productos que puedes comprar hoy y vender mañana con margen.</p>
+        <p class="footer__cta-text">Siempre llegas tarde a los chollos. Hasta hoy.</p>
+        <a href="/" class="footer__cta-btn">Ver deals →</a>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <div class="footer__top">
+        <nav class="footer__links" aria-label="Legal">
+          <a href="/privacidad.html">Privacidad</a>
+          <a href="/cookies.html">Cookies</a>
+          <a href="/aviso-legal.html">Aviso Legal</a>
+          <a href="mailto:hola@flipazo.es">Contacto</a>
+          <a href="https://t.me/flipazo" target="_blank" rel="noopener">Telegram</a>
+        </nav>
+      </div>
+      <p class="footer__affiliate">
+        Algunos enlaces son de afiliado: si compras a través de ellos podemos recibir una comisión
+        sin coste adicional para ti. Participamos en Amazon Associates (tag: flipazo-21) y Awin.
+      </p>
+      <p class="footer__copy">© 2025 Flipazo · Barcelona, España · Precios sujetos a cambio sin previo aviso</p>
+    </div>
   </footer>
 
   <script>
@@ -540,23 +658,30 @@
     const API = "https://api.flipazo.es";
     const DEFAULT_OG_IMAGE = "https://flipazo.es/og-default.jpg";
 
+    /* ── Theme ── */
+    function toggleTheme() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const next   = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('flipazo_theme', next);
+      document.getElementById('theme-toggle').textContent = next === 'dark' ? '☀' : '☾';
+    }
+    (function initThemeIcon() {
+      const t = document.documentElement.getAttribute('data-theme') || 'light';
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = t === 'dark' ? '☀' : '☾';
+    })();
+
     /* ── Helpers ── */
     function fmtDate(iso) {
       if (!iso) return "";
-      return new Date(iso).toLocaleDateString("es-ES", {
-        day: "numeric", month: "long", year: "numeric"
-      });
+      return new Date(iso).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
     }
-
     function escHtml(str) {
-      return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
+      return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
     }
 
-    /* ── SEO / meta helpers ── */
+    /* ── SEO helpers ── */
     function updateMeta(post) {
       const title = post.og_title || post.titulo || "";
       const desc  = post.meta_description || post.resumen || "Artículo del blog de Flipazo.";
@@ -575,57 +700,42 @@
       document.getElementById("js-tw-desc").content           = desc;
       document.getElementById("js-tw-image").content          = img;
 
-      // Schema.org JSON-LD — Article / FAQPage / HowTo based on schema_type
-      const schemaType = post.schema_type || "Article";
       const schema = {
         "@context": "https://schema.org",
-        "@type": schemaType,
-        "headline": post.titulo,
-        "description": desc,
-        "datePublished": post.created_at,
-        "dateModified": post.updated_at || post.created_at,
-        "author": {
-          "@type": "Organization",
-          "name": "Flipazo",
-          "url": "https://flipazo.es"
-        },
-        "publisher": {
-          "@type": "Organization",
-          "name": "Flipazo",
-          "url": "https://flipazo.es"
-        },
-        "url": url,
-        "mainEntityOfPage": { "@type": "WebPage", "@id": url }
+        "@type": post.schema_type || "Article",
+        "headline": post.titulo, "description": desc,
+        "datePublished": post.created_at, "dateModified": post.updated_at || post.created_at,
+        "author": { "@type": "Organization", "name": "Flipazo", "url": "https://flipazo.es" },
+        "publisher": { "@type": "Organization", "name": "Flipazo", "url": "https://flipazo.es" },
+        "url": url, "mainEntityOfPage": { "@type": "WebPage", "@id": url }
       };
       if (img && img !== DEFAULT_OG_IMAGE) schema.image = img;
       if (post.tags) schema.keywords = post.tags;
-
       document.getElementById("js-schema-ld").textContent = JSON.stringify(schema, null, 2);
+
+      // Update breadcrumb subnav
+      document.getElementById("js-subnav-current").textContent = post.titulo || "Post";
     }
 
     function resetMeta() {
-      const defaultDesc = "Guías, análisis y consejos para comprar mejor. El blog de Flipazo.";
+      const defaultDesc  = "Guías, análisis y consejos para comprar mejor. El blog de Flipazo.";
       const defaultTitle = "Blog — Flipazo";
-
-      document.getElementById("js-page-title").textContent    = defaultTitle;
-      document.getElementById("js-meta-desc").content         = defaultDesc;
-      document.getElementById("js-canonical").href            = "https://flipazo.es/blog.html";
-      document.getElementById("js-og-type").content           = "website";
-      document.getElementById("js-og-title").content          = defaultTitle;
-      document.getElementById("js-og-desc").content           = defaultDesc;
-      document.getElementById("js-og-image").content          = DEFAULT_OG_IMAGE;
-      document.getElementById("js-og-url").content            = "https://flipazo.es/blog.html";
-      document.getElementById("js-tw-title").content          = defaultTitle;
-      document.getElementById("js-tw-desc").content           = defaultDesc;
-      document.getElementById("js-tw-image").content          = DEFAULT_OG_IMAGE;
-
-      document.getElementById("js-schema-ld").textContent = JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "Blog",
-        "name": "Flipazo Blog",
-        "url": "https://flipazo.es/blog.html",
-        "description": defaultDesc
+      document.getElementById("js-page-title").textContent = defaultTitle;
+      document.getElementById("js-meta-desc").content      = defaultDesc;
+      document.getElementById("js-canonical").href         = "https://flipazo.es/blog";
+      document.getElementById("js-og-type").content        = "website";
+      document.getElementById("js-og-title").content       = defaultTitle;
+      document.getElementById("js-og-desc").content        = defaultDesc;
+      document.getElementById("js-og-image").content       = DEFAULT_OG_IMAGE;
+      document.getElementById("js-og-url").content         = "https://flipazo.es/blog";
+      document.getElementById("js-tw-title").content       = defaultTitle;
+      document.getElementById("js-tw-desc").content        = defaultDesc;
+      document.getElementById("js-tw-image").content       = DEFAULT_OG_IMAGE;
+      document.getElementById("js-schema-ld").textContent  = JSON.stringify({
+        "@context": "https://schema.org", "@type": "Blog",
+        "name": "Flipazo Blog", "url": "https://flipazo.es/blog", "description": defaultDesc
       });
+      document.getElementById("js-subnav-current").textContent = "Blog";
     }
 
     /* ── Views ── */
@@ -633,7 +743,7 @@
       document.getElementById("view-list").style.display = "";
       document.getElementById("view-post").style.display = "none";
       resetMeta();
-      history.pushState({}, "", "/blog.html");
+      history.pushState({}, "", "/blog");
     }
 
     function showPost(post) {
@@ -641,54 +751,31 @@
       const vp = document.getElementById("view-post");
       vp.style.display = "";
 
-      // Hero image
       const img = document.getElementById("js-post-img");
       if (post.imagen_url) {
-        img.src = post.imagen_url;
-        img.alt = post.titulo || "";
-        img.style.display = "block";
+        img.src = post.imagen_url; img.alt = post.titulo || ""; img.style.display = "block";
       } else {
-        img.style.display = "none";
-        img.src = "";
+        img.style.display = "none"; img.src = "";
       }
 
-      // Meta line
-      const metaParts = [fmtDate(post.created_at)];
-      document.getElementById("js-post-meta").textContent = metaParts.join(" · ");
-
-      // Title
+      document.getElementById("js-post-meta").textContent = fmtDate(post.created_at);
       document.getElementById("js-post-title").textContent = post.titulo || "";
 
-      // Excerpt / resumen
       const ex = document.getElementById("js-post-excerpt");
-      if (post.resumen) {
-        ex.textContent = post.resumen;
-        ex.style.display = "";
-      } else {
-        ex.style.display = "none";
-      }
+      if (post.resumen) { ex.textContent = post.resumen; ex.style.display = ""; }
+      else { ex.style.display = "none"; }
 
-      // Tags
       const tagsEl = document.getElementById("js-post-tags");
       if (post.tags) {
-        tagsEl.innerHTML = post.tags.split(",")
-          .map(t => `<span class="post-tag">${escHtml(t.trim())}</span>`)
-          .join("");
+        tagsEl.innerHTML = post.tags.split(",").map(t => `<span class="post-tag">${escHtml(t.trim())}</span>`).join("");
         tagsEl.style.display = "flex";
-      } else {
-        tagsEl.style.display = "none";
-      }
+      } else { tagsEl.style.display = "none"; }
 
-      // Markdown content
       const raw = post.contenido || "";
       document.getElementById("js-post-content").innerHTML =
-        typeof marked !== "undefined"
-          ? marked.parse(raw)
-          : raw.replace(/\n/g, "<br>");
+        typeof marked !== "undefined" ? marked.parse(raw) : raw.replace(/\n/g, "<br>");
 
-      // SEO / meta
       updateMeta(post);
-
       history.pushState({ slug: post.slug }, "", `/blog/${post.slug}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -701,22 +788,15 @@
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           return r.json();
         });
-
         if (!data.posts || !data.posts.length) {
           grid.innerHTML = `<div class="empty-blog">Próximamente — el blog está en construcción.</div>`;
           return;
         }
-
         grid.innerHTML = data.posts.map(p => {
-          const tagsHtml = p.tags
-            ? p.tags.split(",").map(t => `<span class="post-card__tag">${escHtml(t.trim())}</span>`).join("")
-            : "";
-
+          const tagsHtml = p.tags ? p.tags.split(",").map(t => `<span class="post-card__tag">${escHtml(t.trim())}</span>`).join("") : "";
           return `
           <div class="post-card${p.imagen_url ? "" : " post-card--no-img"}" data-slug="${escHtml(p.slug)}" role="listitem" tabindex="0" aria-label="${escHtml(p.titulo)}">
-            ${p.imagen_url
-              ? `<img class="post-card__img" src="${escHtml(p.imagen_url)}" alt="${escHtml(p.titulo)}" loading="lazy" onerror="this.style.display='none'" />`
-              : ""}
+            ${p.imagen_url ? `<img class="post-card__img" src="${escHtml(p.imagen_url)}" alt="${escHtml(p.titulo)}" loading="lazy" onerror="this.style.display='none'" />` : ""}
             <div class="post-card__body">
               <p class="post-card__meta">${fmtDate(p.created_at)}</p>
               <h2 class="post-card__title">${escHtml(p.titulo)}</h2>
@@ -730,11 +810,8 @@
         grid.querySelectorAll(".post-card").forEach(card => {
           const handler = () => loadPost(card.dataset.slug);
           card.addEventListener("click", handler);
-          card.addEventListener("keydown", e => {
-            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handler(); }
-          });
+          card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handler(); } });
         });
-
       } catch (e) {
         grid.innerHTML = `<div class="empty-blog">Error al cargar el blog. Inténtalo de nuevo.</div>`;
         console.error("[blog] loadList error:", e);
@@ -750,41 +827,29 @@
         showPost(post);
       } catch (e) {
         console.error("[blog] loadPost error:", e);
-        // Fall back to list view on error
-        showList();
-        loadList();
+        showList(); loadList();
       }
     }
 
-    /* ── Event listeners ── */
+    /* ── Events ── */
     document.getElementById("js-back").addEventListener("click", () => {
       showList();
-      if (!document.getElementById("js-posts-grid").querySelector(".post-card")) {
-        loadList();
-      }
+      if (!document.getElementById("js-posts-grid").querySelector(".post-card")) loadList();
     });
 
     window.addEventListener("popstate", e => {
       const path = location.pathname;
       const slugMatch = path.match(/^\/blog\/(.+)/);
-      if (slugMatch) {
-        loadPost(slugMatch[1]);
-      } else {
-        showList();
-      }
+      if (slugMatch) loadPost(slugMatch[1]);
+      else showList();
     });
 
-    /* ── Init: route on page load ── */
+    /* ── Init ── */
     (async () => {
       const path = location.pathname;
       const slugMatch = path.match(/^\/blog\/(.+)/);
-      if (slugMatch) {
-        // Show a minimal list in background so back button works immediately
-        loadList();
-        await loadPost(slugMatch[1]);
-      } else {
-        await loadList();
-      }
+      if (slugMatch) { loadList(); await loadPost(slugMatch[1]); }
+      else await loadList();
     })();
   </script>
 

@@ -469,10 +469,12 @@
       overflow: hidden;
       max-height: 300px;
       transition: max-height 0.3s ease, opacity 0.3s;
+      border-top: 1px solid var(--border-faint);
     }
     .filter-block--collapsed {
       max-height: 0 !important;
       opacity: 0;
+      border-top-color: transparent;
     }
 
     .filter-row {
@@ -669,9 +671,12 @@
     }
     .hero__original {
       font-family: var(--sans);
-      font-size: 16px;
-      color: var(--text-dim);
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text-mid);
       text-decoration: line-through;
+      text-decoration-color: var(--brand);
+      text-decoration-thickness: 2px;
     }
     .hero__pct {
       font-family: var(--sans);
@@ -958,8 +963,11 @@
       color: #0581FC; line-height: 1;
     }
     .deal__original {
-      font-family: var(--sans); font-size: 13px;
-      color: var(--text-dim); text-decoration: line-through;
+      font-family: var(--sans); font-size: 16px; font-weight: 500;
+      color: var(--text-mid);
+      text-decoration: line-through;
+      text-decoration-color: var(--brand);
+      text-decoration-thickness: 1.5px;
     }
     .deal__pct {
       font-family: var(--sans); font-size: 12px; font-weight: 800;
@@ -1416,6 +1424,10 @@
     @media (max-width: 1100px) {
       :root { --grid-cols: 3; }
     }
+    @media (max-width: 900px) {
+      .footer__grid { grid-template-columns: 1fr; gap: 28px; }
+      .about { grid-template-columns: 1fr 1fr; gap: 32px; }
+    }
     @media (max-width: 768px) {
       :root { --grid-cols: 2; --grid-gap: 12px; }
       .site-header__inner { padding: 0 18px; }
@@ -1438,6 +1450,10 @@
       .landing-strip__title { font-size: 30px; }
       .landing-strip__sub { font-size: 14px; }
       .footer__grid { grid-template-columns: 1fr; gap: 28px; }
+      /* List view (non-mosaic) on mobile: 1 column for readability */
+      .deals-grid:not(.deals-grid--mosaic) {
+        grid-template-columns: 1fr !important;
+      }
     }
     @media (max-width: 480px) {
       :root { --grid-cols: 1; }
@@ -1620,7 +1636,7 @@
 
       <!-- Nav -->
       <nav class="header-nav" aria-label="Navegación principal">
-        <a href="/blog.html" class="header-nav__link">Blog</a>
+        <a href="/blog" class="header-nav__link">Blog</a>
         <a href="/cuenta" id="js-cuenta-link" class="header-nav__link">Mi&nbsp;Cuenta</a>
         <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema" title="Cambiar tema">☾</button>
       </nav>
@@ -1644,9 +1660,8 @@
       <button class="sort-tab" data-sort="reventa">Para Revender</button>
       <button class="sort-tab" data-sort="low_cost">Deals Low Cost</button>
     </nav>
-  </header>
 
-  <!-- ── FILTER BLOCK ───────────────────────────────────────────── -->
+  <!-- ── FILTER BLOCK (inside sticky header) ───────────────────── -->
   <div class="filter-block" id="js-filter-block">
     <div class="filter-row" id="js-cat-row">
       <span class="filter-row__label">Categoría</span>
@@ -1661,6 +1676,7 @@
       </div>
     </div>
   </div>
+  </header>
 
   <!-- ── LANDING HERO ──────────────────────────────────────────── -->
   <section class="landing-strip" id="js-landing-strip" aria-label="Sobre Flipazo">
@@ -2262,8 +2278,8 @@
         <p class="deal__store">${d.tienda || ""}</p>
         <h2 class="deal__title">${d.titulo || ""}</h2>
         <div class="deal__pricing">
-          <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
           ${d.precio_original > 0 ? `<span class="deal__original">${fmtPrice(d.precio_original)}</span>` : ""}
+          <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
           ${d.descuento_pct > 0 && !isExpired ? `<span class="deal__pct">−${d.descuento_pct}%</span>` : ""}
         </div>
         ${ahorroHtml}
