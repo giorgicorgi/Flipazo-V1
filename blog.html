@@ -252,6 +252,8 @@
       cursor: pointer;
       gap: 14px;
       transition: background 0.15s;
+      text-decoration: none;
+      color: inherit;
     }
     .post-card:first-child { border-top: 1px solid var(--border-faint); }
     .post-card:hover { background: var(--surface-hover); margin: 0 -24px; padding-left: 24px; padding-right: 24px; }
@@ -784,50 +786,37 @@
     async function loadList() {
       const grid = document.getElementById("js-posts-grid");
       try {
-        const data = await fetch(`${API}/blog?limit=50`).then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        });
-        if (!data.posts || !data.posts.length) {
+        let posts = [];
+        try {
+          posts = await fetch('/posts.json').then(r => r.json());
+        } catch(e) {
+          const data = await fetch(`${API}/blog?limit=50`).then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+          });
+          posts = data.posts || [];
+        }
+        if (!posts || !posts.length) {
           grid.innerHTML = `<div class="empty-blog">Próximamente — el blog está en construcción.</div>`;
           return;
         }
-        grid.innerHTML = data.posts.map(p => {
+        grid.innerHTML = posts.map(p => {
           const tagsHtml = p.tags ? p.tags.split(",").map(t => `<span class="post-card__tag">${escHtml(t.trim())}</span>`).join("") : "";
           return `
-          <div class="post-card${p.imagen_url ? "" : " post-card--no-img"}" data-slug="${escHtml(p.slug)}" role="listitem" tabindex="0" aria-label="${escHtml(p.titulo)}">
+          <a class="post-card${p.imagen_url ? "" : " post-card--no-img"}" href="/blog/${escHtml(p.slug)}" role="listitem" aria-label="${escHtml(p.titulo)}">
             ${p.imagen_url ? `<img class="post-card__img" src="${escHtml(p.imagen_url)}" alt="${escHtml(p.titulo)}" loading="lazy" onerror="this.style.display='none'" />` : ""}
             <div class="post-card__body">
-              <p class="post-card__meta">${fmtDate(p.created_at)}</p>
+              <p class="post-card__meta">${fmtDate(p.created_at || p.fecha)}</p>
               <h2 class="post-card__title">${escHtml(p.titulo)}</h2>
-              ${p.resumen ? `<p class="post-card__excerpt">${escHtml(p.resumen)}</p>` : ""}
+              ${p.resumen || p.descripcion ? `<p class="post-card__excerpt">${escHtml(p.resumen || p.descripcion)}</p>` : ""}
               ${tagsHtml ? `<div class="post-card__tags">${tagsHtml}</div>` : ""}
               <span class="post-card__readmore">Leer artículo →</span>
             </div>
-          </div>`;
+          </a>`;
         }).join("");
-
-        grid.querySelectorAll(".post-card").forEach(card => {
-          const handler = () => loadPost(card.dataset.slug);
-          card.addEventListener("click", handler);
-          card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handler(); } });
-        });
       } catch (e) {
         grid.innerHTML = `<div class="empty-blog">Error al cargar el blog. Inténtalo de nuevo.</div>`;
         console.error("[blog] loadList error:", e);
-      }
-    }
-
-    async function loadPost(slug) {
-      try {
-        const post = await fetch(`${API}/blog/${encodeURIComponent(slug)}`).then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        });
-        showPost(post);
-      } catch (e) {
-        console.error("[blog] loadPost error:", e);
-        showList(); loadList();
       }
     }
 
@@ -837,18 +826,12 @@
       if (!document.getElementById("js-posts-grid").querySelector(".post-card")) loadList();
     });
 
-    window.addEventListener("popstate", e => {
-      const path = location.pathname;
-      const slugMatch = path.match(/^\/blog\/(.+)/);
-      if (slugMatch) loadPost(slugMatch[1]);
-      else showList();
-    });
+    window.addEventListener("popstate", () => showList());
 
     /* ── Init ── */
     (async () => {
       const path = location.pathname;
-      const slugMatch = path.match(/^\/blog\/(.+)/);
-      if (slugMatch) { loadList(); await loadPost(slugMatch[1]); }
+      if (path.startsWith('/blog/')) { /* static page — served directly by Vercel */ }
       else await loadList();
     })();
   </script>
