@@ -2302,7 +2302,8 @@
   }
 
   // ── Hero ──────────────────────────────────────────────────────
-  let heroMode = false;
+  let heroMode  = false;
+  let _heroId   = null;
 
   function cleanHeroTitle(raw) {
     if (!raw) return raw;
@@ -2402,11 +2403,13 @@
   function updateHero() {
     const hero = document.getElementById("js-hero");
     if (!shouldShowHero() || allDeals.length === 0) {
-      hero.style.display = "none"; heroMode = false; return;
+      hero.style.display = "none"; heroMode = false; _heroId = null; return;
     }
     heroMode = true;
-    const dealOfDay = getDealOfDay(allDeals);
-    if (!dealOfDay) { hero.style.display = "none"; heroMode = false; return; }
+    const eligible = allDeals.filter(d => (d.precio_actual || 0) >= 25);
+    const dealOfDay = getDealOfDay(eligible.length ? eligible : allDeals);
+    if (!dealOfDay) { hero.style.display = "none"; heroMode = false; _heroId = null; return; }
+    _heroId = dealOfDay.id;
     document.getElementById("js-hero-main").innerHTML = buildHeroMain(dealOfDay);
     hero.style.display = "";
   }
@@ -2669,7 +2672,7 @@
     const grid     = document.getElementById("js-grid");
     const matching = allDeals.filter(d => dealMatchesFilters(d));
     const sorted   = sortDeals(matching);
-    const gridDeals = (heroMode && activeCategory === "todas" && !activeStore) ? sorted.slice(3) : sorted;
+    const gridDeals = (heroMode && activeCategory === "todas" && !activeStore) ? sorted.filter(d => d.id !== _heroId) : sorted;
     if (gridDeals.length === 0 && !hasMore) {
       grid.innerHTML = `<div class="empty">Sin ofertas en esta categoría</div>`;
     } else {
@@ -2709,7 +2712,7 @@
 
       const sorted    = sortDeals(newDeals.filter(d => dealMatchesFilters(d)));
       const gridDeals = (currentOffset <= PAGE_SIZE && heroMode && activeCategory === "todas" && !activeStore)
-        ? sortDeals(allDeals.filter(d => dealMatchesFilters(d))).slice(3)
+        ? sortDeals(allDeals.filter(d => dealMatchesFilters(d))).filter(d => d.id !== _heroId)
         : sorted;
 
       if (currentOffset <= PAGE_SIZE) {
