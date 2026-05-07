@@ -4,7 +4,7 @@ scrapers/tradedoubler_feed.py — Feeds de producto Tradedoubler.
 Tiendas activas:
   MediaMarkt ES  fid=24915  strike_price = MSRP/precio ref. regulado
   PCBox ES       fid=50247  PreviousPrice = precio ref. regulado (monitores, cajas, componentes)
-  Esdemarca ES   fid=116972 PreviousPRICE = precio ref. — solo marcas premium, descuento ≥50%
+  Esdemarca ES   fid=116972 PreviousPRICE = precio ref. — solo marcas premium, descuento ≥60%
   Toni Pons ES   fid=118025 PreviousPRICE = precio ref. — alpargatas/calzado mujer, descuento ≥40%
 
 Tiendas desactivadas:
