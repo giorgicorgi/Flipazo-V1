@@ -49,7 +49,7 @@ DESCUENTO_OFERTA_MINIMO = 40    # % mínimo para ofertas puras
 
 # ── Low Cost (productos < PRECIO_MINIMO) ──────────────────────────
 PRECIO_MINIMO_LC    = 8.0   # € mínimo para aceptar items low cost
-DESCUENTO_LC_MINIMO = 50    # % mínimo para items low cost (umbral más exigente)
+DESCUENTO_LC_MINIMO = 40    # % mínimo para items low cost (igual que descuento estándar)
 
 # ── Pipeline ─────────────────────────────────────────────────────
 BATCH_SIZE_CLAUDE       = 15    # Productos por llamada a la API
@@ -112,6 +112,17 @@ AMAZON_SEARCH_URLS = [
     # Altavoces Bluetooth portátiles — Sony SRS, JBL Charge/Flip, Bose SoundLink, Marshall, Anker Soundcore
     # Keyword corto (tipo producto + marcas) para evitar que Amazon lo trate como AND estricto
     "https://www.amazon.es/s?i=electronics&k=altavoz+bluetooth+sony+jbl+bose+marshall+anker&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # ── Low Cost (8–24€, ≥40% off, sin restricción de marca) ──────
+    # Electrónica pequeña — auriculares, altavoces mini, gadgets, cables de calidad
+    "https://www.amazon.es/s?i=electronics&rh=p_n_pct-off-with-tax%3A2388626011%2Cp_36%3A800-2499&s=review-rank",
+    # Juguetes baratos — puzzles, juegos de mesa, sets pequeños
+    "https://www.amazon.es/s?i=toys-and-games&rh=p_n_pct-off-with-tax%3A2388626011%2Cp_36%3A800-2499&s=review-rank",
+    # Deporte y fitness — accesorios, bandas de resistencia, botellas, pequeño material
+    "https://www.amazon.es/s?i=sports&rh=p_n_pct-off-with-tax%3A2388626011%2Cp_36%3A800-2499&s=review-rank",
+    # Belleza y cuidado personal — cosméticos, accesorios, cuidado del cabello
+    "https://www.amazon.es/s?i=beauty&rh=p_n_pct-off-with-tax%3A2388626011%2Cp_36%3A800-2499&s=review-rank",
+    # Hogar y cocina — utensilios, accesorios pequeños, gadgets de cocina
+    "https://www.amazon.es/s?i=kitchen&rh=p_n_pct-off-with-tax%3A2388626011%2Cp_36%3A800-2499&s=review-rank",
     # Amazon Deals — página principal de ofertas por tiempo limitado
     "https://www.amazon.es/deals?ref=nav_cs_gb",
 ]
@@ -2220,7 +2231,7 @@ def _score_local(p: "Producto") -> int:
     elif p.precio_actual <= 4000:
         score += 5  # bicicletas, eBikes y productos premium de precio alto
     elif PRECIO_MINIMO_LC <= p.precio_actual < PRECIO_MINIMO and p.descuento_pct >= DESCUENTO_LC_MINIMO:
-        score += 10  # bonus low-cost: garantiza zona gris en lugar de auto-descarte
+        score += 15  # bonus low-cost: garantiza zona gris (40%+15=25 ≥ _SCORE_AUTO_DESCARTAR)
 
     # Historial de precio CCC (hasta 15 pts, penalización si inflado)
     if p.precio_historico_min > 0:
