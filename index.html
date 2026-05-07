@@ -279,8 +279,7 @@
     }
     .sort-tabs::-webkit-scrollbar { display: none; }
     .sort-tabs__filter-wrap {
-      margin-left: auto;
-      padding-left: 12px;
+      margin-right: 12px;
       flex-shrink: 0;
     }
 
@@ -1630,11 +1629,6 @@
 
     <!-- Sort tabs -->
     <nav class="sort-tabs" id="js-sort-tabs" aria-label="Ordenar por">
-      <button class="sort-tab sort-tab--active" data-sort="recientes">Recientes</button>
-      <button class="sort-tab" data-sort="descuento">Mayor Descuento</button>
-      <button class="sort-tab" data-sort="votados">Más Votados</button>
-      <button class="sort-tab" data-sort="reventa">Para Revender</button>
-      <button class="sort-tab" data-sort="low_cost">Deals Low Cost</button>
       <div class="sort-tabs__filter-wrap">
         <button class="filter-toggle" id="js-filter-toggle" onclick="toggleFilters()" aria-expanded="true" aria-label="Mostrar u ocultar filtros">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
@@ -1644,6 +1638,11 @@
           <span class="filter-toggle__arrow">▾</span>
         </button>
       </div>
+      <button class="sort-tab sort-tab--active" data-sort="recientes">Recientes</button>
+      <button class="sort-tab" data-sort="descuento">Mayor Descuento</button>
+      <button class="sort-tab" data-sort="votados">Más Votados</button>
+      <button class="sort-tab" data-sort="reventa">Para Revender</button>
+      <button class="sort-tab" data-sort="low_cost">Deals Low Cost</button>
     </nav>
   </header>
 
@@ -2490,22 +2489,39 @@
     if (!isLoggedIn()) { showLoginGate("Inicia sesión para votar"); return; }
     const votes = getUserVotes();
     const prev  = votes[dealId];
-    if (prev === direction) return;
 
     const container = btn.closest(".deal__votes");
     if (!container) return;
     const upBtn   = container.querySelector(".vote-btn--up");
     const upCount = upBtn?.querySelector(".vote-count");
+    const deal    = allDeals.find(d => String(d.id) === String(dealId));
+
+    // Toggle: segundo click en la misma dirección quita el voto
+    if (prev === direction) {
+      upBtn?.classList.remove("voted");
+      if (upCount) upCount.textContent = Math.max(0, parseInt(upCount.textContent || "0") - 1);
+      delete votes[dealId];
+      _saveUserVotes(votes);
+      if (deal) deal.votes_up = Math.max(0, (deal.votes_up || 0) - 1);
+      if (!USE_MOCK) {
+        try {
+          await fetch(`${API_BASE}/api/deals/${dealId}/vote`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ direction: "remove" }),
+          });
+        } catch {}
+      }
+      return;
+    }
 
     if (direction === "up") {
       upBtn?.classList.add("voted");
-      if (upCount) upCount.textContent = parseInt(upCount.textContent) + 1;
+      if (upCount) upCount.textContent = parseInt(upCount.textContent || "0") + 1;
     }
 
     votes[dealId] = direction;
     _saveUserVotes(votes);
 
-    const deal = allDeals.find(d => String(d.id) === String(dealId));
     if (deal) {
       if (direction === "up") {
         deal.votes_up = (deal.votes_up || 0) + 1;

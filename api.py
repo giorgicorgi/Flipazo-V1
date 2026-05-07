@@ -708,15 +708,16 @@ def get_price_history(asin: str):
 
 @app.post("/api/deals/{deal_id}/vote")
 def vote_deal(deal_id: str, body: VoteBody):
-    """Registra un voto (up/down). Anti-spam client-side via localStorage."""
-    if body.direction not in ("up", "down"):
-        return JSONResponse(status_code=400, content={"error": "direction must be 'up' or 'down'"})
-    col = "votes_up" if body.direction == "up" else "votes_down"
+    """Registra o retira un voto (up/down/remove). Anti-spam client-side via localStorage."""
+    if body.direction not in ("up", "down", "remove"):
+        return JSONResponse(status_code=400, content={"error": "direction must be 'up', 'down', or 'remove'"})
     with _get_db() as con:
-        updated = con.execute(
-            f"UPDATE deals_publicados SET {col} = {col} + 1 WHERE deal_id = ?",
-            (deal_id,),
-        ).rowcount
+        if body.direction == "remove":
+            sql = "UPDATE deals_publicados SET votes_up = MAX(0, votes_up - 1) WHERE deal_id = ?"
+        else:
+            col = "votes_up" if body.direction == "up" else "votes_down"
+            sql = f"UPDATE deals_publicados SET {col} = {col} + 1 WHERE deal_id = ?"
+        updated = con.execute(sql, (deal_id,)).rowcount
         if updated == 0:
             return JSONResponse(status_code=404, content={"error": "deal not found"})
         con.commit()
