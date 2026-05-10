@@ -1432,7 +1432,7 @@
     @media (max-width: 768px) {
       :root { --grid-cols: 2; --grid-gap: 12px; }
 
-      /* Header: 2 rows — row1: logo + nav links, row2: search + toggle */
+      /* Header: 2 rows — row1: logo + nav + toggle, row2: search full width */
       .site-header__inner {
         flex-wrap: wrap;
         height: auto;
@@ -1443,8 +1443,8 @@
       }
       .site-logo { order: 1; flex-shrink: 0; }
       .header-nav { order: 2; flex: 1; justify-content: flex-end; }
-      .header-search-wrap { order: 3; flex: 1 1 0; max-width: none; }
-      .site-header__inner > .theme-toggle { order: 4; flex-shrink: 0; }
+      .site-header__inner > .theme-toggle { order: 3; flex-shrink: 0; }
+      .header-search-wrap { order: 4; flex: 0 0 100%; max-width: none; }
 
       .sort-tabs { padding: 0 18px; }
       .search-bar { padding: 10px 18px; }
