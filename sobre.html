@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sobre Flipazo — Las mejores ofertas de España, con criterio</title>
+  <meta name="description" content="Flipazo nació de una frustración: encontrar descuentos reales era difícil. Hoy monitorizamos cientos de productos al día y solo publicamos lo que de verdad merece la pena." />
+  <meta property="og:title" content="Sobre Flipazo" />
+  <meta property="og:description" content="Pocas ofertas. Las correctas. La historia detrás de Flipazo." />
+  <meta property="og:url" content="https://flipazo.es/sobre" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23F52834'/><text x='50%' y='74%' font-family='Georgia,serif' font-weight='900' font-size='22' fill='white' text-anchor='middle'>F</text></svg>">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Playfair+Display+SC:wght@700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand:     #F52834;
+      --navy:      #2C3E50;
+      --ink:       #111111;
+      --ink-light: #444444;
+      --rule:      #222222;
+      --bg:        #ffffff;
+      --serif:     'Playfair Display', Georgia, serif;
+      --serif-sc:  'Playfair Display SC', Georgia, serif;
+      --sans:      'Nunito', system-ui, sans-serif;
+    }
+    body { background: var(--bg); color: var(--ink); font-family: var(--serif); -webkit-font-smoothing: antialiased; }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Masthead ── */
+    .masthead {
+      border-bottom: 3px solid var(--rule);
+      padding: 22px 40px 16px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    }
+    .masthead__brand { font-family: var(--serif); font-weight: 900; font-size: 32px; letter-spacing: -0.02em; text-transform: uppercase; color: var(--ink); text-decoration: none; }
+    .masthead__nav { display: flex; gap: 24px; align-items: center; }
+    .masthead__nav a { font-family: var(--sans); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); border: 1px solid #ccc; padding: 6px 14px; }
+    .masthead__nav a:hover { background: var(--ink); color: #fff; text-decoration: none; }
+
+    /* ── Hero ── */
+    .page-hero {
+      padding: 64px 40px 48px;
+      border-bottom: 1.5px solid #e0e0e0;
+      max-width: 800px;
+    }
+    .page-hero__eyebrow {
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--brand);
+      margin-bottom: 16px;
+    }
+    .page-hero__title {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: clamp(32px, 6vw, 54px);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+    .page-hero__title em { font-style: italic; color: var(--ink-light); }
+    .page-hero__subtitle {
+      font-family: var(--sans);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--ink-light);
+      line-height: 1.6;
+      max-width: 560px;
+    }
+
+    /* ── Content ── */
+    .content { max-width: 760px; padding: 48px 40px 80px; }
+
+    .story-block { margin-bottom: 48px; }
+    .story-block p {
+      font-family: var(--serif);
+      font-size: 17px;
+      line-height: 1.82;
+      color: #222;
+      margin-bottom: 22px;
+    }
+    .story-block p:last-child { margin-bottom: 0; }
+
+    .pull-quote {
+      border-left: 4px solid var(--brand);
+      padding: 20px 28px;
+      margin: 32px 0;
+      background: #fafaf8;
+    }
+    .pull-quote p {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 22px;
+      line-height: 1.5;
+      color: var(--ink);
+      margin: 0;
+    }
+
+    /* ── Criterios ── */
+    .criteria-section { margin: 48px 0; padding-top: 40px; border-top: 1.5px solid #e0e0e0; }
+    .criteria-section__label {
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin-bottom: 20px;
+    }
+    .criteria-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .criteria-card {
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px 22px;
+    }
+    .criteria-card__num {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 28px;
+      color: var(--brand);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .criteria-card__text {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-light);
+      line-height: 1.5;
+    }
+
+    /* ── Equipo ── */
+    .team-section { margin: 48px 0; padding-top: 40px; border-top: 1.5px solid #e0e0e0; }
+    .team-section__label {
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin-bottom: 24px;
+    }
+    .team-card {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .team-avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--brand);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--serif); font-weight: 900; font-size: 22px; color: #fff;
+      flex-shrink: 0;
+    }
+    .team-info__name {
+      font-family: var(--serif);
+      font-weight: 900;
+      font-size: 18px;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .team-info__role {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin-bottom: 8px;
+    }
+    .team-info__bio {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--ink-light);
+      line-height: 1.6;
+    }
+
+    /* ── Affiliate box ── */
+    .affiliate-box {
+      background: #fffbe6;
+      border: 1.5px solid #f59e0b;
+      border-left: 4px solid #f59e0b;
+      padding: 20px 24px;
+      margin: 48px 0 32px;
+      border-radius: 4px;
+    }
+    .affiliate-box__label {
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #92400e;
+      margin-bottom: 10px;
+    }
+    .affiliate-box p {
+      font-family: var(--sans);
+      font-size: 13px;
+      line-height: 1.75;
+      color: #444;
+    }
+
+    /* ── Contact ── */
+    .contact-section {
+      margin-top: 48px;
+      padding-top: 40px;
+      border-top: 1.5px solid #e0e0e0;
+    }
+    .contact-section__label {
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin-bottom: 16px;
+    }
+    .contact-section p {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--ink-light);
+      line-height: 1.7;
+    }
+    .contact-email {
+      display: inline-block;
+      margin-top: 12px;
+      font-family: var(--sans);
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--brand);
+      text-decoration: none;
+    }
+    .contact-email:hover { text-decoration: underline; }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 1.5px solid #e0e0e0;
+      padding: 20px 40px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    }
+    .footer__links { display: flex; gap: 24px; flex-wrap: wrap; }
+    .footer__links a { font-family: var(--sans); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); }
+    .footer__links a:hover { color: var(--brand); text-decoration: none; }
+    .footer__copy { font-family: var(--sans); font-size: 10px; color: #bbb; letter-spacing: 0.06em; }
+
+    @media (max-width: 640px) {
+      .masthead, .page-hero, .content, .footer { padding-left: 18px; padding-right: 18px; }
+      .page-hero { padding-top: 40px; }
+      .criteria-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="masthead">
+    <a href="/" class="masthead__brand">Flipazo</a>
+    <nav class="masthead__nav">
+      <a href="/blog">Blog</a>
+      <a href="/">← Ver ofertas</a>
+    </nav>
+  </header>
+
+  <div class="page-hero">
+    <p class="page-hero__eyebrow">Sobre Flipazo · Barcelona, 2025</p>
+    <h1 class="page-hero__title">El mercado produce de más.<br><em>Flipazo está para aprovecharlo.</em></h1>
+    <p class="page-hero__subtitle">Un sistema de selección automática de ofertas reales. Sin comunidad que suba lo que quiera. Sin marcas que paguen para aparecer. Solo criterio.</p>
+  </div>
+
+  <div class="content">
+
+    <div class="story-block">
+      <p>Cada temporada, las marcas fabrican más de lo que venden. Cuando llega el siguiente modelo, el stock anterior tiene que salir. Rápido. Eso genera descuentos reales, en productos de calidad, de marcas reconocidas. Descuentos del 40%, del 50%, a veces más.</p>
+
+      <p>El problema es que nadie los encontraba bien.</p>
+
+      <p>Las plataformas de chollos existentes funcionan por volumen: cualquier usuario puede subir cualquier oferta, y el resultado es un torrente de productos sin criterio, precios inflados con descuentos ficticios y marcas que no conoce nadie. Buscar una buena oferta se había convertido en trabajo.</p>
+
+      <p>Flipazo nació de esa frustración.</p>
+
+      <p>La idea era simple: rastrear ese exceso de stock de forma sistemática, verificar que el descuento fuera real comparándolo con el historial de precios, y publicar solo lo que de verdad merecía la pena.</p>
+    </div>
+
+    <div class="pull-quote">
+      <p>"Pocas ofertas. Las correctas."</p>
+    </div>
+
+    <div class="story-block">
+      <p>Hoy Flipazo monitoriza cientos de productos cada día en las principales tiendas del mercado español. Cuando detecta un descuento superior al 40%, lo verifica y, si pasa nuestros filtros, lo publica.</p>
+
+      <p>Eso es lo más difícil de hacer. Y es exactamente lo que nos diferencia.</p>
+    </div>
+
+    <!-- Criterios editoriales -->
+    <div class="criteria-section">
+      <p class="criteria-section__label">Criterios editoriales — qué hace que un deal entre en Flipazo</p>
+      <div class="criteria-grid">
+        <div class="criteria-card">
+          <p class="criteria-card__num">≥40%</p>
+          <p class="criteria-card__text">Descuento verificado sobre el precio histórico real de los últimos 30 días, no sobre precios inflados artificialmente.</p>
+        </div>
+        <div class="criteria-card">
+          <p class="criteria-card__num">Marca</p>
+          <p class="criteria-card__text">Solo marcas reconocidas y productos de calidad contrastada. Sin genéricos ni productos sin historial.</p>
+        </div>
+        <div class="criteria-card">
+          <p class="criteria-card__num">Filtro</p>
+          <p class="criteria-card__text">Lista de exclusión estricta: sin carcasas, fundas, cables, accesorios baratos ni alimentación. Solo lo que merece la pena.</p>
+        </div>
+        <div class="criteria-card">
+          <p class="criteria-card__num">0€</p>
+          <p class="criteria-card__text">Ninguna marca paga para aparecer. Si un producto no pasa los filtros automáticos, no se publica.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Equipo -->
+    <div class="team-section">
+      <p class="team-section__label">Detrás de Flipazo</p>
+      <div class="team-card">
+        <div class="team-avatar">J</div>
+        <div class="team-info">
+          <p class="team-info__name">Jorge Uribe</p>
+          <p class="team-info__role">Fundador · Barcelona</p>
+          <p class="team-info__bio">Construí Flipazo en 2025 para resolver un problema que yo mismo tenía: encontrar descuentos reales sin perder horas buscando. El pipeline es completamente automático — monitoriza, verifica y publica sin intervención manual. Con ayuda de Claude para el análisis editorial de cada deal.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Afiliados -->
+    <div class="affiliate-box">
+      <p class="affiliate-box__label">Transparencia sobre afiliados</p>
+      <p>Usamos enlaces de afiliado. Si haces clic en un enlace y realizas una compra, podemos recibir una pequeña comisión sin coste adicional para ti. Así se financia este servicio y lo mantenemos gratuito. <strong>Nunca cobramos a ninguna marca para publicar sus productos.</strong> La selección es editorial, no publicitaria. Participamos en Amazon Associates (tag: flipazo-21), Awin y Tradedoubler.</p>
+    </div>
+
+    <!-- Contacto -->
+    <div class="contact-section">
+      <p class="contact-section__label">Contacto</p>
+      <p>¿Tienes alguna pregunta, has detectado un error en un deal o quieres reportar un precio incorrecto? Escríbenos y respondemos en un plazo máximo de 40 horas laborables.</p>
+      <a href="mailto:flipazo.newsletter@gmail.com" class="contact-email">flipazo.newsletter@gmail.com</a>
+    </div>
+
+  </div>
+
+  <footer class="footer">
+    <nav class="footer__links" aria-label="Legal">
+      <a href="/">Ofertas</a>
+      <a href="/sobre">Sobre</a>
+      <a href="/blog">Blog</a>
+      <a href="/privacidad.html">Privacidad</a>
+      <a href="/cookies.html">Cookies</a>
+      <a href="/aviso-legal.html">Aviso Legal</a>
+      <a href="mailto:flipazo.newsletter@gmail.com">Contacto</a>
+    </nav>
+    <span class="footer__copy">© 2025 Flipazo · Barcelona, España</span>
+  </footer>
+
+</body>
+</html>

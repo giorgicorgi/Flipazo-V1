@@ -1556,7 +1556,11 @@
       color: rgba(255,255,255,0.80); flex: 1; min-width: 220px;
     }
     .cookie-banner__text a { color: #fff; text-decoration: underline; }
-    .cookie-banner__actions { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+    .cookie-banner__title {
+      display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #fff; margin-bottom: 4px;
+    }
+    .cookie-banner__actions { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; align-items: flex-start; }
     .cookie-btn {
       font-family: var(--sans); font-size: 12px; font-weight: 700;
       padding: 9px 20px; border-radius: 9999px;
@@ -1866,6 +1870,7 @@
 
       <!-- Nav -->
       <nav class="header-nav" aria-label="Navegación principal">
+        <a href="/sobre" class="header-nav__link">Sobre</a>
         <a href="/blog" class="header-nav__link">Blog</a>
         <a href="/cuenta" id="js-cuenta-link" class="header-nav__link">Mi&nbsp;Cuenta</a>
       </nav>
@@ -1972,10 +1977,11 @@
     <div class="footer__bottom">
       <div class="footer__top">
         <nav class="footer__links" aria-label="Legal">
+          <a href="/sobre">Sobre</a>
           <a href="/privacidad.html">Privacidad</a>
           <a href="/cookies.html">Cookies</a>
           <a href="/aviso-legal.html">Aviso Legal</a>
-          <a href="mailto:hola@flipazo.es">Contacto</a>
+          <a href="mailto:flipazo.newsletter@gmail.com">Contacto</a>
           <a href="https://t.me/flipazo" target="_blank" rel="noopener">Telegram</a>
         </nav>
       </div>
@@ -1995,11 +2001,13 @@
   </div>
 
   <!-- ── COOKIE BANNER ─────────────────────────────────────────── -->
-  <div id="cookie-banner" class="cookie-banner hidden" role="dialog" aria-label="Aviso de cookies">
-    <p class="cookie-banner__text">
-      Usamos cookies propias (esenciales) y de terceros (analítica, afiliados) para mejorar el servicio.
+  <div id="cookie-banner" class="cookie-banner hidden" role="dialog" aria-label="Aviso de cookies" aria-live="polite">
+    <div class="cookie-banner__text">
+      <span class="cookie-banner__title">Cookies y privacidad</span>
+      Usamos cookies esenciales (necesarias para el servicio) y cookies de terceros de análisis y seguimiento de afiliados (Amazon Associates, Tradedoubler, Awin). Solo instalamos cookies no esenciales con tu consentimiento explícito.
       <a href="/cookies.html">Más información</a>
-    </p>
+      <br><small style="opacity:0.65;margin-top:4px;display:block">We use essential cookies and optional third-party analytics/affiliate cookies. Accept or decline below.</small>
+    </div>
     <div class="cookie-banner__actions">
       <button class="cookie-btn cookie-btn--reject" onclick="cookieConsent('essential')">Solo esenciales</button>
       <button class="cookie-btn cookie-btn--accept" onclick="cookieConsent('all')">Aceptar todas</button>
@@ -2051,12 +2059,35 @@
   </div>
 
 <script>
+  // ── Google Analytics (carga solo con consentimiento explícito) ──
+  // PASO NECESARIO: Reemplaza 'G-XXXXXXXXXX' con tu Measurement ID real
+  // Cómo obtenerlo: analytics.google.com → Crear propiedad → flipazo.es → Copiar G-ID
+  const GA_ID = 'G-XXXXXXXXXX'; // ← reemplazar cuando tengas el ID
+
+  function _initGA() {
+    if (!GA_ID || GA_ID === 'G-XXXXXXXXXX' || window._gaInitialized) return;
+    window._gaInitialized = true;
+    const s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function(){ dataLayer.push(arguments); };
+    gtag('js', new Date());
+    gtag('config', GA_ID, { anonymize_ip: true });
+  }
+
   // ── Cookie consent ──────────────────────────────────────────
   (function() {
     const stored = localStorage.getItem("flipazo_consent");
     const banner = document.getElementById("cookie-banner");
     if (!stored) {
       setTimeout(() => banner.classList.remove("hidden"), 800);
+    } else {
+      try {
+        const prefs = JSON.parse(stored);
+        if (prefs.analytics) _initGA();
+      } catch(e) {}
     }
   })();
 
@@ -2064,6 +2095,7 @@
     const prefs = { essential: true, analytics: level === "all", ts: Date.now() };
     localStorage.setItem("flipazo_consent", JSON.stringify(prefs));
     document.getElementById("cookie-banner").classList.add("hidden");
+    if (level === "all") _initGA();
   }
 
   // ── Theme toggle ────────────────────────────────────────────
