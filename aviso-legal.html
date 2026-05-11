@@ -77,6 +77,20 @@
       .masthead, .page-header, .content, .footer { padding-left: 18px; padding-right: 18px; }
     }
   </style>
+  <!-- Google Analytics — carga solo con consentimiento previo -->
+  <script>
+    (function(){
+      var s = localStorage.getItem("flipazo_consent");
+      if (!s) return;
+      try { if (!JSON.parse(s).analytics) return; } catch(e){ return; }
+      var el = document.createElement("script");
+      el.async = true; el.src = "https://www.googletagmanager.com/gtag/js?id=G-KF6VN7G349";
+      document.head.appendChild(el);
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function(){ dataLayer.push(arguments); };
+      gtag("js", new Date()); gtag("config", "G-KF6VN7G349", { anonymize_ip: true });
+    })();
+  </script>
 </head>
 <body>
 
