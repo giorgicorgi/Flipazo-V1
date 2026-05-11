@@ -1219,12 +1219,41 @@
       transition: transform 0.15s, background 0.15s;
     }
     .lowcost-banner__cta:hover { background: #9A3412; transform: translateY(-1px); }
-    .lowcost-banner__grid {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
+    /* ── Banner Low Cost: 3 páginas con scroll lateral ──────────── */
+    .lowcost-banner__scroller {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      gap: 0;
+    }
+    .lowcost-banner__scroller::-webkit-scrollbar { display: none; }
+    .lowcost-banner__page {
+      flex: 0 0 100%;
+      scroll-snap-align: start;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-auto-rows: 1fr;
+      gap: 10px;
+    }
+    .lowcost-banner__dots {
+      display: flex; justify-content: center; align-items: center;
+      gap: 8px; margin-top: 4px;
+    }
+    .lowcost-banner__dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(194,65,12,0.22);
+      border: none; cursor: pointer;
+      padding: 0;
+      transition: background 0.18s, transform 0.18s, width 0.18s;
+    }
+    .lowcost-banner__dot--active {
+      background: #C2410C; transform: scale(1.25);
+      width: 22px; border-radius: 4px;
     }
     .lowcost-banner__deal {
-      display: flex; flex-direction: column; gap: 6px;
+      display: flex; flex-direction: column; gap: 4px;
       background: #fff; border: 1px solid #F4D7AC;
       border-radius: 10px; padding: 10px;
       text-decoration: none; color: var(--ink);
@@ -1260,6 +1289,26 @@
     .lowcost-banner__deal-pct {
       font-size: 10px; font-weight: 800; color: var(--brand);
     }
+    /* Tile "Ver más" — última posición de la página 3 */
+    .lowcost-banner__more {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #C2410C 0%, #9A3412 100%);
+      color: #fff; border-radius: 10px; padding: 16px 10px;
+      text-decoration: none; text-align: center;
+      font-family: var(--sans); font-weight: 800; font-size: 12px;
+      line-height: 1.3; letter-spacing: 0.02em;
+      transition: transform 0.15s, box-shadow 0.15s;
+      gap: 6px;
+      border: 1px solid #9A3412;
+    }
+    .lowcost-banner__more:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(194,65,12,0.30);
+    }
+    .lowcost-banner__more-arrow {
+      font-size: 28px; line-height: 1; font-weight: 400;
+    }
     [data-theme="dark"] .lowcost-banner {
       background: linear-gradient(135deg, #2A1E10 0%, #3A2814 100%);
       border-color: #5C3A1A;
@@ -1271,15 +1320,13 @@
     }
     [data-theme="dark"] .lowcost-banner__deal-img { mix-blend-mode: normal; }
     @media (max-width: 900px) {
-      .lowcost-banner__grid { grid-template-columns: repeat(3, 1fr); }
-      .lowcost-banner__grid .lowcost-banner__deal:nth-child(4) { display: none; }
+      .lowcost-banner__page { grid-template-columns: repeat(3, 1fr); gap: 8px; }
     }
     @media (max-width: 700px) {
       .lowcost-banner { grid-column: 1 / -1; padding: 14px 16px; }
       .lowcost-banner__title { font-size: 18px; }
-      .lowcost-banner__grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-      .lowcost-banner__grid .lowcost-banner__deal:nth-child(4),
-      .lowcost-banner__grid .lowcost-banner__deal:nth-child(3) { display: none; }
+      .lowcost-banner__page { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .lowcost-banner__deal { padding: 8px; }
     }
 
     /* ── Paywall ─────────────────────────────────────────────────── */
@@ -2220,6 +2267,19 @@
     { id:102, tipo:"OFERTA", tienda:"MediaMarkt", titulo:"Cable USB-C Anker PowerLine III · 1.8m · 60W carga rápida", precio_actual:9.99, precio_original:19.99, descuento_pct:50, imagen_url:"https://m.media-amazon.com/images/I/61iJ6gqfmZL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:9.99, razonamiento:"", timestamp:new Date(Date.now()-30*60000).toISOString(), deal_score:60, hook:"El cable USB-C que sobrevive a tres mudanzas", social_context:"Mejor opción si pierdes uno cada mes", emotional_tags:["🧠 Smart Buy", "👀 Hidden Gem"] },
     { id:103, tipo:"OFERTA", tienda:"Amazon", titulo:"Termo Stanley Classic Trigger Action · 470 ml acero inoxidable", precio_actual:19.95, precio_original:34.95, descuento_pct:43, imagen_url:"https://m.media-amazon.com/images/I/61cLRTPRiML._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:19.95, razonamiento:"", timestamp:new Date(Date.now()-50*60000).toISOString(), deal_score:62, hook:"El termo que aguanta el café caliente hasta la tarde", social_context:"Lo más visto este mes en Decathlon", emotional_tags:["⚡ Internet Favorite"] },
     { id:104, tipo:"OFERTA", tienda:"Amazon", titulo:"Adaptador HDMI a USB-C · 4K@60Hz · Aluminio compacto", precio_actual:7.99, precio_original:16.99, descuento_pct:53, imagen_url:"https://m.media-amazon.com/images/I/61E70+kV2gL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:7.99, razonamiento:"", timestamp:new Date(Date.now()-75*60000).toISOString(), deal_score:50, hook:"El adaptador que MacBook debería incluir de fábrica", social_context:"-53% sobre precio normal", emotional_tags:["👀 Hidden Gem"] },
+    { id:105, tipo:"OFERTA", tienda:"Amazon", titulo:"Soporte para portátil aluminio plegable · Ergonómico", precio_actual:13.99, precio_original:29.99, descuento_pct:53, imagen_url:"https://m.media-amazon.com/images/I/61j0jiNZDcL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:13.99, razonamiento:"", timestamp:new Date(Date.now()-90*60000).toISOString(), deal_score:48, hook:"El soporte que todo nómada digital quiere bajo 15€", social_context:"Buenas reviews en Reddit r/digitalnomads", emotional_tags:["👀 Hidden Gem"] },
+    { id:106, tipo:"OFERTA", tienda:"Amazon", titulo:"Auriculares JBL Tune 510BT inalámbricos Bluetooth", precio_actual:19.99, precio_original:49.99, descuento_pct:60, imagen_url:"https://m.media-amazon.com/images/I/618xVCa7CGL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:19.99, razonamiento:"", timestamp:new Date(Date.now()-110*60000).toISOString(), deal_score:65, hook:"JBL inalámbricos a precio de marca china", social_context:"-60% sobre PVP, raramente en este precio", emotional_tags:["🧠 Smart Buy", "⚡ Internet Favorite"] },
+    { id:107, tipo:"OFERTA", tienda:"MediaMarkt", titulo:"Logitech M185 Ratón inalámbrico USB compacto", precio_actual:7.99, precio_original:15.99, descuento_pct:50, imagen_url:"https://m.media-amazon.com/images/I/51zhMSe9k7L._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:7.99, razonamiento:"", timestamp:new Date(Date.now()-130*60000).toISOString(), deal_score:52, hook:"El ratón que sobrevive 2 años con una pila", social_context:"Casi en mínimo histórico", emotional_tags:["💸 Parece más caro"] },
+    { id:108, tipo:"OFERTA", tienda:"Amazon", titulo:"Báscula de cocina digital · Pesado en gramos hasta 5kg", precio_actual:9.99, precio_original:19.99, descuento_pct:50, imagen_url:"https://m.media-amazon.com/images/I/61pSwwzPdJL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:9.99, razonamiento:"", timestamp:new Date(Date.now()-150*60000).toISOString(), deal_score:45, hook:"La báscula que los reposteros caseros recomiendan", social_context:"-50% sobre PVP normal", emotional_tags:["🎯 Worth Watching"] },
+    { id:109, tipo:"OFERTA", tienda:"Amazon", titulo:"Powerbank Anker 10000 mAh PowerCore Slim USB-C", precio_actual:18.99, precio_original:34.99, descuento_pct:46, imagen_url:"https://m.media-amazon.com/images/I/61j+ydw3SkL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:18.99, razonamiento:"", timestamp:new Date(Date.now()-170*60000).toISOString(), deal_score:60, hook:"El powerbank Anker que aguanta más que tu fin de semana", social_context:"Anker raramente baja de 25€", emotional_tags:["⚡ Internet Favorite"] },
+    { id:110, tipo:"OFERTA", tienda:"Amazon", titulo:"Tijeras de cocina Wüsthof acero inoxidable multiuso", precio_actual:14.95, precio_original:24.95, descuento_pct:40, imagen_url:"https://m.media-amazon.com/images/I/71d7Fkb1JEL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:14.95, razonamiento:"", timestamp:new Date(Date.now()-200*60000).toISOString(), deal_score:48, hook:"Las tijeras Wüsthof que duran 20 años de matrimonio", social_context:"Marca alemana premium a precio de oferta", emotional_tags:["👀 Hidden Gem"] },
+    { id:111, tipo:"OFERTA", tienda:"Amazon", titulo:"Cargador USB-C 45W Samsung GaN compatible Galaxy", precio_actual:12.99, precio_original:24.99, descuento_pct:48, imagen_url:"https://m.media-amazon.com/images/I/618MWQ-XwTL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:12.99, razonamiento:"", timestamp:new Date(Date.now()-220*60000).toISOString(), deal_score:52, hook:"El cargador Samsung que carga el portátil en 90min", social_context:"Compatible con iPhone, Mac, Galaxy", emotional_tags:["🧠 Smart Buy"] },
+    { id:112, tipo:"OFERTA", tienda:"MediaMarkt", titulo:"Lámpara LED de escritorio Xiaomi Mi LED Pro táctil", precio_actual:21.99, precio_original:39.99, descuento_pct:45, imagen_url:"https://m.media-amazon.com/images/I/61TF6cP-yfL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:21.99, razonamiento:"", timestamp:new Date(Date.now()-240*60000).toISOString(), deal_score:55, hook:"La lámpara Xiaomi que parece de IKEA pero mejor", social_context:"Casi en mínimo histórico", emotional_tags:["⚡ Internet Favorite"] },
+    { id:113, tipo:"OFERTA", tienda:"Amazon", titulo:"Bote hermético Tupper cristal 5 unidades Pyrex", precio_actual:17.99, precio_original:34.99, descuento_pct:49, imagen_url:"https://m.media-amazon.com/images/I/81LMTpd3OXL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:17.99, razonamiento:"", timestamp:new Date(Date.now()-260*60000).toISOString(), deal_score:46, hook:"Tuppers Pyrex con descuento, fin de los plásticos rotos", social_context:"5 unidades a este precio es raro", emotional_tags:["💸 Parece más caro"] },
+    { id:114, tipo:"OFERTA", tienda:"Amazon", titulo:"Spalding NBA street balón baloncesto talla 7", precio_actual:14.99, precio_original:24.99, descuento_pct:40, imagen_url:"https://m.media-amazon.com/images/I/51-AzWk46WL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:14.99, razonamiento:"", timestamp:new Date(Date.now()-280*60000).toISOString(), deal_score:50, hook:"Balón Spalding NBA al precio que pagabas en 2015", social_context:"Marca oficial NBA", emotional_tags:["🎯 Worth Watching"] },
+    { id:115, tipo:"OFERTA", tienda:"Amazon", titulo:"Bombilla LED Philips Hue White E27 inteligente", precio_actual:13.99, precio_original:24.99, descuento_pct:44, imagen_url:"https://m.media-amazon.com/images/I/51N-vMcMR0L._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:13.99, razonamiento:"", timestamp:new Date(Date.now()-300*60000).toISOString(), deal_score:54, hook:"Empieza tu sistema Philips Hue por menos de 14€", social_context:"La unidad más barata del sistema", emotional_tags:["⚡ Internet Favorite", "🧠 Smart Buy"] },
+    { id:116, tipo:"OFERTA", tienda:"Amazon", titulo:"Espumador de leche Bodum eléctrico inox para cappuccino", precio_actual:16.99, precio_original:29.99, descuento_pct:43, imagen_url:"https://m.media-amazon.com/images/I/61RaMXTRRGL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:16.99, razonamiento:"", timestamp:new Date(Date.now()-320*60000).toISOString(), deal_score:49, hook:"Cappuccinos como en cafetería sin pagar la máquina", social_context:"Lo recomiendan en hilos de café", emotional_tags:["👀 Hidden Gem"] },
+    { id:117, tipo:"OFERTA", tienda:"Amazon", titulo:"Termo café Stanley GO Quick Flip 473ml acero", precio_actual:22.95, precio_original:39.95, descuento_pct:42, imagen_url:"https://m.media-amazon.com/images/I/61cLRTPRiML._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:22.95, razonamiento:"", timestamp:new Date(Date.now()-340*60000).toISOString(), deal_score:53, hook:"El termo Stanley que dura más que tu coche", social_context:"Aguanta 7h de calor", emotional_tags:["⚡ Internet Favorite"] },
   ];
 
   // ── Reventa popup ─────────────────────────────────────────────
@@ -2477,10 +2537,13 @@
 
   // ── Low Cost banner (rompe ritmo del grid en home) ───────────
   let _lowcostBannerHtml = "";
-  const LOWCOST_BANNER_AT = 8;  // posición en el grid donde aparece (después de N cards)
+  const LOWCOST_BANNER_AT = 8;       // posición en el grid donde aparece
+  const LOWCOST_PAGES     = 3;       // páginas con scroll lateral
+  const LOWCOST_PER_PAGE  = 6;       // mini-deals por página (3 cols × 2 rows en desktop)
 
   function _renderLowcostBanner(deals) {
     if (!deals || !deals.length) return "";
+
     const mini = (d) => {
       const url = d.url_affiliate || `${API_BASE}/r/${d.id}?canal=web`;
       const t   = cleanHeroTitle(d.titulo || "");
@@ -2496,6 +2559,34 @@
           </p>
         </a>`;
     };
+
+    const moreTile = `
+      <a href="javascript:void(0)" class="lowcost-banner__more"
+         onclick="document.querySelector('.sort-tab[data-sort=&quot;low_cost&quot;]')?.click(); window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
+        <span>Ver más<br>deals low cost</span>
+        <span class="lowcost-banner__more-arrow">→</span>
+      </a>`;
+
+    const pages = [];
+    for (let p = 0; p < LOWCOST_PAGES; p++) {
+      const start = p * LOWCOST_PER_PAGE;
+      let slice   = deals.slice(start, start + LOWCOST_PER_PAGE);
+      let inner;
+      if (p === LOWCOST_PAGES - 1) {
+        // En la última página: hasta PER_PAGE-1 deals + tile "Ver más"
+        slice = slice.slice(0, LOWCOST_PER_PAGE - 1);
+        inner = slice.map(mini).join("") + moreTile;
+      } else {
+        inner = slice.map(mini).join("");
+      }
+      pages.push(`<div class="lowcost-banner__page">${inner}</div>`);
+    }
+
+    const dots = Array.from({length: LOWCOST_PAGES}, (_, i) =>
+      `<button class="lowcost-banner__dot${i === 0 ? ' lowcost-banner__dot--active' : ''}"
+               data-page="${i}" aria-label="Página ${i + 1} de ${LOWCOST_PAGES}"></button>`
+    ).join("");
+
     return `
       <article class="lowcost-banner" aria-label="Low Cost — caprichos bajo 25 euros">
         <div class="lowcost-banner__header">
@@ -2508,27 +2599,56 @@
             Ver todos →
           </button>
         </div>
-        <div class="lowcost-banner__grid">${deals.slice(0, 4).map(mini).join("")}</div>
+        <div class="lowcost-banner__scroller" data-lowcost-scroller>${pages.join("")}</div>
+        <div class="lowcost-banner__dots" data-lowcost-dots>${dots}</div>
       </article>`;
+  }
+
+  function _initLowcostBannerInteractivity() {
+    // Puede haber re-renders del grid; buscamos el scroller actual
+    const scroller = document.querySelector("[data-lowcost-scroller]");
+    const dotsBar  = document.querySelector("[data-lowcost-dots]");
+    if (!scroller || !dotsBar) return;
+    if (scroller.dataset._lcInit === "1") return;  // ya inicializado
+    scroller.dataset._lcInit = "1";
+
+    const dots = dotsBar.querySelectorAll(".lowcost-banner__dot");
+
+    dots.forEach(dot => {
+      dot.addEventListener("click", () => {
+        const page = parseInt(dot.dataset.page, 10) || 0;
+        scroller.scrollTo({ left: page * scroller.clientWidth, behavior: "smooth" });
+      });
+    });
+
+    let scrollDebounce;
+    scroller.addEventListener("scroll", () => {
+      clearTimeout(scrollDebounce);
+      scrollDebounce = setTimeout(() => {
+        const idx = Math.round(scroller.scrollLeft / scroller.clientWidth);
+        dots.forEach((d, i) => d.classList.toggle("lowcost-banner__dot--active", i === idx));
+      }, 60);
+    }, { passive: true });
   }
 
   async function loadLowCostBanner() {
     try {
+      const need = LOWCOST_PAGES * LOWCOST_PER_PAGE;  // 18
       let deals;
       if (USE_MOCK) {
         deals = MOCK_DEALS
           .filter(d => (d.precio_actual || 0) > 0 && (d.precio_actual || 0) < 25)
           .sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0))
-          .slice(0, 4);
+          .slice(0, need);
       } else {
-        const r = await fetch(`${API_URL}?limit=12&max_price=24.99`);
+        const r = await fetch(`${API_URL}?limit=40&max_price=24.99`);
         if (!r.ok) return;
         const batch = await r.json();
         deals = Array.isArray(batch)
-          ? batch.sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0)).slice(0, 4)
+          ? batch.sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0)).slice(0, need)
           : [];
       }
-      if (!deals.length) return;
+      if (deals.length < LOWCOST_PER_PAGE) return;  // necesitamos al menos 1 página llena
       _lowcostBannerHtml = _renderLowcostBanner(deals);
       // Si el grid ya está renderizado, re-render para inyectar el banner
       if (allDeals.length > 0) renderGrid();
@@ -2676,7 +2796,11 @@
     if (!shouldShowHero() || allDeals.length === 0) {
       hero.style.display = "none"; heroMode = false; _heroId = null; return;
     }
-    const eligible = allDeals.filter(d => (d.precio_actual || 0) >= 25);
+    // Excluir tiendas con catálogo de "outlet permanente" que no aportan al hero
+    const HERO_BLACKLIST = new Set(["Esdemarca"]);
+    const eligible = allDeals.filter(d =>
+      (d.precio_actual || 0) >= 25 && !HERO_BLACKLIST.has(d.tienda)
+    );
     // Si aún no hay deals normales pero hay más páginas, esperar
     if (eligible.length === 0 && hasMore) {
       hero.style.display = "none"; heroMode = false; _heroId = null; return;
@@ -2962,9 +3086,12 @@
     if (!_lowcostBannerHtml || !shouldShowHero() || cards.length <= LOWCOST_BANNER_AT) {
       return cards.join("");
     }
-    return cards.slice(0, LOWCOST_BANNER_AT).join("") +
-           _lowcostBannerHtml +
-           cards.slice(LOWCOST_BANNER_AT).join("");
+    const html = cards.slice(0, LOWCOST_BANNER_AT).join("") +
+                 _lowcostBannerHtml +
+                 cards.slice(LOWCOST_BANNER_AT).join("");
+    // Init scroll/dots tras el siguiente paint
+    requestAnimationFrame(_initLowcostBannerInteractivity);
+    return html;
   }
 
   // ── Load more ─────────────────────────────────────────────────
