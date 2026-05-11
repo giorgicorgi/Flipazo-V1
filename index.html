@@ -1184,49 +1184,6 @@
       color: var(--text-body);
     }
 
-    /* ── Discovery section (Explotando hoy) ──────────────────────── */
-    .discovery-section {
-      padding: 24px 0 12px;
-      border-bottom: 1px solid var(--border-faint);
-      margin-bottom: 18px;
-    }
-    .discovery-section__header {
-      display: flex; align-items: baseline; gap: 14px;
-      padding: 0 20px; margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-    .discovery-section__title {
-      font-family: var(--serif); font-weight: 900;
-      font-size: 28px; line-height: 1.1;
-      color: var(--ink); margin: 0;
-      letter-spacing: -0.01em;
-    }
-    .discovery-section__sub {
-      font-family: var(--sans); font-size: 12px;
-      color: var(--text-mid); margin: 0;
-      letter-spacing: 0.02em;
-    }
-    .discovery-section__grid {
-      display: grid;
-      grid-template-columns: repeat(var(--grid-cols, 4), 1fr);
-      gap: var(--grid-gap, 18px);
-      padding: 0 20px;
-    }
-    @media (max-width: 900px) {
-      .discovery-section__title { font-size: 22px; }
-      .discovery-section__grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
-    }
-    @media (max-width: 700px) {
-      .discovery-section { padding: 16px 0 8px; }
-      .discovery-section__header { padding: 0 14px; gap: 10px; }
-      .discovery-section__title { font-size: 20px; }
-      .discovery-section__sub { font-size: 11px; }
-      .discovery-section__grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px; padding: 0 14px;
-      }
-    }
-
     /* ── Low Cost banner (rompe el ritmo del grid) ─────────────── */
     .lowcost-banner {
       /* Respeta el zoom: span 2 si hay >= 2 cols, sino 1. min() es soportado por todos los navegadores modernos. */
@@ -1905,20 +1862,6 @@
   </div>
   </header>
 
-  <!-- ── LANDING HERO ──────────────────────────────────────────── -->
-  <section class="landing-strip" id="js-landing-strip" aria-label="Sobre Flipazo">
-    <h1 class="landing-strip__title">Ofertas reales. Precios verificados.</h1>
-    <p class="landing-strip__sub">Una selección diaria de descuentos reales en España. Revisamos cientos de productos y publicamos únicamente las ofertas superiores al 40% de marcas reconocidas en electrónica, deportes, hogar y más.</p>
-    <div class="landing-strip__ctas">
-      <a href="#js-grid" onclick="document.getElementById('js-grid').scrollIntoView({behavior:'smooth'}); return false;" class="landing-strip__cta-primary">Ver las ofertas →</a>
-      <a href="https://t.me/flipazo" target="_blank" rel="noopener" class="landing-strip__cta-secondary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.89 8.15l-2.02 9.52c-.15.68-.54.85-1.09.53l-3-2.21-1.45 1.39c-.16.16-.29.29-.6.29l.21-3.04 5.5-4.97c.24-.21-.05-.33-.37-.12L6.63 14.4l-2.96-.93c-.64-.2-.65-.64.13-.95l11.55-4.45c.54-.19 1.01.13.54 2.08z"/></svg>
-        Unirse a Telegram
-      </a>
-    </div>
-    <button class="landing-strip__close" onclick="closeLandingStrip()" aria-label="Cerrar">×</button>
-  </section>
-
   <!-- ── TECH SUBCAT BAR ────────────────────────────────────────── -->
   <nav class="subcat-bar" id="js-subcat-bar" aria-label="Subcategorías de tecnología"></nav>
 
@@ -1931,17 +1874,6 @@
   <!-- ── HERO SECTION ──────────────────────────────────────────── -->
   <section class="hero" id="js-hero" style="display:none" aria-label="Oferta destacada">
     <div id="js-hero-main">
-      <!-- Populated by JS -->
-    </div>
-  </section>
-
-  <!-- ── DISCOVERY: 🔥 Explotando hoy ──────────────────────────── -->
-  <section class="discovery-section" id="js-trending-section" style="display:none" aria-label="Explotando hoy">
-    <div class="discovery-section__header">
-      <h2 class="discovery-section__title">🔥 Explotando hoy</h2>
-      <p class="discovery-section__sub">Los deals que más están moviendo internet</p>
-    </div>
-    <div class="discovery-section__grid" id="js-trending-grid">
       <!-- Populated by JS -->
     </div>
   </section>
@@ -2605,42 +2537,6 @@
     }
   }
 
-  // ── Discovery: 🔥 Explotando hoy ──────────────────────────────
-  let _trendingLoaded = false;
-
-  async function loadTrendingSection() {
-    if (_trendingLoaded) return;
-    const grid = document.getElementById("js-trending-grid");
-    if (!grid) return;
-    try {
-      let deals;
-      if (USE_MOCK) {
-        // Top 6 mocks por deal_score — sirve para preview local
-        deals = [...MOCK_DEALS]
-          .filter(d => (d.deal_score || 0) > 0)
-          .sort((a, b) => (b.deal_score || 0) - (a.deal_score || 0))
-          .slice(0, 6);
-      } else {
-        const sectionsUrl = API_URL.replace(/\/deals$/, "/sections");
-        const r = await fetch(`${sectionsUrl}/trending?limit=8`);
-        if (!r.ok) return;
-        deals = await r.json();
-      }
-      if (!Array.isArray(deals) || deals.length === 0) return;
-      grid.innerHTML = deals.map(renderDeal).join("");
-      _trendingLoaded = true;
-      updateDiscoverySections();
-    } catch (e) {
-      console.warn("trending section load:", e);
-    }
-  }
-
-  function updateDiscoverySections() {
-    const section = document.getElementById("js-trending-section");
-    if (!section) return;
-    section.style.display = (_trendingLoaded && shouldShowHero()) ? "" : "none";
-  }
-
   function getDealOfDay(deals) {
     if (!deals.length) return null;
     const todayKey = new Date().toLocaleDateString("es-ES");
@@ -3048,7 +2944,6 @@
 
   function renderGrid() {
     updateHero();
-    updateDiscoverySections();
     const grid     = document.getElementById("js-grid");
     const matching = allDeals.filter(d => dealMatchesFilters(d));
     const sorted   = sortDeals(matching);
@@ -3473,7 +3368,6 @@
   buildSortTabs();
   initZoom();
   loadMore();
-  loadTrendingSection();
   loadLowCostBanner();
   setTimeout(preloadStoresForBar, 1500);
 

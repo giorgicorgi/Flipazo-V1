@@ -896,6 +896,11 @@ _MARCAS_ROPA = frozenset([
 
 
 def _es_producto_valido(titulo: str, descuento_pct: int = 0) -> bool:
+    titulo = (titulo or "").strip()
+    # Filtro de longitud: títulos demasiado cortos suelen ser sólo marca o imagen rota
+    # (ej. "Cacharel" como single token → referencia inflada; "picture" → scrape roto)
+    if len(titulo) < 10 or len(titulo.split()) < 2:
+        return False
     t = titulo.lower()
     if any(p in t for p in PALABRAS_PROHIBIDAS):
         return False
