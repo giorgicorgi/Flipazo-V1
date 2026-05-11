@@ -301,6 +301,20 @@
     }
     .sort-tab:hover { color: var(--ink); }
     .sort-tab--active { color: var(--brand); border-bottom-color: var(--brand); }
+    .sort-tab--lowcost {
+      color: #B45309;
+      background: linear-gradient(135deg, #FFF7E6 0%, #FFEEDD 100%);
+      border-radius: 6px;
+      margin-right: 4px;
+      padding: 8px 14px;
+      border: 1px solid #F4D7AC;
+    }
+    .sort-tab--lowcost:hover { color: #92400E; }
+    .sort-tab--lowcost.sort-tab--active {
+      color: #fff;
+      background: #C2410C;
+      border-color: #9A3412;
+    }
 
     .sort-tabs__live {
       margin-left: auto;
@@ -1114,6 +1128,203 @@
     .deal__fav:hover   { color: var(--brand); transform: scale(1.2); }
     .deal__fav.saved   { color: var(--brand); }
 
+    /* ── Discovery layer (hook, tags, social context) ────────────── */
+    .deal__tags {
+      display: flex; flex-wrap: wrap; gap: 4px;
+      padding: 12px 16px 0;
+    }
+    .deal__tag {
+      font-family: var(--sans); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--ink); background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 3px 8px; border-radius: 9999px;
+      white-space: nowrap; line-height: 1.4;
+    }
+    .deal__tag--hot {
+      color: var(--brand); background: rgba(245,40,52,0.08);
+      border-color: rgba(245,40,52,0.25);
+    }
+    .deal__tag--smart {
+      color: var(--teal); background: rgba(20,193,174,0.08);
+      border-color: rgba(20,193,174,0.30);
+    }
+    .deal__hook {
+      font-family: var(--serif); font-weight: 700;
+      font-size: 16px; line-height: 1.3;
+      color: var(--ink);
+      padding: 6px 16px 2px;
+      display: -webkit-box; -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical; overflow: hidden;
+      flex: 1;
+    }
+    .deal__tags + .deal__store { padding-top: 6px; }
+    .deal__title-sub {
+      font-family: var(--sans); font-weight: 500;
+      font-size: 11px; line-height: 1.35;
+      color: var(--text-mid);
+      padding: 0 16px; margin-bottom: 8px;
+      display: -webkit-box; -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .deal__social {
+      font-family: var(--sans); font-style: italic;
+      font-size: 11px; color: var(--text-mid);
+      padding: 0 16px; margin: 4px 0 6px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .deal__social::before {
+      content: ""; display: inline-block;
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--teal); flex-shrink: 0;
+    }
+    [data-theme="dark"] .deal__tag {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--border);
+      color: var(--text-body);
+    }
+
+    /* ── Discovery section (Explotando hoy) ──────────────────────── */
+    .discovery-section {
+      padding: 24px 0 12px;
+      border-bottom: 1px solid var(--border-faint);
+      margin-bottom: 18px;
+    }
+    .discovery-section__header {
+      display: flex; align-items: baseline; gap: 14px;
+      padding: 0 20px; margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .discovery-section__title {
+      font-family: var(--serif); font-weight: 900;
+      font-size: 28px; line-height: 1.1;
+      color: var(--ink); margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .discovery-section__sub {
+      font-family: var(--sans); font-size: 12px;
+      color: var(--text-mid); margin: 0;
+      letter-spacing: 0.02em;
+    }
+    .discovery-section__grid {
+      display: grid;
+      grid-template-columns: repeat(var(--grid-cols, 4), 1fr);
+      gap: var(--grid-gap, 18px);
+      padding: 0 20px;
+    }
+    @media (max-width: 900px) {
+      .discovery-section__title { font-size: 22px; }
+      .discovery-section__grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    }
+    @media (max-width: 700px) {
+      .discovery-section { padding: 16px 0 8px; }
+      .discovery-section__header { padding: 0 14px; gap: 10px; }
+      .discovery-section__title { font-size: 20px; }
+      .discovery-section__sub { font-size: 11px; }
+      .discovery-section__grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px; padding: 0 14px;
+      }
+    }
+
+    /* ── Low Cost banner (rompe el ritmo del grid) ─────────────── */
+    .lowcost-banner {
+      /* Respeta el zoom: span 2 si hay >= 2 cols, sino 1. min() es soportado por todos los navegadores modernos. */
+      grid-column: span min(2, var(--grid-cols, 4));
+      background: linear-gradient(135deg, #FFF7E6 0%, #FFE8D5 100%);
+      border: 1px solid #F4D7AC;
+      border-radius: var(--card-radius);
+      padding: 20px 22px;
+      display: flex; flex-direction: column; gap: 14px;
+      box-shadow: var(--card-shadow);
+    }
+    .lowcost-banner__header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .lowcost-banner__eyebrow {
+      font-family: var(--sans); font-size: 10px; font-weight: 900;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: #C2410C; margin: 0 0 2px;
+    }
+    .lowcost-banner__title {
+      font-family: var(--serif); font-weight: 900;
+      font-size: 22px; line-height: 1.1;
+      color: #1F2937; margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .lowcost-banner__cta {
+      background: #C2410C; color: #fff;
+      font-family: var(--sans); font-size: 11px; font-weight: 800;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 9px 16px; border-radius: 9999px;
+      border: none; cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+    }
+    .lowcost-banner__cta:hover { background: #9A3412; transform: translateY(-1px); }
+    .lowcost-banner__grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .lowcost-banner__deal {
+      display: flex; flex-direction: column; gap: 6px;
+      background: #fff; border: 1px solid #F4D7AC;
+      border-radius: 10px; padding: 10px;
+      text-decoration: none; color: var(--ink);
+      transition: transform 0.15s, box-shadow 0.15s;
+      overflow: hidden;
+    }
+    .lowcost-banner__deal:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(194,65,12,0.18);
+    }
+    .lowcost-banner__deal-img {
+      width: 100%; aspect-ratio: 1 / 1;
+      object-fit: contain;
+      background: #fff; border-radius: 6px;
+      mix-blend-mode: multiply;
+    }
+    .lowcost-banner__deal-noimg {
+      width: 100%; aspect-ratio: 1 / 1;
+      background: #FFF7E6; border-radius: 6px;
+    }
+    .lowcost-banner__deal-title {
+      font-family: var(--sans); font-size: 11px; font-weight: 600;
+      line-height: 1.3; color: var(--ink);
+      margin: 4px 0 0;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .lowcost-banner__deal-price {
+      font-family: var(--sans); font-weight: 900;
+      font-size: 16px; color: #C2410C;
+      margin: 0; display: flex; align-items: baseline; gap: 6px;
+    }
+    .lowcost-banner__deal-pct {
+      font-size: 10px; font-weight: 800; color: var(--brand);
+    }
+    [data-theme="dark"] .lowcost-banner {
+      background: linear-gradient(135deg, #2A1E10 0%, #3A2814 100%);
+      border-color: #5C3A1A;
+    }
+    [data-theme="dark"] .lowcost-banner__title { color: #FEE9CB; }
+    [data-theme="dark"] .lowcost-banner__deal {
+      background: #1F2937; border-color: #5C3A1A;
+      color: var(--ink);
+    }
+    [data-theme="dark"] .lowcost-banner__deal-img { mix-blend-mode: normal; }
+    @media (max-width: 900px) {
+      .lowcost-banner__grid { grid-template-columns: repeat(3, 1fr); }
+      .lowcost-banner__grid .lowcost-banner__deal:nth-child(4) { display: none; }
+    }
+    @media (max-width: 700px) {
+      .lowcost-banner { grid-column: 1 / -1; padding: 14px 16px; }
+      .lowcost-banner__title { font-size: 18px; }
+      .lowcost-banner__grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .lowcost-banner__grid .lowcost-banner__deal:nth-child(4),
+      .lowcost-banner__grid .lowcost-banner__deal:nth-child(3) { display: none; }
+    }
+
     /* ── Paywall ─────────────────────────────────────────────────── */
     #paywall-overlay {
       position: absolute; left: 0; right: 0; bottom: 0;
@@ -1670,11 +1881,11 @@
           <span class="filter-toggle__arrow">▾</span>
         </button>
       </div>
+      <button class="sort-tab sort-tab--lowcost" data-sort="low_cost">💸 Low Cost</button>
       <button class="sort-tab sort-tab--active" data-sort="recientes">Recientes</button>
       <button class="sort-tab" data-sort="descuento">Mayor Descuento</button>
       <button class="sort-tab" data-sort="votados">Más Votados</button>
       <button class="sort-tab" data-sort="reventa">Para Revender</button>
-      <button class="sort-tab" data-sort="low_cost">Deals Low Cost</button>
     </nav>
 
   <!-- ── FILTER BLOCK (inside sticky header) ───────────────────── -->
@@ -1720,6 +1931,17 @@
   <!-- ── HERO SECTION ──────────────────────────────────────────── -->
   <section class="hero" id="js-hero" style="display:none" aria-label="Oferta destacada">
     <div id="js-hero-main">
+      <!-- Populated by JS -->
+    </div>
+  </section>
+
+  <!-- ── DISCOVERY: 🔥 Explotando hoy ──────────────────────────── -->
+  <section class="discovery-section" id="js-trending-section" style="display:none" aria-label="Explotando hoy">
+    <div class="discovery-section__header">
+      <h2 class="discovery-section__title">🔥 Explotando hoy</h2>
+      <p class="discovery-section__sub">Los deals que más están moviendo internet</p>
+    </div>
+    <div class="discovery-section__grid" id="js-trending-grid">
       <!-- Populated by JS -->
     </div>
   </section>
@@ -1882,7 +2104,14 @@
   // ── Config ──────────────────────────────────────────────────
   const API_BASE  = "https://api.flipazo.es";
   const API_URL   = API_BASE + "/api/deals";
-  const USE_MOCK  = false;
+  // Preview local: file:// activa mocks automáticamente (no afecta a prod).
+  // En prod (https://flipazo.es) USE_MOCK siempre es false → API real.
+  const USE_MOCK  = (
+    location.protocol === "file:" ||
+    location.hostname === "localhost" ||
+    location.hostname === "127.0.0.1" ||
+    new URLSearchParams(location.search).get("preview") === "1"
+  );
   const POLL_MS   = 5 * 60 * 1000;
   const PAGE_SIZE = 24;
 
@@ -2048,12 +2277,17 @@
 
   // ── Mock data ────────────────────────────────────────────────
   const MOCK_DEALS = [
-    { id:1, tipo:"REVENTA", tienda:"Amazon", titulo:"Sony WH-1000XM5 Auriculares Inalámbricos con Cancelación de Ruido", precio_actual:189.00, precio_original:279.00, descuento_pct:32, imagen_url:"https://m.media-amazon.com/images/I/61hNGBUPF3L._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:245.0, beneficio_neto:47.0, precio_historico_min:0, razonamiento:"", timestamp:new Date(Date.now()-8*60000).toISOString() },
-    { id:2, tipo:"OFERTA",  tienda:"PcComponentes", titulo:"LG OLED55C44LA · Smart TV 4K 55\" OLED evo · Google TV", precio_actual:799.00, precio_original:1299.00, descuento_pct:38, imagen_url:"https://www.lg.com/es/images/televisores/md07522869/gallery/medium01.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:799.00, razonamiento:"Precio mínimo histórico en esta referencia. Alta liquidez.", timestamp:new Date(Date.now()-22*60000).toISOString() },
-    { id:3, tipo:"REVENTA", tienda:"Amazon", titulo:"Nintendo Switch 2 · Consola con Joy-Con 2 · Edición Estándar", precio_actual:289.00, precio_original:449.00, descuento_pct:36, imagen_url:"https://m.media-amazon.com/images/I/71lrLYLsiML._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:380.0, beneficio_neto:71.0, precio_historico_min:0, razonamiento:"", timestamp:new Date(Date.now()-45*60000).toISOString() },
-    { id:4, tipo:"OFERTA",  tienda:"MediaMarkt", titulo:"Dyson V15 Detect Absolute · Aspirador sin cable con láser", precio_actual:499.00, precio_original:749.00, descuento_pct:33, imagen_url:"https://assets.dyson.com/content/dam/dyson/images/products/primary/394512-01.png", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:520.00, razonamiento:"Casi en mínimos. Dyson V15 con muy alta demanda.", timestamp:new Date(Date.now()-68*60000).toISOString() },
-    { id:5, tipo:"OFERTA",  tienda:"PrivateSportShop", titulo:"Adidas Terrex Free Hiker 2 · Bota de montaña GORE-TEX", precio_actual:109.00, precio_original:220.00, descuento_pct:50, imagen_url:"", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:0, razonamiento:"50% real en bota técnica de alta gama.", timestamp:new Date(Date.now()-95*60000).toISOString() },
-    { id:6, tipo:"REVENTA", tienda:"Amazon", titulo:"Apple AirPods Pro 2ª Gen · USB-C · Cancelación activa de ruido", precio_actual:179.00, precio_original:279.00, descuento_pct:36, imagen_url:"https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MQD83_AV3?wid=1144&hei=1144&fmt=jpeg&qlt=90&.v=1660803972361", url_affiliate:"#", precio_wallapop:220.0, beneficio_neto:28.0, precio_historico_min:189.00, razonamiento:"", timestamp:new Date(Date.now()-130*60000).toISOString() },
+    { id:1, tipo:"REVENTA", tienda:"Amazon", titulo:"Sony WH-1000XM5 Auriculares Inalámbricos con Cancelación de Ruido", precio_actual:189.00, precio_original:279.00, descuento_pct:32, imagen_url:"https://m.media-amazon.com/images/I/61hNGBUPF3L._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:245.0, beneficio_neto:47.0, precio_historico_min:0, razonamiento:"", timestamp:new Date(Date.now()-8*60000).toISOString(), deal_score:78, hook:"Bose noise cancelling sin pagar el precio de los AirPods Max", social_context:"Lo recomiendan en cada hilo de Reddit de auriculares", emotional_tags:["⚡ Internet Favorite", "🧠 Smart Buy"] },
+    { id:2, tipo:"OFERTA",  tienda:"PcComponentes", titulo:"LG OLED55C44LA · Smart TV 4K 55\" OLED evo · Google TV", precio_actual:799.00, precio_original:1299.00, descuento_pct:38, imagen_url:"https://www.lg.com/es/images/televisores/md07522869/gallery/medium01.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:799.00, razonamiento:"Precio mínimo histórico en esta referencia. Alta liquidez.", timestamp:new Date(Date.now()-22*60000).toISOString(), deal_score:88, hook:"OLED de 55 pulgadas por debajo de muchos QLED de Samsung", social_context:"El precio más bajo de esta referencia en meses", emotional_tags:["🔥 Trending", "⚡ Internet Favorite"] },
+    { id:3, tipo:"REVENTA", tienda:"Amazon", titulo:"Nintendo Switch 2 · Consola con Joy-Con 2 · Edición Estándar", precio_actual:289.00, precio_original:449.00, descuento_pct:36, imagen_url:"https://m.media-amazon.com/images/I/71lrLYLsiML._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:380.0, beneficio_neto:71.0, precio_historico_min:0, razonamiento:"", timestamp:new Date(Date.now()-45*60000).toISOString(), deal_score:91, hook:"La Switch 2, ahora antes de que vuelva a agotarse", social_context:"Internet está obsesionado con este precio", emotional_tags:["🔥 Trending", "⚡ Internet Favorite", "🧠 Smart Buy"] },
+    { id:4, tipo:"OFERTA",  tienda:"MediaMarkt", titulo:"Dyson V15 Detect Absolute · Aspirador sin cable con láser", precio_actual:499.00, precio_original:749.00, descuento_pct:33, imagen_url:"https://assets.dyson.com/content/dam/dyson/images/products/primary/394512-01.png", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:520.00, razonamiento:"Casi en mínimos. Dyson V15 con muy alta demanda.", timestamp:new Date(Date.now()-68*60000).toISOString(), deal_score:82, hook:"El Dyson que casi nadie compra al MSRP, finalmente a -33%", social_context:"Volvió a bajar tras semanas alto", emotional_tags:["🔥 Trending", "⚡ Internet Favorite"] },
+    { id:5, tipo:"OFERTA",  tienda:"PrivateSportShop", titulo:"Adidas Terrex Free Hiker 2 · Bota de montaña GORE-TEX", precio_actual:109.00, precio_original:220.00, descuento_pct:50, imagen_url:"", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:0, razonamiento:"50% real en bota técnica de alta gama.", timestamp:new Date(Date.now()-95*60000).toISOString(), deal_score:69, hook:"Las botas de trail que llevan en cada hilo de senderismo", social_context:"Este precio no suele durar más de 48h", emotional_tags:["👀 Hidden Gem", "💸 Parece más caro"] },
+    { id:6, tipo:"REVENTA", tienda:"Amazon", titulo:"Apple AirPods Pro 2ª Gen · USB-C · Cancelación activa de ruido", precio_actual:179.00, precio_original:279.00, descuento_pct:36, imagen_url:"https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MQD83_AV3?wid=1144&hei=1144&fmt=jpeg&qlt=90&.v=1660803972361", url_affiliate:"#", precio_wallapop:220.0, beneficio_neto:28.0, precio_historico_min:189.00, razonamiento:"", timestamp:new Date(Date.now()-130*60000).toISOString(), deal_score:80, hook:"AirPods Pro a precio que casi se hizo viral en TikTok", social_context:"Para los que dudaron la última vez que bajaron", emotional_tags:["⚡ Internet Favorite", "🧠 Smart Buy"] },
+    // ── Low Cost mocks (precio < 25€) ───────────────────────────
+    { id:101, tipo:"OFERTA", tienda:"Amazon", titulo:"Calcetines deportivos Nike Cushioned Crew · Pack 3 pares", precio_actual:14.99, precio_original:24.99, descuento_pct:40, imagen_url:"https://m.media-amazon.com/images/I/61WzAtsoWlL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:14.99, razonamiento:"", timestamp:new Date(Date.now()-15*60000).toISOString(), deal_score:55, hook:"Los calcetines Nike que llevan los runners de Strava", social_context:"En mínimo histórico desde marzo", emotional_tags:["💸 Parece más caro"] },
+    { id:102, tipo:"OFERTA", tienda:"MediaMarkt", titulo:"Cable USB-C Anker PowerLine III · 1.8m · 60W carga rápida", precio_actual:9.99, precio_original:19.99, descuento_pct:50, imagen_url:"https://m.media-amazon.com/images/I/61iJ6gqfmZL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:9.99, razonamiento:"", timestamp:new Date(Date.now()-30*60000).toISOString(), deal_score:60, hook:"El cable USB-C que sobrevive a tres mudanzas", social_context:"Mejor opción si pierdes uno cada mes", emotional_tags:["🧠 Smart Buy", "👀 Hidden Gem"] },
+    { id:103, tipo:"OFERTA", tienda:"Amazon", titulo:"Termo Stanley Classic Trigger Action · 470 ml acero inoxidable", precio_actual:19.95, precio_original:34.95, descuento_pct:43, imagen_url:"https://m.media-amazon.com/images/I/61cLRTPRiML._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:19.95, razonamiento:"", timestamp:new Date(Date.now()-50*60000).toISOString(), deal_score:62, hook:"El termo que aguanta el café caliente hasta la tarde", social_context:"Lo más visto este mes en Decathlon", emotional_tags:["⚡ Internet Favorite"] },
+    { id:104, tipo:"OFERTA", tienda:"Amazon", titulo:"Adaptador HDMI a USB-C · 4K@60Hz · Aluminio compacto", precio_actual:7.99, precio_original:16.99, descuento_pct:53, imagen_url:"https://m.media-amazon.com/images/I/61E70+kV2gL._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:7.99, razonamiento:"", timestamp:new Date(Date.now()-75*60000).toISOString(), deal_score:50, hook:"El adaptador que MacBook debería incluir de fábrica", social_context:"-53% sobre precio normal", emotional_tags:["👀 Hidden Gem"] },
   ];
 
   // ── Reventa popup ─────────────────────────────────────────────
@@ -2203,6 +2437,29 @@
     const razonamiento = (!d.razonamiento || _RAZON_GENERICAS.has(d.razonamiento.trim())) ? "" : d.razonamiento;
     const razonHtml = razonamiento ? `<p class="deal__reason">"${razonamiento}"</p>` : "";
 
+    // ── Discovery layer: tags, hook, social context ──────────────
+    const tags = Array.isArray(d.emotional_tags) ? d.emotional_tags : [];
+    const tagClassFor = (t) => {
+      if (/Trending|Viral|Parece m/i.test(t)) return "deal__tag--hot";
+      if (/Smart|Hidden|Worth/i.test(t))      return "deal__tag--smart";
+      return "";
+    };
+    const tagsHtml = (tags.length && !isExpired) ? `
+      <div class="deal__tags">
+        ${tags.slice(0, 3).map(t => `<span class="deal__tag ${tagClassFor(t)}">${t}</span>`).join("")}
+      </div>` : "";
+
+    const hook         = (d.hook || "").trim();
+    const showHook     = hook.length > 0 && !isExpired;
+    const cleanedTitle = cleanHeroTitle(d.titulo || "");
+    const titleBlock   = showHook
+      ? `<h2 class="deal__hook">${hook}</h2>
+         <p class="deal__title-sub">${cleanedTitle}</p>`
+      : `<h2 class="deal__title">${cleanedTitle}</h2>`;
+
+    const social       = (d.social_context || "").trim();
+    const socialHtml   = (social && !isExpired) ? `<p class="deal__social">${social}</p>` : "";
+
     const dealId    = d.id || "";
     const uVotes    = getUserVotes();
     const uVote     = uVotes[dealId] || null;
@@ -2244,8 +2501,10 @@
     return `
       <article class="deal${d.descuento_pct > 50 ? ' deal--featured' : ''}${isExpired ? ' deal--expirado' : ''}">
         ${imgHtml}
+        ${tagsHtml}
         <p class="deal__store">${d.tienda || ""}</p>
-        <h2 class="deal__title">${d.titulo || ""}</h2>
+        ${titleBlock}
+        ${socialHtml}
         <div class="deal__pricing">
           ${d.precio_original > 0 ? `<span class="deal__original">${fmtPrice(d.precio_original)}</span>` : ""}
           <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
@@ -2254,7 +2513,7 @@
         ${ahorroHtml}
         ${razonHtml}
         <div class="deal__cta">
-          <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver en ${d.tienda || "tienda"} →</a>
+          <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver deal →</a>
         </div>
         ${votesHtml}
         <div class="deal__bottom">
@@ -2284,6 +2543,104 @@
     return activeSort === "recientes" && activeCategory === "todas" && !searchQuery && !activeStore;
   }
 
+  // ── Low Cost banner (rompe ritmo del grid en home) ───────────
+  let _lowcostBannerHtml = "";
+  const LOWCOST_BANNER_AT = 8;  // posición en el grid donde aparece (después de N cards)
+
+  function _renderLowcostBanner(deals) {
+    if (!deals || !deals.length) return "";
+    const mini = (d) => {
+      const url = d.url_affiliate || `${API_BASE}/r/${d.id}?canal=web`;
+      const t   = cleanHeroTitle(d.titulo || "");
+      return `
+        <a href="${url}" target="_blank" rel="noopener sponsored" class="lowcost-banner__deal">
+          ${d.imagen_url
+            ? `<img src="${d.imagen_url}" alt="" loading="lazy" class="lowcost-banner__deal-img" onerror="this.style.display='none'">`
+            : `<div class="lowcost-banner__deal-noimg"></div>`}
+          <p class="lowcost-banner__deal-title">${t}</p>
+          <p class="lowcost-banner__deal-price">
+            ${fmtPrice(d.precio_actual || 0)}
+            ${d.descuento_pct > 0 ? `<span class="lowcost-banner__deal-pct">−${d.descuento_pct}%</span>` : ""}
+          </p>
+        </a>`;
+    };
+    return `
+      <article class="lowcost-banner" aria-label="Low Cost — caprichos bajo 25 euros">
+        <div class="lowcost-banner__header">
+          <div>
+            <p class="lowcost-banner__eyebrow">💸 Low Cost</p>
+            <h3 class="lowcost-banner__title">Caprichos bajo 25 €</h3>
+          </div>
+          <button class="lowcost-banner__cta"
+                  onclick="document.querySelector('.sort-tab[data-sort=&quot;low_cost&quot;]')?.click(); window.scrollTo({top: 0, behavior: 'smooth'});">
+            Ver todos →
+          </button>
+        </div>
+        <div class="lowcost-banner__grid">${deals.slice(0, 4).map(mini).join("")}</div>
+      </article>`;
+  }
+
+  async function loadLowCostBanner() {
+    try {
+      let deals;
+      if (USE_MOCK) {
+        deals = MOCK_DEALS
+          .filter(d => (d.precio_actual || 0) > 0 && (d.precio_actual || 0) < 25)
+          .sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0))
+          .slice(0, 4);
+      } else {
+        const r = await fetch(`${API_URL}?limit=12&max_price=24.99`);
+        if (!r.ok) return;
+        const batch = await r.json();
+        deals = Array.isArray(batch)
+          ? batch.sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0)).slice(0, 4)
+          : [];
+      }
+      if (!deals.length) return;
+      _lowcostBannerHtml = _renderLowcostBanner(deals);
+      // Si el grid ya está renderizado, re-render para inyectar el banner
+      if (allDeals.length > 0) renderGrid();
+    } catch (e) {
+      console.warn("low cost banner load:", e);
+    }
+  }
+
+  // ── Discovery: 🔥 Explotando hoy ──────────────────────────────
+  let _trendingLoaded = false;
+
+  async function loadTrendingSection() {
+    if (_trendingLoaded) return;
+    const grid = document.getElementById("js-trending-grid");
+    if (!grid) return;
+    try {
+      let deals;
+      if (USE_MOCK) {
+        // Top 6 mocks por deal_score — sirve para preview local
+        deals = [...MOCK_DEALS]
+          .filter(d => (d.deal_score || 0) > 0)
+          .sort((a, b) => (b.deal_score || 0) - (a.deal_score || 0))
+          .slice(0, 6);
+      } else {
+        const sectionsUrl = API_URL.replace(/\/deals$/, "/sections");
+        const r = await fetch(`${sectionsUrl}/trending?limit=8`);
+        if (!r.ok) return;
+        deals = await r.json();
+      }
+      if (!Array.isArray(deals) || deals.length === 0) return;
+      grid.innerHTML = deals.map(renderDeal).join("");
+      _trendingLoaded = true;
+      updateDiscoverySections();
+    } catch (e) {
+      console.warn("trending section load:", e);
+    }
+  }
+
+  function updateDiscoverySections() {
+    const section = document.getElementById("js-trending-section");
+    if (!section) return;
+    section.style.display = (_trendingLoaded && shouldShowHero()) ? "" : "none";
+  }
+
   function getDealOfDay(deals) {
     if (!deals.length) return null;
     const todayKey = new Date().toLocaleDateString("es-ES");
@@ -2308,12 +2665,30 @@
   function cleanHeroTitle(raw) {
     if (!raw) return raw;
     let t = raw;
+
+    // ── Pre-clean: SKUs y códigos que NO son modelo ─────────────────
+    // a) "Ref.:", "SKU:", "Art.:", "Cod.", "Modelo:" seguidos de código → fuera
+    t = t.replace(/[\s,()\-—–]*\b(?:ref\.?|sku|art\.?|cod\.?|c[oó]digo|modelo)[:\s\.]+[\w\-\.\/]+/gi, " ");
+    // b) Códigos de región duplicados tipo "IT-IT", "ES-ES", "EU-EU"
+    t = t.replace(/\b([A-Z]{2})[\-_]\1\b/g, "");
+    // c) Códigos SKU con 3+ grupos alfanum. separados por "-" o "_"
+    //    (ej. "BF-IT-IT-256-MX2HT5-V1", "412468-01-EU")
+    t = t.replace(/[\s,\-—–]+[A-Z0-9]{2,}(?:[\-_][A-Z0-9]{2,}){2,}\b/gi, "");
+    // d) Paréntesis con sólo dígitos/códigos cortos (ej. "(412468-01)", "(MX2HT5)")
+    t = t.replace(/\s*\(\s*[A-Z0-9\-_\.]{4,}\s*\)\s*/gi, " ");
+    // e) EAN/UPC de 8+ dígitos en cualquier posición
+    t = t.replace(/\b\d{8,}\b/g, "");
+    // f) Token final tipo SKU: 4+ chars, mezcla letras+dígitos, no es talla/precio
+    t = t.replace(/\s+(?=\S*\d)(?=\S*[A-Z])[A-Z0-9][A-Z0-9\-_]{3,}\s*$/i, "");
+    // g) Códigos 5-7 dígitos sólo si están al FINAL (los del medio suelen ser modelo)
+    t = t.replace(/\s+\d{5,7}\s*$/g, "");
+
     // 1. Trim at 2nd "·" segment — keep brand + product type max
     const segs = t.split(/\s*·\s*/).map(s => s.trim()).filter(s => s.length > 2);
     if (segs.length > 2) t = segs.slice(0, 2).join(" · ");
     else t = segs.join(" · ");
-    // 2. Remove standalone 5+ digit codes (EAN, ref numbers)
-    t = t.replace(/\b\d{5,}\b/g, "");
+    // 2. (mantenido por compatibilidad) — códigos 5+ dígitos sueltos
+    t = t.replace(/\s+\d{5,}\s+/g, " ");
     // 3. Trim at first comma that comes after a long enough base (keeps "Sony WH-1000XM5 Auriculares")
     const ci = t.search(/,\s*/);
     if (ci > 30) t = t.slice(0, ci);
@@ -2328,7 +2703,7 @@
     // 7. Max 72 chars at word boundary
     if (t.length > 72) t = t.slice(0, 72).replace(/\s+\S*$/, "");
     // 8. Cleanup
-    t = t.replace(/\s{2,}/g, " ").trim().replace(/[,\.\s·]+$/, "");
+    t = t.replace(/\s{2,}/g, " ").trim().replace(/[,\.\s·\-—–]+$/, "");
     return t;
   }
 
@@ -2673,6 +3048,7 @@
 
   function renderGrid() {
     updateHero();
+    updateDiscoverySections();
     const grid     = document.getElementById("js-grid");
     const matching = allDeals.filter(d => dealMatchesFilters(d));
     const sorted   = sortDeals(matching);
@@ -2680,10 +3056,20 @@
     if (gridDeals.length === 0 && !hasMore) {
       grid.innerHTML = `<div class="empty">Sin ofertas en esta categoría</div>`;
     } else {
-      grid.innerHTML = gridDeals.map(renderDeal).join("");
+      grid.innerHTML = _injectLowcostBanner(gridDeals.map(renderDeal));
     }
     updateCount();
     if (gridDeals.length < 8 && hasMore && !isLoading) loadMore();
+  }
+
+  function _injectLowcostBanner(cards) {
+    // Sólo en vista home (sin filtros), con suficientes cards y banner cargado.
+    if (!_lowcostBannerHtml || !shouldShowHero() || cards.length <= LOWCOST_BANNER_AT) {
+      return cards.join("");
+    }
+    return cards.slice(0, LOWCOST_BANNER_AT).join("") +
+           _lowcostBannerHtml +
+           cards.slice(LOWCOST_BANNER_AT).join("");
   }
 
   // ── Load more ─────────────────────────────────────────────────
@@ -3087,6 +3473,8 @@
   buildSortTabs();
   initZoom();
   loadMore();
+  loadTrendingSection();
+  loadLowCostBanner();
   setTimeout(preloadStoresForBar, 1500);
 
   if (window.innerWidth <= 700) {

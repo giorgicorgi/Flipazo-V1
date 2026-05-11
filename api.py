@@ -432,6 +432,11 @@ def _ensure_schema():
             "contras         TEXT    DEFAULT '[]'",
             "flags_expirado  INTEGER DEFAULT 0",
             "expirado        INTEGER DEFAULT 0",
+            # Discovery layer
+            "deal_score      INTEGER DEFAULT 0",
+            "hook            TEXT    DEFAULT ''",
+            "social_context  TEXT    DEFAULT ''",
+            "emotional_tags  TEXT    DEFAULT '[]'",
         ]:
             try:
                 con.execute(f"ALTER TABLE deals_publicados ADD COLUMN {col_def}")
@@ -614,9 +619,10 @@ def health():
 def get_deals(
     limit:     int = Query(default=50, ge=1, le=500),
     offset:    int = Query(default=0,  ge=0),
-    tipo:      Optional[str] = Query(default=None, description="OFERTA | ARBITRAJE"),
-    tienda:    Optional[str] = Query(default=None),
-    categoria: Optional[str] = Query(default=None),
+    tipo:      Optional[str]   = Query(default=None, description="OFERTA | ARBITRAJE"),
+    tienda:    Optional[str]   = Query(default=None),
+    categoria: Optional[str]   = Query(default=None),
+    max_price: Optional[float] = Query(default=None, ge=0, description="Filtra deals con precio <= max_price (€)"),
 ):
     """Devuelve deals publicados ordenados del más reciente al más antiguo."""
     where_clauses, params = [], []
@@ -627,6 +633,8 @@ def get_deals(
         where_clauses.append("tienda = ?"); params.append(tienda)
     if categoria:
         where_clauses.append("categoria = ?"); params.append(categoria.lower())
+    if max_price is not None:
+        where_clauses.append("precio <= ?"); params.append(max_price)
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -652,6 +660,10 @@ def get_deals(
             COALESCE(contras,     '[]') AS contras,
             COALESCE(flags_expirado, 0) AS flags_expirado,
             COALESCE(expirado,       0) AS expirado,
+            COALESCE(deal_score,     0) AS deal_score,
+            COALESCE(hook,          '') AS hook,
+            COALESCE(social_context,'') AS social_context,
+            COALESCE(emotional_tags,'[]') AS emotional_tags,
             publicado_en    AS timestamp,
             (SELECT COUNT(*) FROM deal_comments WHERE deal_id = deals_publicados.deal_id) AS comment_count
         FROM deals_publicados
@@ -664,29 +676,116 @@ def get_deals(
     with _get_db() as con:
         rows = con.execute(sql, params).fetchall()
 
-    deals = []
-    for r in rows:
-        d = dict(r)
-        d["precio_actual"]   = d["precio_actual"]   or 0.0
-        d["precio_original"] = d["precio_original"] or 0.0
-        d["descuento_pct"]   = d["descuento_pct"]   or 0
-        d["precio_wallapop"] = d["precio_wallapop"] or 0.0
-        d["beneficio_neto"]  = d["beneficio_neto"]  or 0.0
-        d["imagen_url"]      = d["imagen_url"]       or ""
-        d["razonamiento"]    = d["razonamiento"]     or ""
-        d["votes_up"]        = d["votes_up"]         or 0
-        d["votes_down"]      = d["votes_down"]       or 0
-        d["categoria"]        = d["categoria"]         or ""
-        d["flags_expirado"]   = int(d.get("flags_expirado", 0) or 0)
-        d["expirado"]         = bool(d.get("expirado", 0))
-        d["comment_count"]    = int(d.get("comment_count", 0) or 0)
-        try:    d["pros"]    = json.loads(d["pros"]    or "[]")
-        except: d["pros"]    = []
-        try:    d["contras"] = json.loads(d["contras"] or "[]")
-        except: d["contras"] = []
-        deals.append(d)
-
+    deals = [_normalize_deal_row(r) for r in rows]
     return JSONResponse(content=deals)
+
+
+# ── Normalizer compartido entre /api/deals y /api/sections/* ──────────────────
+
+def _normalize_deal_row(r) -> dict:
+    """Convierte una fila sqlite en dict normalizado para el frontend."""
+    d = dict(r)
+    d["precio_actual"]   = d.get("precio_actual")   or 0.0
+    d["precio_original"] = d.get("precio_original") or 0.0
+    d["descuento_pct"]   = d.get("descuento_pct")   or 0
+    d["precio_wallapop"] = d.get("precio_wallapop") or 0.0
+    d["beneficio_neto"]  = d.get("beneficio_neto")  or 0.0
+    d["imagen_url"]      = d.get("imagen_url")       or ""
+    d["razonamiento"]    = d.get("razonamiento")     or ""
+    d["votes_up"]        = d.get("votes_up")         or 0
+    d["votes_down"]      = d.get("votes_down")       or 0
+    d["categoria"]       = d.get("categoria")        or ""
+    d["flags_expirado"]  = int(d.get("flags_expirado", 0) or 0)
+    d["expirado"]        = bool(d.get("expirado", 0))
+    d["comment_count"]   = int(d.get("comment_count", 0) or 0)
+    d["deal_score"]      = int(d.get("deal_score", 0) or 0)
+    d["hook"]            = d.get("hook")             or ""
+    d["social_context"]  = d.get("social_context")   or ""
+    try:    d["pros"]    = json.loads(d.get("pros")    or "[]")
+    except: d["pros"]    = []
+    try:    d["contras"] = json.loads(d.get("contras") or "[]")
+    except: d["contras"] = []
+    try:    d["emotional_tags"] = json.loads(d.get("emotional_tags") or "[]")
+    except: d["emotional_tags"] = []
+    return d
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DISCOVERY — secciones por emoción
+# ══════════════════════════════════════════════════════════════════════════════
+
+_SECTION_QUERIES = {
+    # 🔥 Explotando hoy — top deal_score últimas 48h
+    "trending": """
+        SELECT *, publicado_en AS timestamp, deal_id AS id, precio AS precio_actual,
+               url_afiliado AS url_affiliate,
+               (SELECT COUNT(*) FROM deal_comments WHERE deal_id = deals_publicados.deal_id) AS comment_count
+        FROM deals_publicados
+        WHERE publicado_en >= datetime('now', '-2 days')
+          AND COALESCE(expirado, 0) = 0
+        ORDER BY deal_score DESC, publicado_en DESC
+        LIMIT ?
+    """,
+    # 👀 Joyas ocultas — alto descuento + low score (marcas poco conocidas)
+    "hidden-gems": """
+        SELECT *, publicado_en AS timestamp, deal_id AS id, precio AS precio_actual,
+               url_afiliado AS url_affiliate,
+               (SELECT COUNT(*) FROM deal_comments WHERE deal_id = deals_publicados.deal_id) AS comment_count
+        FROM deals_publicados
+        WHERE publicado_en >= datetime('now', '-4 days')
+          AND COALESCE(expirado, 0) = 0
+          AND descuento_pct >= 50
+          AND emotional_tags LIKE '%Hidden Gem%'
+        ORDER BY descuento_pct DESC, publicado_en DESC
+        LIMIT ?
+    """,
+    # 🧠 Compras inteligentes — ARBITRAJE con margen real
+    "smart-buy": """
+        SELECT *, publicado_en AS timestamp, deal_id AS id, precio AS precio_actual,
+               url_afiliado AS url_affiliate,
+               (SELECT COUNT(*) FROM deal_comments WHERE deal_id = deals_publicados.deal_id) AS comment_count
+        FROM deals_publicados
+        WHERE publicado_en >= datetime('now', '-4 days')
+          AND COALESCE(expirado, 0) = 0
+          AND tipo = 'ARBITRAJE'
+          AND beneficio_neto >= 25
+        ORDER BY beneficio_neto DESC, publicado_en DESC
+        LIMIT ?
+    """,
+    # 📈 Viral — más clicks últimos 3 días
+    "viral": """
+        SELECT d.*, d.publicado_en AS timestamp, d.deal_id AS id, d.precio AS precio_actual,
+               d.url_afiliado AS url_affiliate,
+               (SELECT COUNT(*) FROM deal_comments WHERE deal_id = d.deal_id) AS comment_count,
+               COUNT(c.id) AS clicks_recientes
+        FROM deals_publicados d
+        LEFT JOIN clicks c ON c.deal_id = d.deal_id
+                          AND c.ts >= datetime('now', '-3 days')
+        WHERE d.publicado_en >= datetime('now', '-7 days')
+          AND COALESCE(d.expirado, 0) = 0
+        GROUP BY d.deal_id
+        HAVING clicks_recientes > 0
+        ORDER BY clicks_recientes DESC, d.deal_score DESC
+        LIMIT ?
+    """,
+}
+
+
+@app.get("/api/sections/{name}")
+def get_section(name: str, limit: int = Query(default=12, ge=1, le=50)):
+    """
+    Devuelve deals para una sección del feed de discovery.
+    Secciones: trending | hidden-gems | smart-buy | viral
+    """
+    sql = _SECTION_QUERIES.get(name)
+    if not sql:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"sección desconocida — disponibles: {list(_SECTION_QUERIES)}"},
+        )
+    with _get_db() as con:
+        rows = con.execute(sql, (limit,)).fetchall()
+    return JSONResponse(content=[_normalize_deal_row(r) for r in rows])
 
 
 @app.get("/api/deals/count")

@@ -24,6 +24,7 @@ from playwright.async_api import async_playwright, BrowserContext, Page
 from affiliate.link_builder import build_affiliate_url
 from scrapers.pss_email import get_pss_event_urls
 from scrapers.tradedoubler_feed import fetch_tradedoubler_productos
+from discovery import calcular_deal_score, asignar_tags, generar_hooks_batch
 
 load_dotenv()
 
@@ -344,6 +345,11 @@ class Producto:
     categoria: str = ""           # "tecnologia" | "herramientas" | "deportes" | etc.
     pros: list = field(default_factory=list)    # Hasta 3 puntos fuertes
     contras: list = field(default_factory=list) # Hasta 2 consideraciones
+    # ── Capa de discovery (poblada en Fase 4.5) ────────────────────────────
+    deal_score:     int  = 0                          # 0-100 ranking discovery
+    hook:           str  = ""                         # Titular emocional Haiku
+    social_context: str  = ""                         # Frase contextual Haiku
+    emotional_tags: list = field(default_factory=list)  # Tags emocionales
 
     @property
     def beneficio_neto(self) -> float:
@@ -2588,6 +2594,11 @@ class DeduplicacionDB:
                 "ALTER TABLE deals_publicados ADD COLUMN categoria       TEXT DEFAULT ''",
                 "ALTER TABLE deals_publicados ADD COLUMN pros            TEXT DEFAULT '[]'",
                 "ALTER TABLE deals_publicados ADD COLUMN contras         TEXT DEFAULT '[]'",
+                # Discovery layer
+                "ALTER TABLE deals_publicados ADD COLUMN deal_score      INTEGER DEFAULT 0",
+                "ALTER TABLE deals_publicados ADD COLUMN hook            TEXT    DEFAULT ''",
+                "ALTER TABLE deals_publicados ADD COLUMN social_context  TEXT    DEFAULT ''",
+                "ALTER TABLE deals_publicados ADD COLUMN emotional_tags  TEXT    DEFAULT '[]'",
             ]:
                 try:
                     con.execute(col_sql)
@@ -2640,8 +2651,9 @@ class DeduplicacionDB:
                        (deal_id, titulo, tienda, precio, tipo, url_afiliado, publicado_en,
                         precio_original, descuento_pct, imagen_url,
                         precio_wallapop, beneficio_neto, razonamiento,
-                        categoria, pros, contras)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        categoria, pros, contras,
+                        deal_score, hook, social_context, emotional_tags)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     _deal_hash(p), p.titulo, p.tienda, p.precio_actual, p.tipo,
                     p.url_affiliate, datetime.now(timezone.utc).isoformat(),
@@ -2650,6 +2662,10 @@ class DeduplicacionDB:
                     cat,
                     json.dumps(p.pros or [], ensure_ascii=False),
                     json.dumps(p.contras or [], ensure_ascii=False),
+                    int(p.deal_score or 0),
+                    p.hook or "",
+                    p.social_context or "",
+                    json.dumps(p.emotional_tags or [], ensure_ascii=False),
                 ),
             )
             # Registrar precio en historial propio (un registro por día y tienda)
@@ -2957,6 +2973,17 @@ async def run_pipeline(modo: str = "completo"):
             omitidos = len(deals_finales) - len(deals_nuevos)
             if omitidos:
                 print(f"   ⏭️  {omitidos} deal(s) ya publicados en las últimas {DEDUP_TTL_HORAS}h — omitidos")
+
+            # ── Fase 4.7: Discovery enrichment (Deal Score + Tags + Hooks) ──
+            # Solo enriquecemos deals que se van a publicar — evita gasto Haiku innecesario.
+            if deals_nuevos:
+                for p in deals_nuevos:
+                    p.deal_score     = calcular_deal_score(p, age_hours=0.0)  # frescura máx, recién publicado
+                    p.emotional_tags = asignar_tags(p, p.deal_score)
+                try:
+                    await generar_hooks_batch(deals_nuevos)
+                except Exception as e:
+                    print(f"⚠️  Discovery enrichment falló: {e}")
 
             print(f"\n📢 Publicando {len(deals_nuevos)} deals nuevos en Telegram...")
             publicados = 0
