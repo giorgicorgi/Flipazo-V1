@@ -844,7 +844,8 @@
     async function showDashboard() {
       document.getElementById('view-auth').style.display = 'none';
       const dash = document.getElementById('view-dashboard');
-      dash.style.display = '';
+      // Display explícito (la regla CSS por defecto es display:none)
+      dash.style.display = 'block';
 
       const token = getToken();
       if (!token) { logout(); return; }
