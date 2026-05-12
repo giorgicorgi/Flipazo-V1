@@ -898,7 +898,7 @@ _MARCAS_ROPA = frozenset([
 ])
 
 
-def _es_producto_valido(titulo: str, descuento_pct: int = 0) -> bool:
+def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "") -> bool:
     titulo = (titulo or "").strip()
     # Filtro de longitud: títulos demasiado cortos suelen ser sólo marca o imagen rota
     # (ej. "Cacharel" como single token → referencia inflada; "picture" → scrape roto)
@@ -910,7 +910,8 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0) -> bool:
     if _TALLA_RE.search(titulo):
         return False
     # Ropa de moda/deporte: solo si marca conocida + descuento real ≥50%
-    if any(r in t for r in _PALABRAS_ROPA):
+    # Excepción: Barrabés vende exclusivamente marcas premium outdoor — umbral plano 40%
+    if tienda != "Barrabes" and any(r in t for r in _PALABRAS_ROPA):
         if descuento_pct < 50 or not any(m in t for m in _MARCAS_ROPA):
             return False
     # Cecotec: marca de gama baja con precios de referencia inflados — solo descuentos fuertes
@@ -1830,7 +1831,7 @@ async def scrape_barrabes(context: BrowserContext) -> list[Producto]:
 
                         if not _precio_aceptable(precio_actual, descuento):
                             continue
-                        if not _es_producto_valido(titulo, descuento):
+                        if not _es_producto_valido(titulo, descuento, tienda="Barrabes"):
                             continue
 
                         imagen = item.get("imagen", "")
