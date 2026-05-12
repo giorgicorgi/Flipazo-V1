@@ -345,6 +345,8 @@ class Producto:
     categoria: str = ""           # "tecnologia" | "herramientas" | "deportes" | etc.
     pros: list = field(default_factory=list)    # Hasta 3 puntos fuertes
     contras: list = field(default_factory=list) # Hasta 2 consideraciones
+    # ── Stock (solo feeds TD con datos de inventario) ──────────────────────
+    stock_qty: int = 0    # unidades en stock; 0 = desconocido
     # ── Capa de discovery (poblada en Fase 4.5) ────────────────────────────
     deal_score:     int  = 0                          # 0-100 ranking discovery
     hook:           str  = ""                         # Titular emocional Haiku
@@ -2604,6 +2606,7 @@ class DeduplicacionDB:
                 "ALTER TABLE deals_publicados ADD COLUMN hook            TEXT    DEFAULT ''",
                 "ALTER TABLE deals_publicados ADD COLUMN social_context  TEXT    DEFAULT ''",
                 "ALTER TABLE deals_publicados ADD COLUMN emotional_tags  TEXT    DEFAULT '[]'",
+                "ALTER TABLE deals_publicados ADD COLUMN stock_qty       INTEGER DEFAULT 0",
             ]:
                 try:
                     con.execute(col_sql)
@@ -2657,8 +2660,9 @@ class DeduplicacionDB:
                         precio_original, descuento_pct, imagen_url,
                         precio_wallapop, beneficio_neto, razonamiento,
                         categoria, pros, contras,
-                        deal_score, hook, social_context, emotional_tags)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        deal_score, hook, social_context, emotional_tags,
+                        stock_qty)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     _deal_hash(p), p.titulo, p.tienda, p.precio_actual, p.tipo,
                     p.url_affiliate, datetime.now(timezone.utc).isoformat(),
@@ -2671,6 +2675,7 @@ class DeduplicacionDB:
                     p.hook or "",
                     p.social_context or "",
                     json.dumps(p.emotional_tags or [], ensure_ascii=False),
+                    int(p.stock_qty or 0),
                 ),
             )
             # Registrar precio en historial propio (un registro por día y tienda)

@@ -6,6 +6,7 @@ Tiendas activas:
   PCBox ES       fid=50247  PreviousPrice = precio ref. regulado (monitores, cajas, componentes)
   Esdemarca ES   fid=116972 PreviousPRICE = precio ref. — solo marcas premium, descuento ≥60%
   Toni Pons ES   fid=118025 PreviousPRICE = precio ref. — alpargatas/calzado mujer, descuento ≥40%
+  Desigual ES    fid=256429 estructura INVERTIDA: priceHistory[0] = precio original, fields["Sale price"] = precio rebajado
 
 Tiendas desactivadas:
   Beep ES        fid=51903  PreviousPrice = MSRP fabricante, no precio 30d → falsos descuentos
@@ -360,6 +361,9 @@ def _filtrar_toni_pons(raw: list[dict], precio_minimo: float, precio_maximo: flo
                 continue
             vistos.add(clave)
 
+            stock_raw = _get_field(fields_raw, "sell_on_google_quantity")
+            stock_qty = int(stock_raw) if stock_raw.isdigit() else 0
+
             resultado.append({
                 "titulo":          titulo,
                 "asin":            offer.get("productUrl", ""),
@@ -367,6 +371,109 @@ def _filtrar_toni_pons(raw: list[dict], precio_minimo: float, precio_maximo: flo
                 "precio_original": precio_original,
                 "descuento_pct":   descuento_pct,
                 "tienda":          "Toni Pons",
+                "imagen_url":      ((item.get("productImage") or {}).get("url") or ""),
+                "stock_qty":       stock_qty,
+            })
+        except Exception:
+            continue
+
+    return resultado
+
+
+# ---------------------------------------------------------------------------
+# Constantes Desigual
+# ---------------------------------------------------------------------------
+
+_DESIGUAL_DESCUENTO_MIN = 40
+_DESIGUAL_PRECIO_MIN    = 25.0
+_DESIGUAL_PRECIO_MAX    = 300.0  # calzado y bolsos Desigual raramente superan los 300€
+
+# Ropa básica que se descarta (búsqueda en título lowercase)
+_DESIGUAL_EXCLUIR = [
+    "camiseta", "camisetas", "t-shirt",
+    "blusa", "blusas",
+    "vestido", "vestidos",
+    "pantalón", "pantalones",
+    "vaquero", "vaqueros",
+    "sudadera", "sudaderas", "hoodie",
+    "mono de", "mono para", "jumpsuit",
+    "calcetín", "calcetines",
+    "pijama", "pijamas",
+    "ropa interior", "bañador", "bikini",
+    "leggings", "leggins", "mallas",
+]
+
+
+def _clave_dedup_desigual(titulo: str) -> str:
+    """Agrupa tallas del mismo modelo: elimina tamaño numérico final (ej. ', 39')."""
+    return re.sub(r',\s*\d{2}\s*$', '', titulo)[:70].lower()
+
+
+def _filtrar_desigual(raw: list[dict], precio_minimo: float, precio_maximo: float) -> list[dict]:
+    """
+    Filtro para Desigual outlet.
+
+    Estructura de precio INVERTIDA respecto a otros feeds TD:
+      - priceHistory[0].price.value = precio original (precio RRP del artículo)
+      - fields["Sale price"]        = precio actual rebajado en outlet
+
+    Se excluye ropa básica; se permiten calzado, bolsos, accesorios y prendas exteriores.
+    """
+    resultado: list[dict] = []
+    vistos: set[str] = set()
+
+    for item in raw:
+        try:
+            titulo = (item.get("name") or "").strip()
+            if not titulo or len(titulo) < 8:
+                continue
+
+            titulo_lower = titulo.lower()
+            if any(excl in titulo_lower for excl in _DESIGUAL_EXCLUIR):
+                continue
+
+            offers = item.get("offers") or []
+            if not offers:
+                continue
+            offer = offers[0]
+
+            # Estructura invertida: priceHistory = precio original, "Sale price" = rebajado
+            price_history = offer.get("priceHistory") or []
+            precio_original = _parse_precio(
+                (price_history[0].get("price") or {}).get("value") if price_history else None
+            )
+
+            fields_raw = item.get("fields", {})
+            precio_actual = _parse_precio(_get_field(fields_raw, "Sale price"))
+
+            if not precio_actual or not precio_original:
+                continue
+            if not (_DESIGUAL_PRECIO_MIN <= precio_actual <= _DESIGUAL_PRECIO_MAX):
+                continue
+            if precio_original <= precio_actual:
+                continue
+
+            descuento_pct = int((1 - precio_actual / precio_original) * 100)
+            if descuento_pct < _DESIGUAL_DESCUENTO_MIN:
+                continue
+
+            # Algunos productos TD de Desigual no tienen availability — se permite vacío
+            disponibilidad = (offer.get("availability") or "").lower()
+            if disponibilidad and disponibilidad not in ("in stock", "available", "en stock"):
+                continue
+
+            clave = _clave_dedup_desigual(titulo)
+            if clave in vistos:
+                continue
+            vistos.add(clave)
+
+            resultado.append({
+                "titulo":          titulo,
+                "asin":            offer.get("productUrl", ""),
+                "precio_actual":   precio_actual,
+                "precio_original": precio_original,
+                "descuento_pct":   descuento_pct,
+                "tienda":          "Desigual",
                 "imagen_url":      ((item.get("productImage") or {}).get("url") or ""),
             })
         except Exception:
@@ -381,6 +488,7 @@ _FEEDS = [
     {"tienda": "PCBox",      "fid": "50247",  "filtrar_fn": None},
     {"tienda": "Esdemarca",  "fid": "116972", "filtrar_fn": _filtrar_esdemarca},
     {"tienda": "Toni Pons",  "fid": "118025", "filtrar_fn": _filtrar_toni_pons},
+    {"tienda": "Desigual",   "fid": "256429", "filtrar_fn": _filtrar_desigual},
     # Beep: PreviousPrice es MSRP fabricante, no precio 30d → falsos descuentos sistemáticos.
     # {"tienda": "Beep", "fid": "51903", "filtrar_fn": None},
     # ToysRus: feed sin precio original → descuento incalculable.

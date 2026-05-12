@@ -1204,6 +1204,10 @@
       color: var(--teal); background: rgba(20,193,174,0.08);
       border-color: rgba(20,193,174,0.30);
     }
+    .deal__tag--stock {
+      color: #b45309; background: rgba(245,158,11,0.10);
+      border-color: rgba(245,158,11,0.35);
+    }
     .deal__hook {
       font-family: var(--serif); font-weight: 700;
       font-size: 16px; line-height: 1.3;
@@ -2367,7 +2371,7 @@
     { id: "hogar",        label: "Hogar",         test: d => _RX.hogar.test(d.titulo) },
     { id: "belleza",      label: "Belleza",       test: d => _RX.belleza.test(d.titulo) },
     { id: "juguetes",     label: "Juguetes",      test: d => _RX.juguetes.test(d.titulo) },
-    { id: "moda",         label: "Moda",          test: d => _RX.moda.test(d.titulo) },
+    { id: "moda",         label: "Moda",          test: d => _RX.moda.test(d.titulo) || d.tienda === "Desigual" },
   ];
 
   function dealMatchesCategory(deal, catId) {
@@ -2588,10 +2592,18 @@
       if (/Smart|Hidden|Worth/i.test(t))      return "deal__tag--smart";
       return "";
     };
-    const tagsHtml = (tags.length && !isExpired) ? `
-      <div class="deal__tags">
-        ${tags.slice(0, 3).map(t => `<span class="deal__tag ${tagClassFor(t)}">${t}</span>`).join("")}
-      </div>` : "";
+    const stockQty  = d.stock_qty || 0;
+    const stockLabel = stockQty === 1 ? "⏳ Última unidad"
+                     : stockQty <= 3  ? `⏳ Solo quedan ${stockQty}`
+                     : stockQty <= 5  ? "⏳ Pocas unidades"
+                     : null;
+    const stockTagHtml = (stockLabel && !isExpired)
+      ? `<span class="deal__tag deal__tag--stock">${stockLabel}</span>` : "";
+    const allTagsHtml = [...tags.slice(0, 3).map(t =>
+      `<span class="deal__tag ${tagClassFor(t)}">${t}</span>`
+    ), stockTagHtml].filter(Boolean).join("");
+    const tagsHtml = (allTagsHtml && !isExpired) ? `
+      <div class="deal__tags">${allTagsHtml}</div>` : "";
 
     const hook         = (d.hook || "").trim();
     const showHook     = hook.length > 0 && !isExpired;
@@ -2949,7 +2961,7 @@
       hero.style.display = "none"; heroMode = false; _heroId = null; return;
     }
     // Excluir tiendas con catálogo de "outlet permanente" que no aportan al hero
-    const HERO_BLACKLIST = new Set(["Esdemarca"]);
+    const HERO_BLACKLIST = new Set(["Esdemarca", "Desigual"]);
     const eligible = allDeals.filter(d =>
       (d.precio_actual || 0) >= 25 && !HERO_BLACKLIST.has(d.tienda)
     );

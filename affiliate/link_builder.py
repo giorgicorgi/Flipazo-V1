@@ -14,6 +14,7 @@ Soporta:
   - ToysRus ES          → Tradedoubler deep link
   - Esdemarca ES        → URL feed TD (ya incluye tracking — fallthrough)
   - Toni Pons ES        → URL feed TD (ya incluye tracking — fallthrough)
+  - Desigual ES         → URL feed TD (ya incluye tracking — fallthrough)
 
 Si faltan credenciales devuelve la URL directa (el pipeline sigue funcionando).
 """
