@@ -1936,7 +1936,14 @@
     }
     #js-filter-fab svg { width: 18px; height: 18px; color: var(--ink); }
     #js-filter-fab:active { transform: scale(0.88); }
-    @media (max-width: 767px) { #js-filter-fab { display: flex; } }
+    @media (max-width: 767px) {
+      #js-filter-fab {
+        display: flex;
+        top: 120px; left: 14px;
+        bottom: auto; right: auto;
+        z-index: 151;
+      }
+    }
     @media (min-width: 768px) { #js-filter-fab { display: none !important; } }
 
     /* Backdrop */
@@ -4005,6 +4012,16 @@
                onclick="fpanelSelectSort('${s.id}')">${s.label}</button>`
     ).join("");
   }
+
+  function _positionFab() {
+    if (window.innerWidth > 767) return;
+    const inner = document.querySelector('.site-header__inner');
+    const fab   = document.getElementById('js-filter-fab');
+    if (!inner || !fab) return;
+    fab.style.top = (inner.offsetHeight + 6) + 'px';
+  }
+  window.addEventListener('load',   _positionFab);
+  window.addEventListener('resize', _positionFab);
 
   function toggleFilterPanel() {
     const panel    = document.getElementById("js-filter-panel");
