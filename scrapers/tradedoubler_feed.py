@@ -306,7 +306,7 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
 # Constantes Toni Pons
 # ---------------------------------------------------------------------------
 
-_TONI_PONS_DESCUENTO_MIN = 40
+_TONI_PONS_DESCUENTO_MIN = 60
 _TONI_PONS_PRECIO_MIN    = 25.0
 _TONI_PONS_PRECIO_MAX    = 200.0   # alpargatas raramente superan los 200€
 
@@ -384,7 +384,7 @@ def _filtrar_toni_pons(raw: list[dict], precio_minimo: float, precio_maximo: flo
 # Constantes Desigual
 # ---------------------------------------------------------------------------
 
-_DESIGUAL_DESCUENTO_MIN = 40
+_DESIGUAL_DESCUENTO_MIN = 60
 _DESIGUAL_PRECIO_MIN    = 25.0
 _DESIGUAL_PRECIO_MAX    = 300.0  # calzado y bolsos Desigual raramente superan los 300€
 
@@ -528,7 +528,7 @@ def fetch_tradedoubler_productos(
             filtrados = filtrar_fn(raw, precio_minimo, precio_maximo)
         else:
             filtrados = _filtrar(raw, tienda, descuento_minimo, precio_minimo, precio_maximo)
-        desc_min_map = {"Esdemarca": _ESDEMARCA_DESCUENTO_MIN, "Toni Pons": _TONI_PONS_DESCUENTO_MIN}
+        desc_min_map = {"Esdemarca": _ESDEMARCA_DESCUENTO_MIN, "Toni Pons": _TONI_PONS_DESCUENTO_MIN, "Desigual": _DESIGUAL_DESCUENTO_MIN}
         desc_min = desc_min_map.get(tienda, descuento_minimo)
         print(f"      → {len(raw)} descargados, {len(filtrados)} con ≥{desc_min}% descuento")
         todos.extend(filtrados)
