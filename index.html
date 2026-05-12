@@ -1243,150 +1243,6 @@
       color: var(--text-body);
     }
 
-    /* ── Low Cost banner (rompe el ritmo del grid) ─────────────── */
-    .lowcost-banner {
-      /* Respeta el zoom: span 2 si hay >= 2 cols, sino 1. min() es soportado por todos los navegadores modernos. */
-      grid-column: span min(2, var(--grid-cols, 4));
-      background: linear-gradient(135deg, #FFF7E6 0%, #FFE8D5 100%);
-      border: 1px solid #F4D7AC;
-      border-radius: var(--card-radius);
-      padding: 20px 22px;
-      display: flex; flex-direction: column; gap: 14px;
-      box-shadow: var(--card-shadow);
-    }
-    .lowcost-banner__header {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; flex-wrap: wrap;
-    }
-    .lowcost-banner__eyebrow {
-      font-family: var(--sans); font-size: 10px; font-weight: 900;
-      letter-spacing: 0.16em; text-transform: uppercase;
-      color: #C2410C; margin: 0 0 2px;
-    }
-    .lowcost-banner__title {
-      font-family: var(--serif); font-weight: 900;
-      font-size: 22px; line-height: 1.1;
-      color: #1F2937; margin: 0;
-      letter-spacing: -0.01em;
-    }
-    .lowcost-banner__cta {
-      background: #C2410C; color: #fff;
-      font-family: var(--sans); font-size: 11px; font-weight: 800;
-      letter-spacing: 0.06em; text-transform: uppercase;
-      padding: 9px 16px; border-radius: 9999px;
-      border: none; cursor: pointer;
-      transition: transform 0.15s, background 0.15s;
-    }
-    .lowcost-banner__cta:hover { background: #9A3412; transform: translateY(-1px); }
-    /* ── Banner Low Cost: 3 páginas con scroll lateral ──────────── */
-    .lowcost-banner__scroller {
-      display: flex;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-      gap: 0;
-    }
-    .lowcost-banner__scroller::-webkit-scrollbar { display: none; }
-    .lowcost-banner__page {
-      flex: 0 0 100%;
-      scroll-snap-align: start;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-auto-rows: 1fr;
-      gap: 10px;
-    }
-    .lowcost-banner__dots {
-      display: flex; justify-content: center; align-items: center;
-      gap: 8px; margin-top: 4px;
-    }
-    .lowcost-banner__dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: rgba(194,65,12,0.22);
-      border: none; cursor: pointer;
-      padding: 0;
-      transition: background 0.18s, transform 0.18s, width 0.18s;
-    }
-    .lowcost-banner__dot--active {
-      background: #C2410C; transform: scale(1.25);
-      width: 22px; border-radius: 4px;
-    }
-    .lowcost-banner__deal {
-      display: flex; flex-direction: column; gap: 4px;
-      background: #fff; border: 1px solid #F4D7AC;
-      border-radius: 10px; padding: 10px;
-      text-decoration: none; color: var(--ink);
-      transition: transform 0.15s, box-shadow 0.15s;
-      overflow: hidden;
-    }
-    .lowcost-banner__deal:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 18px rgba(194,65,12,0.18);
-    }
-    .lowcost-banner__deal-img {
-      width: 100%; aspect-ratio: 1 / 1;
-      object-fit: contain;
-      background: #fff; border-radius: 6px;
-      mix-blend-mode: multiply;
-    }
-    .lowcost-banner__deal-noimg {
-      width: 100%; aspect-ratio: 1 / 1;
-      background: #FFF7E6; border-radius: 6px;
-    }
-    .lowcost-banner__deal-title {
-      font-family: var(--sans); font-size: 11px; font-weight: 600;
-      line-height: 1.3; color: var(--ink);
-      margin: 4px 0 0;
-      display: -webkit-box; -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical; overflow: hidden;
-    }
-    .lowcost-banner__deal-price {
-      font-family: var(--sans); font-weight: 900;
-      font-size: 16px; color: #C2410C;
-      margin: 0; display: flex; align-items: baseline; gap: 6px;
-    }
-    .lowcost-banner__deal-pct {
-      font-size: 10px; font-weight: 800; color: var(--brand);
-    }
-    /* Tile "Ver más" — última posición de la página 3 */
-    .lowcost-banner__more {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #C2410C 0%, #9A3412 100%);
-      color: #fff; border-radius: 10px; padding: 16px 10px;
-      text-decoration: none; text-align: center;
-      font-family: var(--sans); font-weight: 800; font-size: 12px;
-      line-height: 1.3; letter-spacing: 0.02em;
-      transition: transform 0.15s, box-shadow 0.15s;
-      gap: 6px;
-      border: 1px solid #9A3412;
-    }
-    .lowcost-banner__more:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 22px rgba(194,65,12,0.30);
-    }
-    .lowcost-banner__more-arrow {
-      font-size: 28px; line-height: 1; font-weight: 400;
-    }
-    [data-theme="dark"] .lowcost-banner {
-      background: linear-gradient(135deg, #2A1E10 0%, #3A2814 100%);
-      border-color: #5C3A1A;
-    }
-    [data-theme="dark"] .lowcost-banner__title { color: #FEE9CB; }
-    [data-theme="dark"] .lowcost-banner__deal {
-      background: #1F2937; border-color: #5C3A1A;
-      color: var(--ink);
-    }
-    [data-theme="dark"] .lowcost-banner__deal-img { mix-blend-mode: normal; }
-    @media (max-width: 900px) {
-      .lowcost-banner__page { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    }
-    @media (max-width: 700px) {
-      .lowcost-banner { grid-column: 1 / -1; padding: 14px 16px; }
-      .lowcost-banner__title { font-size: 18px; }
-      .lowcost-banner__page { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-      .lowcost-banner__deal { padding: 8px; }
-    }
 
     /* ── Paywall ─────────────────────────────────────────────────── */
     #paywall-overlay {
@@ -2587,7 +2443,8 @@
                      : null;
     const stockTagHtml = (stockLabel && !isExpired)
       ? `<span class="deal__tag deal__tag--stock">${stockLabel}</span>` : "";
-    const allTagsHtml = [...tags.slice(0, 3).map(t =>
+    const meaningfulTags = tags.filter(t => !t.includes("Worth Watching"));
+    const allTagsHtml = [...meaningfulTags.slice(0, 1).map(t =>
       `<span class="deal__tag ${tagClassFor(t)}">${t}</span>`
     ), stockTagHtml].filter(Boolean).join("");
     const tagsHtml = (allTagsHtml && !isExpired) ? `
@@ -2685,128 +2542,6 @@
 
   function shouldShowHero() {
     return activeSort === "recientes" && activeCategory === "todas" && !searchQuery && !activeStore;
-  }
-
-  // ── Low Cost banner (rompe ritmo del grid en home) ───────────
-  let _lowcostBannerHtml = "";
-  const LOWCOST_BANNER_AT = 8;       // posición en el grid donde aparece
-  const LOWCOST_PAGES     = 3;       // páginas con scroll lateral
-  const LOWCOST_PER_PAGE  = 6;       // mini-deals por página (3 cols × 2 rows en desktop)
-
-  function _renderLowcostBanner(deals) {
-    if (!deals || !deals.length) return "";
-
-    const mini = (d) => {
-      const url = d.url_affiliate || `${API_BASE}/r/${d.id}?canal=web`;
-      const t   = cleanHeroTitle(d.titulo || "");
-      return `
-        <a href="${url}" target="_blank" rel="noopener sponsored" class="lowcost-banner__deal">
-          ${d.imagen_url
-            ? `<img src="${d.imagen_url}" alt="" loading="lazy" class="lowcost-banner__deal-img" onerror="this.style.display='none'">`
-            : `<div class="lowcost-banner__deal-noimg"></div>`}
-          <p class="lowcost-banner__deal-title">${t}</p>
-          <p class="lowcost-banner__deal-price">
-            ${fmtPrice(d.precio_actual || 0)}
-            ${d.descuento_pct > 0 ? `<span class="lowcost-banner__deal-pct">−${d.descuento_pct}%</span>` : ""}
-          </p>
-        </a>`;
-    };
-
-    const moreTile = `
-      <a href="javascript:void(0)" class="lowcost-banner__more"
-         onclick="document.querySelector('.sort-tab[data-sort=&quot;low_cost&quot;]')?.click(); window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
-        <span>Ver más<br>deals low cost</span>
-        <span class="lowcost-banner__more-arrow">→</span>
-      </a>`;
-
-    const pages = [];
-    for (let p = 0; p < LOWCOST_PAGES; p++) {
-      const start = p * LOWCOST_PER_PAGE;
-      let slice   = deals.slice(start, start + LOWCOST_PER_PAGE);
-      let inner;
-      if (p === LOWCOST_PAGES - 1) {
-        // En la última página: hasta PER_PAGE-1 deals + tile "Ver más"
-        slice = slice.slice(0, LOWCOST_PER_PAGE - 1);
-        inner = slice.map(mini).join("") + moreTile;
-      } else {
-        inner = slice.map(mini).join("");
-      }
-      pages.push(`<div class="lowcost-banner__page">${inner}</div>`);
-    }
-
-    const dots = Array.from({length: LOWCOST_PAGES}, (_, i) =>
-      `<button class="lowcost-banner__dot${i === 0 ? ' lowcost-banner__dot--active' : ''}"
-               data-page="${i}" aria-label="Página ${i + 1} de ${LOWCOST_PAGES}"></button>`
-    ).join("");
-
-    return `
-      <article class="lowcost-banner" aria-label="Low Cost — caprichos bajo 25 euros">
-        <div class="lowcost-banner__header">
-          <div>
-            <p class="lowcost-banner__eyebrow">💸 Low Cost</p>
-            <h3 class="lowcost-banner__title">Caprichos bajo 25 €</h3>
-          </div>
-          <button class="lowcost-banner__cta"
-                  onclick="document.querySelector('.sort-tab[data-sort=&quot;low_cost&quot;]')?.click(); window.scrollTo({top: 0, behavior: 'smooth'});">
-            Ver todos →
-          </button>
-        </div>
-        <div class="lowcost-banner__scroller" data-lowcost-scroller>${pages.join("")}</div>
-        <div class="lowcost-banner__dots" data-lowcost-dots>${dots}</div>
-      </article>`;
-  }
-
-  function _initLowcostBannerInteractivity() {
-    // Puede haber re-renders del grid; buscamos el scroller actual
-    const scroller = document.querySelector("[data-lowcost-scroller]");
-    const dotsBar  = document.querySelector("[data-lowcost-dots]");
-    if (!scroller || !dotsBar) return;
-    if (scroller.dataset._lcInit === "1") return;  // ya inicializado
-    scroller.dataset._lcInit = "1";
-
-    const dots = dotsBar.querySelectorAll(".lowcost-banner__dot");
-
-    dots.forEach(dot => {
-      dot.addEventListener("click", () => {
-        const page = parseInt(dot.dataset.page, 10) || 0;
-        scroller.scrollTo({ left: page * scroller.clientWidth, behavior: "smooth" });
-      });
-    });
-
-    let scrollDebounce;
-    scroller.addEventListener("scroll", () => {
-      clearTimeout(scrollDebounce);
-      scrollDebounce = setTimeout(() => {
-        const idx = Math.round(scroller.scrollLeft / scroller.clientWidth);
-        dots.forEach((d, i) => d.classList.toggle("lowcost-banner__dot--active", i === idx));
-      }, 60);
-    }, { passive: true });
-  }
-
-  async function loadLowCostBanner() {
-    try {
-      const need = LOWCOST_PAGES * LOWCOST_PER_PAGE;  // 18
-      let deals;
-      if (USE_MOCK) {
-        deals = MOCK_DEALS
-          .filter(d => (d.precio_actual || 0) > 0 && (d.precio_actual || 0) < 25)
-          .sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0))
-          .slice(0, need);
-      } else {
-        const r = await fetch(`${API_URL}?limit=40&max_price=24.99`);
-        if (!r.ok) return;
-        const batch = await r.json();
-        deals = Array.isArray(batch)
-          ? batch.sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0)).slice(0, need)
-          : [];
-      }
-      if (deals.length < LOWCOST_PER_PAGE) return;  // necesitamos al menos 1 página llena
-      _lowcostBannerHtml = _renderLowcostBanner(deals);
-      // Si el grid ya está renderizado, re-render para inyectar el banner
-      if (allDeals.length > 0) renderGrid();
-    } catch (e) {
-      console.warn("low cost banner load:", e);
-    }
   }
 
   function getDealOfDay(deals) {
@@ -3227,24 +2962,12 @@
     if (gridDeals.length === 0 && !hasMore) {
       grid.innerHTML = `<div class="empty">Sin ofertas en esta categoría</div>`;
     } else {
-      grid.innerHTML = _injectLowcostBanner(gridDeals.map(renderDeal));
+      grid.innerHTML = gridDeals.map(renderDeal).join("");
     }
     updateCount();
     if (gridDeals.length < 8 && hasMore && !isLoading) loadMore();
   }
 
-  function _injectLowcostBanner(cards) {
-    // Sólo en vista home (sin filtros), con suficientes cards y banner cargado.
-    if (!_lowcostBannerHtml || !shouldShowHero() || cards.length <= LOWCOST_BANNER_AT) {
-      return cards.join("");
-    }
-    const html = cards.slice(0, LOWCOST_BANNER_AT).join("") +
-                 _lowcostBannerHtml +
-                 cards.slice(LOWCOST_BANNER_AT).join("");
-    // Init scroll/dots tras el siguiente paint
-    requestAnimationFrame(_initLowcostBannerInteractivity);
-    return html;
-  }
 
   // ── Load more ─────────────────────────────────────────────────
   async function loadMore() {
@@ -3676,7 +3399,6 @@
   buildSortTabs();
   initZoom();
   loadMore();
-  loadLowCostBanner();
   setTimeout(preloadStoresForBar, 1500);
 
   if (window.innerWidth <= 700) {
