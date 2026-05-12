@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
-  <!-- Páginas principales -->
+  <!-- ── Páginas principales ── -->
   <url>
     <loc>https://flipazo.es/</loc>
     <lastmod>2026-05-12</lastmod>
@@ -18,78 +18,15 @@
     <loc>https://flipazo.es/blog</loc>
     <lastmod>2026-05-12</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://flipazo.es/cuenta</loc>
-    <lastmod>2026-05-12</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.7</priority>
   </url>
 
-  <!-- Artículos de blog -->
-  <url>
-    <loc>https://flipazo.es/blog/que-es-un-chollo-de-verdad</loc>
-    <lastmod>2026-05-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://flipazo.es/blog/como-saber-si-una-oferta-es-real</loc>
-    <lastmod>2026-05-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://flipazo.es/blog/mejores-canales-ofertas-espana-2025</loc>
-    <lastmod>2026-05-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://flipazo.es/blog/amazon-precio-historico-como-verificarlo</loc>
-    <lastmod>2026-05-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://flipazo.es/blog/que-significa-descuento-real</loc>
-    <lastmod>2026-05-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://flipazo.es/blog/por-que-ponen-el-precio-tachado</loc>
-    <lastmod>2026-05-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://flipazo.es/blog/efecto-black-friday-como-suben-precios</loc>
-    <lastmod>2026-05-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://flipazo.es/blog/precio-referencia-vs-precio-real</loc>
-    <lastmod>2026-05-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://flipazo.es/blog/compre-productos-vendi-wallapop-esto-gane</loc>
-    <lastmod>2026-05-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://flipazo.es/blog/ofertas-que-desaparecen-en-horas</loc>
-    <lastmod>2026-05-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
+  <!-- ── Artículos de blog ──────────────────────────────────────
+       Añadir aquí cada artículo cuando tenga contenido completo.
+       Google penaliza las páginas "thin content" (solo resumen).
+  ─────────────────────────────────────────────────────────────── -->
 
-  <!-- Páginas legales (noindex en HTML, excluidas de indexación activa) -->
+  <!-- ── Páginas legales (noindex en HTML) ── -->
   <url>
     <loc>https://flipazo.es/privacidad.html</loc>
     <changefreq>yearly</changefreq>
