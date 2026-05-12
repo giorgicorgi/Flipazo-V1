@@ -1917,6 +1917,106 @@
       0%   { background-position: -200% 0; }
       100% { background-position:  200% 0; }
     }
+
+    /* ── MOBILE FILTER FAB + PANEL ─────────────────────────────── */
+    @media (max-width: 767px) {
+      /* Ocultamos el bloque de filtros del header en móvil */
+      #js-filter-block { display: none !important; }
+    }
+    /* FAB circular flotante */
+    #js-filter-fab {
+      display: none;
+      position: fixed; right: 16px; bottom: 28px;
+      width: 46px; height: 46px; border-radius: 50%;
+      background: var(--card-bg); border: 1.5px solid var(--border);
+      box-shadow: 0 4px 18px rgba(0,0,0,.20);
+      align-items: center; justify-content: center;
+      cursor: pointer; z-index: 52;
+      transition: transform 150ms, box-shadow 150ms;
+    }
+    #js-filter-fab svg { width: 18px; height: 18px; color: var(--ink); }
+    #js-filter-fab:active { transform: scale(0.88); }
+    @media (max-width: 767px) { #js-filter-fab { display: flex; } }
+    @media (min-width: 768px) { #js-filter-fab { display: none !important; } }
+
+    /* Backdrop */
+    #js-filter-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.40); z-index: 50;
+    }
+    #js-filter-backdrop.open { display: block; }
+
+    /* Panel deslizante desde abajo */
+    #js-filter-panel {
+      display: none; position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: var(--paper);
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -6px 28px rgba(0,0,0,.18);
+      border-top: 1px solid var(--border);
+      z-index: 51; padding-bottom: env(safe-area-inset-bottom, 12px);
+    }
+    #js-filter-panel.open {
+      display: block;
+      animation: mh-slideup 220ms cubic-bezier(.32,.72,0,1);
+    }
+    @keyframes mh-slideup {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+    .fpanel__handle {
+      width: 36px; height: 4px; border-radius: 2px;
+      background: var(--border); margin: 10px auto 14px; display: block;
+    }
+    .fpanel__label {
+      font-size: 11px; font-weight: 700; color: var(--text-mid);
+      text-transform: uppercase; letter-spacing: .08em;
+      padding: 0 16px; display: block; margin-bottom: 6px;
+    }
+    .fpanel__scroll {
+      display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 16px;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .fpanel__scroll::-webkit-scrollbar { display: none; }
+    .fpanel__pill {
+      display: inline-flex; align-items: center; padding: 9px 16px;
+      border-radius: 22px; border: 1.5px solid var(--border);
+      background: var(--surface); font-family: var(--sans);
+      font-size: 13px; font-weight: 600; color: var(--ink);
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      transition: background 120ms, border-color 120ms, color 120ms;
+    }
+    .fpanel__pill--active {
+      background: var(--brand); border-color: var(--brand); color: #fff;
+    }
+    .fpanel__pill:active:not(.fpanel__pill--active) { opacity: 0.72; }
+
+    /* ── BACK BUTTON en section-header (solo móvil) ─────────────── */
+    #js-mhome-back {
+      display: none; align-items: center; gap: 3px;
+      background: none; border: none; padding: 2px 0;
+      font-family: var(--sans); font-size: 13px; font-weight: 700;
+      color: var(--accent); cursor: pointer; flex-shrink: 0;
+    }
+    #js-mhome-back svg { width: 14px; height: 14px; }
+    @media (max-width: 767px) {
+      #js-mhome-back { display: inline-flex; }
+    }
+
+    /* ── HEART button en tarjetas del home móvil ─────────────────── */
+    .mhlike {
+      position: absolute; top: 6px; right: 6px;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(0,0,0,.30); backdrop-filter: blur(4px);
+      border: none; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 3; flex-shrink: 0;
+      transition: transform 150ms, background 150ms;
+    }
+    .mhlike:active { transform: scale(0.80); }
+    .mhlike svg { width: 14px; height: 14px; transition: fill 150ms, stroke 150ms; }
+    .mhlike--liked { background: rgba(255,30,80,.18); }
+    .mhlike--liked svg { fill: #FF2255; stroke: #FF2255; }
+    .mhlike:not(.mhlike--liked) svg { fill: none; stroke: #fff; stroke-width: 2; }
   </style>
 </head>
 
@@ -2045,6 +2145,10 @@
 
   <!-- ── SECTION HEADER ────────────────────────────────────────── -->
   <div class="section-header">
+    <button id="js-mhome-back" onclick="goBackToMhome()" aria-label="Volver al inicio" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      Inicio
+    </button>
     <span class="section-header__title" id="js-section-title">Clasificados</span>
     <hr class="section-header__line" />
     <span class="section-header__count" id="js-count">Cargando…</span>
@@ -3552,9 +3656,11 @@
   // MOBILE DISCOVERY HOME — scroll por secciones (solo móvil)
   // ════════════════════════════════════════════════════════════════
 
-  let _mhomeActive  = false;
-  let _mhomeDeals   = [];
-  let _mhomeLoading = false;
+  let _mhomeActive    = false;
+  let _mhomeDeals     = [];
+  let _mhomeLoading   = false;
+  let _mhomeScrollY   = 0;   // posición guardada al salir del home
+  let _cameFromMhome  = false; // para mostrar el botón "Inicio"
 
   function _isMobileViewport() { return window.innerWidth <= 767; }
   function _isMobileDiscovery() {
@@ -3563,24 +3669,42 @@
 
   function _showMobileHome() {
     _mhomeActive = true;
-    const mh = document.getElementById("js-mobile-home");
-    const gw = document.getElementById("js-grid-wrap");
-    const sh = document.querySelector(".section-header");
+    const mh   = document.getElementById("js-mobile-home");
+    const gw   = document.getElementById("js-grid-wrap");
+    const sh   = document.querySelector(".section-header");
     const hero = document.getElementById("js-hero");
+    const back = document.getElementById("js-mhome-back");
     if (mh)   mh.style.display = "";
     if (gw)   gw.style.display = "none";
     if (sh)   sh.style.display = "none";
     if (hero) hero.style.display = "none";
+    if (back) back.style.display = "none";
+    _cameFromMhome = false;
   }
 
   function _showRegularGrid() {
     _mhomeActive = false;
-    const mh = document.getElementById("js-mobile-home");
-    const gw = document.getElementById("js-grid-wrap");
-    const sh = document.querySelector(".section-header");
+    const mh   = document.getElementById("js-mobile-home");
+    const gw   = document.getElementById("js-grid-wrap");
+    const sh   = document.querySelector(".section-header");
     if (mh) mh.style.display = "none";
     if (gw) gw.style.display = "";
     if (sh) sh.style.display = "";
+  }
+
+  function goBackToMhome() {
+    // Restaura el mobile home en la posición de scroll guardada
+    _showMobileHome();
+    if (_mhomeDeals.length) renderMobileHome(_mhomeDeals);
+    // Activar la pill "Todas" en el cat bar
+    const bar = document.getElementById("js-cat-bar");
+    if (bar) {
+      activeCategory = "todas";
+      bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "todas"));
+    }
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: _mhomeScrollY, behavior: "instant" });
+    });
   }
 
   // ── Card renderers ────────────────────────────────────────────
@@ -3590,12 +3714,24 @@
     return t.length > max ? t.slice(0, max) + "…" : t;
   }
 
+  function _heartBtn(d) {
+    const liked = !!_getMhLikes()[d.id];
+    return `<button class="mhlike${liked ? ' mhlike--liked' : ''}" data-id="${d.id}"
+      aria-label="${liked ? 'Quitar de favoritos' : 'Añadir a favoritos'}"
+      onclick="event.stopPropagation();event.preventDefault();mhLike('${d.id}',this)">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </button>`;
+  }
+
   function renderHCard(d) {
     const url = d.url_affiliate || "#";
     return `<a class="hcard" href="${url}" target="_blank" rel="noopener sponsored">
       <div class="hcard__img">
         ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         ${d.descuento_pct > 0 ? `<span class="hcard__pct">-${d.descuento_pct}%</span>` : ""}
+        ${_heartBtn(d)}
       </div>
       <div class="hcard__body">
         <span class="hcard__store">${d.tienda || ""}</span>
@@ -3614,6 +3750,7 @@
       <div class="ccard__img-wrap">
         ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         ${d.descuento_pct > 0 ? `<span class="ccard__pct">-${d.descuento_pct}%</span>` : ""}
+        ${_heartBtn(d)}
       </div>
       <p class="ccard__title">${_mhT(d.titulo, 28)}</p>
       <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
@@ -3629,6 +3766,7 @@
       <div class="dcard__img">
         ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         ${d.descuento_pct > 0 ? `<span class="dcard__pct-big">-${d.descuento_pct}%</span>` : ""}
+        ${_heartBtn(d)}
       </div>
       <div class="dcard__body">
         <span class="dcard__store">${d.tienda || ""}</span>
@@ -3646,6 +3784,7 @@
       <div class="whero__img">
         ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         ${d.descuento_pct > 0 ? `<span class="whero__pct">-${d.descuento_pct}%</span>` : ""}
+        ${_heartBtn(d)}
       </div>
       <div class="whero__body">
         <span class="whero__label">Deal del momento</span>
@@ -3805,11 +3944,14 @@
   // ── Navegación desde el home ──────────────────────────────────
 
   function mhomeCat(catId) {
+    _mhomeScrollY  = window.scrollY;
+    _cameFromMhome = true;
     _showRegularGrid();
+    const back = document.getElementById("js-mhome-back");
+    if (back && _isMobileViewport()) back.style.display = "inline-flex";
     const bar = document.getElementById("js-cat-bar");
     const btn = bar ? bar.querySelector(`[data-cat="${catId}"]`) : null;
     if (btn) {
-      // Trigger the click but skip mobile-home restore logic
       activeCategory = catId;
       bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === catId));
       buildSubcatBar();
@@ -3817,12 +3959,17 @@
       if (titleEl) titleEl.textContent = CATEGORIAS.find(c => c.id === catId)?.label || catId;
       allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
       document.getElementById("js-grid").innerHTML = "";
+      window.scrollTo({ top: 0, behavior: "instant" });
       loadMore();
     }
   }
 
   function mhomeStore(storeName) {
+    _mhomeScrollY  = window.scrollY;
+    _cameFromMhome = true;
     _showRegularGrid();
+    const back = document.getElementById("js-mhome-back");
+    if (back && _isMobileViewport()) back.style.display = "inline-flex";
     activeStore = storeName;
     const bar = document.getElementById("js-store-bar");
     if (bar) {
@@ -3830,7 +3977,104 @@
       const row = document.getElementById("js-store-row");
       if (row) row.style.display = "flex";
     }
+    window.scrollTo({ top: 0, behavior: "instant" });
     if (allDeals.length) renderGrid(); else loadMore();
+  }
+
+  // ── Filter panel (FAB) ───────────────────────────────────────
+
+  function buildFilterPanel() {
+    const SORT_OPTS = [
+      { id: "recientes",  label: "Más recientes" },
+      { id: "descuento",  label: "Mayor descuento" },
+      { id: "votados",    label: "Más votados" },
+      { id: "low_cost",   label: "Menos de 25€" },
+      { id: "reventa",    label: "Para revender" },
+    ];
+    const catEl  = document.getElementById("js-fpanel-cats");
+    const sortEl = document.getElementById("js-fpanel-sorts");
+    if (!catEl || !sortEl) return;
+
+    catEl.innerHTML = CATEGORIAS.map(c =>
+      `<button class="fpanel__pill${c.id === activeCategory ? ' fpanel__pill--active' : ''}"
+               onclick="fpanelSelectCat('${c.id}')">${c.label}</button>`
+    ).join("");
+
+    sortEl.innerHTML = SORT_OPTS.map(s =>
+      `<button class="fpanel__pill${s.id === activeSort ? ' fpanel__pill--active' : ''}"
+               onclick="fpanelSelectSort('${s.id}')">${s.label}</button>`
+    ).join("");
+  }
+
+  function toggleFilterPanel() {
+    const panel    = document.getElementById("js-filter-panel");
+    const backdrop = document.getElementById("js-filter-backdrop");
+    if (!panel) return;
+    const isOpen = panel.classList.contains("open");
+    if (isOpen) {
+      closeFilterPanel();
+    } else {
+      buildFilterPanel();
+      panel.classList.add("open");
+      backdrop.classList.add("open");
+    }
+  }
+
+  function closeFilterPanel() {
+    const panel    = document.getElementById("js-filter-panel");
+    const backdrop = document.getElementById("js-filter-backdrop");
+    if (panel)    panel.classList.remove("open");
+    if (backdrop) backdrop.classList.remove("open");
+  }
+
+  function fpanelSelectCat(catId) {
+    closeFilterPanel();
+    if (catId === "todas" && activeSort === "recientes" && !searchQuery && _isMobileViewport()) {
+      if (_mhomeDeals.length) { _showMobileHome(); renderMobileHome(_mhomeDeals); }
+      else { _mhomeLoading = false; loadMobileHome(); }
+      return;
+    }
+    // Sync con la cat-bar real para que el estado sea consistente
+    const bar = document.getElementById("js-cat-bar");
+    if (bar) {
+      activeCategory = catId; activeTechSubcat = "todas";
+      bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === catId));
+      buildSubcatBar();
+    }
+    const titleEl = document.getElementById("js-section-title");
+    if (titleEl) titleEl.textContent = catId === "todas" ? "Clasificados" : (CATEGORIAS.find(c => c.id === catId)?.label || "Clasificados");
+    _showRegularGrid();
+    allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
+    document.getElementById("js-grid").innerHTML = "";
+    window.scrollTo({ top: 0, behavior: "instant" });
+    loadMore();
+  }
+
+  function fpanelSelectSort(sortId) {
+    closeFilterPanel();
+    const btn = document.querySelector(`.sort-tab[data-sort="${sortId}"]`);
+    if (btn) btn.click();
+  }
+
+  // ── Likes en el mobile home ───────────────────────────────────
+
+  function _getMhLikes() { try { return JSON.parse(localStorage.getItem("flipazo_mhlikes") || "{}"); } catch { return {}; } }
+  function _saveMhLikes(v) { try { localStorage.setItem("flipazo_mhlikes", JSON.stringify(v)); } catch {} }
+
+  function mhLike(dealId, btn) {
+    const likes = _getMhLikes();
+    const liked = !!likes[dealId];
+    if (liked) {
+      delete likes[dealId];
+    } else {
+      likes[dealId] = 1;
+    }
+    _saveMhLikes(likes);
+    // Actualizar TODOS los botones con este dealId (pueden existir en varias secciones)
+    document.querySelectorAll(`.mhlike[data-id="${dealId}"]`).forEach(b => {
+      b.classList.toggle("mhlike--liked", !liked);
+      b.setAttribute("aria-label", !liked ? "Quitar de favoritos" : "Añadir a favoritos");
+    });
   }
 
   // ── Init ──────────────────────────────────────────────────────
@@ -4128,6 +4372,21 @@
     }
   })();
 </script>
+
+  <!-- ── MOBILE FILTER FAB + PANEL ────────────────────────────── -->
+  <div id="js-filter-backdrop" onclick="closeFilterPanel()"></div>
+  <div id="js-filter-panel" role="dialog" aria-label="Filtrar ofertas">
+    <span class="fpanel__handle" role="presentation"></span>
+    <span class="fpanel__label">Categoría</span>
+    <div class="fpanel__scroll" id="js-fpanel-cats"></div>
+    <span class="fpanel__label" style="margin-top:4px">Ordenar</span>
+    <div class="fpanel__scroll" id="js-fpanel-sorts"></div>
+  </div>
+  <button id="js-filter-fab" onclick="toggleFilterPanel()" aria-label="Filtros y categorías">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/>
+    </svg>
+  </button>
 
 </body>
 </html>
