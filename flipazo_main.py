@@ -2508,14 +2508,42 @@ def _detectar_tipo_producto(titulo: str) -> str | None:
     return None
 
 
-def _clave_familia(titulo: str) -> str:
-    """Clave de familia de producto: primeras 4 palabras significativas del título.
+_FAMILIA_OEM = {"krups", "delonghi", "philips", "bosch", "siemens", "braun", "rowenta", "magimix", "cecotec", "taurus"}
+_FAMILIA_MODEL_RE = re.compile(r'^[a-z]{0,3}[0-9]{2,}[a-z0-9]*$')  # XN9204, ENV90, XN920110DES…
+_FAMILIA_STOP = {"de","la","el","los","las","para","con","sin","y","o","en","un","una","del","al","por","sus","wat","ghz","mhz"}
 
-    Agrupa variantes del mismo artículo (ej. McAfee 1 dispositivo / 3 dispositivos)
-    para evitar que inunden el feed en el mismo ciclo.
+
+def _clave_familia(titulo: str) -> str:
+    """Clave de familia de producto normalizada.
+
+    Normaliza tres casos problemáticos para agrupar variantes del mismo artículo:
+    1. Prefijo "Categoría - Marca Modelo" (feeds TD: "Cafetera de cápsulas - Nespresso…")
+    2. Marcas OEM intercambiables (Krups/De'Longhi + Nespresso Vertuo Pop)
+    3. Sufijos de modelo/color (XN9204, XN9201, ENV90.B, ENV90.A)
+
+    Heurística para " - ": si la parte anterior tiene ≤2 palabras significativas,
+    es un prefijo de categoría (TD feed) → descartar y tomar la parte posterior.
+    Si tiene ≥3 palabras, es la descripción del producto (Amazon) → procesar todo.
     """
-    stop = {"de", "la", "el", "los", "las", "para", "con", "sin", "y", "o", "en", "un", "una"}
-    palabras = [w for w in titulo.lower().split() if len(w) >= 3 and w not in stop]
+
+    def _palabras_sig(texto: str) -> list[str]:
+        resultado = []
+        for w in texto.lower().split():
+            w = re.sub(r'[^a-z0-9áéíóúüñ]', '', w)
+            if len(w) < 3 or w in _FAMILIA_STOP or w in _FAMILIA_OEM:
+                continue
+            if _FAMILIA_MODEL_RE.match(w):
+                continue
+            resultado.append(w)
+        return resultado
+
+    if " - " in titulo:
+        antes, despues = titulo.split(" - ", 1)
+        # ≤2 palabras significativas antes → es prefijo de categoría (TD style)
+        if len(_palabras_sig(antes)) <= 2:
+            titulo = despues
+
+    palabras = _palabras_sig(titulo)
     return " ".join(palabras[:4])
 
 
@@ -2626,6 +2654,7 @@ class DeduplicacionDB:
                 "ALTER TABLE deals_publicados ADD COLUMN emotional_tags  TEXT    DEFAULT '[]'",
                 "ALTER TABLE deals_publicados ADD COLUMN stock_qty       INTEGER DEFAULT 0",
                 "ALTER TABLE deals_publicados ADD COLUMN precio_actualizado_en TEXT DEFAULT NULL",
+                "ALTER TABLE deals_publicados ADD COLUMN familia_key     TEXT    DEFAULT ''",
             ]:
                 try:
                     con.execute(col_sql)
@@ -2652,6 +2681,16 @@ class DeduplicacionDB:
                 )
             """)
             con.execute("CREATE INDEX IF NOT EXISTS idx_clicks_deal ON clicks(deal_id)")
+            con.execute("CREATE INDEX IF NOT EXISTS idx_familia_key ON deals_publicados(tienda, familia_key, publicado_en)")
+            # Backfill familia_key para registros existentes (migración única)
+            sin_familia = con.execute(
+                "SELECT deal_id, titulo FROM deals_publicados WHERE familia_key IS NULL OR familia_key = ''"
+            ).fetchall()
+            if sin_familia:
+                for did, tit in sin_familia:
+                    con.execute("UPDATE deals_publicados SET familia_key = ? WHERE deal_id = ?",
+                                (_clave_familia(tit or ""), did))
+                print(f"   🔄 familia_key backfill: {len(sin_familia)} registros")
             con.commit()
 
     def ya_publicado(self, p: "Producto") -> bool:
@@ -2663,12 +2702,27 @@ class DeduplicacionDB:
                 (deal_id, limite),
             ).fetchone():
                 return True
-            # Secondary check: mismo título exacto + tienda en TTL.
-            # Evita duplicados entre Playwright y feed TD (misma tienda, URL diferente).
-            return bool(con.execute(
+            # Secondary: mismo título exacto + tienda (Playwright vs feed TD misma tienda).
+            if con.execute(
                 "SELECT 1 FROM deals_publicados WHERE titulo = ? AND tienda = ? AND publicado_en > ?",
                 (p.titulo, p.tienda, limite),
-            ).fetchone())
+            ).fetchone():
+                return True
+            # Tertiary: familia normalizada + tienda + precio ±20%.
+            # Evita publicar variantes de color/modelo del mismo producto en ciclos distintos.
+            familia = _clave_familia(p.titulo)
+            if len(familia.split()) >= 2 and p.precio_actual:
+                precio_min = p.precio_actual * 0.80
+                precio_max = p.precio_actual * 1.20
+                if con.execute(
+                    """SELECT 1 FROM deals_publicados
+                       WHERE tienda = ? AND publicado_en > ?
+                       AND precio BETWEEN ? AND ?
+                       AND familia_key = ? AND familia_key != ''""",
+                    (p.tienda, limite, precio_min, precio_max, familia),
+                ).fetchone():
+                    return True
+            return False
 
     def actualizar_precio_si_bajo(self, p: "Producto") -> bool:
         """
@@ -2714,8 +2768,8 @@ class DeduplicacionDB:
                         precio_wallapop, beneficio_neto, razonamiento,
                         categoria, pros, contras,
                         deal_score, hook, social_context, emotional_tags,
-                        stock_qty)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        stock_qty, familia_key)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     _deal_hash(p), p.titulo, p.tienda, p.precio_actual, p.tipo,
                     p.url_affiliate, datetime.now(timezone.utc).isoformat(),
@@ -2729,6 +2783,7 @@ class DeduplicacionDB:
                     p.social_context or "",
                     json.dumps(p.emotional_tags or [], ensure_ascii=False),
                     int(p.stock_qty or 0),
+                    _clave_familia(p.titulo),
                 ),
             )
             # Registrar precio en historial propio (un registro por día y tienda)
