@@ -1739,6 +1739,184 @@
       font-family: var(--sans); font-size: 11px; font-weight: 400;
       color: var(--text-dim); line-height: 1.65; max-width: 680px;
     }
+
+    /* ══════════════════════════════════════════════════════════════
+       MOBILE DISCOVERY HOME — solo móvil (≤767px)
+       ══════════════════════════════════════════════════════════════ */
+    @media (min-width: 768px) {
+      #js-mobile-home { display: none !important; }
+    }
+
+    .mhome { padding-bottom: 80px; }
+    .mhome__section { margin-bottom: 30px; }
+    .mhome__section-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding: 0 16px; margin-bottom: 10px;
+    }
+    .mhome__section-title {
+      font-size: 18px; font-weight: 800; color: var(--ink);
+      line-height: 1.2; letter-spacing: -.01em;
+    }
+    .mhome__see-all {
+      font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; flex-shrink: 0;
+    }
+    .mhome__subtitle {
+      font-size: 12px; color: var(--text-mid); padding: 0 16px; margin: -6px 0 8px; display: block;
+    }
+
+    /* Scroll horizontal genérico */
+    .mhome__scroll {
+      display: flex; gap: 10px; overflow-x: auto; overflow-y: visible;
+      padding: 4px 16px 12px; scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .mhome__scroll::-webkit-scrollbar { display: none; }
+    .mhome__scroll > * { scroll-snap-align: start; flex-shrink: 0; }
+
+    /* ── HCard: tarjeta estándar ── */
+    .hcard {
+      display: flex; flex-direction: column; width: 148px;
+      border-radius: 14px; background: var(--card-bg); box-shadow: var(--card-shadow);
+      overflow: hidden; cursor: pointer; text-decoration: none; color: var(--ink);
+      transition: transform 150ms ease;
+    }
+    .hcard:active { transform: scale(0.96); }
+    .hcard__img {
+      position: relative; width: 148px; height: 128px;
+      background: var(--surface); flex-shrink: 0; overflow: hidden;
+    }
+    .hcard__img img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
+    .hcard__pct {
+      position: absolute; top: 8px; right: 8px; background: var(--brand); color: #fff;
+      font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 6px;
+    }
+    .hcard__body { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+    .hcard__store { font-size: 10px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .05em; }
+    .hcard__title {
+      font-size: 12px; font-weight: 600; color: var(--ink); line-height: 1.35;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; margin: 0;
+    }
+    .hcard__prices { display: flex; align-items: center; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+    .hcard__orig { font-size: 11px; color: var(--text-dim); text-decoration: line-through; }
+    .hcard__now  { font-size: 14px; font-weight: 800; color: var(--brand); }
+
+    /* ── CCard: circular (Low Cost) ── */
+    .ccard {
+      display: flex; flex-direction: column; align-items: center; width: 96px;
+      text-decoration: none; color: var(--ink); gap: 6px; cursor: pointer;
+    }
+    .ccard__img-wrap {
+      position: relative; width: 84px; height: 84px; border-radius: 50%;
+      background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.10); overflow: hidden;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .ccard__img-wrap img { width: 66px; height: 66px; object-fit: contain; }
+    .ccard__pct {
+      position: absolute; bottom: 3px; right: 3px; background: var(--brand); color: #fff;
+      font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 7px; line-height: 1.3;
+    }
+    .ccard__title {
+      font-size: 11px; font-weight: 600; color: var(--ink); text-align: center; line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; margin: 0; padding: 0 2px; width: 100%;
+    }
+    .ccard__now  { font-size: 13px; font-weight: 800; color: #0581FC; }
+    .ccard__orig { font-size: 10px; color: var(--text-dim); text-decoration: line-through; }
+
+    /* ── DCard: descuento grande ── */
+    .dcard {
+      width: 128px; border-radius: 14px; background: var(--card-bg); box-shadow: var(--card-shadow);
+      overflow: hidden; cursor: pointer; text-decoration: none; color: var(--ink);
+      display: flex; flex-direction: column; transition: transform 150ms;
+    }
+    .dcard:active { transform: scale(0.96); }
+    .dcard__img { width: 128px; height: 108px; background: var(--surface); position: relative; overflow: hidden; }
+    .dcard__img img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
+    .dcard__pct-big {
+      position: absolute; top: 0; left: 0; background: var(--brand); color: #fff;
+      font-size: 17px; font-weight: 900; padding: 5px 9px; border-radius: 0 0 12px 0; line-height: 1.1;
+    }
+    .dcard__body { padding: 7px 9px 9px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .dcard__store { font-size: 10px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .05em; }
+    .dcard__title {
+      font-size: 11px; font-weight: 600; color: var(--ink); line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0;
+    }
+    .dcard__now { font-size: 13px; font-weight: 800; color: var(--brand); margin-top: 4px; }
+
+    /* ── Category grid: 3 filas × scroll horizontal ── */
+    .cgrid {
+      display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 12px;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .cgrid::-webkit-scrollbar { display: none; }
+    .cgrid__col { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+    .cgrid__pill {
+      display: block; padding: 9px 16px; border-radius: 12px; border: none;
+      font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--ink);
+      cursor: pointer; white-space: nowrap; min-width: 116px; text-align: left;
+      transition: opacity 150ms;
+    }
+    .cgrid__pill:active { opacity: 0.72; }
+
+    /* ── SCard: tienda circular ── */
+    .scard {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 6px; cursor: pointer; text-decoration: none; color: var(--ink); min-width: 68px;
+    }
+    .scard__logo {
+      width: 60px; height: 60px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; font-size: 11px; font-weight: 900;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08); border: 1.5px solid var(--border);
+      transition: transform 150ms; overflow: hidden;
+    }
+    .scard__logo:active { transform: scale(0.91); }
+    .scard__name { font-size: 10px; font-weight: 600; color: var(--text-mid); text-align: center; white-space: nowrap; }
+
+    /* ── Whero: card ancho destacado ── */
+    .whero {
+      margin: 0 16px 24px; border-radius: 18px; background: var(--card-bg);
+      box-shadow: var(--card-shadow); overflow: hidden; cursor: pointer;
+      text-decoration: none; color: var(--ink); display: flex; align-items: stretch; min-height: 116px;
+    }
+    .whero:active { opacity: 0.88; }
+    .whero__img {
+      width: 116px; flex-shrink: 0; background: var(--surface); position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .whero__img img { width: 100%; height: 100%; object-fit: contain; padding: 10px; }
+    .whero__pct {
+      position: absolute; top: 8px; left: 8px; background: var(--brand); color: #fff;
+      font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px;
+    }
+    .whero__body {
+      padding: 14px 12px; display: flex; flex-direction: column;
+      justify-content: center; gap: 4px; flex: 1; min-width: 0;
+    }
+    .whero__label {
+      font-size: 10px; font-weight: 700; color: var(--accent);
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .whero__hook {
+      font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.35; margin: 0;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .whero__prices { display: flex; align-items: center; gap: 6px; }
+    .whero__orig { font-size: 11px; color: var(--text-dim); text-decoration: line-through; }
+    .whero__now  { font-size: 15px; font-weight: 800; color: var(--brand); }
+
+    /* ── Skeleton ── */
+    .mhome__skeleton { display: flex; gap: 10px; padding: 4px 16px 12px; overflow: hidden; }
+    .mhome__skeleton-card {
+      width: 148px; height: 200px; border-radius: 14px; flex-shrink: 0;
+      background: linear-gradient(90deg, var(--surface) 25%, var(--border-soft) 50%, var(--surface) 75%);
+      background-size: 200% 100%; animation: sk-shimmer 1.4s infinite;
+    }
+    @keyframes sk-shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position:  200% 0; }
+    }
   </style>
 </head>
 
@@ -1897,6 +2075,9 @@
   </div>
 
   <!-- ── GRID ──────────────────────────────────────────────────── -->
+  <!-- ── MOBILE DISCOVERY HOME ────────────────────────────────── -->
+  <div id="js-mobile-home" class="mhome" style="display:none" aria-label="Descubrir ofertas"></div>
+
   <div id="js-grid-wrap">
     <main class="deals-grid" id="js-grid" aria-label="Ofertas">
       <!-- Populated by JS -->
@@ -2306,8 +2487,9 @@
     if (titleEl) titleEl.textContent = "Clasificados";
 
     allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false; _reventaLoaded = false;
+    _mhomeDeals = []; _mhomeLoading = false;
     document.getElementById('js-grid').innerHTML = "";
-    loadMore();
+    if (_isMobileViewport()) { loadMobileHome(); } else { loadMore(); }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -2826,6 +3008,7 @@
   }
 
   async function applySearch(query, scrollToId) {
+    if (_isMobileViewport()) _showRegularGrid();
     await ensureSearchData();
     const dd = document.getElementById("js-search-dropdown");
     dd.hidden = true;
@@ -2865,7 +3048,14 @@
     document.getElementById("js-section-title").textContent =
       activeCategory === "todas" ? "Clasificados"
       : (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Clasificados");
-    renderGrid();
+    if (_isMobileDiscovery() && _mhomeDeals.length) {
+      _showMobileHome();
+      renderMobileHome(_mhomeDeals);
+    } else if (_isMobileDiscovery()) {
+      loadMobileHome();
+    } else {
+      renderGrid();
+    }
   }
 
   // ── Fetch ─────────────────────────────────────────────────────
@@ -3047,9 +3237,15 @@
         titleEl.textContent = activeCategory === "todas"
           ? "Clasificados"
           : (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Clasificados");
-        allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
-        document.getElementById("js-grid").innerHTML = "";
-        loadMore();
+        if (btn.dataset.cat === "todas" && activeSort === "recientes" && !searchQuery && _isMobileViewport()) {
+          if (_mhomeDeals.length) { _showMobileHome(); renderMobileHome(_mhomeDeals); }
+          else { _mhomeLoading = false; loadMobileHome(); }
+        } else {
+          _showRegularGrid();
+          allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
+          document.getElementById("js-grid").innerHTML = "";
+          loadMore();
+        }
       });
     });
   }
@@ -3060,12 +3256,15 @@
       btn.addEventListener("click", async () => {
         if (activeSort === btn.dataset.sort) return;
         activeSort = btn.dataset.sort;
+        _showRegularGrid();
         document.querySelectorAll(".sort-tab").forEach(b => b.classList.remove("sort-tab--active"));
         btn.classList.add("sort-tab--active");
         const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Oportunidades de Reventa", low_cost: "Low Cost · Menos de 25€" };
         document.getElementById("js-section-title").textContent = titles[activeSort] || "Clasificados";
 
-        if (allDeals.length > 0) {
+        const dealsToUse = allDeals.length ? allDeals : _mhomeDeals;
+        if (dealsToUse.length > 0) {
+          if (!allDeals.length) { allDeals = dealsToUse; currentOffset = dealsToUse.length; hasMore = false; }
           renderGrid();
         } else {
           allDeals = []; currentOffset = 0; hasMore = true;
@@ -3130,7 +3329,7 @@
 
   // ── IntersectionObserver (scroll infinito) ───────────────────
   new IntersectionObserver(
-    entries => { if (entries[0].isIntersecting && !_scrollingToBottom) loadMore(); },
+    entries => { if (entries[0].isIntersecting && !_scrollingToBottom && !_mhomeActive) loadMore(); },
     { rootMargin: "300px" }
   ).observe(document.getElementById("js-sentinel"));
 
@@ -3349,13 +3548,298 @@
     btn.setAttribute("aria-expanded", filtersOpen ? "true" : "false");
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // MOBILE DISCOVERY HOME — scroll por secciones (solo móvil)
+  // ════════════════════════════════════════════════════════════════
+
+  let _mhomeActive  = false;
+  let _mhomeDeals   = [];
+  let _mhomeLoading = false;
+
+  function _isMobileViewport() { return window.innerWidth <= 767; }
+  function _isMobileDiscovery() {
+    return _isMobileViewport() && activeCategory === "todas" && activeSort === "recientes" && !searchQuery;
+  }
+
+  function _showMobileHome() {
+    _mhomeActive = true;
+    const mh = document.getElementById("js-mobile-home");
+    const gw = document.getElementById("js-grid-wrap");
+    const sh = document.querySelector(".section-header");
+    const hero = document.getElementById("js-hero");
+    if (mh)   mh.style.display = "";
+    if (gw)   gw.style.display = "none";
+    if (sh)   sh.style.display = "none";
+    if (hero) hero.style.display = "none";
+  }
+
+  function _showRegularGrid() {
+    _mhomeActive = false;
+    const mh = document.getElementById("js-mobile-home");
+    const gw = document.getElementById("js-grid-wrap");
+    const sh = document.querySelector(".section-header");
+    if (mh) mh.style.display = "none";
+    if (gw) gw.style.display = "";
+    if (sh) sh.style.display = "";
+  }
+
+  // ── Card renderers ────────────────────────────────────────────
+
+  function _mhT(titulo, max) {
+    const t = cleanHeroTitle(titulo || "");
+    return t.length > max ? t.slice(0, max) + "…" : t;
+  }
+
+  function renderHCard(d) {
+    const url = d.url_affiliate || "#";
+    return `<a class="hcard" href="${url}" target="_blank" rel="noopener sponsored">
+      <div class="hcard__img">
+        ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+        ${d.descuento_pct > 0 ? `<span class="hcard__pct">-${d.descuento_pct}%</span>` : ""}
+      </div>
+      <div class="hcard__body">
+        <span class="hcard__store">${d.tienda || ""}</span>
+        <p class="hcard__title">${_mhT(d.titulo, 50)}</p>
+        <div class="hcard__prices">
+          ${d.precio_original > 0 ? `<span class="hcard__orig">${fmtPrice(d.precio_original)}</span>` : ""}
+          <span class="hcard__now">${fmtPrice(d.precio_actual || 0)}</span>
+        </div>
+      </div>
+    </a>`;
+  }
+
+  function renderCircleCard(d) {
+    const url = d.url_affiliate || "#";
+    return `<a class="ccard" href="${url}" target="_blank" rel="noopener sponsored">
+      <div class="ccard__img-wrap">
+        ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+        ${d.descuento_pct > 0 ? `<span class="ccard__pct">-${d.descuento_pct}%</span>` : ""}
+      </div>
+      <p class="ccard__title">${_mhT(d.titulo, 28)}</p>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+        ${d.precio_original > 0 ? `<span class="ccard__orig">${fmtPrice(d.precio_original)}</span>` : ""}
+        <span class="ccard__now">${fmtPrice(d.precio_actual || 0)}</span>
+      </div>
+    </a>`;
+  }
+
+  function renderDiscountCard(d) {
+    const url = d.url_affiliate || "#";
+    return `<a class="dcard" href="${url}" target="_blank" rel="noopener sponsored">
+      <div class="dcard__img">
+        ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+        ${d.descuento_pct > 0 ? `<span class="dcard__pct-big">-${d.descuento_pct}%</span>` : ""}
+      </div>
+      <div class="dcard__body">
+        <span class="dcard__store">${d.tienda || ""}</span>
+        <p class="dcard__title">${_mhT(d.titulo, 50)}</p>
+        <span class="dcard__now">${fmtPrice(d.precio_actual || 0)}</span>
+      </div>
+    </a>`;
+  }
+
+  function renderWhero(d) {
+    if (!d) return "";
+    const url = d.url_affiliate || "#";
+    const hookOrTitle = (d.hook && d.hook.trim()) ? d.hook.trim() : cleanHeroTitle(d.titulo || "");
+    return `<a class="whero" href="${url}" target="_blank" rel="noopener sponsored">
+      <div class="whero__img">
+        ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+        ${d.descuento_pct > 0 ? `<span class="whero__pct">-${d.descuento_pct}%</span>` : ""}
+      </div>
+      <div class="whero__body">
+        <span class="whero__label">Deal del momento</span>
+        <p class="whero__hook">${hookOrTitle.slice(0, 90)}</p>
+        <div class="whero__prices">
+          ${d.precio_original > 0 ? `<span class="whero__orig">${fmtPrice(d.precio_original)}</span>` : ""}
+          <span class="whero__now">${fmtPrice(d.precio_actual || 0)}</span>
+        </div>
+      </div>
+      <svg style="flex-shrink:0;align-self:center;margin-right:12px;color:var(--text-dim)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>`;
+  }
+
+  // ── Categorías y tiendas ──────────────────────────────────────
+
+  const _MH_CATS = [
+    { id: "tecnologia",   label: "Tecnología",   light: "#EEF4FF", dark: "#152035" },
+    { id: "deportes",     label: "Deportes",     light: "#EDFAEF", dark: "#122815" },
+    { id: "moda",         label: "Moda",         light: "#FFF0F6", dark: "#27122a" },
+    { id: "hogar",        label: "Hogar",        light: "#FFF8EE", dark: "#261d0c" },
+    { id: "calzado",      label: "Calzado",      light: "#F2EDFF", dark: "#1c122d" },
+    { id: "belleza",      label: "Belleza",      light: "#FFEDED", dark: "#271212" },
+    { id: "juguetes",     label: "Juguetes",     light: "#FFFADF", dark: "#252107" },
+    { id: "herramientas", label: "Herramientas", light: "#F0F0F0", dark: "#1c1c1c" },
+  ];
+
+  function _renderCategoryGrid() {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    const cols = [];
+    for (let i = 0; i < _MH_CATS.length; i += 3) cols.push(_MH_CATS.slice(i, i + 3));
+    return `<div class="cgrid">${cols.map(col =>
+      `<div class="cgrid__col">${col.map(c => {
+        const bg = isDark ? c.dark : c.light;
+        return `<button class="cgrid__pill" style="background:${bg}" onclick="mhomeCat('${c.id}')">${c.label}</button>`;
+      }).join("")}</div>`
+    ).join("")}</div>`;
+  }
+
+  const _MH_STORES = [
+    { name: "Amazon",        abbr: "AMZ",  color: "#FF9900" },
+    { name: "MediaMarkt",    abbr: "MM",   color: "#CC0000" },
+    { name: "PcComponentes", abbr: "PCC",  color: "#0069B4" },
+    { name: "Decathlon",     abbr: "DEC",  color: "#0082C3" },
+    { name: "Worten",        abbr: "WOR",  color: "#E31837" },
+    { name: "Mammoth Bikes", abbr: "MBI",  color: "#2E7D32" },
+    { name: "El Corte Inglés", abbr: "ECI", color: "#006A4E" },
+  ];
+
+  function _renderStoreRow() {
+    const storeLabel = s => s.name === "El Corte Inglés" ? "ECI" : s.name === "Mammoth Bikes" ? "Mammoth" : s.name === "PcComponentes" ? "PcComp." : s.name;
+    return _MH_STORES.map(s =>
+      `<a class="scard" href="#" onclick="event.preventDefault();mhomeStore('${s.name}')">
+        <div class="scard__logo" style="background:${s.color}18;border-color:${s.color}30">
+          <span style="color:${s.color};font-size:10px;font-weight:900">${s.abbr}</span>
+        </div>
+        <span class="scard__name">${storeLabel(s)}</span>
+      </a>`
+    ).join("");
+  }
+
+  // ── Section builder ───────────────────────────────────────────
+
+  function _mhSection(title, cards, seeAllJs, subtitle) {
+    if (!cards.trim()) return "";
+    const seeAll = seeAllJs
+      ? `<a class="mhome__see-all" href="#" onclick="event.preventDefault();${seeAllJs}">Ver todo</a>`
+      : "";
+    const sub = subtitle ? `<span class="mhome__subtitle">${subtitle}</span>` : "";
+    return `<section class="mhome__section">
+      <div class="mhome__section-head">
+        <h2 class="mhome__section-title">${title}</h2>${seeAll}
+      </div>${sub}
+      <div class="mhome__scroll">${cards}</div>
+    </section>`;
+  }
+
+  // ── Render completo del home ──────────────────────────────────
+
+  function renderMobileHome(deals) {
+    const mh = document.getElementById("js-mobile-home");
+    if (!mh) return;
+
+    const featured = deals.find(d => (d.deal_score || 0) >= 70 && d.imagen_url) || deals.find(d => d.imagen_url);
+    const techDeals    = deals.filter(d => dealMatchesCategory(d, "tecnologia")).slice(0, 12);
+    const lcDeals      = deals.filter(d => (d.precio_actual || 0) > 0 && (d.precio_actual || 0) < 25).slice(0, 14);
+    const modaDeals    = deals.filter(d => dealMatchesCategory(d, "moda")).slice(0, 10);
+    const topDiscDeals = [...deals].sort((a,b) => (b.descuento_pct||0)-(a.descuento_pct||0)).slice(0, 12);
+    const depDeals     = deals.filter(d => dealMatchesCategory(d, "deportes")).slice(0, 10);
+    const hogarDeals   = deals.filter(d => dealMatchesCategory(d, "hogar")).slice(0, 10);
+    const calzadoDeals = deals.filter(d => dealMatchesCategory(d, "calzado")).slice(0, 10);
+
+    const lowcostSection = lcDeals.length ? `<section class="mhome__section">
+      <div class="mhome__section-head">
+        <h2 class="mhome__section-title">Por debajo de 25€</h2>
+        <a class="mhome__see-all" href="#" onclick="event.preventDefault();document.querySelector('[data-sort=\\'low_cost\\']').click()">Ver todo</a>
+      </div>
+      <div class="mhome__scroll" style="align-items:flex-start;gap:14px">${lcDeals.map(renderCircleCard).join("")}</div>
+    </section>` : "";
+
+    const catSection = `<section class="mhome__section">
+      <div class="mhome__section-head"><h2 class="mhome__section-title">Explorar</h2></div>
+      ${_renderCategoryGrid()}
+    </section>`;
+
+    const storeSection = `<section class="mhome__section">
+      <div class="mhome__section-head"><h2 class="mhome__section-title">Tiendas</h2></div>
+      <div class="mhome__scroll">${_renderStoreRow()}</div>
+    </section>`;
+
+    mh.innerHTML =
+      (featured ? renderWhero(featured) : "") +
+      _mhSection("Tecnología",        techDeals.map(renderHCard).join(""),       "mhomeCat('tecnologia')") +
+      lowcostSection +
+      catSection +
+      _mhSection("Moda",              modaDeals.map(renderHCard).join(""),       "mhomeCat('moda')") +
+      _mhSection("Mayores descuentos",topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro") +
+      _mhSection("Deportes",          depDeals.map(renderHCard).join(""),        "mhomeCat('deportes')") +
+      _mhSection("Para el hogar",     hogarDeals.map(renderHCard).join(""),      "mhomeCat('hogar')") +
+      _mhSection("Calzado",           calzadoDeals.map(renderHCard).join(""),    "mhomeCat('calzado')") +
+      storeSection;
+  }
+
+  // ── Carga asíncrona ───────────────────────────────────────────
+
+  async function loadMobileHome() {
+    if (_mhomeLoading) return;
+    _mhomeLoading = true;
+    _showMobileHome();
+
+    const mh = document.getElementById("js-mobile-home");
+    if (mh) mh.innerHTML = `<section class="mhome__section">
+      <div class="mhome__section-head"><h2 class="mhome__section-title">Cargando…</h2></div>
+      <div class="mhome__skeleton">${Array(5).fill('<div class="mhome__skeleton-card"></div>').join("")}</div>
+    </section>`;
+
+    try {
+      let batch;
+      if (USE_MOCK) {
+        batch = MOCK_DEALS;
+      } else {
+        const r = await fetch(`${API_URL}?limit=200&offset=0`);
+        if (!r.ok) throw new Error(r.status);
+        batch = await r.json();
+      }
+      _mhomeDeals = batch;
+      if (!allDeals.length) {
+        allDeals = batch; currentOffset = batch.length; hasMore = false;
+      }
+      if (_isMobileDiscovery()) renderMobileHome(batch);
+    } catch {
+      if (mh) mh.innerHTML = `<p style="padding:24px 16px;color:var(--text-mid);font-size:14px">Error cargando las ofertas. Recarga la página.</p>`;
+    } finally {
+      _mhomeLoading = false;
+    }
+  }
+
+  // ── Navegación desde el home ──────────────────────────────────
+
+  function mhomeCat(catId) {
+    _showRegularGrid();
+    const bar = document.getElementById("js-cat-bar");
+    const btn = bar ? bar.querySelector(`[data-cat="${catId}"]`) : null;
+    if (btn) {
+      // Trigger the click but skip mobile-home restore logic
+      activeCategory = catId;
+      bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === catId));
+      buildSubcatBar();
+      const titleEl = document.getElementById("js-section-title");
+      if (titleEl) titleEl.textContent = CATEGORIAS.find(c => c.id === catId)?.label || catId;
+      allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
+      document.getElementById("js-grid").innerHTML = "";
+      loadMore();
+    }
+  }
+
+  function mhomeStore(storeName) {
+    _showRegularGrid();
+    activeStore = storeName;
+    const bar = document.getElementById("js-store-bar");
+    if (bar) {
+      bar.querySelectorAll(".store-pill").forEach(b => b.classList.toggle("store-pill--active", b.dataset.store === storeName));
+      const row = document.getElementById("js-store-row");
+      if (row) row.style.display = "flex";
+    }
+    if (allDeals.length) renderGrid(); else loadMore();
+  }
+
   // ── Init ──────────────────────────────────────────────────────
   fetchTotalCount();
   buildCatBar();
   buildSubcatBar();
   buildSortTabs();
   initZoom();
-  loadMore();
+  if (_isMobileViewport()) { loadMobileHome(); } else { loadMore(); }
   setTimeout(preloadStoresForBar, 1500);
 
   if (window.innerWidth <= 700) {
