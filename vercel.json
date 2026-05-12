@@ -1,14 +1,6 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.flipazo.es" }],
-      "destination": "https://flipazo.es/:path*",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     { "source": "/blog/:slug*", "destination": "/blog.html" },
     { "source": "/blog",        "destination": "/blog.html" },
