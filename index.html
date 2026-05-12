@@ -1724,30 +1724,6 @@
     .footer__cta-btn:hover { background: var(--brand-hover); }
     .footer__bottom { display: flex; flex-direction: column; gap: 6px; }
 
-    /* ── Ticker banner ───────────────────────────────────────────── */
-    .ticker-wrap {
-      overflow: hidden;
-      background: #FFF200;
-      border-bottom: 2px solid #D4B800;
-      padding: 4px 0;
-      white-space: nowrap;
-    }
-    .ticker-track {
-      display: inline-block;
-      animation: ticker-scroll 35s linear infinite;
-    }
-    .ticker-wrap:hover .ticker-track { animation-play-state: paused; }
-    .ticker-text {
-      display: inline-block;
-      font-family: var(--sans); font-size: 11px; font-weight: 800;
-      color: #CC0000;
-      padding: 0 48px;
-      letter-spacing: 0.02em;
-    }
-    @keyframes ticker-scroll {
-      0%   { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
 
     /* ── SEO footer text ─────────────────────────────────────────── */
     .footer__seo {
@@ -1874,13 +1850,6 @@
     <button onclick="clearSearch()">Limpiar búsqueda ×</button>
   </div>
 
-  <!-- ── TICKER BANNER ────────────────────────────────────────── -->
-  <div class="ticker-wrap" aria-hidden="true">
-    <div class="ticker-track">
-      <span class="ticker-text">🔥 Chollos verificados en España · Descuentos reales ≥40% · Amazon · MediaMarkt · PcComponentes · Decathlon · Worten · Sin precios inflados · Actualizado cada hora</span>
-      <span class="ticker-text">🔥 Chollos verificados en España · Descuentos reales ≥40% · Amazon · MediaMarkt · PcComponentes · Decathlon · Worten · Sin precios inflados · Actualizado cada hora</span>
-    </div>
-  </div>
 
   <!-- SEO H1 oculto para crawlers ────────────────────────────── -->
   <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">Chollos y ofertas reales en España verificados actualizados cada hora</h1>
