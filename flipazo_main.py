@@ -2625,6 +2625,7 @@ class DeduplicacionDB:
                 "ALTER TABLE deals_publicados ADD COLUMN social_context  TEXT    DEFAULT ''",
                 "ALTER TABLE deals_publicados ADD COLUMN emotional_tags  TEXT    DEFAULT '[]'",
                 "ALTER TABLE deals_publicados ADD COLUMN stock_qty       INTEGER DEFAULT 0",
+                "ALTER TABLE deals_publicados ADD COLUMN precio_actualizado_en TEXT DEFAULT NULL",
             ]:
                 try:
                     con.execute(col_sql)
@@ -2668,6 +2669,40 @@ class DeduplicacionDB:
                 "SELECT 1 FROM deals_publicados WHERE titulo = ? AND tienda = ? AND publicado_en > ?",
                 (p.titulo, p.tienda, limite),
             ).fetchone())
+
+    def actualizar_precio_si_bajo(self, p: "Producto") -> bool:
+        """
+        Si el deal está en la ventana TTL y el precio bajó ≥1€ o ≥2%,
+        actualiza precio, descuento_pct y precio_original en la BD.
+        Retorna True si se actualizó algo.
+        """
+        deal_id = _deal_hash(p)
+        limite  = (datetime.now(timezone.utc) - timedelta(hours=DEDUP_TTL_HORAS)).isoformat()
+        with sqlite3.connect(self.db_path) as con:
+            row = con.execute(
+                "SELECT precio FROM deals_publicados WHERE deal_id = ? AND publicado_en > ?",
+                (deal_id, limite),
+            ).fetchone()
+            if not row or not row[0]:
+                return False
+            precio_guardado = float(row[0])
+            bajada = precio_guardado - p.precio_actual
+            if bajada <= 0:
+                return False
+            if bajada < 1.0 and (bajada / precio_guardado) < 0.02:
+                return False  # bajada insignificante (< 1€ y < 2%)
+            con.execute(
+                """UPDATE deals_publicados
+                   SET precio               = ?,
+                       descuento_pct        = ?,
+                       precio_original      = ?,
+                       precio_actualizado_en = ?
+                   WHERE deal_id = ?""",
+                (p.precio_actual, p.descuento_pct, p.precio_original,
+                 datetime.now(timezone.utc).isoformat(), deal_id),
+            )
+            con.commit()
+            return True
 
     def marcar_publicado(self, p: "Producto"):
         cat = p.categoria or _inferir_categoria(p)
@@ -2997,10 +3032,19 @@ async def run_pipeline(modo: str = "completo"):
             # ── Fase 5: Publicar en Telegram ──────────────────────
             dedup = DeduplicacionDB()
             dedup.limpiar_expirados()
-            deals_nuevos = [p for p in deals_finales if not dedup.ya_publicado(p)]
+            deals_nuevos: list[Producto] = []
+            actualizados_precio = 0
+            for p in deals_finales:
+                if dedup.ya_publicado(p):
+                    if dedup.actualizar_precio_si_bajo(p):
+                        actualizados_precio += 1
+                else:
+                    deals_nuevos.append(p)
             omitidos = len(deals_finales) - len(deals_nuevos)
             if omitidos:
                 print(f"   ⏭️  {omitidos} deal(s) ya publicados en las últimas {DEDUP_TTL_HORAS}h — omitidos")
+            if actualizados_precio:
+                print(f"   📉 {actualizados_precio} deal(s) con precio actualizado (bajó desde publicación)")
 
             # ── Fase 4.7: Discovery enrichment (Deal Score + Tags + Hooks) ──
             # Solo enriquecemos deals que se van a publicar — evita gasto Haiku innecesario.

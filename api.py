@@ -438,6 +438,7 @@ def _ensure_schema():
             "social_context  TEXT    DEFAULT ''",
             "emotional_tags  TEXT    DEFAULT '[]'",
             "stock_qty       INTEGER DEFAULT 0",
+            "precio_actualizado_en TEXT DEFAULT NULL",
         ]:
             try:
                 con.execute(f"ALTER TABLE deals_publicados ADD COLUMN {col_def}")
@@ -666,6 +667,7 @@ def get_deals(
             COALESCE(social_context,'') AS social_context,
             COALESCE(emotional_tags,'[]') AS emotional_tags,
             COALESCE(stock_qty,      0) AS stock_qty,
+            precio_actualizado_en,
             publicado_en    AS timestamp,
             (SELECT COUNT(*) FROM deal_comments WHERE deal_id = deals_publicados.deal_id) AS comment_count
         FROM deals_publicados
@@ -709,7 +711,8 @@ def _normalize_deal_row(r) -> dict:
     except: d["contras"] = []
     try:    d["emotional_tags"] = json.loads(d.get("emotional_tags") or "[]")
     except: d["emotional_tags"] = []
-    d["stock_qty"] = int(d.get("stock_qty", 0) or 0)
+    d["stock_qty"]            = int(d.get("stock_qty", 0) or 0)
+    d["precio_actualizado_en"] = d.get("precio_actualizado_en") or None
     return d
 
 

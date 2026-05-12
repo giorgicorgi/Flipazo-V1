@@ -1208,6 +1208,10 @@
       color: #b45309; background: rgba(245,158,11,0.10);
       border-color: rgba(245,158,11,0.35);
     }
+    .deal__tag--drop {
+      color: #047857; background: rgba(16,185,129,0.10);
+      border-color: rgba(16,185,129,0.35);
+    }
     .deal__hook {
       font-family: var(--serif); font-weight: 700;
       font-size: 16px; line-height: 1.3;
@@ -2391,10 +2395,15 @@
                      : null;
     const stockTagHtml = (stockLabel && !isExpired)
       ? `<span class="deal__tag deal__tag--stock">${stockLabel}</span>` : "";
+    const dropTagHtml = (() => {
+      if (isExpired || !d.precio_actualizado_en) return "";
+      const horasDrop = (Date.now() - new Date(d.precio_actualizado_en).getTime()) / 36e5;
+      return horasDrop < 48 ? `<span class="deal__tag deal__tag--drop">📉 Precio bajado</span>` : "";
+    })();
     const meaningfulTags = tags.filter(t => !t.includes("Worth Watching"));
     const allTagsHtml = [...meaningfulTags.slice(0, 1).map(t =>
       `<span class="deal__tag ${tagClassFor(t)}">${t}</span>`
-    ), stockTagHtml].filter(Boolean).join("");
+    ), dropTagHtml, stockTagHtml].filter(Boolean).join("");
     const tagsHtml = (allTagsHtml && !isExpired) ? `
       <div class="deal__tags">${allTagsHtml}</div>` : "";
 
