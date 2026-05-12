@@ -3,15 +3,69 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Flipazo — Las Mejores Ofertas de España</title>
-  <meta name="description" content="Una selección diaria de descuentos reales en España. Únicamente ofertas superiores al 40% de marcas reconocidas en electrónica, deportes, hogar y más. Pocas ofertas. Las correctas." />
-  <meta property="og:title" content="Flipazo — Las Mejores Ofertas de España" />
-  <meta property="og:description" content="Descuentos verificados superiores al 40%. Actualizados automáticamente cada hora." />
-  <meta property="og:url" content="https://flipazo.es" />
+  <title>Flipazo — Chollos y Ofertas Reales en España | Descuentos +40%</title>
+  <meta name="description" content="Chollos verificados con descuento superior al 40% sobre el precio histórico. Ofertas del día en electrónica, tecnología, deportes, hogar y calzado de marcas como Amazon, MediaMarkt, PcComponentes y Decathlon. Actualizadas cada hora." />
+  <meta name="keywords" content="chollos, ofertas del día, descuentos reales, gangas online, chollos España, ofertas flash, chollos Amazon, mejores ofertas electrónica, descuentos tecnología, ofertas deportes, chollos hoy, precio más bajo, comprar barato online, ofertas MediaMarkt, chollos PcComponentes, regalos baratos originales, caza ofertas, descuentos verificados" />
+  <link rel="canonical" href="https://flipazo.es/" />
+  <meta property="og:title" content="Flipazo — Chollos y Ofertas Reales en España" />
+  <meta property="og:description" content="Chollos verificados con descuento real superior al 40%. Tecnología, deportes, hogar y más. Actualizados automáticamente cada hora." />
+  <meta property="og:url" content="https://flipazo.es/" />
   <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://flipazo.es/og-image.png" />
+  <meta property="og:locale" content="es_ES" />
+  <meta property="og:site_name" content="Flipazo" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Flipazo — Chollos y Ofertas Reales en España" />
+  <meta name="twitter:description" content="Chollos verificados +40% de descuento. Electrónica, deportes, hogar, calzado." />
+  <meta name="twitter:image" content="https://flipazo.es/og-image.png" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23F52834'/><text x='50%' y='74%' font-family='Georgia,serif' font-weight='900' font-size='22' fill='white' text-anchor='middle'>F</text></svg>">
   <meta name="google-site-verification" content="HjXyNZCI-DLtXy_Q8YG8jvjf6lqKTTB0GQDOshoumh0" />
   <meta name="color-scheme" content="light dark" />
+
+  <!-- JSON-LD: WebSite + Organization + SearchAction -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://flipazo.es/#website",
+        "url": "https://flipazo.es/",
+        "name": "Flipazo",
+        "description": "Chollos y ofertas reales en España con descuento superior al 40% sobre el precio histórico.",
+        "inLanguage": "es-ES",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://flipazo.es/?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://flipazo.es/#organization",
+        "name": "Flipazo",
+        "url": "https://flipazo.es/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://flipazo.es/og-image.png"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "email": "flipazo.newsletter@gmail.com",
+          "contactType": "customer support",
+          "areaServed": "ES",
+          "availableLanguage": "Spanish"
+        },
+        "sameAs": [
+          "https://t.me/flipazo"
+        ]
+      }
+    ]
+  }
+  </script>
 
   <!-- Anti-FOUC: aplica el tema guardado antes de pintar -->
   <script>
@@ -1809,6 +1863,46 @@
     }
     .footer__cta-btn:hover { background: var(--brand-hover); }
     .footer__bottom { display: flex; flex-direction: column; gap: 6px; }
+
+    /* ── SEO intro strip ─────────────────────────────────────────── */
+    .seo-intro {
+      padding: 18px 32px 16px;
+      border-bottom: 1px solid var(--border-faint);
+      background: var(--bg);
+    }
+    .seo-intro__h1 {
+      font-family: var(--sans); font-size: 15px; font-weight: 800;
+      color: var(--ink); letter-spacing: -0.01em; margin-bottom: 4px;
+    }
+    .seo-intro__p {
+      font-family: var(--sans); font-size: 12px; font-weight: 500;
+      color: var(--text-mid); line-height: 1.5; max-width: 780px;
+    }
+    .seo-intro__cats {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+    }
+    .seo-intro__cat {
+      font-family: var(--sans); font-size: 11px; font-weight: 600;
+      color: var(--text-mid); background: var(--surface);
+      padding: 3px 10px; border-radius: 9999px;
+      text-decoration: none; border: 1px solid var(--border);
+      transition: background 0.12s, color 0.12s;
+    }
+    .seo-intro__cat:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
+    @media (max-width: 640px) {
+      .seo-intro { padding: 14px 18px 12px; }
+    }
+
+    /* ── SEO footer text ─────────────────────────────────────────── */
+    .footer__seo {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-faint);
+    }
+    .footer__seo p {
+      font-family: var(--sans); font-size: 11px; font-weight: 400;
+      color: var(--text-dim); line-height: 1.65; max-width: 680px;
+    }
   </style>
 </head>
 
@@ -1924,6 +2018,26 @@
     <button onclick="clearSearch()">Limpiar búsqueda ×</button>
   </div>
 
+  <!-- ── SEO INTRO (H1 + keywords, visible pero discreto) ─────── -->
+  <div class="seo-intro" aria-label="Descripción del sitio">
+    <h1 class="seo-intro__h1">Chollos y ofertas reales en España — verificados, actualizados cada hora</h1>
+    <p class="seo-intro__p">
+      Flipazo monitoriza cientos de productos al día en Amazon, MediaMarkt, PcComponentes, Decathlon y más.
+      Solo publicamos descuentos genuinos de al menos el 40% sobre el precio histórico de los últimos 30 días.
+      Sin descuentos inflados, sin gangas falsas.
+    </p>
+    <nav class="seo-intro__cats" aria-label="Categorías de ofertas">
+      <a class="seo-intro__cat" href="/?cat=tecnologia">Chollos tecnología</a>
+      <a class="seo-intro__cat" href="/?cat=deportes">Ofertas deportes</a>
+      <a class="seo-intro__cat" href="/?cat=herramientas">Descuentos herramientas</a>
+      <a class="seo-intro__cat" href="/?cat=calzado">Calzado con descuento</a>
+      <a class="seo-intro__cat" href="/?cat=hogar">Chollos hogar</a>
+      <a class="seo-intro__cat" href="/?cat=belleza">Ofertas belleza</a>
+      <a class="seo-intro__cat" href="/?cat=juguetes">Chollos juguetes</a>
+      <a class="seo-intro__cat" href="/?cat=moda">Ropa y moda</a>
+    </nav>
+  </div>
+
   <!-- ── HERO SECTION ──────────────────────────────────────────── -->
   <section class="hero" id="js-hero" style="display:none" aria-label="Oferta destacada">
     <div id="js-hero-main">
@@ -1988,9 +2102,14 @@
       </div>
       <p class="footer__affiliate">
         Algunos enlaces son de afiliado: si compras a través de ellos podemos recibir una comisión
-        sin coste adicional para ti. Participamos en Amazon Associates (tag: flipazo-21) y Awin.
+        sin coste adicional para ti. Participamos en Amazon Associates (tag: flipazo-21), Tradedoubler y Awin.
         Los precios y la disponibilidad pueden cambiar.
       </p>
+      <div class="footer__seo">
+        <p>
+          <strong>Flipazo</strong> es el buscador de chollos y ofertas reales en España. Monitorizamos precios en tiempo real en Amazon.es, MediaMarkt, PcComponentes, Decathlon, El Corte Inglés y más de 10 tiendas españolas. Solo publicamos descuentos verificados superiores al 40% sobre el precio mínimo de los últimos 30 días — nunca descuentos inflados sobre precios de referencia ficticios. Si buscas chollos de electrónica, ofertas en deportes, gangas en herramientas, regalos originales baratos o los mejores descuentos del día en España, Flipazo filtra el ruido para que solo veas lo que de verdad merece la pena.
+        </p>
+      </div>
       <p class="footer__copy">© 2025 Flipazo · Barcelona, España · Precios sujetos a cambio sin previo aviso</p>
     </div>
   </footer>

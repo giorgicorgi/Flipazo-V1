@@ -1,4 +1,19 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /cuenta
+Disallow: /cuenta.html
+Disallow: /api/
+
+# Crawl-delay para scrapers agresivos
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Disallow: /
 
 Sitemap: https://flipazo.es/sitemap.xml
