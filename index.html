@@ -3462,21 +3462,50 @@
       "@context": "https://schema.org", "@type": "ItemList",
       "name": "Mejores ofertas del día — Flipazo",
       "description": "Ofertas con descuento real verificado de Amazon, MediaMarkt, PcComponentes y más.",
-      "url": "https://flipazo.es",
-      "itemListElement": sample.map((d, i) => ({
-        "@type": "ListItem", "position": i + 1,
-        "item": {
-          "@type": "Product", "name": d.titulo || "",
-          ...(d.imagen_url ? { "image": d.imagen_url } : {}),
-          ...(d.categoria  ? { "category": d.categoria } : {}),
-          "offers": {
-            "@type": "Offer",
-            "price": (d.precio_actual || 0).toFixed(2), "priceCurrency": "EUR",
-            "availability": "https://schema.org/InStock",
-            "url": `https://flipazo.es/r/${d.id}`,
+      "url": "https://www.flipazo.es",
+      "itemListElement": sample.map((d, i) => {
+        const pct  = d.descuento_pct || 0;
+        const orig = d.precio_original ? `Precio original ${d.precio_original.toFixed(2)} €. ` : "";
+        const desc = `${orig}Descuento verificado del ${pct}% en ${d.tienda || "tienda online"}.`;
+        return {
+          "@type": "ListItem", "position": i + 1,
+          "item": {
+            "@type": "Product",
+            "name": d.titulo || "",
+            "description": desc,
+            ...(d.imagen_url ? { "image": d.imagen_url } : {}),
+            ...(d.categoria  ? { "category": d.categoria } : {}),
+            ...(d.tienda     ? { "brand": { "@type": "Brand", "name": d.tienda } } : {}),
+            "offers": {
+              "@type": "Offer",
+              "price": (d.precio_actual || 0).toFixed(2),
+              "priceCurrency": "EUR",
+              "availability": "https://schema.org/InStock",
+              "url": `https://www.flipazo.es/r/${d.id}`,
+              "priceValidUntil": new Date(Date.now() + 86400000).toISOString().slice(0,10),
+              "seller": { "@type": "Organization", "name": d.tienda || "Tienda online" },
+              "shippingDetails": {
+                "@type": "OfferShippingDetails",
+                "shippingRate": { "@type": "MonetaryAmount", "value": "0", "currency": "EUR" },
+                "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "ES" },
+                "deliveryTime": {
+                  "@type": "ShippingDeliveryTime",
+                  "handlingTime": { "@type": "QuantitativeValue", "minValue": 0, "maxValue": 1, "unitCode": "DAY" },
+                  "transitTime":  { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 5, "unitCode": "DAY" }
+                }
+              },
+              "hasMerchantReturnPolicy": {
+                "@type": "MerchantReturnPolicy",
+                "applicableCountry": "ES",
+                "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+                "merchantReturnDays": 30,
+                "returnMethod": "https://schema.org/ReturnByMail",
+                "returnFees": "https://schema.org/FreeReturn"
+              }
+            }
           }
-        }
-      }))
+        };
+      })
     };
     let tag = document.getElementById("schema-deals");
     if (!tag) { tag = document.createElement("script"); tag.type = "application/ld+json"; tag.id = "schema-deals"; document.head.appendChild(tag); }
