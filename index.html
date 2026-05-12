@@ -1868,33 +1868,29 @@
     .footer__cta-btn:hover { background: var(--brand-hover); }
     .footer__bottom { display: flex; flex-direction: column; gap: 6px; }
 
-    /* ── SEO intro strip ─────────────────────────────────────────── */
-    .seo-intro {
-      padding: 18px 32px 16px;
-      border-bottom: 1px solid var(--border-faint);
-      background: var(--bg);
+    /* ── Ticker banner ───────────────────────────────────────────── */
+    .ticker-wrap {
+      overflow: hidden;
+      background: #FFF200;
+      border-bottom: 2px solid #D4B800;
+      padding: 4px 0;
+      white-space: nowrap;
     }
-    .seo-intro__h1 {
-      font-family: var(--sans); font-size: 15px; font-weight: 800;
-      color: var(--ink); letter-spacing: -0.01em; margin-bottom: 4px;
+    .ticker-track {
+      display: inline-block;
+      animation: ticker-scroll 35s linear infinite;
     }
-    .seo-intro__p {
-      font-family: var(--sans); font-size: 12px; font-weight: 500;
-      color: var(--text-mid); line-height: 1.5; max-width: 780px;
+    .ticker-wrap:hover .ticker-track { animation-play-state: paused; }
+    .ticker-text {
+      display: inline-block;
+      font-family: var(--sans); font-size: 11px; font-weight: 800;
+      color: #CC0000;
+      padding: 0 48px;
+      letter-spacing: 0.02em;
     }
-    .seo-intro__cats {
-      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
-    }
-    .seo-intro__cat {
-      font-family: var(--sans); font-size: 11px; font-weight: 600;
-      color: var(--text-mid); background: var(--surface);
-      padding: 3px 10px; border-radius: 9999px;
-      text-decoration: none; border: 1px solid var(--border);
-      transition: background 0.12s, color 0.12s;
-    }
-    .seo-intro__cat:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
-    @media (max-width: 640px) {
-      .seo-intro { padding: 14px 18px 12px; }
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
 
     /* ── SEO footer text ─────────────────────────────────────────── */
@@ -2022,25 +2018,16 @@
     <button onclick="clearSearch()">Limpiar búsqueda ×</button>
   </div>
 
-  <!-- ── SEO INTRO (H1 + keywords, visible pero discreto) ─────── -->
-  <div class="seo-intro" aria-label="Descripción del sitio">
-    <h1 class="seo-intro__h1">Chollos y ofertas reales en España — verificados, actualizados cada hora</h1>
-    <p class="seo-intro__p">
-      Flipazo monitoriza cientos de productos al día en Amazon, MediaMarkt, PcComponentes, Decathlon y más.
-      Solo publicamos descuentos genuinos de al menos el 40% sobre el precio histórico de los últimos 30 días.
-      Sin descuentos inflados, sin gangas falsas.
-    </p>
-    <nav class="seo-intro__cats" aria-label="Categorías de ofertas">
-      <a class="seo-intro__cat" href="/?cat=tecnologia">Chollos tecnología</a>
-      <a class="seo-intro__cat" href="/?cat=deportes">Ofertas deportes</a>
-      <a class="seo-intro__cat" href="/?cat=herramientas">Descuentos herramientas</a>
-      <a class="seo-intro__cat" href="/?cat=calzado">Calzado con descuento</a>
-      <a class="seo-intro__cat" href="/?cat=hogar">Chollos hogar</a>
-      <a class="seo-intro__cat" href="/?cat=belleza">Ofertas belleza</a>
-      <a class="seo-intro__cat" href="/?cat=juguetes">Chollos juguetes</a>
-      <a class="seo-intro__cat" href="/?cat=moda">Ropa y moda</a>
-    </nav>
+  <!-- ── TICKER BANNER ────────────────────────────────────────── -->
+  <div class="ticker-wrap" aria-hidden="true">
+    <div class="ticker-track">
+      <span class="ticker-text">🔥 Chollos verificados en España · Descuentos reales ≥40% · Amazon · MediaMarkt · PcComponentes · Decathlon · Worten · Sin precios inflados · Actualizado cada hora</span>
+      <span class="ticker-text">🔥 Chollos verificados en España · Descuentos reales ≥40% · Amazon · MediaMarkt · PcComponentes · Decathlon · Worten · Sin precios inflados · Actualizado cada hora</span>
+    </div>
   </div>
+
+  <!-- SEO H1 oculto para crawlers ────────────────────────────── -->
+  <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">Chollos y ofertas reales en España verificados actualizados cada hora</h1>
 
   <!-- ── HERO SECTION ──────────────────────────────────────────── -->
   <section class="hero" id="js-hero" style="display:none" aria-label="Oferta destacada">
@@ -2593,7 +2580,8 @@
       return "";
     };
     const stockQty  = d.stock_qty || 0;
-    const stockLabel = stockQty === 1 ? "⏳ Última unidad"
+    const stockLabel = stockQty <= 0 ? null
+                     : stockQty === 1 ? "⏳ Última unidad"
                      : stockQty <= 3  ? `⏳ Solo quedan ${stockQty}`
                      : stockQty <= 5  ? "⏳ Pocas unidades"
                      : null;
