@@ -3,19 +3,19 @@
 
   <!-- ── Páginas principales ── -->
   <url>
-    <loc>https://flipazo.es/</loc>
+    <loc>https://www.flipazo.es/</loc>
     <lastmod>2026-05-12</lastmod>
     <changefreq>hourly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://flipazo.es/sobre</loc>
+    <loc>https://www.flipazo.es/sobre</loc>
     <lastmod>2026-05-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://flipazo.es/blog</loc>
+    <loc>https://www.flipazo.es/blog</loc>
     <lastmod>2026-05-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -28,17 +28,17 @@
 
   <!-- ── Páginas legales (noindex en HTML) ── -->
   <url>
-    <loc>https://flipazo.es/privacidad.html</loc>
+    <loc>https://www.flipazo.es/privacidad.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
   <url>
-    <loc>https://flipazo.es/cookies.html</loc>
+    <loc>https://www.flipazo.es/cookies.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
   <url>
-    <loc>https://flipazo.es/aviso-legal.html</loc>
+    <loc>https://www.flipazo.es/aviso-legal.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>

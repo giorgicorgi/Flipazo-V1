@@ -8,14 +8,14 @@
   <!-- Primary SEO -->
   <title id="js-page-title">Blog — Flipazo</title>
   <meta name="description" id="js-meta-desc" content="Guías, análisis y consejos para comprar mejor. El blog de Flipazo." />
-  <link rel="canonical" id="js-canonical" href="https://flipazo.es/blog" />
+  <link rel="canonical" id="js-canonical" href="https://www.flipazo.es/blog" />
 
   <!-- Open Graph -->
   <meta property="og:type" id="js-og-type" content="website" />
   <meta property="og:title" id="js-og-title" content="Blog — Flipazo" />
   <meta property="og:description" id="js-og-desc" content="Guías, análisis y consejos para comprar mejor." />
   <meta property="og:image" id="js-og-image" content="https://flipazo.es/og-default.jpg" />
-  <meta property="og:url" id="js-og-url" content="https://flipazo.es/blog" />
+  <meta property="og:url" id="js-og-url" content="https://www.flipazo.es/blog" />
   <meta property="og:site_name" content="Flipazo" />
 
   <!-- Twitter Card -->
@@ -30,7 +30,7 @@
     "@context": "https://schema.org",
     "@type": "Blog",
     "name": "Flipazo Blog",
-    "url": "https://flipazo.es/blog",
+    "url": "https://www.flipazo.es/blog",
     "description": "Guías, análisis y consejos para comprar mejor."
   }
   </script>
@@ -702,7 +702,7 @@
       const title = post.og_title || post.titulo || "";
       const desc  = post.meta_description || post.resumen || "Artículo del blog de Flipazo.";
       const img   = post.imagen_url || DEFAULT_OG_IMAGE;
-      const url   = `https://flipazo.es/blog/${post.slug}`;
+      const url   = `https://www.flipazo.es/blog/${post.slug}`;
 
       document.getElementById("js-page-title").textContent    = `${post.titulo} — Flipazo Blog`;
       document.getElementById("js-meta-desc").content         = desc;
@@ -721,8 +721,8 @@
         "@type": post.schema_type || "Article",
         "headline": post.titulo, "description": desc,
         "datePublished": post.created_at, "dateModified": post.updated_at || post.created_at,
-        "author": { "@type": "Organization", "name": "Flipazo", "url": "https://flipazo.es" },
-        "publisher": { "@type": "Organization", "name": "Flipazo", "url": "https://flipazo.es" },
+        "author": { "@type": "Organization", "name": "Flipazo", "url": "https://www.flipazo.es" },
+        "publisher": { "@type": "Organization", "name": "Flipazo", "url": "https://www.flipazo.es" },
         "url": url, "mainEntityOfPage": { "@type": "WebPage", "@id": url }
       };
       if (img && img !== DEFAULT_OG_IMAGE) schema.image = img;
@@ -738,18 +738,18 @@
       const defaultTitle = "Blog — Flipazo";
       document.getElementById("js-page-title").textContent = defaultTitle;
       document.getElementById("js-meta-desc").content      = defaultDesc;
-      document.getElementById("js-canonical").href         = "https://flipazo.es/blog";
+      document.getElementById("js-canonical").href         = "https://www.flipazo.es/blog";
       document.getElementById("js-og-type").content        = "website";
       document.getElementById("js-og-title").content       = defaultTitle;
       document.getElementById("js-og-desc").content        = defaultDesc;
       document.getElementById("js-og-image").content       = DEFAULT_OG_IMAGE;
-      document.getElementById("js-og-url").content         = "https://flipazo.es/blog";
+      document.getElementById("js-og-url").content         = "https://www.flipazo.es/blog";
       document.getElementById("js-tw-title").content       = defaultTitle;
       document.getElementById("js-tw-desc").content        = defaultDesc;
       document.getElementById("js-tw-image").content       = DEFAULT_OG_IMAGE;
       document.getElementById("js-schema-ld").textContent  = JSON.stringify({
         "@context": "https://schema.org", "@type": "Blog",
-        "name": "Flipazo Blog", "url": "https://flipazo.es/blog", "description": defaultDesc
+        "name": "Flipazo Blog", "url": "https://www.flipazo.es/blog", "description": defaultDesc
       });
       document.getElementById("js-subnav-current").textContent = "Blog";
     }
