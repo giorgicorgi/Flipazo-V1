@@ -1510,6 +1510,19 @@
       100% { background-position: -200% 0; }
     }
 
+    /* ── Separador deals >7 días ─────────────────────────────────── */
+    .stale-divider {
+      grid-column: 1 / -1;
+      display: flex; align-items: center; gap: 12px;
+      padding: 24px 0 10px;
+      font-family: var(--sans); font-size: 12px; font-weight: 600;
+      color: var(--text-dim); letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+    .stale-divider::before, .stale-divider::after {
+      content: ""; flex: 1; height: 1px; background: var(--border);
+    }
+
     /* ── Scroll buttons ──────────────────────────────────────────── */
     .scroll-btns {
       position: fixed; bottom: 24px; right: 24px;
@@ -2368,7 +2381,7 @@
     { terms: ["taladro","bricolaje","herramienta","herramientas","diy","tool"],
       pattern: /taladro|sierra\b|destornillador|amoladora|lijadora|bosch\b|dewalt|makita|milwaukee|stanley\b/i },
     { terms: ["zapatilla","zapatillas","sneaker","sneakers","zapato","zapatos","calzado"],
-      pattern: /zapatilla|zapato|bota\b|sandalia|sneaker|nike\b|adidas\b|puma\b|reebok|new balance|asics|jordan\b/i },
+      pattern: /zapatilla|zapato|botas?\b|botines?\b|sandalia|sneaker|nike\b|adidas\b|puma\b|reebok|new balance|asics|jordan\b|alpargata|skechers|hoka\b/i },
     { terms: ["auricular","auriculares","cascos","headphone","headphones"],
       pattern: /auricular|cascos|airpods|wh-?1000|bose q|jabra|sennheiser|hyperx|jbl/i },
     { terms: ["running","correr","atletismo","trail","maratón","maraton"],
@@ -2454,21 +2467,21 @@
     { id: "moviles",    label: "Móviles",      test: d => /smartphone|m[oó]vil|iphone|galaxy\b|redmi|xiaomi|oneplus|oppo\b/i.test(d.titulo) },
     { id: "portatiles", label: "Portátiles",   test: d => /port[aá]til|laptop|macbook|chromebook|pc gaming/i.test(d.titulo) },
     { id: "tv",         label: "TV",           test: d => /televisor|\btv\b|oled\b|qled\b|smart.?tv/i.test(d.titulo) },
-    { id: "foto",       label: "Foto/Vídeo",   test: d => /c[aá]mara\b|gopro|dron\b|drone\b|objetivo\b/i.test(d.titulo) },
-    { id: "gadgets",    label: "Gadgets",      test: d => true },
+    { id: "foto",       label: "Foto/Vídeo",   test: d => /c[aá]mara\s+(?:r[eé]flex|mirrorless|deportiva|compacta|de\s+acci[oó]n|instant[aá]nea|fotos?|digital)|\bcanon\b|\bnikon\b|\bfujifilm\b|sony.*c[aá]mara|c[aá]mara.*sony|\bpanasonic.*lumix|gopro|dron\b|drone\b|objetivo\b|teleobjetivo\b|tr[ií]pode\b/i.test(d.titulo) && !/smartphone|m[oó]vil|iphone|galaxy\b|redmi|xiaomi|oneplus|oppo\b/i.test(d.titulo) },
+    { id: "gadgets",    label: "Gadgets",      test: d => !/smartphone|m[oó]vil|iphone|galaxy\b|redmi|xiaomi|oneplus|oppo\b/i.test(d.titulo) && !/port[aá]til|laptop|macbook|chromebook|pc gaming/i.test(d.titulo) && !/televisor|\btv\b|oled\b|qled\b|smart.?tv/i.test(d.titulo) && !/c[aá]mara.*(?:r[eé]flex|mirrorless|digital)|\bcanon\b|\bnikon\b|\bfujifilm\b|gopro/i.test(d.titulo) },
   ];
   let activeTechSubcat = "todas";
 
   // ── Categories ───────────────────────────────────────────────
   const _RX = {
-    calzado:      /zapatilla|zapato|deportiva\b|\bbota\b|sandalia\b|mocas[ií]n|sneaker|calzado\b|\bnike\b|\badidas\b|\bpuma\b|reebok|new balance|asics|\bjordan\b|air max|ultraboost|salomon\b|hoka\b|on running|saucony\b|brooks\b|mizuno\b|skechers\b|converse\b|\bvans\b/i,
+    calzado:      /zapatilla[s]?|zapato[s]?|deportiva[s]?\b|\bbotas?\b|\bbotines?\b|sandalia[s]?\b|mocas[ií]n[es]*|sneaker[s]?|calzado\b|\bnike\b|\badidas\b|\bpuma\b|reebok|new balance|asics|\bjordan\b|air max|ultraboost|salomon\b|hoka\b|on running|saucony\b|brooks\b|mizuno\b|skechers\b|converse\b|\bvans\b|alpargata[s]?|espadrille[s]?|zuecos?\b/i,
     tecnologia:   /smartphone|m[oó]vil|iphone|galaxy\b|tablet|ipad|port[aá]til|laptop|macbook|pc gaming|monitor\b|televisor|\btv\b|oled|qled|auricular|cascos|airpods|wh-?1000|bose\b|kindle|c[aá]mara\b|gopro|smartwatch|consola\b|ps5|playstation|xbox|nintendo|switch\b|ssd|disco duro|\bram\b|gpu|rtx|procesador|impresora|router|logitech|razer|corsair|steelseries|hyperx|teclado\b|rat[oó]n\b|altavoz.*bluetooth|echo dot|google home|chromecast|power\s*bank|bater[ií]a.*externa/i,
     herramientas: /taladro|sierra\b|destornillador|amoladora|lijadora|compresor|k[aä]rcher|dewalt|makita|milwaukee|stanley\b|ryobi\b|bahco\b|nivel.*l[aá]ser|mult[ií]metro|flex[oó]metro|llave inglesa|alicate|bosch.*(taladro|sierra|amoladora|compresor|atornillador)/i,
     deportes:     /running\b|trail\b|fitness\b|gimnasio|mancuerna|kettlebell|\bpesas\b|nataci[oó]n|swim\b|f[uú]tbol|bal[oó]n|raqueta|p[aá]del|esqu[ií]|snowboard|surf\b|garmin|polar\b|fitbit|under armour|\bgiro\b|shimano|alpinestars|ciclismo|mountain bike|\bmtb\b|gravel\b|bicicleta|\bbici\b|sill[ií]n|escalada|senderismo\b/i,
     hogar:        /cafetera|nespresso|delonghi|dolce.?gusto|sage\b|breville\b|krups\b|jura\b|aspirador|robot.?aspirador|roomba|irobot|roborock|lefant|dreame|ecovacs|eufy\b|freidora|airfryer|air.?fryer|microondas|lavadora|lavavajillas|frigor[ií]fico|nevera|secadora\b|\bhorno\b|plancha\b|plancha.*vapor|vaporeta|vaporizador|cepillo.*vapor|vapor.*cepillo|campana\b|campana.*extract|extractor.*humos|\bteka\b|batidora|thermomix|olla.*presi[oó]n|robot.*cocina|dyson|rowenta|tefal|cecotec|shark\b|bissell\b|kenwood\b|magimix\b|calefactor|aire.*acondicionado|ventilador\b|purificador|humidificador|deshumidificador|inducci[oó]n\b|vitrocer[aá]mic|colch[oó]n|l[aá]mpara\b|sill[oó]n\b|sof[aá]\b|escritorio\b|estanter[ií]a/i,
     belleza:      /perfume\b|eau de parfum|eau de toilette|\bcolonia\b|fragancia\b|maquillaje|labial\b|crema.*facial|crema.*corporal|crema.*hidratante|s[eé]rum.*facial|\bdior\b|\bchanel\b|\barmani\b|ysl\b|calvin klein|hugo boss|lanc[oô]me|l'?oreal|nivea|olay\b|estee lauder|afeitadora|maquinilla.*afeit|rasuradora\b|oneblade|depiladora|epiladora|oral.?b|cepillo.*dental|irrigador.*bucal|remington\b|wahl\b|babyliss|ghd\b|plancha.*pelo|rizador|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo/i,
-    juguetes:     /\blego\b|playmobil|hasbro|mattel|hot wheels|barbie|juguete|mu[ñn]eca\b|\bfunko\b|\bnerf\b|juego de mesa|puzzle\b|puzle\b|scalextric|rc\b.*coche|coche.*teledirigido|\bdron\b|\bdrone\b/i,
-    moda:         /\bbolso\b|mochila|maleta\b|lacoste|ralph lauren|\bdior\b|\bchanel\b|armani|calvin klein|tommy hilfiger|gafas.*sol|gafas.*graduada|cintur[oó]n\b/i,
+    juguetes:     /\blego\b|playmobil|hasbro|mattel|hot wheels|barbie|juguete|mu[ñn]eca\b|\bfunko\b|\bnerf\b|juego de mesa|puzzle\b|puzle\b|scalextric|rc\b.*coche|coche.*teledirigido|\bteledirigido\b/i,
+    moda:         /\bbolso[s]?\b|carteras?\b|monedero[s]?\b|mochila[s]?\b|maleta[s]?\b|lacoste|ralph lauren|\bdior\b|\bchanel\b|\barmani\b|calvin klein|tommy hilfiger|tommy jeans|pepe jeans|guess\b|gant\b|emporio armani|hugo boss|\bboss\b|barbour|hackett|fred perry|ba[&+]sh|levis?|levi['']?s|wrangler|replay\b|scotch.?soda|massimo dutti|gafas.*sol|gafas.*graduada|\bcintur[oó]n[s]?\b|\bcorbata[s]?\b|\bbufanda[s]?\b|\bgorra[s]?\b|\bpendiente[s]?\b(?!.*audio)/i,
   };
 
   const CATEGORIAS = [
@@ -2478,7 +2491,7 @@
     { id: "herramientas", label: "Herramientas",  test: d => _RX.herramientas.test(d.titulo) },
     { id: "deportes",     label: "Deportes",      test: d => _RX.deportes.test(d.titulo) || ["Mammoth Bikes","Decathlon","PrivateSportShop"].includes(d.tienda) },
     { id: "hogar",        label: "Hogar",         test: d => _RX.hogar.test(d.titulo) },
-    { id: "belleza",      label: "Belleza",       test: d => _RX.belleza.test(d.titulo) },
+    { id: "belleza",      label: "Belleza",       test: d => _RX.belleza.test(d.titulo) && !/freidora|airfryer|air.?fryer|microondas|\bhorno\b|cafetera|thermomix|robot.*cocina|batidora/i.test(d.titulo) },
     { id: "juguetes",     label: "Juguetes",      test: d => _RX.juguetes.test(d.titulo) },
     { id: "moda",         label: "Moda",          test: d => _RX.moda.test(d.titulo) || d.tienda === "Desigual" },
   ];
@@ -2498,7 +2511,7 @@
   function dealMatchesStore(deal) { return !activeStore || deal.tienda === activeStore; }
 
   function dealMatchesFilters(deal) {
-    if (activeSort !== "low_cost" && (deal.precio_actual || 0) < 25) return false;
+    if (activeSort === "low_cost" && (deal.precio_actual || 0) >= 25) return false;
     return dealMatchesCategory(deal, activeCategory) && dealMatchesStore(deal);
   }
 
@@ -3212,6 +3225,18 @@
     }
   }
 
+  const _STALE_MS = 7 * 24 * 60 * 60 * 1000;
+  const _STALE_HTML = `<div class="stale-divider" role="separator">Ofertas de más de 7 días · Puede que ya no estén disponibles</div>`;
+
+  function _renderWithDivider(deals) {
+    const now = Date.now();
+    const fresh = deals.filter(d => (now - new Date(d.timestamp || 0).getTime()) <= _STALE_MS);
+    const stale = deals.filter(d => (now - new Date(d.timestamp || 0).getTime()) > _STALE_MS);
+    let html = fresh.map(renderDeal).join("");
+    if (stale.length) html += _STALE_HTML + stale.map(renderDeal).join("");
+    return html;
+  }
+
   function renderGrid() {
     updateHero();
     const grid     = document.getElementById("js-grid");
@@ -3221,7 +3246,7 @@
     if (gridDeals.length === 0 && !hasMore) {
       grid.innerHTML = `<div class="empty">Sin ofertas en esta categoría</div>`;
     } else {
-      grid.innerHTML = gridDeals.map(renderDeal).join("");
+      grid.innerHTML = _renderWithDivider(gridDeals);
     }
     updateCount();
     if (gridDeals.length < 8 && hasMore && !isLoading) loadMore();
@@ -3262,10 +3287,20 @@
         : sorted;
 
       if (currentOffset <= PAGE_SIZE) {
-        grid.innerHTML = gridDeals.map(renderDeal).join("");
+        grid.innerHTML = _renderWithDivider(gridDeals);
         updateSchemaMarkup();
       } else if (gridDeals.length > 0) {
-        grid.insertAdjacentHTML("beforeend", gridDeals.map(renderDeal).join(""));
+        const now = Date.now();
+        const hasDivider = !!grid.querySelector(".stale-divider");
+        const stale = gridDeals.filter(d => (now - new Date(d.timestamp || 0).getTime()) > _STALE_MS);
+        const fresh = gridDeals.filter(d => (now - new Date(d.timestamp || 0).getTime()) <= _STALE_MS);
+        let appendHtml = "";
+        if (!hasDivider && stale.length) {
+          appendHtml += fresh.map(renderDeal).join("") + _STALE_HTML + stale.map(renderDeal).join("");
+        } else {
+          appendHtml = gridDeals.map(renderDeal).join("");
+        }
+        grid.insertAdjacentHTML("beforeend", appendHtml);
       }
       updateCount();
       buildStoreBar();
