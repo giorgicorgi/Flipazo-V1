@@ -2120,7 +2120,7 @@
           <span class="filter-toggle__arrow">▾</span>
         </button>
       </div>
-      <button class="sort-tab sort-tab--lowcost" data-sort="low_cost">💸 Low Cost</button>
+      <button class="sort-tab sort-tab--lowcost" data-sort="low_cost">💸 Por menos de 25€</button>
       <button class="sort-tab sort-tab--active" data-sort="recientes">Recientes</button>
       <button class="sort-tab" data-sort="descuento">Mayor Descuento</button>
       <button class="sort-tab" data-sort="votados">Más Votados</button>
@@ -2511,7 +2511,7 @@
   function dealMatchesStore(deal) { return !activeStore || deal.tienda === activeStore; }
 
   function dealMatchesFilters(deal) {
-    if (activeSort === "low_cost" && (deal.precio_actual || 0) >= 25) return false;
+    if (activeSort !== "low_cost" && (deal.precio_actual || 0) < 25) return false;
     return dealMatchesCategory(deal, activeCategory) && dealMatchesStore(deal);
   }
 
