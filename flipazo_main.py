@@ -2738,7 +2738,7 @@ class DeduplicacionDB:
         limite  = (datetime.now(timezone.utc) - timedelta(hours=DEDUP_TTL_HORAS)).isoformat()
         with sqlite3.connect(self.db_path) as con:
             row = con.execute(
-                "SELECT precio FROM deals_publicados WHERE deal_id = ? AND publicado_en > ?",
+                "SELECT precio, precio_original FROM deals_publicados WHERE deal_id = ? AND publicado_en > ?",
                 (deal_id, limite),
             ).fetchone()
             if not row or not row[0]:
@@ -2749,6 +2749,12 @@ class DeduplicacionDB:
                 return False
             if bajada < 1.0 and (bajada / precio_guardado) < 0.02:
                 return False  # bajada insignificante (< 1€ y < 2%)
+            # Mantener siempre el precio_original de la primera publicación —
+            # cuando el precio baja, la tienda puede mostrar el precio anterior
+            # como "tachado", lo que inflaría el descuento artificial (ej. 199→89→79:
+            # la tienda tacha 89 en vez de 199, apareciendo solo 11% en lugar de 60%).
+            precio_ref = float(row[1]) if row[1] else p.precio_original
+            descuento_real = round((1 - p.precio_actual / precio_ref) * 100) if precio_ref else p.descuento_pct
             con.execute(
                 """UPDATE deals_publicados
                    SET precio               = ?,
@@ -2756,7 +2762,7 @@ class DeduplicacionDB:
                        precio_original      = ?,
                        precio_actualizado_en = ?
                    WHERE deal_id = ?""",
-                (p.precio_actual, p.descuento_pct, p.precio_original,
+                (p.precio_actual, descuento_real, precio_ref,
                  datetime.now(timezone.utc).isoformat(), deal_id),
             )
             con.commit()
