@@ -26,6 +26,7 @@ from scrapers.pss_email import get_pss_event_urls
 from scrapers.tradedoubler_feed import fetch_tradedoubler_productos
 from scrapers.decathlon_feed   import fetch_decathlon_productos
 from scrapers.toysrus_feed     import fetch_toysrus_productos
+from scrapers.beep_feed        import fetch_beep_productos
 from discovery import calcular_deal_score, asignar_tags, generar_hooks_batch
 
 load_dotenv()
@@ -1963,6 +1964,23 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     except Exception as e:
         print(f"   ❌ Error en ToysRus feed: {e}")
         alertar_admin("Error en ToysRus feed", str(e))
+
+    # ── Beep feed (historial de precios propio, caché 23h) ────────────────────
+    try:
+        beep_raw = await asyncio.to_thread(fetch_beep_productos)
+        for d in beep_raw:
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"]):
+                continue
+            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
+                continue
+            p = Producto(**d)
+            clave = f"Beep:{p.titulo[:40].lower()}"
+            if clave not in vistos:
+                vistos.add(clave)
+                todos.append(p)
+    except Exception as e:
+        print(f"   ❌ Error en Beep feed: {e}")
+        alertar_admin("Error en Beep feed", str(e))
 
     print(f"\n✅ Total: {len(todos)} productos únicos de {len({p.tienda for p in todos})} tiendas")
     return todos

@@ -9,7 +9,7 @@ Tiendas activas:
   Desigual ES    fid=256429 estructura INVERTIDA: priceHistory[0] = precio original, fields["Sale price"] = precio rebajado
 
 Tiendas desactivadas:
-  Beep ES        fid=51903  PreviousPrice = MSRP fabricante, no precio 30d → falsos descuentos
+  Beep ES        fid=51903  PreviousPrice = MSRP fabricante → migrado a beep_feed.py (historial propio)
   ToysRus ES     fid=21529  sin campo precio original → descuento incalculable
 
 Descarga una vez al día (caché 23h). Devuelve list[dict] con los campos de Producto
