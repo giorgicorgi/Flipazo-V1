@@ -189,7 +189,7 @@ FNAC_URLS = [
 
 # ── Worten — secciones de oferta ─────────────────────────────────
 WORTEN_URLS = [
-    "https://www.worten.es/ofertas",
+    "https://www.worten.es/ofertas-promociones",
     "https://www.worten.es/televisores",
     "https://www.worten.es/audio",
     "https://www.worten.es/smartphones-y-telefonia",
@@ -313,7 +313,7 @@ def _mammoth_es_valido(titulo: str, descuento: int) -> bool:
         return False
     if _CAMBIO_RE.search(titulo):
         return False
-    if any(r in t for r in _MAMMOTH_ROPA) and descuento < 55:
+    if any(r in t for r in _MAMMOTH_ROPA) and descuento <= 60:
         return False
     if any(z in t for z in _MAMMOTH_CALZADO_CICLO) and descuento < 55:
         return False
@@ -908,6 +908,9 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "") -
     if any(p in t for p in PALABRAS_PROHIBIDAS):
         return False
     if _TALLA_RE.search(titulo):
+        return False
+    # Maillot y culotte: ropa ciclismo — solo con descuento > 60%
+    if re.search(r'\b(maillot|culott?e)s?\b', t) and descuento_pct <= 60:
         return False
     # Ropa de moda/deporte: solo si marca conocida + descuento real ≥50%
     # Excepción: Barrabés vende exclusivamente marcas premium outdoor — umbral plano 40%
