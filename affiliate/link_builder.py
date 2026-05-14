@@ -12,7 +12,7 @@ Soporta:
   - Elliotti            → Tradedoubler deep link
   - The Beauty Corner   → Tradedoubler deep link
   - ToysRus ES          → Tradedoubler deep link
-  - Esdemarca ES        → URL feed TD (ya incluye tracking — fallthrough)
+  - Esdemarca ES        → Tradedoubler deep link (PID 380890)
   - Toni Pons ES        → URL feed TD (ya incluye tracking — fallthrough)
   - Desigual ES         → URL feed TD (ya incluye tracking — fallthrough)
 
@@ -44,6 +44,7 @@ BARRABES_AWIN_MID         = os.getenv("BARRABES_AWIN_MID", "")
 # ── Tradedoubler ──────────────────────────────────────────────────────────────
 TD_PUBLISHER_ID     = os.getenv("TD_PUBLISHER_ID", "")
 
+ESDEMARCA_TD_PID    = os.getenv("ESDEMARCA_TD_PID",    "380890")
 BEEP_TD_PID         = os.getenv("BEEP_TD_PID",         "347347")
 BILLABONG_TD_PID    = os.getenv("BILLABONG_TD_PID",     "324694")
 COLEHAAN_TD_PID     = os.getenv("COLEHAAN_TD_PID",      "364994")
@@ -125,6 +126,9 @@ def build_affiliate_url(tienda: str, asin_or_url: str) -> str:
         return _awin_deep_link(MEDIAMARKT_AWIN_MID, asin_or_url)
 
     # Tradedoubler
+    if tienda == "Esdemarca":
+        return _tradedoubler_deep_link(ESDEMARCA_TD_PID, asin_or_url)
+
     if tienda == "Beep":
         return _tradedoubler_deep_link(BEEP_TD_PID, asin_or_url)
 

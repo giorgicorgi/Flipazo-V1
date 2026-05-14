@@ -18,6 +18,7 @@ listos para que flipazo_main los convierta y filtre con _es_producto_valido.
 
 import os
 import re
+import urllib.parse
 from datetime import datetime, timedelta
 
 import requests
@@ -287,9 +288,20 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
                 continue
             vistos.add(clave)
 
+            # productUrl viene como tdvisit.esdemarca.com/click?a(...)url(ENCODED_URL)
+            # Los paréntesis a()/p()/url() se URL-encodean en Telegram y algunos navegadores
+            # → "link not active". Extraemos la URL real y dejamos que link_builder genere
+            # el deep link estándar clk.tradedoubler.com (formato ?p=&a=&url=, sin paréntesis).
+            raw_url = offer.get("productUrl", "")
+            idx = raw_url.rfind("url(")
+            if idx != -1 and raw_url.endswith(")"):
+                product_url = urllib.parse.unquote(raw_url[idx + 4 : -1])
+            else:
+                product_url = raw_url
+
             resultado.append({
                 "titulo":          titulo,
-                "asin":            offer.get("productUrl", ""),
+                "asin":            product_url,
                 "precio_actual":   precio_actual,
                 "precio_original": precio_original,
                 "descuento_pct":   descuento_pct,
