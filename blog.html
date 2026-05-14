@@ -653,9 +653,9 @@
     <div class="footer__bottom">
       <div class="footer__top">
         <nav class="footer__links" aria-label="Legal">
-          <a href="/privacidad.html">Privacidad</a>
-          <a href="/cookies.html">Cookies</a>
-          <a href="/aviso-legal.html">Aviso Legal</a>
+          <a href="/privacidad">Privacidad</a>
+          <a href="/cookies">Cookies</a>
+          <a href="/aviso-legal">Aviso Legal</a>
           <a href="mailto:hola@flipazo.es">Contacto</a>
           <a href="https://t.me/flipazo" target="_blank" rel="noopener">Telegram</a>
         </nav>
@@ -842,10 +842,26 @@
 
     window.addEventListener("popstate", () => showList());
 
+    /* ── Single post loader ── */
+    async function loadPost(slug) {
+      try {
+        let posts = [];
+        try { posts = await fetch('/posts.json').then(r => r.json()); } catch(e) {
+          const data = await fetch(`${API}/blog?limit=200`).then(r => r.ok ? r.json() : {});
+          posts = data.posts || [];
+        }
+        const post = posts.find(p => p.slug === slug);
+        if (post) { showPost(post); return; }
+      } catch(e) { console.error("[blog] loadPost error:", e); }
+      // Post not found: fall back to list
+      await loadList();
+    }
+
     /* ── Init ── */
     (async () => {
       const path = location.pathname;
-      if (path.startsWith('/blog/')) { /* static page — served directly by Vercel */ }
+      const slugMatch = path.match(/^\/blog\/([^/]+)\/?$/);
+      if (slugMatch) await loadPost(slugMatch[1]);
       else await loadList();
     })();
   </script>
