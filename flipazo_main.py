@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 from playwright.async_api import async_playwright, BrowserContext, Page
 
 from affiliate.link_builder import build_affiliate_url
-from scrapers.pss_email import get_pss_event_urls
+from scrapers.pss_email import get_pss_productos
 from scrapers.tradedoubler_feed import fetch_tradedoubler_productos
 from scrapers.decathlon_feed   import fetch_decathlon_productos
 from scrapers.toysrus_feed     import fetch_toysrus_productos
@@ -1038,173 +1038,6 @@ async def scrape_pccomponentes(context: BrowserContext) -> list[Producto]:
     return productos
 
 
-async def _pss_warm_up(context: BrowserContext) -> bool:
-    """
-    Visita la homepage de PSS para obtener la cookie cf_clearance de Cloudflare.
-    Espera hasta 45s a que el JS challenge se resuelva.
-    Con sesión persistente, si la cookie no ha expirado esta función termina en ~2s.
-    """
-    page = await context.new_page()
-    try:
-        print("   🔑 [PSS] Calentando sesión Cloudflare en homepage...")
-        await page.goto("https://www.privatesportshop.es/", timeout=60000, wait_until="domcontentloaded")
-        for _ in range(9):
-            await asyncio.sleep(5)
-            try:
-                titulo = (await page.title()).lower()
-                contenido = await page.content()
-                cf_resuelto = (
-                    len(contenido) > 5000
-                    and not any(s in titulo for s in ["just a moment", "cloudflare", "verificación", "verification"])
-                    and "#cf-challenge-running" not in contenido
-                )
-                if cf_resuelto:
-                    print("   ✅ [PSS] Cloudflare resuelto — cf_clearance en sesión")
-                    return True
-            except Exception:
-                pass
-        print("   ⚠️  [PSS] Cloudflare no resolvió en 45s")
-        return False
-    except Exception as e:
-        print(f"   ❌ [PSS] Error en warm-up: {e}")
-        return False
-    finally:
-        await page.close()
-
-
-async def scrape_privatesportshop(context: BrowserContext, urls: list[str] | None = None) -> list[Producto]:
-    """
-    Scrape de Private Sport Shop — páginas de evento extraídas del newsletter.
-    Visita cada URL de evento (ej: /event/adidas-terrex) con Playwright.
-    Warm-up previo en homepage para obtener cf_clearance de Cloudflare.
-    """
-    if not urls:
-        return []
-    print(f"\n📡 Private Sport Shop: {len(urls)} evento(s) del newsletter")
-
-    # Warm-up: obtener cf_clearance antes de visitar páginas de evento
-    cf_ok = await _pss_warm_up(context)
-    if not cf_ok:
-        print("   ⚠️  [PSS] Warm-up fallido — se intentará igualmente (cookie puede seguir válida)")
-    await asyncio.sleep(random.uniform(3, 6))
-    productos: list[Producto] = []
-    vistos_href: set[str] = set()
-
-    for evento_url in urls:
-        page = await context.new_page()
-        try:
-            await page.set_extra_http_headers({
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-                "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
-                "Sec-Fetch-Dest": "document",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-Site": "none",
-                "Upgrade-Insecure-Requests": "1",
-            })
-
-            nombre_evento = evento_url.rstrip("/").split("/")[-1]
-            print(f"   📡 PSS evento: {nombre_evento}")
-
-            ok = await _cargar_con_reintento(page, evento_url, f"PSS/{nombre_evento}", max_intentos=2)
-            if not ok:
-                continue
-
-            await asyncio.sleep(random.uniform(3, 5))
-            await _scroll_pagina(page, veces=8)
-            await asyncio.sleep(2)
-
-            if DEBUG_SCREENSHOTS:
-                await page.screenshot(path=f"debug_pss_{nombre_evento}.png")
-
-            items = await page.evaluate("""
-                () => {
-                    const resultados = [];
-                    const vistos = new Set();
-                    const BASE = 'https://www.privatesportshop.es';
-
-                    // PSS event pages: productos con links que contienen /p- o números
-                    document.querySelectorAll('a[href]').forEach(link => {
-                        const href = link.href || (BASE + link.getAttribute('href'));
-                        if (!href || vistos.has(href)) return;
-                        // Filtrar solo links de producto (tienen segmento con número al final)
-                        if (!/\\/[^/]+-\\d+(?:\\/)?$|\\/p-\\d+|\\/[^/]+\\.html|\\/catalog\\/product\\/view\\/id\\/\\d+/.test(href)) return;
-                        if (href.includes('/event/') || href.includes('/category/')) return;
-                        vistos.add(href);
-
-                        // Subir hasta encontrar contenedor con precio
-                        let el = link;
-                        for (let i = 0; i < 8; i++) {
-                            el = el.parentElement;
-                            if (!el) break;
-                            const txt = el.innerText || '';
-                            if (txt.includes('€') && txt.length > 10 && txt.length < 600) {
-                                const img = el.querySelector('img[src]');
-                                const title = link.getAttribute('title')
-                                    || link.getAttribute('aria-label')
-                                    || (img ? img.getAttribute('alt') : '')
-                                    || link.innerText.trim().split('\\n')[0];
-                                if (title && title.length > 5) {
-                                    resultados.push({
-                                        href,
-                                        title: title.trim(),
-                                        text: txt,
-                                        imagen: img ? (img.getAttribute('src') || '') : '',
-                                    });
-                                }
-                                break;
-                            }
-                        }
-                    });
-                    return resultados;
-                }
-            """)
-
-            print(f"   📦 {len(items)} productos encontrados en {nombre_evento}")
-
-            for item in items:
-                try:
-                    txt   = item.get("text", "")
-                    titulo = item.get("title", "")[:120]
-                    href  = item.get("href", "")
-
-                    if not titulo or not href or href in vistos_href:
-                        continue
-                    if not _es_producto_valido(titulo):
-                        continue
-
-                    precios = re.findall(r'(\d+[.,]\d{2})\s*€', txt)
-                    if len(precios) < 2:
-                        continue
-                    precio_actual   = min(float(p.replace(',', '.')) for p in precios)
-                    precio_original = max(float(p.replace(',', '.')) for p in precios)
-                    if precio_actual <= 0 or precio_original <= precio_actual:
-                        continue
-
-                    descuento = round((1 - precio_actual / precio_original) * 100)
-                    if not _precio_aceptable(precio_actual, descuento):
-                        continue
-
-                    vistos_href.add(href)
-                    productos.append(Producto(
-                        titulo=titulo,
-                        asin=href,
-                        precio_actual=precio_actual,
-                        precio_original=precio_original,
-                        descuento_pct=descuento,
-                        tienda="PrivateSportShop",
-                        imagen_url=item.get("imagen", ""),
-                    ))
-                except Exception:
-                    continue
-
-        except Exception as e:
-            print(f"   ❌ Error PSS evento {evento_url}: {e}")
-        finally:
-            await page.close()
-            await asyncio.sleep(2)
-
-    print(f"   ✅ {len(productos)} ofertas totales de Private Sport Shop")
-    return productos
 
 
 async def scrape_mammoth(context: BrowserContext) -> list[Producto]:
@@ -1529,16 +1362,19 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             alertar_admin(f"Error en scraper: {scraper.__name__}", str(e))
         await asyncio.sleep(3)
 
-    # ── PSS: extraer URLs del newsletter + scrape con Playwright ──
+    # ── PSS: extraer productos directamente del newsletter (sin Playwright) ──
     try:
-        pss_urls = get_pss_event_urls()
-        if pss_urls:
-            pss_productos = await scrape_privatesportshop(context, urls=pss_urls)
-            for p in pss_productos:
-                clave = f"PrivateSportShop:{p.titulo[:40].lower()}"
-                if clave not in vistos:
-                    vistos.add(clave)
-                    todos.append(p)
+        pss_raw = await asyncio.to_thread(get_pss_productos)
+        for d in pss_raw:
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"]):
+                continue
+            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
+                continue
+            p = Producto(**d)
+            clave = f"PrivateSportShop:{p.titulo[:40].lower()}"
+            if clave not in vistos:
+                vistos.add(clave)
+                todos.append(p)
     except Exception as e:
         print(f"   ❌ Error en scraper PSS: {e}")
         alertar_admin("Error en scraper PSS", str(e))

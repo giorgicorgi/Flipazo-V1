@@ -1,18 +1,18 @@
 """
-scrapers/pss_email.py — Extractor de URLs de evento de Private Sport Shop via Gmail IMAP.
+scrapers/pss_email.py — Extractor de productos de Private Sport Shop via newsletters Gmail.
 
-El newsletter de PSS no contiene productos individuales con precios.
-Es un catálogo de eventos de marca ("Adidas Terrex hasta -71%") con links de tracking
-que redirigen a páginas de venta en privatesportshop.es/event/*.
+PSS usa AWS WAF que bloquea todas las peticiones HTTP incluyendo cloudscraper.
+En lugar de visitar la web, extraemos los datos directamente del HTML del newsletter:
+título, marca, precio actual, descuento y URL del producto.
 
-Este módulo:
-  1. Conecta a Gmail con IMAP + App Password
-  2. Busca emails no leídos del remitente PSS
-  3. Extrae las URLs de evento decodificando los links de tracking (base64)
-  4. Devuelve lista de URLs limpias para que Playwright las visite
+Flujo:
+  1. Conectar a Gmail IMAP con App Password
+  2. Buscar emails de PSS de los últimos N días (SEEN o UNSEEN)
+  3. Por cada email, extraer productos directamente del HTML del newsletter
+  4. Devolver lista de dicts listos para Producto(**d)
 
 Requisitos en .env:
-  EMAIL_ADDRESS=tu@gmail.com
+  EMAIL_ADDRESS=flipazo.newsletter@gmail.com
   EMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
   PSS_EMAIL_SENDER=thomas@ese.privatesportshop.com
 """
@@ -23,6 +23,7 @@ import imaplib
 import os
 import re
 import urllib.parse
+from datetime import datetime, timedelta
 from email.header import decode_header
 
 from dotenv import load_dotenv
@@ -32,6 +33,8 @@ load_dotenv()
 EMAIL_ADDRESS      = os.getenv("EMAIL_ADDRESS", "")
 EMAIL_APP_PASSWORD = os.getenv("EMAIL_APP_PASSWORD", "")
 PSS_EMAIL_SENDER   = os.getenv("PSS_EMAIL_SENDER", "privatesportshop")
+
+PSS_DIAS_HACIA_ATRAS = 7  # buscar emails de los últimos N días
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -59,95 +62,107 @@ def _get_html_body(msg) -> str:
     return ""
 
 
-def _extraer_urls_evento(html_body: str) -> list[str]:
+def _decode_pss_url(tracking_url: str) -> str:
     """
-    Extrae URLs de evento de PSS de los links de tracking del newsletter.
-
-    Los links tienen este formato:
-      https://eli.privatesportshop.com/u/nrd.php?...&d=<base64_url_encoded>&...
-
-    El parámetro `d` es la URL real en base64 + URL-encoding.
-    Ejemplo decodificado: https://www.privatesportshop.es/event/adidas-terrex?sp_nav=...
+    Decodifica la URL real de producto del link de tracking de PSS.
+    Formato: https://eli.privatesportshop.com/u/nrd.php?...&d=BASE64|...
     """
-    urls = []
-    vistos: set[str] = set()
+    try:
+        parsed = urllib.parse.urlparse(tracking_url)
+        params = urllib.parse.parse_qs(parsed.query)
+        d_values = params.get("d", [])
+        if not d_values:
+            return tracking_url
+        d_encoded = d_values[0].split("|")[0]
+        padding = 4 - len(d_encoded) % 4
+        if padding != 4:
+            d_encoded += "=" * padding
+        return base64.b64decode(d_encoded).decode("utf-8", errors="replace").split("?")[0]
+    except Exception:
+        return tracking_url
 
-    # Buscar todos los hrefs del newsletter
-    hrefs = re.findall(r'href=["\']([^"\']+)["\']', html_body)
 
-    for href in hrefs:
-        # Solo links de tracking de PSS con parámetro `d=`
-        if "privatesportshop.com/u/" not in href and "privatesportshop.es/u/" not in href:
-            continue
-        if "d=" not in href:
-            continue
+def extraer_productos_newsletter(html_content: str) -> list[dict]:
+    """
+    Extrae productos directamente del HTML del newsletter de PSS.
 
-        try:
-            # Extraer el parámetro `d` de la query string
-            parsed = urllib.parse.urlparse(href)
-            params = urllib.parse.parse_qs(parsed.query)
-            d_values = params.get("d", [])
-            if not d_values:
-                continue
+    Estructura del bloque por producto:
+    - <img alt="Nombre producto"> → título
+    - <span style="...uppercase...color:#999999">MARCA</span> → marca
+    - <span style="font-size:18px">99,99 €</span> → precio actual
+    - <a href="https://eli.privatesportshop.com/...">-20%* | Entrar</a> → descuento + URL
 
-            # El parámetro `d` tiene varios segmentos separados por `|` —
-            # solo el primero es la URL en base64.
-            d_encoded = d_values[0].split("|")[0]
-            # Añadir padding si falta
-            padding = 4 - len(d_encoded) % 4
-            if padding != 4:
-                d_encoded += "=" * padding
+    CRÍTICO: el tracking URL en href tiene 400-500 chars — el texto "-20%" viene
+    DESPUÉS de la URL dentro del mismo <a>, requiere ventana de 1200 chars.
+    """
+    products = []
 
-            real_url = base64.b64decode(d_encoded).decode("utf-8", errors="replace")
+    for img_m in re.finditer(r'<img[^>]+src="([^"]+)"[^>]+alt="([^"]{10,120})"', html_content):
+        imagen_url = img_m.group(1)
+        titulo = img_m.group(2).strip()
 
-            # Solo nos interesan páginas de venta/evento (no navegación general)
-            es_evento = "/event/" in real_url or "/venta/" in real_url or "/sale/" in real_url
-            es_productos = "/products?" in real_url or "/productos?" in real_url
-            if not es_evento and not es_productos:
-                continue
-
-            # Para /event/ limpiar toda la query; para /products? conservar
-            # filtros de categoría/marca y eliminar solo parámetros de tracking
-            if es_productos and "?" in real_url:
-                parsed_real = urllib.parse.urlparse(real_url)
-                params_limpios = {
-                    k: v for k, v in urllib.parse.parse_qs(parsed_real.query).items()
-                    if not k.startswith("sp_") and not k.startswith("utm_")
-                }
-                if params_limpios:
-                    qs = urllib.parse.urlencode({k: v[0] for k, v in params_limpios.items()})
-                    url_limpia = f"{parsed_real.scheme}://{parsed_real.netloc}{parsed_real.path}?{qs}"
-                else:
-                    url_limpia = real_url.split("?")[0]
-            else:
-                url_limpia = real_url.split("?")[0]
-
-            if url_limpia and url_limpia not in vistos:
-                vistos.add(url_limpia)
-                urls.append(url_limpia)
-
-        except Exception:
+        if any(x in titulo for x in ("Private Sport Shop", "Logo", "logo")):
             continue
 
-    return urls
+        ctx = html_content[img_m.end():img_m.end() + 2500]
+
+        brand_m = re.search(r'text-transform:\s*uppercase[^>]*>([^<]{2,30})</span>', ctx, re.IGNORECASE)
+        if not brand_m:
+            brand_m = re.search(r'color:#999999[^>]*>([^<]{2,30})</span>', ctx, re.IGNORECASE)
+        marca = brand_m.group(1).strip() if brand_m else ""
+
+        price_m = re.search(r'font-size:\s*18px[^>]*>([0-9]+,[0-9]{2})\s*€', ctx)
+        if not price_m:
+            continue
+        precio_actual = float(price_m.group(1).replace(',', '.'))
+
+        # 1200 char window: URL in href is ~400-500 chars, discount text comes after it inside <a>
+        after_price = ctx[price_m.start():price_m.start() + 1200]
+
+        disc_m = re.search(r'[>"](-\s*([0-9]+)\s*%)', after_price)
+        descuento = int(disc_m.group(2)) if disc_m else 0
+
+        precio_original = round(precio_actual / (1 - descuento / 100), 2) if descuento > 0 else 0.0
+
+        url_m = re.search(r'href="(https://eli\.privatesportshop[^"]+)"', after_price)
+        product_url = _decode_pss_url(url_m.group(1)) if url_m else ""
+
+        if not product_url or precio_actual <= 0:
+            continue
+
+        titulo_completo = f"{marca} {titulo}".strip() if marca and marca.lower() not in titulo.lower() else titulo
+
+        products.append({
+            "titulo": titulo_completo,
+            "asin": product_url,
+            "precio_actual": precio_actual,
+            "precio_original": precio_original,
+            "descuento_pct": descuento,
+            "imagen_url": imagen_url,
+            "tienda": "PrivateSportShop",
+        })
+
+    return products
 
 
 # ── API pública ────────────────────────────────────────────────────────────────
 
-def get_pss_event_urls() -> list[str]:
+def get_pss_productos(dias: int = PSS_DIAS_HACIA_ATRAS) -> list[dict]:
     """
-    Conecta a Gmail, busca newsletters no leídas de PSS y extrae
-    las URLs de evento para que Playwright las visite.
+    Conecta a Gmail, busca newsletters de PSS de los últimos `dias` días
+    (independientemente de si están leídos) y extrae los productos directamente
+    del HTML del email — sin visitar la web (bloqueada por AWS WAF).
 
     Returns:
-        Lista de URLs limpias tipo: https://www.privatesportshop.es/event/adidas-terrex
-        Lista vacía si no hay credenciales o no hay emails nuevos.
+        Lista de dicts con keys: titulo, asin, precio_actual, precio_original,
+        descuento_pct, imagen_url, tienda. Listos para Producto(**d).
     """
     if not EMAIL_ADDRESS or not EMAIL_APP_PASSWORD:
         print("   ⚠️  [PSS Email] EMAIL_ADDRESS o EMAIL_APP_PASSWORD no configurados — omitiendo")
         return []
 
-    todas_las_urls: list[str] = []
+    todos_los_productos: list[dict] = []
+    titulos_vistos: set[str] = set()
 
     try:
         print(f"   🔍 [PSS Email] Conectando a Gmail ({EMAIL_ADDRESS})...")
@@ -155,16 +170,17 @@ def get_pss_event_urls() -> list[str]:
         imap.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
         imap.select("INBOX")
 
-        search_criteria = f'(UNSEEN FROM "{PSS_EMAIL_SENDER}")'
+        fecha_limite = (datetime.now() - timedelta(days=dias)).strftime("%d-%b-%Y")
+        search_criteria = f'(FROM "{PSS_EMAIL_SENDER}" SINCE {fecha_limite})'
         status, message_ids = imap.search(None, search_criteria)
 
         if status != "OK" or not message_ids[0]:
-            print("   ℹ️  [PSS Email] No hay newsletters nuevas de PSS")
+            print(f"   ℹ️  [PSS Email] No hay newsletters de PSS en los últimos {dias} días")
             imap.logout()
             return []
 
         ids = message_ids[0].split()
-        print(f"   📧 [PSS Email] {len(ids)} newsletter(s) sin leer de PSS")
+        print(f"   📧 [PSS Email] {len(ids)} newsletter(s) de PSS (últimos {dias} días)")
 
         for msg_id in ids:
             try:
@@ -180,12 +196,16 @@ def get_pss_event_urls() -> list[str]:
                 if not html_body:
                     continue
 
-                urls = _extraer_urls_evento(html_body)
-                print(f"   ✅ [PSS Email] {len(urls)} evento(s) encontrados: {[u.split('/')[-1] for u in urls]}")
-                todas_las_urls.extend(urls)
+                productos = extraer_productos_newsletter(html_body)
+                nuevos = 0
+                for p in productos:
+                    clave = p["titulo"][:40].lower()
+                    if clave not in titulos_vistos:
+                        titulos_vistos.add(clave)
+                        todos_los_productos.append(p)
+                        nuevos += 1
 
-                # Marcar como leído
-                imap.store(msg_id, "+FLAGS", "\\Seen")
+                print(f"   ✅ [PSS Email] {nuevos} producto(s) extraídos de este email")
 
             except Exception as e:
                 print(f"   ❌ [PSS Email] Error procesando email {msg_id}: {e}")
@@ -198,25 +218,18 @@ def get_pss_event_urls() -> list[str]:
     except Exception as e:
         print(f"   ❌ [PSS Email] Error inesperado: {e}")
 
-    # Deduplicar preservando orden
-    seen: set[str] = set()
-    resultado = []
-    for u in todas_las_urls:
-        if u not in seen:
-            seen.add(u)
-            resultado.append(u)
-
-    return resultado
+    print(f"   📦 [PSS Email] Total: {len(todos_los_productos)} productos únicos de PSS")
+    return todos_los_productos
 
 
 # ── Test rápido ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    print("🧪 Test extractor URLs PSS Email\n")
-    urls = get_pss_event_urls()
-    if urls:
-        print(f"\n{len(urls)} URLs de evento extraídas:")
-        for u in urls:
-            print(f"  • {u}")
+    print("🧪 Test extractor productos PSS Email\n")
+    productos = get_pss_productos(dias=30)
+    if productos:
+        print(f"\n{len(productos)} productos extraídos:")
+        for p in productos[:10]:
+            print(f"  • {p['titulo'][:60]} | {p['precio_actual']}€ (-{p['descuento_pct']}%) | {p['asin'][:80]}")
     else:
-        print("  Sin URLs (verifica .env y que haya newsletters sin leer)")
+        print("  Sin productos (verifica .env y que haya newsletters recientes)")
