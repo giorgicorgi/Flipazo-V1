@@ -3166,6 +3166,16 @@ async def run_pipeline(modo: str = "completo"):
             print(f"\n📢 Publicando {len(deals_nuevos)} deals nuevos en Telegram...")
             publicados = 0
             for p in deals_nuevos:
+                # Zona gris: descuento alto pero por debajo del tope de 90%.
+                # Puede ser deal real (outlet, liquidación) o error de dato no detectado.
+                # Alertamos al admin para revisión manual sin bloquear la publicación.
+                if 80 <= p.descuento_pct < 90:
+                    alertar_admin(
+                        f"⚠️ Descuento inusual {p.descuento_pct}% — revisar",
+                        f"{p.titulo}\n"
+                        f"Precio: {p.precio_actual:.2f}€ (antes {p.precio_original:.2f}€)\n"
+                        f"Tienda: {p.tienda}\nURL: {p.asin}"
+                    )
                 msg = formatear_mensaje(p)
                 ok = enviar_telegram(msg, imagen_url=p.imagen_url)
                 print(f"   {'✅' if ok else '❌'} [{p.tipo}] {p.titulo[:50]}")
