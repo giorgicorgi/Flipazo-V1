@@ -208,15 +208,8 @@ BARRABES_URLS = [
 MAMMOTH_URLS = [
     "https://www.mammothbikes.com/outlet/ultimas-unidades/o-2857",
     "https://www.mammothbikes.com/outlet/outlet-bicicletas/o-2864",
-    "https://www.mammothbikes.com/outlet/shimano/o-3190",
-    "https://www.mammothbikes.com/outlet/alpinestars/o-3191",
-    "https://www.mammothbikes.com/outlet/giro/o-3192",
-    "https://www.mammothbikes.com/outlet/bicis-iniciacion/o-3193",
-    # Accesorios y componentes — mayor rotación y precio en rango 25-800€
-    "https://www.mammothbikes.com/outlet/cascos/o-2858",
-    "https://www.mammothbikes.com/outlet/componentes/o-2860",
-    "https://www.mammothbikes.com/outlet/accesorios/o-2861",
-    "https://www.mammothbikes.com/outlet/nutricion/o-2862",
+    # Liquidación primavera — consolidación de cascos/accesorios/componentes/marcas (antes 404)
+    "https://www.mammothbikes.com/outlet/liquidacion-primavera/o-3211",
 ]
 # Bicicletas pueden superar los 800€ del PRECIO_MAXIMO general
 PRECIO_MAXIMO_BICI = 5000.0
