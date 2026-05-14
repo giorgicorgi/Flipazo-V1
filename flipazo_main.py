@@ -262,10 +262,12 @@ PALABRAS_PROHIBIDAS = [
     "remanufacturado", "remanufacturada",
     # Accesorios genéricos
     "accesorio",
+    # Repuestos de electrodomésticos
+    "junta",        # juntas/sellos de recambio (ej. Breville, cafetera)
     # Recambios y repuestos (ya está "repuesto" — añadir plurales y variantes)
     "recambio", "recambios",
-    # Consumibles de impresora
-    "cartucho de tinta", "cartucho de tóner", "kit de tinta",
+    # Consumibles de impresora — "cartucho" cubre todos los casos; "toner"/"tóner" ambas grafías
+    "cartucho", "toner", "tóner", "kit de tinta",
     # Pilas sueltas (baterías como producto principal, no accesorios de otro artículo)
     "pack de pilas", "pilas alcalinas", "pilas recargables",
     # Periféricos de bajo valor
@@ -921,6 +923,9 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "") -
             return False
     # Cecotec: marca de gama baja con precios de referencia inflados — solo descuentos fuertes
     if "cecotec" in t and descuento_pct < 60:
+        return False
+    # Descuentos imposibles (≥90%) casi siempre indican error de dato en el feed
+    if descuento_pct >= 90:
         return False
     return True
 
