@@ -134,30 +134,6 @@ AMAZON_SEARCH_URLS = [
 # Página principal de deals (fuente extra, JS-heavy)
 AMAZON_DEALS_URL = "https://www.amazon.es/deals"
 
-# ── El Corte Inglés — categorías ordenadas por % descuento ───────
-ECI_URLS = [
-    "https://www.elcorteingles.es/ofertas/?sorting=discountPerDesc",
-    "https://www.elcorteingles.es/ofertas-tecnoprecios-1/electronica/?sorting=discountPerDesc",
-    "https://www.elcorteingles.es/exclusivo-online-nike/deportes/?sorting=discountPerDesc",
-    "https://www.elcorteingles.es/deportes/montana/?sorting=discountPerDesc",
-    "https://www.elcorteingles.es/informatica-videojuegos/?sorting=discountPerDesc",
-    "https://www.elcorteingles.es/electrodomesticos/?sorting=discountPerDesc",
-    "https://www.elcorteingles.es/belleza/?sorting=discountPerDesc",
-    "https://www.elcorteingles.es/ninos/?sorting=discountPerDesc",
-    "https://www.elcorteingles.es/juguetes/?sorting=discountPerDesc",
-    "https://www.elcorteingles.es/hogar/?sorting=discountPerDesc",
-]
-
-# ── MediaMarkt — búsquedas ordenadas por descuento (más estables que category IDs) ───
-MEDIAMARKT_URLS = [
-    "https://www.mediamarkt.es/es/search.html?query=televisor&sort=discountPercentage_desc",
-    "https://www.mediamarkt.es/es/search.html?query=portatil&sort=discountPercentage_desc",
-    "https://www.mediamarkt.es/es/search.html?query=smartphone&sort=discountPercentage_desc",
-    "https://www.mediamarkt.es/es/search.html?query=auriculares&sort=discountPercentage_desc",
-    "https://www.mediamarkt.es/es/search.html?query=tablet&sort=discountPercentage_desc",
-    "https://www.mediamarkt.es/es/search.html?query=robot+aspirador&sort=discountPercentage_desc",
-]
-
 # ── PcComponentes — ofertas especiales ordenadas por % descuento ──
 # La página usa React (SPA): esperar networkidle antes de evaluar el DOM
 PCCOMPONENTES_URLS = [
@@ -166,36 +142,6 @@ PCCOMPONENTES_URLS = [
     "https://www.pccomponentes.com/ofertas-especiales?sort=discount&page=3",
     "https://www.pccomponentes.com/componentes?sort=discount",
     "https://www.pccomponentes.com/portatiles?sort=discount",
-]
-
-# ── Decathlon — todas las secciones de deals, ordenadas por mayor descuento ──
-DECATHLON_URLS = [
-    "https://www.decathlon.es/es/deals/descuentos-hombre?Ns=discountRateDescending",
-    "https://www.decathlon.es/es/deals/descuentos-mujer?Ns=discountRateDescending",
-    "https://www.decathlon.es/es/deals/descuentos-infantil?Ns=discountRateDescending",
-    "https://www.decathlon.es/es/deals/descuentos-esqui?Ns=discountRateDescending",
-    "https://www.decathlon.es/es/deals/descuentos-ciclismo?Ns=discountRateDescending",
-    "https://www.decathlon.es/es/deals/descuentos-running?Ns=discountRateDescending",
-    "https://www.decathlon.es/es/deals/descuentos-deportes-agua?Ns=discountRateDescending",
-    "https://www.decathlon.es/es/deals?Ns=discountRateDescending",
-]
-
-# ── Fnac — secciones de oferta ────────────────────────────────────
-FNAC_URLS = [
-    "https://www.fnac.es/Ofertas-Especiales/s",
-    "https://www.fnac.es/c/Informatica/s",
-    "https://www.fnac.es/c/Videojuegos/s",
-    "https://www.fnac.es/c/Telefonia-Tablets/s",
-    "https://www.fnac.es/c/Imagen-Sonido/s",
-]
-
-# ── Worten — secciones de oferta ─────────────────────────────────
-WORTEN_URLS = [
-    "https://www.worten.es/ofertas-promociones",
-    "https://www.worten.es/televisores",
-    "https://www.worten.es/audio",
-    "https://www.worten.es/smartphones-y-telefonia",
-    "https://www.worten.es/informatica",
 ]
 
 # ── Barrabes — outlet de montaña/esquí/trail/escalada ────────────
@@ -950,166 +896,13 @@ async def _aceptar_cookies(page: Page):
             pass
 
 # ════════════════════════════════════════════════════════════════
-# SCRAPERS ADICIONALES — MediaMarkt y PcComponentes
+# SCRAPERS ADICIONALES — PcComponentes, Mammoth Bikes, Barrabes
 # ════════════════════════════════════════════════════════════════
-
-async def scrape_mediamarkt(context: BrowserContext) -> list[Producto]:
-    """
-    Scrape de MediaMarkt.es — campañas y categorías clave.
-    MediaMarkt usa styled-components con clases ofuscadas que cambian frecuentemente.
-    Estrategia: anclar en a[href*="/product/"] (URL estable) y extraer
-    datos via JS DOM traversal en lugar de depender de class names.
-    """
-    print(f"\n📡 MediaMarkt: {len(MEDIAMARKT_URLS)} URLs")
-    page = await context.new_page()
-    productos: list[Producto] = []
-    hrefs_vistos: set[str] = set()
-    try:
-        for url in MEDIAMARKT_URLS:
-            try:
-                ok = await _cargar_con_reintento(page, url, "MediaMarkt")
-                if not ok:
-                    continue
-
-                await asyncio.sleep(random.uniform(3, 5))
-
-                # Aceptar cookies específicas de MediaMarkt (OneTrust / banner propio)
-                for cookie_sel in [
-                    '#onetrust-accept-btn-handler',
-                    'button[id*="accept"]',
-                    'button[class*="accept"]',
-                    'button:has-text("Aceptar todo")',
-                    'button:has-text("Aceptar")',
-                    'button:has-text("Accept")',
-                ]:
-                    try:
-                        if await page.locator(cookie_sel).first.is_visible(timeout=1500):
-                            await page.locator(cookie_sel).first.click(timeout=2000)
-                            await asyncio.sleep(1.0)
-                            break
-                    except Exception:
-                        pass
-
-                # Esperar a que carguen los productos — MediaMarkt usa React SSR async
-                # Probamos dos selectores: el clásico /es/product/ y el alternativo /product/
-                _product_loaded = False
-                for sel in ['a[href*="/es/product/"]', 'a[href*="/product/"]']:
-                    try:
-                        await page.wait_for_selector(sel, timeout=20000)
-                        _product_loaded = True
-                        break
-                    except Exception:
-                        pass
-                if not _product_loaded:
-                    # Último recurso: espera fija extra por si el JS tarda
-                    await asyncio.sleep(8)
-
-                await _scroll_pagina(page, veces=6)
-                await asyncio.sleep(2.5)
-
-                if DEBUG_SCREENSHOTS:
-                    await page.screenshot(path=f"debug_mediamarkt_{url.split('/')[-1]}.png")
-
-                items = await page.evaluate("""
-                    () => {
-                        const BASE = 'https://www.mediamarkt.es';
-                        const resultados = [];
-                        const vistos = new Set();
-
-                        // Intentar selector específico primero, luego genérico
-                        const links = document.querySelectorAll('a[href*="/es/product/"]').length > 0
-                            ? document.querySelectorAll('a[href*="/es/product/"]')
-                            : document.querySelectorAll('a[href*="/product/"]');
-
-                        links.forEach(link => {
-                            const href = link.href || (BASE + link.getAttribute('href'));
-                            if (vistos.has(href)) return;
-                            vistos.add(href);
-
-                            let el = link;
-                            for (let i = 0; i < 8; i++) {
-                                el = el.parentElement;
-                                if (!el) break;
-                                const txt = el.innerText || '';
-                                if (txt.includes('€') && txt.length < 800) {
-                                    const title = link.getAttribute('title')
-                                        || link.getAttribute('aria-label')
-                                        || link.innerText.trim().split('\\n')[0];
-                                    const img = el.querySelector('img[src]');
-                                    const imagen = img ? (img.getAttribute('src') || img.getAttribute('data-src') || '') : '';
-                                    resultados.push({ href, title: title.trim(), text: txt, imagen });
-                                    break;
-                                }
-                            }
-                        });
-                        return resultados;
-                    }
-                """)
-
-                if len(items) == 0:
-                    titulo_pag = await page.title()
-                    print(f"   📦 0 productos en {url.split('/')[-1]} (título pág: '{titulo_pag[:80]}')")
-                else:
-                    print(f"   📦 {len(items)} productos en {url.split('/')[-1]}")
-
-                for item in items:
-                    try:
-                        href = item.get("href", "")
-                        if href in hrefs_vistos:
-                            continue
-                        hrefs_vistos.add(href)
-                        titulo = (item.get("title") or "").strip()
-                        texto  = item.get("text", "")
-
-                        if not titulo or len(titulo) < 8 or not _es_producto_valido(titulo):
-                            continue
-
-                        precios = re.findall(r'(\d+[.,]\d{2})\s*€', texto)
-                        if not precios:
-                            continue
-
-                        nums = [float(p.replace(',', '.')) for p in precios]
-                        precio_actual   = min(nums)
-                        precio_original = max(nums) if len(nums) > 1 else 0.0
-
-                        m_desc = re.search(r'(\d+)\s*%', texto)
-                        descuento = int(m_desc.group(1)) if m_desc else (
-                            round((1 - precio_actual / precio_original) * 100)
-                            if precio_original > precio_actual > 0 else 0
-                        )
-
-                        if not _precio_aceptable(precio_actual, descuento):
-                            continue
-
-                        productos.append(Producto(
-                            titulo=titulo[:120],
-                            asin=href,
-                            precio_actual=precio_actual,
-                            precio_original=precio_original if precio_original > 0 else round(precio_actual / (1 - descuento / 100), 2),
-                            descuento_pct=descuento,
-                            tienda="MediaMarkt",
-                            imagen_url=item.get("imagen", ""),
-                        ))
-                    except Exception:
-                        continue
-            except Exception as e:
-                print(f"   ⚠️ Error en {url}: {e}")
-                continue
-
-        print(f"   ✅ {len(productos)} ofertas de MediaMarkt ({len(MEDIAMARKT_URLS)} URLs)")
-    except Exception as e:
-        print(f"   ❌ Error MediaMarkt: {e}")
-    finally:
-        await page.close()
-    return productos
-
 
 async def scrape_pccomponentes(context: BrowserContext) -> list[Producto]:
     """
-    Scrape de PcComponentes.com — campañas y categorías clave.
-    PcComponentes bloquea fetches directos (403) pero Playwright con sesión
-    persistente suele funcionar. Usa JS traversal igual que MediaMarkt
-    para resistir cambios de HTML.
+    Scrape de PcComponentes.com — ofertas especiales ordenadas por descuento.
+    PcComponentes usa React SPA: esperar networkidle antes de evaluar el DOM.
     """
     print(f"\n📡 PcComponentes: {len(PCCOMPONENTES_URLS)} URLs")
     page = await context.new_page()
@@ -1243,160 +1036,6 @@ async def scrape_pccomponentes(context: BrowserContext) -> list[Producto]:
     finally:
         await page.close()
     return productos
-
-
-async def _scrape_tienda_generica(
-    context: BrowserContext,
-    urls: list[str],
-    nombre: str,
-    patron_url: str,
-    max_niveles: int = 8,
-) -> list[Producto]:
-    """
-    Scraper genérico basado en JS DOM traversal.
-    Itera sobre todas las URLs de la tienda, acumulando productos.
-    Ancla en links de producto que contengan `patron_url` y sube hasta encontrar precios.
-    """
-    page = await context.new_page()
-    productos: list[Producto] = []
-    hrefs_vistos: set[str] = set()  # dedup global entre URLs
-    try:
-        for url in urls:
-            try:
-                ok = await _cargar_con_reintento(page, url, nombre)
-                if not ok:
-                    continue
-
-                await asyncio.sleep(random.uniform(2, 4))
-                await _scroll_pagina(page, veces=5)
-                await asyncio.sleep(1.5)
-
-                if DEBUG_SCREENSHOTS:
-                    slug = nombre.lower().replace(" ", "_")
-                    await page.screenshot(path=f"debug_{slug}.png")
-
-                items = await page.evaluate(f"""
-                    () => {{
-                        const resultados = [];
-                        const vistos = new Set();
-                        document.querySelectorAll('a[href*="{patron_url}"]').forEach(link => {{
-                            const href = link.href;
-                            if (!href || vistos.has(href) || href.length < 30) return;
-                            vistos.add(href);
-                            let el = link;
-                            for (let i = 0; i < {max_niveles}; i++) {{
-                                el = el.parentElement;
-                                if (!el) break;
-                                const txt = el.innerText || '';
-                                if (txt.includes('€') && txt.length < 1000) {{
-                                    const title = link.getAttribute('title')
-                                        || link.getAttribute('aria-label')
-                                        || link.innerText.trim().split('\\n')[0];
-                                    const img = el.querySelector('img[src]');
-                                    const imagen = img ? (img.getAttribute('src') || img.getAttribute('data-src') || '') : '';
-                                    if (title && title.length > 5)
-                                        resultados.push({{ href, title: title.trim(), text: txt, imagen }});
-                                    break;
-                                }}
-                            }}
-                        }});
-                        return resultados;
-                    }}
-                """)
-
-                slug_url = url.split('/')[-1] or url.split('/')[-2]
-                if len(items) == 0:
-                    titulo_pag = await page.title()
-                    print(f"   📦 0 productos en {slug_url} (título pág: '{titulo_pag[:80]}')")
-                else:
-                    print(f"   📦 {len(items)} productos en {slug_url}")
-
-                for item in items:
-                    try:
-                        href  = item.get("href", "")
-                        if href in hrefs_vistos:
-                            continue
-                        hrefs_vistos.add(href)
-                        txt   = item.get("text", "")
-                        titulo = item.get("title", "")[:120]
-                        if not titulo or not _es_producto_valido(titulo):
-                            continue
-                        precios = re.findall(r'(\d+[.,]\d{2})\s*€', txt)
-                        if len(precios) < 2:
-                            continue
-                        precio_actual   = min(float(p.replace(',', '.')) for p in precios)
-                        precio_original = max(float(p.replace(',', '.')) for p in precios)
-                        if precio_actual <= 0 or precio_original <= precio_actual:
-                            continue
-                        descuento = round((1 - precio_actual / precio_original) * 100)
-                        if not _precio_aceptable(precio_actual, descuento):
-                            continue
-                        productos.append(Producto(
-                            titulo=titulo,
-                            asin=href,
-                            precio_actual=precio_actual,
-                            precio_original=precio_original,
-                            descuento_pct=descuento,
-                            tienda=nombre,
-                            imagen_url=item.get("imagen", ""),
-                        ))
-                    except Exception:
-                        continue
-            except Exception as e:
-                print(f"   ⚠️ Error en {url}: {e}")
-                continue
-
-        print(f"   ✅ {len(productos)} ofertas de {nombre} ({len(urls)} URLs)")
-    except Exception as e:
-        print(f"   ❌ Error {nombre}: {e}")
-    finally:
-        await page.close()
-    return productos
-
-
-async def scrape_decathlon(context: BrowserContext) -> list[Producto]:
-    print(f"\n📡 Decathlon: {len(DECATHLON_URLS)} URLs")
-    return await _scrape_tienda_generica(
-        context,
-        urls=DECATHLON_URLS,
-        nombre="Decathlon",
-        patron_url="/es/p/",
-    )
-
-
-async def scrape_fnac(context: BrowserContext) -> list[Producto]:
-    print(f"\n📡 Fnac: {len(FNAC_URLS)} URLs")
-    return await _scrape_tienda_generica(
-        context,
-        urls=FNAC_URLS,
-        nombre="Fnac",
-        patron_url="/a",
-    )
-
-
-async def scrape_worten(context: BrowserContext) -> list[Producto]:
-    print(f"\n📡 Worten: {len(WORTEN_URLS)} URLs")
-    return await _scrape_tienda_generica(
-        context,
-        urls=WORTEN_URLS,
-        nombre="Worten",
-        patron_url="/products/",
-    )
-
-
-async def scrape_elcorteingles(context: BrowserContext) -> list[Producto]:
-    """
-    Scrape de ofertas de El Corte Inglés — múltiples categorías ordenadas por descuento.
-    ECI usa React con SSR parcial. Anclamos en a[href*="/p/"] (patrón estable de producto).
-    """
-    print(f"\n📡 El Corte Inglés: {len(ECI_URLS)} URLs")
-    return await _scrape_tienda_generica(
-        context,
-        urls=ECI_URLS,
-        nombre="ElCorteIngles",
-        patron_url="/p/",
-        max_niveles=10,
-    )
 
 
 async def _pss_warm_up(context: BrowserContext) -> bool:
@@ -1872,15 +1511,9 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
 
     scrapers = [
         scrape_amazon_deals,
-        scrape_mediamarkt,
         scrape_pccomponentes,
-        scrape_decathlon,
-        # scrape_fnac,           # ❌ IP bloqueada (39 chars) — pendiente feed Awin
-        scrape_worten,
-        scrape_elcorteingles,
         scrape_mammoth,
         scrape_barrabes,
-        # scrape_privatesportshop,  # ❌ Cloudflare duro — pendiente solución feed
     ]
 
     for scraper in scrapers:
@@ -3008,7 +2641,7 @@ async def run_pipeline(modo: str = "completo"):
                 "--no-first-run",
                 "--no-default-browser-check",
                 "--disable-gpu",             # Sin GPU en servidor
-                "--disable-http2",           # Fuerza HTTP/1.1 — evita ERR_HTTP2_PROTOCOL_ERROR en ECI
+                "--disable-http2",
             ],
         )
         page = browser.pages[0] if browser.pages else await browser.new_page()
