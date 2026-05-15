@@ -17,7 +17,7 @@
       --border:   #2a2a2a;
       --text:     #e2e2e2;
       --muted:    #777;
-      --accent:   #c0392b;
+      --accent:   #F52834;
       --green:    #27ae60;
       --blue:     #2980b9;
       --serif:    'Playfair Display', Georgia, serif;
@@ -233,6 +233,16 @@
     .seo-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
     .seo-section-title { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
 
+    /* ── Sobre editor ── */
+    .sobre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .sobre-full  { margin-bottom: 16px; }
+    .sobre-actions { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+    .sobre-save-msg { font-size: 11px; color: var(--green); display: none; }
+    .sobre-section-title { font-family: var(--serif); font-size: 14px; font-weight: 700; margin: 24px 0 14px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .criterio-card { background: var(--surface); border: 1px solid var(--border); padding: 14px; margin-bottom: 10px; border-radius: 4px; }
+    .criterio-card .field { margin-bottom: 8px; }
+    .criterio-card .field:last-child { margin-bottom: 0; }
+
     /* ── Responsive ── */
     @media (max-width: 800px) {
       .sidebar { width: 100%; min-height: auto; height: auto; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); position: static; }
@@ -284,6 +294,10 @@
       <div class="nav-item" id="nav-blog" onclick="showPage('blog')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
         Blog
+      </div>
+      <div class="nav-item" id="nav-sobre" onclick="showPage('sobre')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Sobre
       </div>
       <div class="nav-item" id="nav-analytics" onclick="showPage('analytics')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -444,6 +458,19 @@
       </div>
     </div>
 
+    <!-- SOBRE -->
+    <div class="page" id="page-sobre">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div><h2>Sobre Flipazo</h2><p>Edita el contenido de la página <a href="https://flipazo.es/sobre" target="_blank" rel="noopener" style="color:var(--blue)">flipazo.es/sobre</a></p></div>
+        <div class="sobre-actions">
+          <button class="btn-action success" onclick="saveSobre()">Guardar</button>
+          <span class="sobre-save-msg" id="sobre-save-msg">Guardado</span>
+        </div>
+      </div>
+
+      <div id="sobre-content"><div class="loading-msg">Cargando&#8230;</div></div>
+    </div>
+
     <!-- ANALYTICS -->
     <div class="page" id="page-analytics">
       <div class="page-header"><h2>Analytics</h2><p>Clicks por canal y deal</p></div>
@@ -540,6 +567,7 @@
     document.getElementById('nav-'+name).classList.add('active');
     if(name==='deals')     loadDeals();
     if(name==='blog')      loadBlogPosts();
+    if(name==='sobre')     loadSobre();
     if(name==='analytics') loadAnalytics();
     if(name==='votos')     loadVotos();
     if(name==='usuarios')  loadUsuarios();
@@ -868,6 +896,123 @@
         +'</div>'
         +'<p style="color:var(--muted);font-size:11px;margin-top:16px;max-width:500px;line-height:1.6">Los usuarios registrados con Google o Apple aparecerán aquí. La gestión premium se habilitará con Stripe.</p>';
     } catch(e){el.innerHTML='<div class="loading-msg">Error cargando usuarios.</div>';}
+  }
+
+  // ── Sobre ─────────────────────────────────────────────
+  var sobreData = {};
+
+  async function loadSobre(){
+    var el=document.getElementById('sobre-content');
+    el.innerHTML='<div class="loading-msg">Cargando…</div>';
+    try {
+      var res=await fetch(API+'/admin/paginas/sobre',{headers:h()});
+      if(res.status===401) return logout();
+      var d=res.ok ? await res.json() : {};
+      sobreData = d.content || _defaultSobre();
+      renderSobreForm();
+    } catch(e){ sobreData=_defaultSobre(); renderSobreForm(); }
+  }
+
+  function _defaultSobre(){
+    return {
+      eyebrow: 'Sobre Flipazo · Barcelona, 2025',
+      title: 'El mercado produce de más.\nFlipazo está para aprovecharlo.',
+      subtitle: 'Un sistema de selección automática de ofertas reales. Sin comunidad que suba lo que quiera. Sin marcas que paguen para aparecer. Solo criterio.',
+      story1: 'Cada temporada, las marcas fabrican más de lo que venden. Cuando llega el siguiente modelo, el stock anterior tiene que salir. Rápido. Eso genera descuentos reales, en productos de calidad, de marcas reconocidas. Descuentos del 40%, del 50%, a veces más.\n\nEl problema es que nadie los encontraba bien.\n\nLas plataformas de chollos existentes funcionan por volumen: cualquier usuario puede subir cualquier oferta, y el resultado es un torrente de productos sin criterio, precios inflados con descuentos ficticios y marcas que no conoce nadie. Buscar una buena oferta se había convertido en trabajo.\n\nFlipazo nació de esa frustración.',
+      pull_quote: '"Pocas ofertas. Las correctas."',
+      story2: 'Hoy Flipazo monitoriza cientos de productos cada día en las principales tiendas del mercado español. Cuando detecta un descuento superior al 40%, lo verifica y, si pasa nuestros filtros, lo publica.\n\nEso es lo más difícil de hacer. Y es exactamente lo que nos diferencia.',
+      criterios: [
+        { num: '≥40%', texto: 'Descuento verificado sobre el precio histórico real de los últimos 30 días, no sobre precios inflados artificialmente.' },
+        { num: 'Marca', texto: 'Solo marcas reconocidas y productos de calidad contrastada. Sin genéricos ni productos sin historial.' },
+        { num: 'Filtro', texto: 'Lista de exclusión estricta: sin carcasas, fundas, cables, accesorios baratos ni alimentación. Solo lo que merece la pena.' },
+        { num: '0€',    texto: 'Ninguna marca paga para aparecer. Si un producto no pasa los filtros automáticos, no se publica.' }
+      ],
+      team_name: 'Jorge Uribe',
+      team_role: 'Fundador · Barcelona',
+      team_bio: 'Construí Flipazo en 2025 para resolver un problema que yo mismo tenía: encontrar descuentos reales sin perder horas buscando. El pipeline es completamente automático — monitoriza, verifica y publica sin intervención manual. Con ayuda de Claude para el análisis editorial de cada deal.',
+      affiliate_text: 'Usamos enlaces de afiliado. Si haces clic en un enlace y realizas una compra, podemos recibir una pequeña comisión sin coste adicional para ti. Así se financia este servicio y lo mantenemos gratuito. Nunca cobramos a ninguna marca para publicar sus productos. La selección es editorial, no publicitaria. Participamos en Amazon Associates (tag: flipazo-21), Awin y Tradedoubler.',
+      contact_text: '¿Tienes alguna pregunta, has detectado un error en un deal o quieres reportar un precio incorrecto? Escríbenos y respondemos en un plazo máximo de 40 horas laborables.',
+      contact_email: 'flipazo.newsletter@gmail.com'
+    };
+  }
+
+  function renderSobreForm(){
+    var d=sobreData;
+    var crit=d.criterios||[];
+    var critHtml=crit.map(function(c,i){
+      return '<div class="criterio-card">'
+        +'<div class="field"><label>Número / Cifra '+(i+1)+'</label><input type="text" id="criterio-num-'+i+'" value="'+esc(c.num||'')+'" style="width:120px" /></div>'
+        +'<div class="field"><label>Texto descriptivo</label><input type="text" id="criterio-txt-'+i+'" value="'+esc(c.texto||'')+'" /></div>'
+        +'</div>';
+    }).join('');
+
+    document.getElementById('sobre-content').innerHTML=
+      '<div class="sobre-grid">'
+        +'<div class="field"><label>Eyebrow (subtítulo header)</label><input type="text" id="sobre-eyebrow" value="'+esc(d.eyebrow||'')+'" /></div>'
+        +'<div></div>'
+      +'</div>'
+      +'<div class="sobre-full"><div class="field"><label>Título principal</label><textarea id="sobre-title" rows="2" style="min-height:56px">'+esc(d.title||'')+'</textarea></div></div>'
+      +'<div class="sobre-full"><div class="field"><label>Subtítulo</label><textarea id="sobre-subtitle" rows="2">'+esc(d.subtitle||'')+'</textarea></div></div>'
+      +'<div class="sobre-full"><div class="field"><label>Historia (párrafos — usa \\n\\n para separar)</label><textarea id="sobre-story1" rows="6">'+esc(d.story1||'')+'</textarea></div></div>'
+      +'<div class="sobre-full"><div class="field"><label>Pull quote</label><input type="text" id="sobre-pullquote" value="'+esc(d.pull_quote||'')+'" /></div></div>'
+      +'<div class="sobre-full"><div class="field"><label>Historia parte 2</label><textarea id="sobre-story2" rows="4">'+esc(d.story2||'')+'</textarea></div></div>'
+      +'<div class="sobre-section-title">Criterios editoriales (4 tarjetas)</div>'
+      +critHtml
+      +'<div class="sobre-section-title">Equipo</div>'
+      +'<div class="sobre-grid">'
+        +'<div class="field"><label>Nombre</label><input type="text" id="sobre-team-name" value="'+esc(d.team_name||'')+'" /></div>'
+        +'<div class="field"><label>Rol</label><input type="text" id="sobre-team-role" value="'+esc(d.team_role||'')+'" /></div>'
+      +'</div>'
+      +'<div class="sobre-full"><div class="field"><label>Bio</label><textarea id="sobre-team-bio" rows="3">'+esc(d.team_bio||'')+'</textarea></div></div>'
+      +'<div class="sobre-section-title">Afiliados y contacto</div>'
+      +'<div class="sobre-full"><div class="field"><label>Texto afiliados</label><textarea id="sobre-affiliate" rows="3">'+esc(d.affiliate_text||'')+'</textarea></div></div>'
+      +'<div class="sobre-grid">'
+        +'<div class="field"><label>Texto contacto</label><textarea id="sobre-contact-text" rows="2">'+esc(d.contact_text||'')+'</textarea></div>'
+        +'<div class="field"><label>Email contacto</label><input type="email" id="sobre-contact-email" value="'+esc(d.contact_email||'')+'" /></div>'
+      +'</div>';
+  }
+
+  function _readSobre(){
+    var d=JSON.parse(JSON.stringify(sobreData));
+    d.eyebrow = document.getElementById('sobre-eyebrow').value;
+    d.title   = document.getElementById('sobre-title').value;
+    d.subtitle= document.getElementById('sobre-subtitle').value;
+    d.story1  = document.getElementById('sobre-story1').value;
+    d.pull_quote = document.getElementById('sobre-pullquote').value;
+    d.story2  = document.getElementById('sobre-story2').value;
+    d.team_name  = document.getElementById('sobre-team-name').value;
+    d.team_role  = document.getElementById('sobre-team-role').value;
+    d.team_bio   = document.getElementById('sobre-team-bio').value;
+    d.affiliate_text  = document.getElementById('sobre-affiliate').value;
+    d.contact_text    = document.getElementById('sobre-contact-text').value;
+    d.contact_email   = document.getElementById('sobre-contact-email').value;
+    var crits=[];
+    for(var i=0;i<4;i++){
+      var n=document.getElementById('criterio-num-'+i);
+      var t=document.getElementById('criterio-txt-'+i);
+      if(n&&t) crits.push({num:n.value,texto:t.value});
+    }
+    d.criterios=crits;
+    return d;
+  }
+
+  async function saveSobre(){
+    var btn=document.querySelector('#page-sobre .btn-action.success');
+    var msg=document.getElementById('sobre-save-msg');
+    btn.disabled=true; btn.textContent='Guardando…';
+    try {
+      var data=_readSobre();
+      var res=await fetch(API+'/admin/paginas/sobre',{
+        method:'PUT',headers:h(),
+        body:JSON.stringify({content:data})
+      });
+      if(res.status===401) return logout();
+      if(res.ok){
+        sobreData=data;
+        msg.style.display='inline'; setTimeout(function(){msg.style.display='none';},3000);
+      } else { alert('Error al guardar'); }
+    } catch(e){ alert('Error de conexión'); }
+    finally { btn.disabled=false; btn.textContent='Guardar'; }
   }
 </script>
 </body>

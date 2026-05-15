@@ -542,6 +542,15 @@ def _ensure_schema():
             except Exception:
                 pass
 
+        # Páginas estáticas editables
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS paginas (
+                slug       TEXT PRIMARY KEY,
+                content    TEXT NOT NULL DEFAULT '{}',
+                updated_at TEXT NOT NULL DEFAULT ''
+            )
+        """)
+
         # Comentarios de deals
         con.execute("""
             CREATE TABLE IF NOT EXISTS deal_comments (
@@ -1639,3 +1648,56 @@ def delete_blog_post(post_id: int, request: Request):
     if not deleted:
         return JSONResponse(status_code=404, content={"error": "Post no encontrado"})
     return {"deleted": True, "id": post_id}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PÁGINAS ESTÁTICAS EDITABLES (Sobre, etc.)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/paginas/{slug}")
+def get_pagina_public(slug: str):
+    """Devuelve el contenido JSON de una página editable (público)."""
+    with _get_db() as con:
+        row = con.execute("SELECT content FROM paginas WHERE slug = ?", (slug,)).fetchone()
+    if not row:
+        return JSONResponse(status_code=404, content={"error": "Página no encontrada"})
+    import json as _json
+    try:
+        return {"slug": slug, "content": _json.loads(row["content"])}
+    except Exception:
+        return {"slug": slug, "content": {}}
+
+
+@app.get("/admin/paginas/{slug}")
+def get_pagina_admin(slug: str, request: Request):
+    """Lee el contenido de una página editable. Requiere JWT admin."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    with _get_db() as con:
+        row = con.execute("SELECT content, updated_at FROM paginas WHERE slug = ?", (slug,)).fetchone()
+    if not row:
+        return {"slug": slug, "content": {}, "updated_at": ""}
+    import json as _json
+    try:
+        return {"slug": slug, "content": _json.loads(row["content"]), "updated_at": row["updated_at"]}
+    except Exception:
+        return {"slug": slug, "content": {}, "updated_at": ""}
+
+
+@app.put("/admin/paginas/{slug}")
+async def put_pagina_admin(slug: str, request: Request):
+    """Guarda el contenido JSON de una página editable. Requiere JWT admin."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    import json as _json
+    body = await request.json()
+    content = body.get("content", {})
+    now = datetime.utcnow().isoformat()
+    with _get_db() as con:
+        con.execute(
+            "INSERT INTO paginas (slug, content, updated_at) VALUES (?,?,?) "
+            "ON CONFLICT(slug) DO UPDATE SET content=excluded.content, updated_at=excluded.updated_at",
+            (slug, _json.dumps(content, ensure_ascii=False), now)
+        )
+        con.commit()
+    return {"slug": slug, "updated_at": now}

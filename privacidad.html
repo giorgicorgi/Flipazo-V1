@@ -6,187 +6,104 @@
   <title>Política de Privacidad — Flipazo</title>
   <meta name="description" content="Política de privacidad de Flipazo. Cómo tratamos tus datos, base legal RGPD y tus derechos como usuario." />
   <meta name="robots" content="noindex, follow" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23F52834'/><text x='50%' y='74%' font-family='Georgia,serif' font-weight='900' font-size='22' fill='white' text-anchor='middle'>F</text></svg>">
+  <script>(function(){ var t = localStorage.getItem('flipazo_theme')||'light'; if(t==='dark') document.documentElement.setAttribute('data-theme','dark'); })();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Playfair+Display+SC:wght@700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Playfair+Display+SC:wght@700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --ink:       #111111;
-      --ink-light: #444444;
-      --rule:      #222222;
-      --bg:        #ffffff;
-      --accent:    #c0392b;
-      --serif:     'Playfair Display', Georgia, serif;
-      --serif-sc:  'Playfair Display SC', Georgia, serif;
-      --mono:      'Courier Prime', 'Courier New', monospace;
+      --brand:      #F52834;
+      --ink:        #111827;
+      --ink-light:  #4B5563;
+      --bg:         #FEFEF8;
+      --surface:    #F3F4F6;
+      --border:     #E5E7EB;
+      --text-mid:   #6B7280;
+      --text-dim:   #9CA3AF;
+      --serif:      'Playfair Display', Georgia, serif;
+      --serif-sc:   'Playfair Display SC', Georgia, serif;
+      --sans:       'Nunito', system-ui, sans-serif;
     }
-    body {
-      background: var(--bg);
-      color: var(--ink);
-      font-family: var(--serif);
-      -webkit-font-smoothing: antialiased;
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --ink:        #F9FAFB;
+      --ink-light:  #D1D5DB;
+      --bg:         #111827;
+      --surface:    #1F2937;
+      --border:     #374151;
+      --text-mid:   #9CA3AF;
+      --text-dim:   #6B7280;
     }
-    a { color: var(--accent); text-decoration: none; }
+    [data-theme="dark"] .site-header { background: #111827; border-color: #1F2937; }
+    [data-theme="dark"] .highlight-box { background: #1F2937; }
+    [data-theme="dark"] td { border-color: #374151; }
+    [data-theme="dark"] tr:hover td { background: #1F2937; }
+    [data-theme="dark"] .page-header, [data-theme="dark"] .section { border-color: #374151; }
+    [data-theme="dark"] .footer { border-color: #374151; }
+
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; min-height: 100vh; }
+    a { color: var(--brand); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    /* ── Masthead ── */
-    .masthead {
-      border-bottom: 3px solid var(--rule);
-      padding: 22px 40px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
+    /* ── Site header ── */
+    .site-header {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     }
-    .masthead__brand {
-      font-family: var(--serif);
-      font-weight: 900;
-      font-size: 32px;
-      letter-spacing: -0.02em;
-      text-transform: uppercase;
-      color: var(--ink);
-      text-decoration: none;
+    .site-header__inner {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px; height: 64px; gap: 24px;
     }
-    .masthead__brand:hover { text-decoration: none; }
-    .masthead__back {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--ink-light);
-      border: 1px solid #ccc;
-      padding: 6px 14px;
-    }
-    .masthead__back:hover { background: var(--ink); color: #fff; text-decoration: none; }
+    .site-logo { cursor: pointer; flex-shrink: 0; display: flex; align-items: center; text-decoration: none; }
+    .site-logo__img { display: block; height: 49px; width: auto; mix-blend-mode: multiply; }
+    [data-theme="dark"] .site-logo__img { mix-blend-mode: screen; }
+    .header-nav { display: flex; align-items: center; gap: 20px; flex-shrink: 0; }
+    .header-nav__link { font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--text-mid); letter-spacing: 0.01em; transition: color 0.15s; }
+    .header-nav__link:hover { color: var(--ink); text-decoration: none; }
+    .header-nav__link--active { color: var(--brand); }
+    .theme-toggle { background: none; border: none; cursor: pointer; font-size: 15px; color: var(--text-mid); padding: 6px; border-radius: 8px; line-height: 1; transition: color 0.15s, background 0.15s; user-select: none; }
+    .theme-toggle:hover { color: var(--ink); background: var(--surface); }
 
     /* ── Page header ── */
-    .page-header {
-      padding: 48px 40px 32px;
-      border-bottom: 1.5px solid #e0e0e0;
-      max-width: 760px;
-    }
-    .page-header__label {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--ink-light);
-      margin-bottom: 12px;
-    }
-    .page-header h1 {
-      font-family: var(--serif);
-      font-weight: 900;
-      font-size: clamp(28px, 5vw, 42px);
-      line-height: 1.1;
-      margin-bottom: 14px;
-    }
-    .page-header__meta {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--ink-light);
-      letter-spacing: 0.1em;
-    }
+    .page-header { padding: 48px 40px 32px; border-bottom: 1.5px solid var(--border); max-width: 760px; }
+    .page-header__label { font-family: var(--sans); font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--brand); margin-bottom: 12px; }
+    .page-header h1 { font-family: var(--serif); font-weight: 900; font-size: clamp(28px, 5vw, 42px); line-height: 1.1; margin-bottom: 14px; }
+    .page-header__meta { font-family: var(--sans); font-size: 12px; color: var(--text-mid); }
 
     /* ── Content ── */
-    .content {
-      max-width: 760px;
-      padding: 40px 40px 80px;
-    }
-    .section {
-      margin-bottom: 40px;
-      padding-bottom: 40px;
-      border-bottom: 1px solid #e0e0e0;
-    }
+    .content { max-width: 760px; padding: 40px 40px 80px; }
+    .section { margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid var(--border); }
     .section:last-child { border-bottom: none; }
-    .section h2 {
-      font-family: var(--serif-sc);
-      font-size: 11px;
-      letter-spacing: 0.2em;
-      color: var(--ink-light);
-      text-transform: uppercase;
-      margin-bottom: 16px;
-    }
-    .section p, .section li {
-      font-family: var(--mono);
-      font-size: 12.5px;
-      color: var(--ink-light);
-      line-height: 1.85;
-      margin-bottom: 12px;
-    }
-    .section ul {
-      padding-left: 20px;
-      margin-bottom: 12px;
-    }
-    .section li { margin-bottom: 4px; }
-    .highlight-box {
-      background: #f9f9f7;
-      border-left: 3px solid var(--accent);
-      padding: 16px 20px;
-      margin: 16px 0;
-    }
+    .section h2 { font-family: var(--serif-sc); font-size: 11px; letter-spacing: 0.2em; color: var(--text-mid); text-transform: uppercase; margin-bottom: 16px; }
+    .section p, .section li { font-family: var(--sans); font-size: 14px; color: var(--ink-light); line-height: 1.8; margin-bottom: 12px; }
+    .section ul { padding-left: 20px; margin-bottom: 12px; }
+    .section li { margin-bottom: 6px; }
+    .highlight-box { background: var(--surface); border-left: 3px solid var(--brand); padding: 16px 20px; margin: 16px 0; border-radius: 0 6px 6px 0; }
     .highlight-box p { margin-bottom: 0; }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-family: var(--mono);
-      font-size: 11px;
-      margin: 16px 0;
-    }
-    th {
-      text-align: left;
-      font-size: 9px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--ink-light);
-      padding: 8px 12px;
-      border-bottom: 1.5px solid var(--rule);
-    }
-    td {
-      padding: 10px 12px;
-      border-bottom: 1px solid #e0e0e0;
-      color: var(--ink-light);
-      vertical-align: top;
-    }
-    tr:hover td { background: #fafafa; }
+    table { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; margin: 16px 0; }
+    th { text-align: left; font-size: 10px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-mid); padding: 8px 12px; border-bottom: 1.5px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--ink-light); vertical-align: top; line-height: 1.5; }
+    tr:hover td { background: var(--surface); }
 
     /* ── Footer ── */
-    .footer {
-      border-top: 1.5px solid #e0e0e0;
-      padding: 20px 40px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .footer__links {
-      display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-    .footer__links a {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--ink-light);
-    }
-    .footer__copy {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: #bbb;
-      letter-spacing: 0.06em;
-    }
+    .footer { border-top: 1.5px solid var(--border); padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .footer__links { display: flex; gap: 24px; flex-wrap: wrap; }
+    .footer__links a { font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-mid); transition: color 0.15s; }
+    .footer__links a:hover { color: var(--brand); text-decoration: none; }
+    .footer__copy { font-family: var(--sans); font-size: 11px; color: var(--text-dim); }
 
     @media (max-width: 640px) {
-      .masthead, .page-header, .content, .footer { padding-left: 18px; padding-right: 18px; }
+      .site-header__inner { padding: 0 18px; }
+      .page-header, .content, .footer { padding-left: 18px; padding-right: 18px; }
       .page-header { padding-top: 32px; }
+      .header-nav gap: 14px; }
     }
   </style>
-  <!-- Google Analytics — carga solo con consentimiento previo -->
   <script>
     (function(){
       var s = localStorage.getItem("flipazo_consent");
@@ -203,9 +120,23 @@
 </head>
 <body>
 
-  <header class="masthead">
-    <a href="/" class="masthead__brand">Flipazo</a>
-    <a href="/" class="masthead__back">← Volver a ofertas</a>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a href="/" class="site-logo" title="Flipazo — inicio">
+        <img src="/flipazo-logo.png" alt="Flipazo" height="49" class="site-logo__img"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+        <svg viewBox="0 0 218 52" xmlns="http://www.w3.org/2000/svg" height="38" aria-hidden="true" style="display:none">
+          <text x="2" y="43" font-family="'Nunito', sans-serif" font-size="50" font-weight="900" fill="#F52834" letter-spacing="-0.5">Flipazo</text>
+        </svg>
+      </a>
+      <nav class="header-nav" aria-label="Navegación principal">
+        <a href="/" class="header-nav__link">Ofertas</a>
+        <a href="/blog" class="header-nav__link">Blog</a>
+        <a href="/sobre" class="header-nav__link">Sobre</a>
+        <a href="/cuenta" class="header-nav__link">Mi&nbsp;Cuenta</a>
+        <button class="theme-toggle" onclick="(function(){var t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',t);localStorage.setItem('flipazo_theme',t);this.textContent=t==='dark'?'☀':'☾';}).call(this)" aria-label="Cambiar tema">☾</button>
+      </nav>
+    </div>
   </header>
 
   <div class="page-header">
@@ -257,7 +188,7 @@
     <div class="section">
       <h2>3. Cookies y tecnologías de seguimiento</h2>
       <p>Flipazo utiliza cookies técnicas propias (necesarias para el funcionamiento) y puede utilizar cookies de analítica y de afiliados de terceros, siempre que hayas dado tu consentimiento mediante nuestro banner.</p>
-      <p>Consulta el detalle completo en nuestra <a href="/cookies.html">Política de Cookies</a>.</p>
+      <p>Consulta el detalle completo en nuestra <a href="/cookies">Política de Cookies</a>.</p>
       <div class="highlight-box">
         <p>Los enlaces a tiendas externas (Amazon, PcComponentes, MediaMarkt, etc.) pueden instalar cookies de seguimiento de afiliado en tu navegador cuando haces clic en ellos. Esas cookies son responsabilidad de cada tienda. Consulta sus políticas de privacidad respectivas.</p>
       </div>
@@ -326,14 +257,16 @@
   </div>
 
   <footer class="footer">
-    <div class="footer__links">
+    <nav class="footer__links" aria-label="Legal">
+      <a href="/">Ofertas</a>
       <a href="/sobre">Sobre</a>
-      <a href="/privacidad.html">Privacidad</a>
-      <a href="/cookies.html">Cookies</a>
-      <a href="/aviso-legal.html">Aviso Legal</a>
+      <a href="/blog">Blog</a>
+      <a href="/privacidad">Privacidad</a>
+      <a href="/cookies">Cookies</a>
+      <a href="/aviso-legal">Aviso Legal</a>
       <a href="mailto:flipazo.newsletter@gmail.com">Contacto</a>
-    </div>
-    <span class="footer__copy">© 2025 Flipazo · Barcelona, España</span>
+    </nav>
+    <span class="footer__copy">© 2026 Flipazo · Barcelona, España</span>
   </footer>
 
 </body>
