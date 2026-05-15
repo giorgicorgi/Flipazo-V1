@@ -485,7 +485,15 @@
 
     <!-- USUARIOS -->
     <div class="page" id="page-usuarios">
-      <div class="page-header"><h2>Usuarios</h2><p>Cuentas registradas</p></div>
+      <div class="page-header">
+        <div><h2>Usuarios</h2><p>Cuentas registradas</p></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="usuarios-search" type="text" placeholder="Buscar email o nombre…"
+            style="padding:6px 10px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--fg);font-size:12px;width:220px"
+            oninput="debounceUsuarios(this.value)" />
+          <span id="usuarios-count" style="font-size:11px;color:var(--muted)"></span>
+        </div>
+      </div>
       <div id="usuarios-content"><div class="loading-msg">Cargando&#8230;</div></div>
     </div>
 
@@ -883,18 +891,77 @@
   }
 
   // ── Usuarios ─────────────────────────────────────────
-  async function loadUsuarios(){
+  var _usuariosTimer=null;
+  function debounceUsuarios(q){
+    clearTimeout(_usuariosTimer);
+    _usuariosTimer=setTimeout(()=>loadUsuarios(q),320);
+  }
+
+  async function loadUsuarios(q){
+    q=q||document.getElementById('usuarios-search')?.value||'';
     var el=document.getElementById('usuarios-content');
     el.innerHTML='<div class="loading-msg">Cargando…</div>';
     try {
-      var res=await fetch(API+'/admin/stats',{headers:h()});
+      var url=API+'/admin/users?limit=200'+(q?'&q='+encodeURIComponent(q):'');
+      var res=await fetch(url,{headers:h()});
       if(res.status===401) return logout();
       var d=await res.json();
-      el.innerHTML='<div class="stats-grid" style="max-width:400px">'
-        +'<div class="stat-card"><div class="stat-card__label">Total usuarios</div><div class="stat-card__value">'+(d.total_users||0)+'</div></div>'
-        +'<div class="stat-card"><div class="stat-card__label">Premium</div><div class="stat-card__value">'+(d.premium_users||0)+'</div></div>'
-        +'</div>'
-        +'<p style="color:var(--muted);font-size:11px;margin-top:16px;max-width:500px;line-height:1.6">Los usuarios registrados con Google o Apple aparecerán aquí. La gestión premium se habilitará con Stripe.</p>';
+      var users=d.users||[];
+      document.getElementById('usuarios-count').textContent=d.total+' usuarios';
+
+      if(!users.length){
+        el.innerHTML='<div class="loading-msg">No hay usuarios'+(q?' para "'+q+'"':'')+'.</div>';
+        return;
+      }
+
+      function fmtDate(s){
+        if(!s) return '—';
+        var dt=new Date(s);
+        return dt.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'2-digit'})
+          +' '+dt.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+      }
+      function providerBadge(p){
+        var colors={google:'#4285F4',apple:'#000',email:'#6b7280'};
+        var c=colors[p]||'#6b7280';
+        return '<span style="background:'+c+';color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600">'+p+'</span>';
+      }
+
+      var rows=users.map(function(u){
+        var premium=u.premium
+          ? '<span style="background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600">Premium</span>'
+          : '<span style="color:var(--muted);font-size:11px">Gratis</span>';
+        var verified=u.email_verified
+          ? '<span style="color:#22c55e;font-size:13px" title="Email verificado">✓</span>'
+          : '<span style="color:var(--muted);font-size:11px">—</span>';
+        var avatar=u.avatar_url
+          ? '<img src="'+u.avatar_url+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;vertical-align:middle" onerror="this.style.display=\'none\'">'
+          : '<span style="width:28px;height:28px;border-radius:50%;background:var(--border);display:inline-block;vertical-align:middle"></span>';
+        return '<tr>'
+          +'<td>'+avatar+'</td>'
+          +'<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(u.name||'')+'"><b>'+(u.name||'—')+'</b></td>'
+          +'<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)" title="'+(u.email||'')+'">'+(u.email||'—')+'</td>'
+          +'<td>'+providerBadge(u.provider||'?')+'</td>'
+          +'<td>'+premium+'</td>'
+          +'<td>'+verified+'</td>'
+          +'<td style="color:var(--muted);font-size:11px;white-space:nowrap">'+fmtDate(u.created_at)+'</td>'
+          +'<td style="color:var(--muted);font-size:11px;white-space:nowrap">'+fmtDate(u.last_login)+'</td>'
+          +'</tr>';
+      }).join('');
+
+      el.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="text-align:left;border-bottom:1px solid var(--border)">'
+        +'<th style="padding:8px 6px;width:36px"></th>'
+        +'<th style="padding:8px 6px">Nombre</th>'
+        +'<th style="padding:8px 6px">Email</th>'
+        +'<th style="padding:8px 6px">Proveedor</th>'
+        +'<th style="padding:8px 6px">Plan</th>'
+        +'<th style="padding:8px 6px">Verificado</th>'
+        +'<th style="padding:8px 6px">Registro</th>'
+        +'<th style="padding:8px 6px">Último acceso</th>'
+        +'</tr></thead>'
+        +'<tbody>'+rows+'</tbody>'
+        +'</table></div>';
+
     } catch(e){el.innerHTML='<div class="loading-msg">Error cargando usuarios.</div>';}
   }
 

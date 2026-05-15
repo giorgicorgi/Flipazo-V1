@@ -1701,3 +1701,37 @@ async def put_pagina_admin(slug: str, request: Request):
         )
         con.commit()
     return {"slug": slug, "updated_at": now}
+
+
+@app.get("/admin/users")
+def admin_users(request: Request, limit: int = 100, offset: int = 0, q: str = ""):
+    """Lista de usuarios registrados. Requiere JWT admin."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    with _get_db() as con:
+        if q:
+            pattern = f"%{q}%"
+            rows = con.execute(
+                """SELECT id, email, name, avatar_url, provider, premium,
+                          newsletter, email_verified, created_at, last_login
+                   FROM users
+                   WHERE email LIKE ? OR name LIKE ?
+                   ORDER BY created_at DESC LIMIT ? OFFSET ?""",
+                (pattern, pattern, limit, offset)
+            ).fetchall()
+            total = con.execute(
+                "SELECT COUNT(*) FROM users WHERE email LIKE ? OR name LIKE ?",
+                (pattern, pattern)
+            ).fetchone()[0]
+        else:
+            rows = con.execute(
+                """SELECT id, email, name, avatar_url, provider, premium,
+                          newsletter, email_verified, created_at, last_login
+                   FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?""",
+                (limit, offset)
+            ).fetchall()
+            total = con.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    cols = ["id", "email", "name", "avatar_url", "provider", "premium",
+            "newsletter", "email_verified", "created_at", "last_login"]
+    users = [dict(zip(cols, r)) for r in rows]
+    return {"users": users, "total": total, "limit": limit, "offset": offset}
