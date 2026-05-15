@@ -41,7 +41,7 @@ TELEGRAM_ADMIN_CHAT_ID = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")  # chat persona
 # ── Umbrales Track A: ARBITRAJE (reventa) ────────────────────────
 DESCUENTO_MINIMO        = 40    # % mínimo
 PRECIO_MINIMO           = 25.0  # € mínimo producto
-PRECIO_MAXIMO           = 800.0 # € máximo — permite PS5, MacBook, TV OLED, etc.
+PRECIO_MAXIMO           = 9999.0 # € sin límite superior — publicar todos los deals válidos
 SCORE_ARBITRAJE_MINIMO  = 60    # Score reventa mínimo para ir a Wallapop
 BENEFICIO_NETO_MINIMO   = 20.0  # € margen neto real mínimo para publicar
 RATIO_HISTORICO_MAX     = 1.20  # Precio actual <= 120% del mínimo histórico CCC (era 1.15)
@@ -74,8 +74,8 @@ WALLAPOP_COMISION       = 0.13  # 13% (10% comisión + ~3% pasarela de pago)
 WALLAPOP_ENVIO          = 5.0   # € envío medio (Correos/MRW)
 
 # ── Límite de productos del mismo tipo por ciclo ─────────────────
-MAX_MISMO_TIPO          = 3     # Si hay más de X del mismo tipo → limitar
-MAX_PUBLICAR_POR_TIPO   = 2     # Cuántos publicar cuando se supera el límite
+MAX_MISMO_TIPO          = 99    # Sin límite efectivo — publicar todos los deals válidos
+MAX_PUBLICAR_POR_TIPO   = 99    # Sin límite efectivo — publicar todos los deals válidos
 WALLAPOP_EMBALAJE       = 2.0   # € materiales embalaje
 WALLAPOP_COSTES_FIJOS   = WALLAPOP_ENVIO + WALLAPOP_EMBALAJE  # 7€
 
@@ -904,7 +904,7 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", p
 
 def _precio_aceptable(precio_actual: float, descuento: int) -> bool:
     """Devuelve True si pasa el filtro estándar O el filtro low-cost."""
-    if PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO and descuento >= DESCUENTO_MINIMO:
+    if precio_actual >= PRECIO_MINIMO and descuento >= DESCUENTO_MINIMO:
         return True
     if PRECIO_MINIMO_LC <= precio_actual < PRECIO_MINIMO and descuento >= DESCUENTO_LC_MINIMO:
         return True
