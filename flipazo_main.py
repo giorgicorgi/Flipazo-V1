@@ -607,7 +607,7 @@ async def _extraer_de_busqueda(page: Page, vistos: set) -> list[Producto]:
                     if len(titulo) > 10:
                         break
 
-            if not titulo or not _es_producto_valido(titulo, descuento):
+            if not titulo or not _es_producto_valido(titulo, descuento, precio=precio_actual):
                 continue
 
             # Imagen del producto — Amazon usa lazy loading, probar src, data-src y srcset
@@ -764,6 +764,10 @@ async def _extraer_de_deals(page: Page, vistos: set) -> list[Producto]:
                 continue
             descuento = int(match_desc.group(1))
 
+            # >90% nunca es real en Amazon — precio por unidad, recambio o error
+            if descuento > 90:
+                continue
+
             precios = re.findall(r'(\d+[.,]\d{2})\s*€', texto)
             if not precios:
                 continue
@@ -780,7 +784,7 @@ async def _extraer_de_deals(page: Page, vistos: set) -> list[Producto]:
                 (t.strip() for t in texto.split('\n') if len(t.strip()) > 20),
                 ""
             )
-            if not titulo or not _es_producto_valido(titulo, descuento):
+            if not titulo or not _es_producto_valido(titulo, descuento, precio=precio_actual):
                 continue
 
             vistos.add(asin)
@@ -841,7 +845,33 @@ _MARCAS_ROPA = frozenset([
 ])
 
 
-def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "") -> bool:
+# Precio mínimo por categoría de alto valor.
+# Un recambio/accesorio de cafetera puede costar €7, pero una cafetera real nunca.
+# Los ASINs hijo (accesorios) a veces heredan el título del producto padre en Amazon.
+_PRECIO_SUELO_CATEGORIA: list[tuple[list[str], float]] = [
+    (["cafetera express", "cafetera espresso", "cafetera superautomática", "cafetera con molinillo",
+      "cafetera de goteo", "cafetera de cápsulas", "cafetera nespresso",
+      "nespresso vertuo", "nespresso original", "dolce gusto",
+      "máquina de café", "máquina espresso"], 40.0),
+    (["televisor", "smart tv", "qled", "oled tv", "miniled"], 120.0),
+    (["frigorífico", "lavadora", "lavavajillas", "horno eléctrico",
+      "campana extractora", "vitrocerámica", "placa de inducción"], 150.0),
+    (["ordenador portátil", "laptop", "notebook", "macbook"], 180.0),
+    (["robot de cocina", "thermomix", "monsieur cuisine", "magimix"], 80.0),
+    (["robot aspirador", "aspiradora robot", "roomba"], 60.0),
+]
+
+
+def _precio_valido_para_categoria(titulo: str, precio: float) -> bool:
+    """Devuelve False si el precio es demasiado bajo para el tipo de producto detectado en el título."""
+    t = titulo.lower()
+    for keywords, precio_min in _PRECIO_SUELO_CATEGORIA:
+        if any(kw in t for kw in keywords) and precio < precio_min:
+            return False
+    return True
+
+
+def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", precio: float = 0.0) -> bool:
     titulo = (titulo or "").strip()
     # Filtro de longitud: títulos demasiado cortos suelen ser sólo marca o imagen rota
     # (ej. "Cacharel" como single token → referencia inflada; "picture" → scrape roto)
@@ -865,6 +895,9 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "") -
         return False
     # Descuentos imposibles (≥90%) casi siempre indican error de dato en el feed
     if descuento_pct >= 90:
+        return False
+    # Precio demasiado bajo para la categoría detectada → recambio disfrazado de producto completo
+    if precio > 0 and not _precio_valido_para_categoria(titulo, precio):
         return False
     return True
 
@@ -1510,7 +1543,17 @@ async def verificar_con_ccc(
             else:
                 print(f"   ❌ Precio actual {ratio:.2f}x del mínimo histórico: {p.titulo[:40]}")
         else:
-            # Sin historial CCC (producto nuevo o sin datos) → dejar pasar
+            # Sin historial CCC — bloquear si el ratio precio_original/actual es extremo:
+            # indica ASIN accesorio que heredó el precio de referencia del producto padre.
+            if (p.precio_original > 0 and p.precio_actual > 0
+                    and p.precio_original / p.precio_actual > 8
+                    and p.descuento_pct > 75):
+                print(
+                    f"   ❌ Sin CCC + ratio extremo "
+                    f"{p.precio_original/p.precio_actual:.1f}x: {p.titulo[:40]}"
+                )
+                await asyncio.sleep(1.5)
+                continue
             print(f"   ⚠️  Sin historial CCC: {p.titulo[:45]}")
             verificados.append(p)
 
