@@ -540,6 +540,22 @@ async def _cargar_con_reintento(
         try:
             await page.goto(url, timeout=60000, wait_until="domcontentloaded")
             await _aceptar_cookies(page)
+
+            # Cloudflare JS challenge ("Un momento…") se auto-resuelve en 3-8s.
+            # Esperamos hasta 20s antes de declarar bloqueo — sin esperar, siempre falla.
+            titulo_inmediato = (await page.title()).lower()
+            if "un momento" in titulo_inmediato or "just a moment" in titulo_inmediato:
+                print(f"   ⏳ [{store}] CF challenge JS — esperando auto-resolución (≤20s)...")
+                try:
+                    await page.wait_for_function(
+                        "(function(){ var t = document.title.toLowerCase();"
+                        " return !t.includes('un momento') && !t.includes('just a moment'); })()",
+                        timeout=20000,
+                    )
+                    print(f"   ✅ [{store}] CF challenge resuelto — continuando")
+                except Exception:
+                    pass  # Si no resolvió en 20s, _detectar_bloqueo lo confirmará
+
             await asyncio.sleep(random.uniform(2.5, 4.5))
 
             bloqueado, motivo = await _detectar_bloqueo(page)
@@ -1592,144 +1608,39 @@ async def verificar_con_ccc(
 
 
 # ════════════════════════════════════════════════════════════════
-# FASE 2b — GOOGLE SHOPPING (verificación precio mercado PCBox)
+# FASE 2b — RATIO CAP para PCBox
 #
-#  PreviousPrice de Tradedoubler puede ser MSRP del fabricante,
-#  no el precio real de venta anterior. Google Shopping nos da
-#  el precio medio de mercado para validar o corregir la referencia.
+#  PreviousPrice de Tradedoubler puede ser el MSRP del fabricante.
+#  Si el ratio precio_original/precio_actual supera 3×, lo descartamos:
+#  un descuento de más del 66% sobre precio de catálogo nunca verificado
+#  es estadísticamente muy sospechoso en PCBox.
 # ════════════════════════════════════════════════════════════════
 
-_GS_PRECIO_CACHE: dict[str, float | None] = {}
-
-# Solo activar GS check si precio_original > N× precio_actual
-_GS_RATIO_ACTIVAR = 1.8
-
-# Umbral: si PreviousPrice > mediana_mercado × este factor → precio inflado
-_GS_RATIO_INFLADO = 1.35
+_PCBOX_RATIO_MAX = 3.0  # Descartar si precio_original > 3× precio_actual
 
 
-async def _scrape_gs_precio_medio(
-    titulo: str, precio_actual: float, context: BrowserContext
-) -> float | None:
-    """Extrae el precio mediano de Google Shopping ES usando Playwright (JS renderizado).
+def _filtrar_pcbox_por_ratio(productos: list[Producto]) -> list[Producto]:
+    """Descarta productos PCBox cuyo PreviousPrice supera 3× el precio actual.
 
-    Abre una página temporal en el contexto stealth existente, espera que carguen
-    los resultados y extrae precios mediante regex sobre el DOM renderizado.
-    Retorna la mediana de precios en el rango esperado, o None si no hay datos.
+    Ratios > 3× indican con alta probabilidad que PCBox usó el MSRP del fabricante
+    como referencia, no su precio real de venta anterior (EU Omnibus Directive).
     """
-    clave = titulo[:80].lower()
-    if clave in _GS_PRECIO_CACHE:
-        return _GS_PRECIO_CACHE[clave]
-
-    query = urllib.parse.quote_plus(titulo[:70])
-    url = f"https://www.google.es/search?q={query}&tbm=shop&hl=es&gl=es&num=20"
-
-    page = await context.new_page()
-    try:
-        await page.goto(url, timeout=20000, wait_until="domcontentloaded")
-        # Esperar a que los resultados de shopping se rendericen
-        try:
-            await page.wait_for_selector("div.sh-dgr__content, div[data-docid]", timeout=8000)
-        except Exception:
-            pass  # Si no aparece en 8s, extraemos lo que haya
-        html = await page.content()
-    except Exception as e:
-        print(f"      [GS] Error Playwright: {e}")
-        _GS_PRECIO_CACHE[clave] = None
-        return None
-    finally:
-        await page.close()
-
-    # Detectar bloqueo o CAPTCHA
-    if "g-recaptcha" in html or "/sorry/" in html or "unusual traffic" in html:
-        print("      [GS] ⚠️  Bloqueo/CAPTCHA detectado — skip")
-        _GS_PRECIO_CACHE[clave] = None
-        return None
-
-    # Extraer precios del DOM renderizado: "16,99 €" o "16.99 €"
-    precios_raw = re.findall(r'(\d{1,4}(?:[.,]\d{1,2})?)\s*€', html)
-    # Rango: precio_actual×0.7 → precio_actual×8
-    rango_min = max(2.0, precio_actual * 0.7)
-    rango_max = precio_actual * 8
-    valores: list[float] = []
-    for p_str in precios_raw:
-        try:
-            v = float(p_str.replace(',', '.'))
-            if rango_min <= v <= rango_max:
-                valores.append(v)
-        except Exception:
-            pass
-
-    if not valores:
-        print(f"      [GS] Sin precios en rango [{rango_min:.0f}–{rango_max:.0f}€]: {titulo[:40]}")
-        _GS_PRECIO_CACHE[clave] = None
-        return None
-
-    valores.sort()
-    # Percentiles 15–85 para eliminar outliers
-    n = len(valores)
-    i_low  = max(0, int(n * 0.15))
-    i_high = min(n - 1, int(n * 0.85))
-    valores_trim = valores[i_low : i_high + 1]
-    mediana = valores_trim[len(valores_trim) // 2]
-
-    _GS_PRECIO_CACHE[clave] = mediana
-    return mediana
-
-
-async def verificar_con_google_shopping(
-    productos: list[Producto], context: BrowserContext
-) -> list[Producto]:
-    """Verifica precio_original de productos PCBox contra Google Shopping (Playwright).
-
-    Si PreviousPrice supera la mediana de mercado en >35%, corrige precio_original
-    y recalcula el descuento. Si el descuento corregido < DESCUENTO_MINIMO → descarta.
-    Solo verifica productos con ratio precio_original/precio_actual > _GS_RATIO_ACTIVAR.
-    """
-    print(f"\n🛒 Google Shopping — verificando precios de mercado ({len(productos)} productos PCBox)...")
+    if not productos:
+        return productos
+    print(f"\n🔎 PCBox ratio check ({len(productos)} productos)...")
     verificados: list[Producto] = []
-
     for p in productos:
-        ratio_feed = p.precio_original / p.precio_actual if p.precio_actual > 0 else 0
-
-        # Solo verificar si el ratio feed es potencialmente sospechoso
-        if p.precio_original <= 0 or ratio_feed < _GS_RATIO_ACTIVAR:
-            print(f"   ⏩ Sin check (ratio {ratio_feed:.1f}x): {p.titulo[:50]}")
-            verificados.append(p)
-            continue
-
-        precio_mercado = await _scrape_gs_precio_medio(p.titulo, p.precio_actual, context)
-        await asyncio.sleep(3.0)  # Pausa entre búsquedas para no disparar rate limits
-
-        if precio_mercado is None or precio_mercado <= 0:
-            print(f"   ⚠️  Sin datos GS: {p.titulo[:50]}")
-            verificados.append(p)
-            continue
-
-        if p.precio_original > precio_mercado * _GS_RATIO_INFLADO:
-            descuento_real = round((1 - p.precio_actual / precio_mercado) * 100)
-            if descuento_real < DESCUENTO_MINIMO:
-                print(
-                    f"   ❌ Descuento falso — feed {p.precio_original}€ vs "
-                    f"mercado {precio_mercado:.2f}€ → desc. real {descuento_real}%: "
-                    f"{p.titulo[:38]}"
-                )
-                continue
+        ratio = p.precio_original / p.precio_actual if p.precio_actual > 0 else 0
+        if ratio > _PCBOX_RATIO_MAX:
             print(
-                f"   ⚠️  Ref. corregida {p.precio_original}€→{precio_mercado:.2f}€ "
-                f"(desc. real {descuento_real}%): {p.titulo[:38]}"
+                f"   ❌ Ratio {ratio:.1f}x (>{_PCBOX_RATIO_MAX}x) — PreviousPrice sospechoso: "
+                f"{p.titulo[:45]} ({p.precio_actual}€ vs {p.precio_original}€)"
             )
-            p.precio_original = precio_mercado
-            p.descuento_pct   = max(0, descuento_real)
-        else:
-            print(
-                f"   ✅ {p.titulo[:40]:<40} | {p.precio_actual}€ "
-                f"(feed {p.precio_original}€ ≈ mercado {precio_mercado:.2f}€)"
-            )
-
+            continue
+        if ratio >= 2.0:
+            print(f"   ⚠️  Ratio {ratio:.1f}x (alto pero dentro del límite): {p.titulo[:45]}")
         verificados.append(p)
-
-    print(f"✅ {len(verificados)}/{len(productos)} productos PCBox verificados por GS")
+    print(f"✅ {len(verificados)}/{len(productos)} productos PCBox dentro del ratio permitido")
     return verificados
 
 
@@ -2759,14 +2670,10 @@ async def run_pipeline(modo: str = "completo"):
             else:
                 amazon_verificados = amazon_prods  # Flash: saltar CCC para velocidad
 
-            # ── Fase 2b: Google Shopping para PCBox ────────────────
+            # ── Fase 2b: Ratio cap para PCBox ──────────────────────
             pcbox_prods     = [p for p in otros_prods if p.tienda == "PCBox"]
             otros_sin_pcbox = [p for p in otros_prods if p.tienda != "PCBox"]
-
-            if pcbox_prods and modo == "completo":
-                pcbox_verificados = await verificar_con_google_shopping(pcbox_prods, browser)
-            else:
-                pcbox_verificados = pcbox_prods  # Flash: saltar GS
+            pcbox_verificados = _filtrar_pcbox_por_ratio(pcbox_prods)
 
             productos = amazon_verificados + pcbox_verificados + otros_sin_pcbox
             if not productos:
