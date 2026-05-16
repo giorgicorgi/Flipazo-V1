@@ -1443,7 +1443,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     try:
         pss_raw = await asyncio.to_thread(get_pss_productos)
         for d in pss_raw:
-            if not _es_producto_valido(d["titulo"], d["descuento_pct"]):
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
                 continue
@@ -1462,7 +1462,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             fetch_tradedoubler_productos, DESCUENTO_MINIMO, PRECIO_MINIMO_LC, PRECIO_MAXIMO
         )
         for d in td_raw:
-            if not _es_producto_valido(d["titulo"], d["descuento_pct"]):
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
                 continue
@@ -1479,7 +1479,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     try:
         dec_raw = await asyncio.to_thread(fetch_decathlon_productos)
         for d in dec_raw:
-            if not _es_producto_valido(d["titulo"], d["descuento_pct"]):
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
                 continue
@@ -1496,7 +1496,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     try:
         tr_raw = await asyncio.to_thread(fetch_toysrus_productos)
         for d in tr_raw:
-            if not _es_producto_valido(d["titulo"], d["descuento_pct"]):
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
                 continue
@@ -1513,7 +1513,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     try:
         beep_raw = await asyncio.to_thread(fetch_beep_productos)
         for d in beep_raw:
-            if not _es_producto_valido(d["titulo"], d["descuento_pct"]):
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
                 continue
@@ -2660,6 +2660,13 @@ async def run_pipeline(modo: str = "completo"):
                         except Exception as e:
                             print(f"   ⚠️  Amazon price-check skip ({p.titulo[:30]}): {e}")
                     print(f"   ✅ {mejorados}/{len(no_amazon_raw)} deals actualizados a precio Amazon")
+
+                # Re-validar precio mínimo por categoría tras reclasificación a Amazon
+                n_antes = len(productos)
+                productos = [p for p in productos if _precio_valido_para_categoria(p.titulo, p.precio_actual)]
+                descartados = n_antes - len(productos)
+                if descartados:
+                    print(f"   🚫 {descartados} deal(s) descartados: precio Amazon demasiado bajo para la categoría")
 
             # ── Fase 2: CCC solo para productos de Amazon ─────────
             amazon_prods = [p for p in productos if p.tienda == "Amazon"]
