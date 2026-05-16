@@ -1604,11 +1604,18 @@ _GS_PRECIO_CACHE: dict[str, float | None] = {}
 # Solo activar GS check si precio_original > N× precio_actual
 _GS_RATIO_ACTIVAR = 1.8
 
+# Umbral: si PreviousPrice > mediana_mercado × este factor → precio inflado
+_GS_RATIO_INFLADO = 1.35
 
-def _google_shopping_precio_medio(titulo: str, precio_actual: float) -> float | None:
-    """Extrae el precio mediano de Google Shopping ES para el título dado.
 
-    Retorna la mediana de precios filtrados al rango esperado, o None si no hay datos.
+async def _scrape_gs_precio_medio(
+    titulo: str, precio_actual: float, context: BrowserContext
+) -> float | None:
+    """Extrae el precio mediano de Google Shopping ES usando Playwright (JS renderizado).
+
+    Abre una página temporal en el contexto stealth existente, espera que carguen
+    los resultados y extrae precios mediante regex sobre el DOM renderizado.
+    Retorna la mediana de precios en el rango esperado, o None si no hay datos.
     """
     clave = titulo[:80].lower()
     if clave in _GS_PRECIO_CACHE:
@@ -1616,41 +1623,35 @@ def _google_shopping_precio_medio(titulo: str, precio_actual: float) -> float | 
 
     query = urllib.parse.quote_plus(titulo[:70])
     url = f"https://www.google.es/search?q={query}&tbm=shop&hl=es&gl=es&num=20"
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
-        ),
-        "Accept-Language": "es-ES,es;q=0.9",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br",
-    }
 
+    page = await context.new_page()
     try:
-        r = requests.get(url, headers=headers, timeout=12)
-        if r.status_code != 200:
-            print(f"      [GS] HTTP {r.status_code} para: {titulo[:40]}")
-            _GS_PRECIO_CACHE[clave] = None
-            return None
-        html = r.text
+        await page.goto(url, timeout=20000, wait_until="domcontentloaded")
+        # Esperar a que los resultados de shopping se rendericen
+        try:
+            await page.wait_for_selector("div.sh-dgr__content, div[data-docid]", timeout=8000)
+        except Exception:
+            pass  # Si no aparece en 8s, extraemos lo que haya
+        html = await page.content()
     except Exception as e:
-        print(f"      [GS] Error de red: {e}")
+        print(f"      [GS] Error Playwright: {e}")
+        _GS_PRECIO_CACHE[clave] = None
+        return None
+    finally:
+        await page.close()
+
+    # Detectar bloqueo o CAPTCHA
+    if "g-recaptcha" in html or "/sorry/" in html or "unusual traffic" in html:
+        print("      [GS] ⚠️  Bloqueo/CAPTCHA detectado — skip")
         _GS_PRECIO_CACHE[clave] = None
         return None
 
-    # Detectar CAPTCHA o bloqueo (Google devuelve página sin resultados de producto)
-    if "g-recaptcha" in html or "/sorry/" in html:
-        print("      [GS] ⚠️  CAPTCHA detectado — skip")
-        _GS_PRECIO_CACHE[clave] = None
-        return None
-
-    # Extraer todos los precios en formato "16,99 €" o "16.99€" o "16 €"
+    # Extraer precios del DOM renderizado: "16,99 €" o "16.99 €"
     precios_raw = re.findall(r'(\d{1,4}(?:[.,]\d{1,2})?)\s*€', html)
-    valores: list[float] = []
-    # Rango esperado: desde precio_actual×0.7 hasta precio_actual×8
+    # Rango: precio_actual×0.7 → precio_actual×8
     rango_min = max(2.0, precio_actual * 0.7)
     rango_max = precio_actual * 8
+    valores: list[float] = []
     for p_str in precios_raw:
         try:
             v = float(p_str.replace(',', '.'))
@@ -1665,7 +1666,7 @@ def _google_shopping_precio_medio(titulo: str, precio_actual: float) -> float | 
         return None
 
     valores.sort()
-    # Percentiles 15–85 para eliminar outliers extremos
+    # Percentiles 15–85 para eliminar outliers
     n = len(valores)
     i_low  = max(0, int(n * 0.15))
     i_high = min(n - 1, int(n * 0.85))
@@ -1676,12 +1677,10 @@ def _google_shopping_precio_medio(titulo: str, precio_actual: float) -> float | 
     return mediana
 
 
-# Umbral: si PreviousPrice > mediana_mercado × este factor → precio inflado
-_GS_RATIO_INFLADO = 1.35
-
-
-async def verificar_con_google_shopping(productos: list[Producto]) -> list[Producto]:
-    """Verifica precio_original de productos PCBox contra Google Shopping.
+async def verificar_con_google_shopping(
+    productos: list[Producto], context: BrowserContext
+) -> list[Producto]:
+    """Verifica precio_original de productos PCBox contra Google Shopping (Playwright).
 
     Si PreviousPrice supera la mediana de mercado en >35%, corrige precio_original
     y recalcula el descuento. Si el descuento corregido < DESCUENTO_MINIMO → descarta.
@@ -1699,10 +1698,8 @@ async def verificar_con_google_shopping(productos: list[Producto]) -> list[Produ
             verificados.append(p)
             continue
 
-        precio_mercado = await asyncio.to_thread(
-            _google_shopping_precio_medio, p.titulo, p.precio_actual
-        )
-        await asyncio.sleep(3.5)  # Respetar rate limit de Google
+        precio_mercado = await _scrape_gs_precio_medio(p.titulo, p.precio_actual, context)
+        await asyncio.sleep(3.0)  # Pausa entre búsquedas para no disparar rate limits
 
         if precio_mercado is None or precio_mercado <= 0:
             print(f"   ⚠️  Sin datos GS: {p.titulo[:50]}")
@@ -2767,7 +2764,7 @@ async def run_pipeline(modo: str = "completo"):
             otros_sin_pcbox = [p for p in otros_prods if p.tienda != "PCBox"]
 
             if pcbox_prods and modo == "completo":
-                pcbox_verificados = await verificar_con_google_shopping(pcbox_prods)
+                pcbox_verificados = await verificar_con_google_shopping(pcbox_prods, browser)
             else:
                 pcbox_verificados = pcbox_prods  # Flash: saltar GS
 
