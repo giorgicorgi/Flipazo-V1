@@ -3920,6 +3920,8 @@
 
     const featured = deals.find(d => (d.deal_score || 0) >= 70 && d.imagen_url) || deals.find(d => d.imagen_url);
     const techDeals    = deals.filter(d => dealMatchesCategory(d, "tecnologia")).slice(0, 40);
+    const tvDeals      = deals.filter(d => /televisor|\btv\b|oled\b|qled\b|smart.?tv/i.test(d.titulo)).slice(0, 40);
+    const audioDeals   = deals.filter(d => /auricular|cascos|airpods|wh-?1000|bose\b|jabra|sennheiser|hyperx|altavoz|speaker|earbuds|soundbar/i.test(d.titulo)).slice(0, 40);
     const lcDeals      = deals.filter(d => (d.precio_actual || 0) > 0 && (d.precio_actual || 0) < 25).slice(0, 40);
     const modaDeals    = deals.filter(d => dealMatchesCategory(d, "moda")).slice(0, 40);
     const topDiscDeals = [...deals].sort((a,b) => (b.descuento_pct||0)-(a.descuento_pct||0)).slice(0, 40);
@@ -3947,15 +3949,17 @@
 
     mh.innerHTML =
       (featured ? renderWhero(featured) : "") +
-      _mhSection("Tecnología",        techDeals.map(renderHCard).join(""),       "mhomeCat('tecnologia')") +
+      _mhSection("Tecnología — Todo Tech", techDeals.map(renderHCard).join(""),      "mhomeCat('tecnologia')") +
       lowcostSection +
       catSection +
-      _mhSection("Moda",              modaDeals.map(renderHCard).join(""),       "mhomeCat('moda')") +
-      _mhSection("Mayores descuentos",topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro") +
-      _mhSection("Deportes",          depDeals.map(renderHCard).join(""),        "mhomeCat('deportes')") +
-      _mhSection("Para el hogar",     hogarDeals.map(renderHCard).join(""),      "mhomeCat('hogar')") +
-      _mhSection("Calzado",           calzadoDeals.map(renderHCard).join(""),    "mhomeCat('calzado')") +
-      storeSection;
+      _mhSection("Moda",                   modaDeals.map(renderHCard).join(""),      "mhomeCat('moda')") +
+      _mhSection("Mayores descuentos",     topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro") +
+      _mhSection("Deportes",               depDeals.map(renderHCard).join(""),       "mhomeCat('deportes')") +
+      _mhSection("Tecnología — TV",        tvDeals.map(renderHCard).join(""),        "mhomeCat('tecnologia')") +
+      _mhSection("Para el hogar",          hogarDeals.map(renderHCard).join(""),     "mhomeCat('hogar')") +
+      _mhSection("Calzado",                calzadoDeals.map(renderHCard).join(""),   "mhomeCat('calzado')") +
+      storeSection +
+      _mhSection("Tecnología — Audio",     audioDeals.map(renderHCard).join(""),     "mhomeCat('tecnologia')");
   }
 
   // ── Carga asíncrona ───────────────────────────────────────────
