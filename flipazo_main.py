@@ -217,6 +217,15 @@ PALABRAS_PROHIBIDAS = [
     "organizador de cables", "organizador de escritorio",
     # Consumibles de limpieza/jardín
     "manguera",
+    # Recambios de máquinas de café (ULKA solo hace bombas vibrantes para cafeteras)
+    "ulka",             # marca exclusiva de bombas de presión para cafeteras
+    "bomba vibrante",   # bomba de presión genérica (siempre recambio de cafetera)
+    "electroválvula",   # válvula solenoide (recambio de electrodoméstico)
+    # Componentes hidráulicos de frenos de bicicleta
+    "oliva+pin",        # kit de racores hidráulicos (ej. Shimano SM-BH59)
+    "oliva pin",        # variante sin signo +
+    "kit de sangrado",  # kit de purga de frenos hidráulicos
+    "kit sangrado",
 ]
 
 # Recambios y componentes de bicicleta — bloqueados solo para Mammoth Bikes
@@ -230,6 +239,9 @@ MAMMOTH_COMPONENTES = frozenset([
     "sillín", "manillar", "buje", "bujes",
     "cable de freno", "cable de cambio",
     "plato shimano", "plato sram",
+    "potencia",     # manillar stem (ej. Cannondale C1, Specialized S-Works)
+    "potencias",
+    "tija",         # tija de sillín (seatpost)
 ])
 
 # Regex para desviadores/cambios: "Cambio Shimano 105 Trasero" — las palabras no son adyacentes
