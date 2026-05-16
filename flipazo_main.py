@@ -208,6 +208,9 @@ PALABRAS_PROHIBIDAS = [
     # Consumibles de impresora — "cartucho" cubre todos los casos; "toner"/"tóner" ambas grafías
     "cartucho", "toner", "tóner", "kit de tinta",
     # Pilas sueltas (baterías como producto principal, no accesorios de otro artículo)
+    "pilas aa",      # AA y AAA — "pilas aa" es subcadena de "pilas aaa"
+    "pilas cr",      # pilas de litio tipo botón (CR2032, CR123, etc.)
+    "pilas lr",      # código IEC de pilas alcalinas (LR6=AA, LR03=AAA, etc.)
     "pack de pilas", "pilas alcalinas", "pilas recargables",
     # Periféricos de bajo valor
     "hub usb", "ladrón usb",
