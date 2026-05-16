@@ -2313,6 +2313,15 @@ class DeduplicacionDB:
             """)
             con.execute("CREATE INDEX IF NOT EXISTS idx_clicks_deal ON clicks(deal_id)")
             con.execute("CREATE INDEX IF NOT EXISTS idx_familia_key ON deals_publicados(tienda, familia_key, publicado_en)")
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS deals_borrados (
+                    deal_id    TEXT PRIMARY KEY,
+                    titulo     TEXT,
+                    tienda     TEXT,
+                    precio     REAL,
+                    borrado_en TEXT NOT NULL
+                )
+            """)
             # Backfill familia_key para registros existentes (migración única)
             sin_familia = con.execute(
                 "SELECT deal_id, titulo FROM deals_publicados WHERE familia_key IS NULL OR familia_key = ''"
@@ -2328,6 +2337,11 @@ class DeduplicacionDB:
         deal_id = _deal_hash(p)
         limite = (datetime.now(timezone.utc) - timedelta(hours=DEDUP_TTL_HORAS)).isoformat()
         with sqlite3.connect(self.db_path) as con:
+            # Borrado manual → nunca se republica
+            if con.execute(
+                "SELECT 1 FROM deals_borrados WHERE deal_id = ?", (deal_id,)
+            ).fetchone():
+                return True
             if con.execute(
                 "SELECT 1 FROM deals_publicados WHERE deal_id = ? AND publicado_en > ?",
                 (deal_id, limite),

@@ -565,6 +565,17 @@ def _ensure_schema():
         """)
         con.execute("CREATE INDEX IF NOT EXISTS idx_dc_deal ON deal_comments(deal_id, created_at)")
 
+        # Deals borrados manualmente — nunca se vuelven a publicar
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS deals_borrados (
+                deal_id    TEXT PRIMARY KEY,
+                titulo     TEXT,
+                tienda     TEXT,
+                precio     REAL,
+                borrado_en TEXT NOT NULL
+            )
+        """)
+
         con.commit()
 
 
@@ -1088,7 +1099,17 @@ def admin_bulk_delete_deals(body: BulkDeleteDealsBody, request: Request):
     if not body.deal_ids:
         return {"deleted": 0}
     placeholders = ",".join("?" * len(body.deal_ids))
+    now = datetime.utcnow().isoformat()
     with _get_db() as con:
+        rows = con.execute(
+            f"SELECT deal_id, titulo, tienda, precio FROM deals_publicados WHERE deal_id IN ({placeholders})",
+            body.deal_ids,
+        ).fetchall()
+        for row in rows:
+            con.execute(
+                "INSERT OR IGNORE INTO deals_borrados (deal_id, titulo, tienda, precio, borrado_en) VALUES (?,?,?,?,?)",
+                (*row, now),
+            )
         deleted = con.execute(
             f"DELETE FROM deals_publicados WHERE deal_id IN ({placeholders})",
             body.deal_ids,
@@ -1102,13 +1123,19 @@ def admin_delete_deal(deal_id: str, request: Request):
     """Elimina un deal permanentemente. Requiere JWT admin."""
     if not _require_admin(request):
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    now = datetime.utcnow().isoformat()
     with _get_db() as con:
-        deleted = con.execute(
-            "DELETE FROM deals_publicados WHERE deal_id = ?", (deal_id,)
-        ).rowcount
+        row = con.execute(
+            "SELECT deal_id, titulo, tienda, precio FROM deals_publicados WHERE deal_id = ?", (deal_id,)
+        ).fetchone()
+        if row is None:
+            return JSONResponse(status_code=404, content={"error": "Deal no encontrado"})
+        con.execute(
+            "INSERT OR IGNORE INTO deals_borrados (deal_id, titulo, tienda, precio, borrado_en) VALUES (?,?,?,?,?)",
+            (*row, now),
+        )
+        con.execute("DELETE FROM deals_publicados WHERE deal_id = ?", (deal_id,))
         con.commit()
-    if deleted == 0:
-        return JSONResponse(status_code=404, content={"error": "Deal no encontrado"})
     return {"deleted": True, "deal_id": deal_id}
 
 
