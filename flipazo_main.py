@@ -1591,6 +1591,151 @@ async def verificar_con_ccc(
     return verificados
 
 
+# ════════════════════════════════════════════════════════════════
+# FASE 2b — GOOGLE SHOPPING (verificación precio mercado PCBox)
+#
+#  PreviousPrice de Tradedoubler puede ser MSRP del fabricante,
+#  no el precio real de venta anterior. Google Shopping nos da
+#  el precio medio de mercado para validar o corregir la referencia.
+# ════════════════════════════════════════════════════════════════
+
+_GS_PRECIO_CACHE: dict[str, float | None] = {}
+
+# Solo activar GS check si precio_original > N× precio_actual
+_GS_RATIO_ACTIVAR = 1.8
+
+
+def _google_shopping_precio_medio(titulo: str, precio_actual: float) -> float | None:
+    """Extrae el precio mediano de Google Shopping ES para el título dado.
+
+    Retorna la mediana de precios filtrados al rango esperado, o None si no hay datos.
+    """
+    clave = titulo[:80].lower()
+    if clave in _GS_PRECIO_CACHE:
+        return _GS_PRECIO_CACHE[clave]
+
+    query = urllib.parse.quote_plus(titulo[:70])
+    url = f"https://www.google.es/search?q={query}&tbm=shop&hl=es&gl=es&num=20"
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "es-ES,es;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+    }
+
+    try:
+        r = requests.get(url, headers=headers, timeout=12)
+        if r.status_code != 200:
+            print(f"      [GS] HTTP {r.status_code} para: {titulo[:40]}")
+            _GS_PRECIO_CACHE[clave] = None
+            return None
+        html = r.text
+    except Exception as e:
+        print(f"      [GS] Error de red: {e}")
+        _GS_PRECIO_CACHE[clave] = None
+        return None
+
+    # Detectar CAPTCHA o bloqueo (Google devuelve página sin resultados de producto)
+    if "g-recaptcha" in html or "/sorry/" in html:
+        print("      [GS] ⚠️  CAPTCHA detectado — skip")
+        _GS_PRECIO_CACHE[clave] = None
+        return None
+
+    # Extraer todos los precios en formato "16,99 €" o "16.99€" o "16 €"
+    precios_raw = re.findall(r'(\d{1,4}(?:[.,]\d{1,2})?)\s*€', html)
+    valores: list[float] = []
+    # Rango esperado: desde precio_actual×0.7 hasta precio_actual×8
+    rango_min = max(2.0, precio_actual * 0.7)
+    rango_max = precio_actual * 8
+    for p_str in precios_raw:
+        try:
+            v = float(p_str.replace(',', '.'))
+            if rango_min <= v <= rango_max:
+                valores.append(v)
+        except Exception:
+            pass
+
+    if not valores:
+        print(f"      [GS] Sin precios en rango [{rango_min:.0f}–{rango_max:.0f}€]: {titulo[:40]}")
+        _GS_PRECIO_CACHE[clave] = None
+        return None
+
+    valores.sort()
+    # Percentiles 15–85 para eliminar outliers extremos
+    n = len(valores)
+    i_low  = max(0, int(n * 0.15))
+    i_high = min(n - 1, int(n * 0.85))
+    valores_trim = valores[i_low : i_high + 1]
+    mediana = valores_trim[len(valores_trim) // 2]
+
+    _GS_PRECIO_CACHE[clave] = mediana
+    return mediana
+
+
+# Umbral: si PreviousPrice > mediana_mercado × este factor → precio inflado
+_GS_RATIO_INFLADO = 1.35
+
+
+async def verificar_con_google_shopping(productos: list[Producto]) -> list[Producto]:
+    """Verifica precio_original de productos PCBox contra Google Shopping.
+
+    Si PreviousPrice supera la mediana de mercado en >35%, corrige precio_original
+    y recalcula el descuento. Si el descuento corregido < DESCUENTO_MINIMO → descarta.
+    Solo verifica productos con ratio precio_original/precio_actual > _GS_RATIO_ACTIVAR.
+    """
+    print(f"\n🛒 Google Shopping — verificando precios de mercado ({len(productos)} productos PCBox)...")
+    verificados: list[Producto] = []
+
+    for p in productos:
+        ratio_feed = p.precio_original / p.precio_actual if p.precio_actual > 0 else 0
+
+        # Solo verificar si el ratio feed es potencialmente sospechoso
+        if p.precio_original <= 0 or ratio_feed < _GS_RATIO_ACTIVAR:
+            print(f"   ⏩ Sin check (ratio {ratio_feed:.1f}x): {p.titulo[:50]}")
+            verificados.append(p)
+            continue
+
+        precio_mercado = await asyncio.to_thread(
+            _google_shopping_precio_medio, p.titulo, p.precio_actual
+        )
+        await asyncio.sleep(3.5)  # Respetar rate limit de Google
+
+        if precio_mercado is None or precio_mercado <= 0:
+            print(f"   ⚠️  Sin datos GS: {p.titulo[:50]}")
+            verificados.append(p)
+            continue
+
+        if p.precio_original > precio_mercado * _GS_RATIO_INFLADO:
+            descuento_real = round((1 - p.precio_actual / precio_mercado) * 100)
+            if descuento_real < DESCUENTO_MINIMO:
+                print(
+                    f"   ❌ Descuento falso — feed {p.precio_original}€ vs "
+                    f"mercado {precio_mercado:.2f}€ → desc. real {descuento_real}%: "
+                    f"{p.titulo[:38]}"
+                )
+                continue
+            print(
+                f"   ⚠️  Ref. corregida {p.precio_original}€→{precio_mercado:.2f}€ "
+                f"(desc. real {descuento_real}%): {p.titulo[:38]}"
+            )
+            p.precio_original = precio_mercado
+            p.descuento_pct   = max(0, descuento_real)
+        else:
+            print(
+                f"   ✅ {p.titulo[:40]:<40} | {p.precio_actual}€ "
+                f"(feed {p.precio_original}€ ≈ mercado {precio_mercado:.2f}€)"
+            )
+
+        verificados.append(p)
+
+    print(f"✅ {len(verificados)}/{len(productos)} productos PCBox verificados por GS")
+    return verificados
+
+
 async def _scrape_ccc(asin: str, context: BrowserContext) -> tuple[float, float]:
     """
     Extrae historial de precios de CamelCamelCamel.
@@ -2617,7 +2762,16 @@ async def run_pipeline(modo: str = "completo"):
             else:
                 amazon_verificados = amazon_prods  # Flash: saltar CCC para velocidad
 
-            productos = amazon_verificados + otros_prods
+            # ── Fase 2b: Google Shopping para PCBox ────────────────
+            pcbox_prods     = [p for p in otros_prods if p.tienda == "PCBox"]
+            otros_sin_pcbox = [p for p in otros_prods if p.tienda != "PCBox"]
+
+            if pcbox_prods and modo == "completo":
+                pcbox_verificados = await verificar_con_google_shopping(pcbox_prods)
+            else:
+                pcbox_verificados = pcbox_prods  # Flash: saltar GS
+
+            productos = amazon_verificados + pcbox_verificados + otros_sin_pcbox
             if not productos:
                 print("⚠️  Sin productos tras verificación de precios.")
                 return
