@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 import requests
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright, BrowserContext, Page
+from playwright_stealth import Stealth
 
 from affiliate.link_builder import build_affiliate_url
 from scrapers.pss_email import get_pss_productos
@@ -2523,39 +2524,34 @@ async def run_pipeline(modo: str = "completo"):
         # En local para debug: HEADLESS=false (ver el browser)
         headless = os.getenv("HEADLESS", "true").lower() != "false"
 
+        # UA de Chrome real — evita el "HeadlessChrome" que Cloudflare detecta inmediatamente
+        _STEALTH_UA = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        )
         browser = await pw.chromium.launch_persistent_context(
             user_data_dir=f"./sesion_flipazo_{modo}",
             headless=headless,
-            # channel="chrome" solo en local con Chrome instalado
-            # En servidor se usa el Chromium bundled de Playwright
             **({"channel": "chrome"} if not headless else {}),
+            user_agent=_STEALTH_UA,
             viewport={"width": 1440, "height": 900},
             locale="es-ES",
             timezone_id="Europe/Madrid",
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--disable-dev-shm-usage",
-                "--no-sandbox",              # Necesario en Linux sin root
+                "--no-sandbox",
                 "--no-first-run",
                 "--no-default-browser-check",
-                "--disable-gpu",             # Sin GPU en servidor
+                "--disable-gpu",
                 "--disable-http2",
+                "--window-size=1440,900",
             ],
         )
-        page = browser.pages[0] if browser.pages else await browser.new_page()
-
-        # Parche de fingerprint: aplicado al CONTEXTO para que todas las páginas nuevas lo hereden
-        await browser.add_init_script("""
-            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-            Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-            Object.defineProperty(navigator, 'languages', {get: () => ['es-ES', 'es', 'en']});
-            window.chrome = { runtime: {} };
-            const orig = window.navigator.permissions.query;
-            window.navigator.permissions.query = (p) =>
-                p.name === 'notifications'
-                ? Promise.resolve({state: Notification.permission})
-                : orig(p);
-        """)
+        # playwright-stealth parcha ~30 propiedades JS que delatan el headless
+        # (webdriver, plugins, chrome runtime, WebGL vendor, canvas fingerprint, etc.)
+        await Stealth().apply_stealth_async(browser)
 
         try:
             # ── Fase 1: Scraping ──────────────────────────────────
