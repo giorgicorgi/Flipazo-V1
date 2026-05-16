@@ -1079,6 +1079,14 @@ async def scrape_pccomponentes(context: BrowserContext) -> list[Producto]:
                         ))
                     except Exception:
                         continue
+
+                # Delay anti-rate-limit entre URLs: Cloudflare bloquea ráfagas cortas
+                # aunque cf_clearance sea válido. 40-70s imita tiempo de lectura humana.
+                if url != PCCOMPONENTES_URLS[-1]:
+                    espera = random.uniform(40, 70)
+                    print(f"   ⏳ [PcComponentes] Espera anti-rate-limit {espera:.0f}s...")
+                    await asyncio.sleep(espera)
+
             except Exception as e:
                 print(f"   ⚠️ Error en {url}: {e}")
                 continue
