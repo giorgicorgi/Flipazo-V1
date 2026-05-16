@@ -25,6 +25,7 @@ _MOCKS = [
     "dotenv",
     "playwright",
     "playwright.async_api",
+    "playwright_stealth",
     "affiliate",
     "affiliate.link_builder",
     "scrapers",
@@ -262,8 +263,9 @@ class TestPrecioAceptable(unittest.TestCase):
     def test_precio_maximo_aceptado(self):
         self.assertTrue(_precio_aceptable(PRECIO_MAXIMO, 40))
 
-    def test_precio_sobre_maximo_rechazado(self):
-        self.assertFalse(_precio_aceptable(PRECIO_MAXIMO + 1, 50))
+    def test_precio_alto_sin_limite_superior(self):
+        """PRECIO_MAXIMO = 9999 — no hay tope; precio de 10000€ con buen descuento pasa."""
+        self.assertTrue(_precio_aceptable(10000, 50))
 
     def test_precio_bajo_minimo_standard_low_cost_ok(self):
         """Productos low-cost (8-24.99€) aceptados con ≥ DESCUENTO_LC_MINIMO."""
