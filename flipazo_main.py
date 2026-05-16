@@ -217,6 +217,10 @@ PALABRAS_PROHIBIDAS = [
     "organizador de cables", "organizador de escritorio",
     # Consumibles de limpieza/jardín
     "manguera",
+    # Suscripciones y productos digitales (sin valor de reventa)
+    "código de descarga",   # licencias/juegos digitales sin soporte físico
+    "antivirus",            # siempre suscripción de software (McAfee, Norton, etc.)
+    "suscripción",          # productos puramente de suscripción (software, servicios)
     # Recambios de máquinas de café (ULKA solo hace bombas vibrantes para cafeteras)
     "ulka",             # marca exclusiva de bombas de presión para cafeteras
     "bomba vibrante",   # bomba de presión genérica (siempre recambio de cafetera)
