@@ -1462,7 +1462,13 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             fetch_tradedoubler_productos, DESCUENTO_MINIMO, PRECIO_MINIMO_LC, PRECIO_MAXIMO
         )
         for d in td_raw:
-            if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
+            # Feeds TD usan PreviousPrice del fabricante (MSRP), no wasPrice real del retailer.
+            # Si precio_original > 2.5× precio_actual el descuento es ficticio (ej. 186€ MSRP → 68€ real).
+            _p_act = d.get("precio_actual", 0)
+            _p_ori = d.get("precio_original", 0)
+            if _p_act > 0 and _p_ori > _p_act * 2.5:
+                continue
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=_p_act):
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
                 continue
