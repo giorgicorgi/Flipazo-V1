@@ -638,11 +638,14 @@
       display: none;
       align-items: center;
       gap: 6px;
-      padding: 8px 40px 8px 128px;
+      padding: 8px 40px;
       border-bottom: 1px solid var(--border-faint);
       overflow-x: auto;
       scrollbar-width: none;
-      background: var(--surface-hover);
+      background: var(--bg);
+      position: sticky;
+      top: 64px;
+      z-index: 90;
     }
     .subcat-bar::-webkit-scrollbar { display: none; }
 
@@ -651,7 +654,7 @@
       font-size: 11px;
       font-weight: 700;
       white-space: nowrap;
-      padding: 4px 12px;
+      padding: 5px 14px;
       border-radius: 9999px;
       border: 1.5px solid var(--border-soft);
       background: var(--paper);
@@ -3361,6 +3364,7 @@
       `<button class="subcat-pill${sc.id === activeTechSubcat ? " subcat-pill--active" : ""}" data-subcat="${sc.id}">${sc.label}</button>`
     ).join("");
     bar.style.display = "flex";
+    _positionSubcatBar();
     bar.querySelectorAll(".subcat-pill").forEach(btn => {
       btn.addEventListener("click", () => {
         if (activeTechSubcat === btn.dataset.subcat) return;
@@ -4076,8 +4080,18 @@
     if (!inner || !fab) return;
     fab.style.top = (inner.offsetHeight + 6) + 'px';
   }
+
+  function _positionSubcatBar() {
+    const header = document.querySelector('.site-header');
+    const bar    = document.getElementById('js-subcat-bar');
+    if (!header || !bar) return;
+    bar.style.top = header.offsetHeight + 'px';
+  }
+
   window.addEventListener('load',   _positionFab);
   window.addEventListener('resize', _positionFab);
+  window.addEventListener('load',   _positionSubcatBar);
+  window.addEventListener('resize', _positionSubcatBar);
 
   function toggleFilterPanel() {
     const panel    = document.getElementById("js-filter-panel");
