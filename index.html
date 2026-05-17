@@ -633,34 +633,6 @@
     .store-pill:hover { border-color: var(--navy); color: var(--navy); }
     .store-pill--active { background: var(--navy); color: #fff; border-color: var(--navy); }
 
-    /* ── Tech subcat bar ─────────────────────────────────────────── */
-    .subcat-bar {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 40px 8px 128px;
-      border-bottom: 1px solid var(--border-faint);
-      overflow-x: auto;
-      scrollbar-width: none;
-      background: var(--surface-hover);
-    }
-    .subcat-bar::-webkit-scrollbar { display: none; }
-
-    .subcat-pill {
-      font-family: var(--sans);
-      font-size: 11px;
-      font-weight: 700;
-      white-space: nowrap;
-      padding: 4px 12px;
-      border-radius: 9999px;
-      border: 1.5px solid var(--border-soft);
-      background: var(--paper);
-      color: var(--text-mid);
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
-    }
-    .subcat-pill:hover { border-color: var(--navy); color: var(--navy); }
-    .subcat-pill--active { background: var(--navy); color: #fff; border-color: var(--navy); }
 
     /* ── Hero section ────────────────────────────────────────────── */
     .hero {
@@ -1600,7 +1572,6 @@
       .sort-tabs { padding: 0 18px; }
       .search-bar { padding: 10px 18px; }
       .filter-row { padding: 8px 18px; }
-      .subcat-bar { padding: 8px 18px; }
       .section-header { padding: 12px 18px; }
       .deals-grid { padding: 16px 18px; }
       .about { grid-template-columns: 1fr; padding: 36px 18px; gap: 28px; }
@@ -2150,9 +2121,6 @@
   </div>
   </header>
 
-  <!-- ── TECH SUBCAT BAR ────────────────────────────────────────── -->
-  <nav class="subcat-bar" id="js-subcat-bar" aria-label="Subcategorías de tecnología"></nav>
-
   <!-- ── SEARCH ACTIVE BANNER ──────────────────────────────────── -->
   <div class="search-active-banner" id="js-search-banner" style="display:none">
     <span id="js-search-banner-text"></span>
@@ -2465,18 +2433,6 @@
     return scored.sort((a, b) => b.score - a.score).map(x => x.d);
   }
 
-  // ── Tech sub-categories ──────────────────────────────────────
-  const TECH_SUBCATS = [
-    { id: "todas",      label: "Todo Tech" },
-    { id: "audio",      label: "Audio",        test: d => /auricular|cascos|airpods|wh-?1000|bose\b|jabra|sennheiser|hyperx|altavoz|speaker|earbuds/i.test(d.titulo) },
-    { id: "gaming",     label: "Videojuegos",  test: d => /gaming|ps5|playstation|xbox|nintendo|switch\b|mando\b|consola\b|steam\b|razer|corsair|steelseries/i.test(d.titulo) },
-    { id: "moviles",    label: "Móviles",      test: d => /smartphone|m[oó]vil|iphone|galaxy\b|redmi|xiaomi|oneplus|oppo\b/i.test(d.titulo) },
-    { id: "portatiles", label: "Portátiles",   test: d => /port[aá]til|laptop|macbook|chromebook|pc gaming/i.test(d.titulo) },
-    { id: "tv",         label: "TV",           test: d => /televisor|\btv\b|oled\b|qled\b|smart.?tv/i.test(d.titulo) },
-    { id: "foto",       label: "Foto/Vídeo",   test: d => /c[aá]mara\s+(?:r[eé]flex|mirrorless|deportiva|compacta|de\s+acci[oó]n|instant[aá]nea|fotos?|digital)|\bcanon\b|\bnikon\b|\bfujifilm\b|sony.*c[aá]mara|c[aá]mara.*sony|\bpanasonic.*lumix|gopro|dron\b|drone\b|objetivo\b|teleobjetivo\b|tr[ií]pode\b/i.test(d.titulo) && !/smartphone|m[oó]vil|iphone|galaxy\b|redmi|xiaomi|oneplus|oppo\b/i.test(d.titulo) },
-    { id: "gadgets",    label: "Gadgets",      test: d => !/smartphone|m[oó]vil|iphone|galaxy\b|redmi|xiaomi|oneplus|oppo\b/i.test(d.titulo) && !/port[aá]til|laptop|macbook|chromebook|pc gaming/i.test(d.titulo) && !/televisor|\btv\b|oled\b|qled\b|smart.?tv/i.test(d.titulo) && !/c[aá]mara.*(?:r[eé]flex|mirrorless|digital)|\bcanon\b|\bnikon\b|\bfujifilm\b|gopro/i.test(d.titulo) },
-  ];
-  let activeTechSubcat = "todas";
 
   // ── Categories ───────────────────────────────────────────────
   const _RX = {
@@ -2507,10 +2463,6 @@
     const cat = CATEGORIAS.find(c => c.id === catId);
     const inCat = (deal.categoria === catId) || (cat ? cat.test(deal) : false);
     if (!inCat) return false;
-    if (catId === "tecnologia" && activeTechSubcat !== "todas") {
-      const sc = TECH_SUBCATS.find(s => s.id === activeTechSubcat);
-      return sc ? sc.test(deal) : true;
-    }
     return true;
   }
 
@@ -2606,7 +2558,6 @@
       b.classList.toggle('sort-tab--active', b.dataset.sort === 'recientes'));
 
     activeCategory   = "todas";
-    activeTechSubcat = "todas";
     document.querySelectorAll('.cat-pill').forEach(b =>
       b.classList.toggle('cat-pill--active', b.dataset.cat === 'todas'));
 
@@ -3350,28 +3301,6 @@
     } catch (e) { console.error("Poll error:", e); }
   }
 
-  // ── Subcat bar ────────────────────────────────────────────────
-  function buildSubcatBar() {
-    const bar = document.getElementById("js-subcat-bar");
-    if (!bar) return;
-    if (activeCategory !== "tecnologia") {
-      bar.style.display = "none"; activeTechSubcat = "todas"; return;
-    }
-    bar.innerHTML = TECH_SUBCATS.map(sc =>
-      `<button class="subcat-pill${sc.id === activeTechSubcat ? " subcat-pill--active" : ""}" data-subcat="${sc.id}">${sc.label}</button>`
-    ).join("");
-    bar.style.display = "flex";
-    bar.querySelectorAll(".subcat-pill").forEach(btn => {
-      btn.addEventListener("click", () => {
-        if (activeTechSubcat === btn.dataset.subcat) return;
-        activeTechSubcat = btn.dataset.subcat;
-        bar.querySelectorAll(".subcat-pill").forEach(b => b.classList.remove("subcat-pill--active"));
-        btn.classList.add("subcat-pill--active");
-        renderGrid();
-      });
-    });
-  }
-
   // ── Category bar ──────────────────────────────────────────────
   function buildCatBar() {
     const bar = document.getElementById("js-cat-bar");
@@ -3382,10 +3311,8 @@
       btn.addEventListener("click", () => {
         if (activeCategory === btn.dataset.cat) return;
         activeCategory   = btn.dataset.cat;
-        activeTechSubcat = "todas";
         bar.querySelectorAll(".cat-pill").forEach(b => b.classList.remove("cat-pill--active"));
         btn.classList.add("cat-pill--active");
-        buildSubcatBar();
         const titleEl = document.getElementById("js-section-title");
         titleEl.textContent = activeCategory === "todas"
           ? "Clasificados"
@@ -4011,7 +3938,6 @@
     if (btn) {
       activeCategory = catId;
       bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === catId));
-      buildSubcatBar();
       const titleEl = document.getElementById("js-section-title");
       if (titleEl) titleEl.textContent = CATEGORIAS.find(c => c.id === catId)?.label || catId;
       allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
@@ -4110,9 +4036,8 @@
     // Sync con la cat-bar real para que el estado sea consistente
     const bar = document.getElementById("js-cat-bar");
     if (bar) {
-      activeCategory = catId; activeTechSubcat = "todas";
+      activeCategory = catId;
       bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === catId));
-      buildSubcatBar();
     }
     const titleEl = document.getElementById("js-section-title");
     if (titleEl) titleEl.textContent = catId === "todas" ? "Clasificados" : (CATEGORIAS.find(c => c.id === catId)?.label || "Clasificados");
@@ -4158,7 +4083,6 @@
   // ── Init ──────────────────────────────────────────────────────
   fetchTotalCount();
   buildCatBar();
-  buildSubcatBar();
   buildSortTabs();
   initZoom();
   if (_isMobileViewport()) { loadMobileHome(); } else { loadMore(); }
