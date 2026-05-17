@@ -907,6 +907,32 @@ def _precio_valido_para_categoria(titulo: str, precio: float) -> bool:
     return True
 
 
+def _registrar_observacion_precio(d: dict) -> None:
+    """Guarda una observación de precio pre-filtro en price_history (una por día y producto).
+
+    Al registrar ANTES de aplicar filtros, acumulamos el precio real de mercado del
+    retailer independientemente de si el deal se publica. Tras varias semanas podemos
+    comparar precio_original del feed contra el precio_actual histórico para detectar
+    referencias MSRP infladas.
+    """
+    try:
+        precio_act = d.get("precio_actual", 0)
+        if not precio_act:
+            return
+        fecha_hoy = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        asin_key  = d.get("asin") or (d.get("titulo", "")[:40].lower())
+        tienda    = d.get("tienda", "")
+        with sqlite3.connect(DB_PATH) as con:
+            con.execute(
+                """INSERT OR IGNORE INTO price_history
+                       (asin, tienda, precio, precio_original, fecha)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (asin_key, tienda, precio_act, d.get("precio_original", 0), fecha_hoy),
+            )
+    except Exception:
+        pass
+
+
 def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", precio: float = 0.0) -> bool:
     titulo = (titulo or "").strip()
     # Filtro de longitud: títulos demasiado cortos suelen ser sólo marca o imagen rota
@@ -1443,6 +1469,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     try:
         pss_raw = await asyncio.to_thread(get_pss_productos)
         for d in pss_raw:
+            _registrar_observacion_precio(d)
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
@@ -1462,6 +1489,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             fetch_tradedoubler_productos, DESCUENTO_MINIMO, PRECIO_MINIMO_LC, PRECIO_MAXIMO
         )
         for d in td_raw:
+            _registrar_observacion_precio(d)
             # Feeds TD usan PreviousPrice del fabricante (MSRP), no wasPrice real del retailer.
             # Si precio_original > 2.5× precio_actual el descuento es ficticio (ej. 186€ MSRP → 68€ real).
             _p_act = d.get("precio_actual", 0)
@@ -1485,6 +1513,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     try:
         dec_raw = await asyncio.to_thread(fetch_decathlon_productos)
         for d in dec_raw:
+            _registrar_observacion_precio(d)
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
