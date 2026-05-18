@@ -250,6 +250,8 @@ MAMMOTH_COMPONENTES = frozenset([
     "potencia",     # manillar stem (ej. Cannondale C1, Specialized S-Works)
     "potencias",
     "tija",         # tija de sillín (seatpost)
+    "hub rep kit",  # kit de reparación de buje (ej. Scott Hub Rep Kit)
+    "hub repair kit",
 ])
 
 # Regex para desviadores/cambios: "Cambio Shimano 105 Trasero" — las palabras no son adyacentes
@@ -690,17 +692,32 @@ async def _extraer_precios_busqueda(card) -> tuple[float, float]:
             txt = await precios_loc.first.inner_text()
             precio_actual = float(re.sub(r'[^\d,]', '', txt).replace(',', '.'))
 
-        # Precio original: tachado
-        original_loc = card.locator('span.a-price.a-text-strike span.a-offscreen, span.a-text-price span.a-offscreen')
+        # Precio original: solo span.a-price.a-text-strike (precio EU-regulado 30 días).
+        # span.a-text-price es el List Price/MSRP del fabricante y puede estar muy inflado.
+        original_loc = card.locator('span.a-price.a-text-strike span.a-offscreen')
         if await original_loc.count() > 0:
             txt = await original_loc.first.inner_text()
             precio_original = float(re.sub(r'[^\d,]', '', txt).replace(',', '.'))
 
-        # Sanity check: Amazon a veces pone precio por kg/litro/unidad en span.a-text-price.
-        # Si precio_original es >10x el precio actual, es casi seguro un precio por unidad de medida
-        # y no un precio de referencia real. Lo descartamos para que el badge % sea la fuente de verdad.
+        # Sanity check 1: ratio extremo (precio por kg/litro, ej. precio_original=500€ para espresso 10€)
         if precio_actual > 0 and precio_original > precio_actual * 10:
             precio_original = 0.0
+
+        # Sanity check 2: verificar que precio_original no coincide con un precio-por-unidad
+        # en el texto de la card (ej. "52,33€/100 ml" para una loción de 30 ml a 15€).
+        if precio_original > 0:
+            try:
+                card_text = await card.inner_text()
+                _upm = re.compile(
+                    r'(\d+[.,]\d+)\s*€\s*/\s*\d+\s*(?:ml|cl|l\b|g\b|kg\b)',
+                    re.IGNORECASE,
+                )
+                for m in _upm.finditer(card_text):
+                    if abs(float(m.group(1).replace(',', '.')) - precio_original) < 0.02:
+                        precio_original = 0.0
+                        break
+            except Exception:
+                pass
 
     except Exception:
         pass
@@ -804,16 +821,27 @@ async def _extraer_de_deals(page: Page, vistos: set) -> list[Producto]:
             if descuento > 90:
                 continue
 
-            precios = re.findall(r'(\d+[.,]\d{2})\s*€', texto)
+            # Eliminar precios por unidad de medida (ej. "52,33€/100 ml", "3,20€/100 g")
+            # antes de extraer precios — Amazon los muestra junto al precio real en el card text
+            # y el regex los recogería como precio_original generando descuentos falsos.
+            _UPM_RE = re.compile(
+                r'\d+[.,]\d+\s*€\s*/\s*\d+\s*(?:ml|cl|l\b|g\b|kg\b)',
+                re.IGNORECASE,
+            )
+            texto_p = _UPM_RE.sub('', texto)
+            precios = re.findall(r'(\d+[.,]\d{2})\s*€', texto_p)
             if not precios:
                 continue
             precio_actual = float(precios[0].replace(',', '.'))
             if not _precio_aceptable(precio_actual, descuento):
                 continue
-            precio_original = (
-                float(precios[1].replace(',', '.')) if len(precios) > 1
-                else round(precio_actual / (1 - descuento / 100), 2)
-            )
+            precio_badge = round(precio_actual / (1 - descuento / 100), 2)
+            if len(precios) > 1:
+                precio_ext = float(precios[1].replace(',', '.'))
+                # Si el segundo precio excede 1.5× el badge → es MSRP, no was-price real
+                precio_original = precio_ext if precio_ext <= precio_badge * 1.5 else precio_badge
+            else:
+                precio_original = precio_badge
 
             # Título desde primer texto largo del elemento
             titulo = next(
