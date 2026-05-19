@@ -3419,9 +3419,10 @@
         const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Oportunidades de Reventa", low_cost: "Low Cost · Menos de 25€" };
         document.getElementById("js-section-title").textContent = titles[activeSort] || "Clasificados";
 
-        const dealsToUse = allDeals.length ? allDeals : _mhomeDeals;
-        if (dealsToUse.length > 0) {
-          if (!allDeals.length) { allDeals = dealsToUse; currentOffset = dealsToUse.length; hasMore = false; }
+        // Si allDeals está vacío (ej: venimos del mobile home) hacemos fetch fresco
+        // para no filtrar sobre los ~20 deals del home de descubrimiento (_mhomeDeals),
+        // lo que causaba resultados distintos entre móvil y escritorio.
+        if (allDeals.length > 0) {
           renderGrid();
         } else {
           allDeals = []; currentOffset = 0; hasMore = true;

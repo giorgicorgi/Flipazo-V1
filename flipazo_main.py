@@ -252,6 +252,8 @@ MAMMOTH_COMPONENTES = frozenset([
     "tija",         # tija de sillín (seatpost)
     "hub rep kit",  # kit de reparación de buje (ej. Scott Hub Rep Kit)
     "hub repair kit",
+    "chainring",    # plato de cadena en inglés (ej. Cannondale SpideRing Chainring)
+    "spidering",    # sistema de plato Cannondale SpideRing
 ])
 
 # Regex para desviadores/cambios: "Cambio Shimano 105 Trasero" — las palabras no son adyacentes
