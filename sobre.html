@@ -291,6 +291,32 @@
     }
     .contact-email:hover { text-decoration: underline; }
 
+    /* ── Canales / audiencia ── */
+    .channels-section { margin: 48px 0; padding-top: 40px; border-top: 1.5px solid #e0e0e0; }
+    .channels-section__label { font-family: var(--sans); font-size: 10px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 20px; }
+    .channels-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .channel-card { border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+    .channel-card__name { font-family: var(--sans); font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
+    .channel-card__desc { font-family: var(--sans); font-size: 13px; color: var(--ink-light); line-height: 1.5; }
+    .channel-card__link { font-family: var(--sans); font-size: 12px; font-weight: 700; color: var(--brand); margin-top: 4px; }
+    .channel-card__link:hover { text-decoration: underline; }
+    [data-theme="dark"] .channel-card { border-color: #374151; }
+
+    /* ── Promo methods ── */
+    .promo-section { margin: 0 0 48px; padding: 20px 24px; background: #f0f8ff; border: 1.5px solid #bfdbfe; border-left: 4px solid #3b82f6; border-radius: 4px; }
+    [data-theme="dark"] .promo-section { background: #0f172a; border-color: #1e3a5f; }
+    .promo-section__label { font-family: var(--sans); font-size: 10px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: #1d4ed8; margin-bottom: 10px; }
+    [data-theme="dark"] .promo-section__label { color: #93c5fd; }
+    .promo-section p { font-family: var(--sans); font-size: 13px; line-height: 1.75; color: #1e3a5f; }
+    [data-theme="dark"] .promo-section p { color: #bfdbfe; }
+
+    /* ── Social links ── */
+    .social-links { display: flex; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
+    .social-link { display: inline-flex; align-items: center; gap: 7px; font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--brand); border: 1.5px solid var(--border); border-radius: 6px; padding: 8px 14px; transition: border-color 0.15s, background 0.15s; }
+    .social-link:hover { border-color: var(--brand); background: #fef2f2; text-decoration: none; }
+    [data-theme="dark"] .social-link:hover { background: #1f0f0f; }
+    .social-link svg { flex-shrink: 0; }
+
     /* ── Footer ── */
     .footer {
       border-top: 1.5px solid var(--border);
@@ -412,17 +438,68 @@
       </div>
     </div>
 
+    <!-- Canales y audiencia -->
+    <div class="channels-section">
+      <p class="channels-section__label">Canales y audiencia</p>
+      <div class="channels-grid">
+        <div class="channel-card">
+          <p class="channel-card__name">Web — flipazo.es</p>
+          <p class="channel-card__desc">Actualizada automáticamente cada hora con las mejores ofertas. Scroll infinito, categorías, filtros.</p>
+          <a href="https://www.flipazo.es" class="channel-card__link" target="_blank" rel="noopener">flipazo.es →</a>
+        </div>
+        <div class="channel-card">
+          <p class="channel-card__name">Telegram</p>
+          <p class="channel-card__desc">Canal público con deals en tiempo real. Audiencia española. Notificaciones instantáneas.</p>
+          <a href="https://t.me/flipazo" class="channel-card__link" target="_blank" rel="noopener">t.me/flipazo →</a>
+        </div>
+        <div class="channel-card">
+          <p class="channel-card__name">Instagram</p>
+          <p class="channel-card__desc">Chollos visuales, novedades y contenido de ahorro para el público español.</p>
+          <a href="https://instagram.com/flipazo.es" class="channel-card__link" target="_blank" rel="noopener">@flipazo.es →</a>
+        </div>
+        <div class="channel-card">
+          <p class="channel-card__name">Blog editorial</p>
+          <p class="channel-card__desc">Artículos sobre ahorro, descuentos reales y cómo distinguir una oferta de una trampa.</p>
+          <a href="/blog" class="channel-card__link">flipazo.es/blog →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Métodos de promoción -->
+    <div class="promo-section">
+      <p class="promo-section__label">Cómo promocionamos las tiendas</p>
+      <p>Flipazo opera como sitio editorial de comparación de precios (deal site). Detectamos automáticamente descuentos reales ≥40% sobre el historial de precios verificado, y los publicamos en nuestra web y canal de Telegram. El tráfico es orgánico (SEO sobre términos de búsqueda de chollos en España) y directo desde el canal de Telegram. Cada enlace publicado es un deep link de afiliado a la tienda correspondiente. No hacemos email marketing masivo ni publicidad de pago. La audiencia llega porque la selección es estricta y la confianza, alta.</p>
+    </div>
+
     <!-- Afiliados -->
     <div class="affiliate-box">
       <p class="affiliate-box__label">Transparencia sobre afiliados</p>
-      <p>Usamos enlaces de afiliado. Si haces clic en un enlace y realizas una compra, podemos recibir una pequeña comisión sin coste adicional para ti. Así se financia este servicio y lo mantenemos gratuito. <strong>Nunca cobramos a ninguna marca para publicar sus productos.</strong> La selección es editorial, no publicitaria. Participamos en Amazon Associates (tag: flipazo-21), Awin y Tradedoubler.</p>
+      <p>Usamos enlaces de afiliado. Si haces clic en un enlace y realizas una compra, podemos recibir una pequeña comisión sin coste adicional para ti. Así se financia este servicio y lo mantenemos gratuito. <strong>Nunca cobramos a ninguna marca para publicar sus productos.</strong> La selección es editorial, no publicitaria.</p>
+      <p style="margin-top:10px"><strong>Programas activos:</strong> Amazon Associates (tag: flipazo-21) · Tradedoubler (Publisher ID 3481714 — MediaMarkt, PCBox, Esdemarca y otras). <strong>Solicitados:</strong> Awin (MIDs en proceso de aprobación para PcComponentes, El Corte Inglés y Private Sport Shop).</p>
     </div>
 
     <!-- Contacto -->
     <div class="contact-section">
       <p class="contact-section__label">Contacto</p>
       <p>¿Tienes alguna pregunta, has detectado un error en un deal o quieres reportar un precio incorrecto? Escríbenos y respondemos en un plazo máximo de 40 horas laborables.</p>
-      <a href="mailto:flipazo.newsletter@gmail.com" class="contact-email">flipazo.newsletter@gmail.com</a>
+      <a href="mailto:hola@flipazo.es" class="contact-email">hola@flipazo.es</a>
+      <div class="social-links" style="margin-top:20px">
+        <!-- Telegram -->
+        <a href="https://t.me/flipazo" class="social-link" target="_blank" rel="noopener" aria-label="Canal Telegram de Flipazo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.16 13.947l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.988.612z"/></svg>
+          Telegram
+        </a>
+        <!-- Instagram -->
+        <a href="https://instagram.com/flipazo.es" class="social-link" target="_blank" rel="noopener" aria-label="Instagram de Flipazo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+          Instagram
+        </a>
+        <!-- X / Twitter -->
+        <a href="https://x.com/flipazoES" class="social-link" target="_blank" rel="noopener" aria-label="X (Twitter) de Flipazo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.763l7.737-8.835L2.25 2.25h6.63l4.26 5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          X / Twitter
+        </a>
+      </div>
     </div>
 
   </div>
@@ -435,7 +512,10 @@
       <a href="/privacidad">Privacidad</a>
       <a href="/cookies">Cookies</a>
       <a href="/aviso-legal">Aviso Legal</a>
-      <a href="mailto:flipazo.newsletter@gmail.com">Contacto</a>
+      <a href="mailto:hola@flipazo.es">Contacto</a>
+      <a href="https://t.me/flipazo" target="_blank" rel="noopener">Telegram</a>
+      <a href="https://instagram.com/flipazo.es" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://x.com/flipazoES" target="_blank" rel="noopener">X</a>
     </nav>
     <span class="footer__copy">© 2026 Flipazo · Barcelona, España</span>
   </footer>
