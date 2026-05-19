@@ -4,19 +4,19 @@
   <!-- ── Páginas principales ── -->
   <url>
     <loc>https://www.flipazo.es/</loc>
-    <lastmod>2026-05-12</lastmod>
+    <lastmod>2026-05-19</lastmod>
     <changefreq>hourly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.flipazo.es/sobre</loc>
-    <lastmod>2026-05-12</lastmod>
+    <lastmod>2026-05-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.flipazo.es/blog</loc>
-    <lastmod>2026-05-12</lastmod>
+    <lastmod>2026-05-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -26,19 +26,13 @@
        Google penaliza las páginas "thin content" (solo resumen).
   ─────────────────────────────────────────────────────────────── -->
 
-  <!-- ── Páginas legales (noindex en HTML) ── -->
+  <!-- Páginas legales excluidas del sitemap:
+       - privacidad y cookies tienen <meta name="robots" content="noindex"> →
+         incluirlas en el sitemap contradice la señal noindex.
+       - aviso-legal.html (con .html) genera un 301 por cleanUrls de Vercel →
+         usa la URL canónica /aviso-legal si quieres incluirla. -->
   <url>
-    <loc>https://www.flipazo.es/privacidad.html</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  <url>
-    <loc>https://www.flipazo.es/cookies.html</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  <url>
-    <loc>https://www.flipazo.es/aviso-legal.html</loc>
+    <loc>https://www.flipazo.es/aviso-legal</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
