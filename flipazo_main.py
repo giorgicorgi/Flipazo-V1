@@ -62,7 +62,7 @@ DEBUG_SCREENSHOTS       = os.getenv("DEBUG_SCREENSHOTS", "false").lower() == "tr
 
 # ── Deduplicación ────────────────────────────────────────────────
 DB_PATH         = "flipazo_deals.db"
-DEDUP_TTL_HORAS = 96   # No republica el mismo deal hasta pasadas 96h (4 días)
+DEDUP_TTL_HORAS = 168  # No republica el mismo deal hasta pasadas 168h (7 días)
 
 # ── Scheduling ───────────────────────────────────────────────────
 # Loop rápido: Amazon flash deals cada 60 min
