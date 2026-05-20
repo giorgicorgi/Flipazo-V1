@@ -2122,6 +2122,21 @@
     .mhlike--liked { background: rgba(255,30,80,.18); }
     .mhlike--liked svg { fill: #FF2255; stroke: #FF2255; }
     .mhlike:not(.mhlike--liked) svg { fill: none; stroke: #fff; stroke-width: 2; }
+
+    /* ── FLAG button en tarjetas del home ────────────────────────── */
+    .mhflag {
+      position: absolute; bottom: 0; right: 0;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: rgba(0,0,0,.30); backdrop-filter: blur(4px);
+      border: none; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 4; flex-shrink: 0;
+      transition: transform 150ms, background 150ms;
+    }
+    .mhflag:active { transform: scale(0.80); }
+    .mhflag svg { width: 11px; height: 11px; flex-shrink: 0; }
+    .mhflag svg { fill: none; stroke: rgba(255,255,255,.75); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .mhflag--flagged { background: rgba(245,40,52,.25); }
+    .mhflag--flagged svg { stroke: #FF2255; }
   </style>
 </head>
 
@@ -2840,23 +2855,11 @@
     const socialHtml   = (social && !isExpired) ? `<p class="deal__social">${social}</p>` : "";
 
     const dealId    = d.id || "";
-    const uVotes    = getUserVotes();
-    const uVote     = uVotes[dealId] || null;
-    const votesUp   = d.votes_up      || 0;
     const flagCount = d.flags_expirado || 0;
     const isFlagged = !!(_getFlagged()[dealId]);
 
     const votesHtml = `
       <div class="deal__votes" id="votes-${dealId}">
-        <button class="vote-btn vote-btn--up${uVote === "up" ? " voted" : ""}"
-                onclick="vote('${dealId}', 'up', this)"
-                aria-label="Me flipó" title="Me flipó">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="18 15 12 9 6 15"/>
-          </svg>
-          <span class="vote-count">${votesUp}</span>
-          <span style="font-size:8px;letter-spacing:.12em">Flipazo</span>
-        </button>
         <button class="vote-btn vote-btn--flag${isExpired || isFlagged ? " voted" : ""}"
                 onclick="flagExpired('${dealId}', this)"
                 aria-label="Reportar oferta expirada" title="¿Ya no disponible?">
@@ -3925,6 +3928,32 @@
     return t.length > max ? t.slice(0, max) + "…" : t;
   }
 
+  // Llama al endpoint de voto cuando el corazón cambia de estado
+  function _syncVote(dealId, add) {
+    [allDeals, _mhomeDeals].forEach(arr => {
+      const d = arr.find(x => String(x.id) === String(dealId));
+      if (d) d.votes_up = Math.max(0, (d.votes_up || 0) + (add ? 1 : -1));
+    });
+    if (!USE_MOCK) {
+      fetch(`${API_BASE}/api/deals/${dealId}/vote`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direction: add ? 'up' : 'remove' })
+      }).catch(() => {});
+    }
+  }
+
+  function _flagBtn(d) {
+    const flagged = !!(_getFlagged()[d.id]);
+    return `<button class="mhflag${flagged ? ' mhflag--flagged' : ''}" data-id="${d.id}"
+      aria-label="Reportar oferta expirada" title="¿Ya no disponible?"
+      onclick="event.stopPropagation();event.preventDefault();flagExpired('${d.id}',this)">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+        <line x1="4" y1="22" x2="4" y2="15"/>
+      </svg>
+    </button>`;
+  }
+
   function _heartBtn(d) {
     const liked = !!_getMhLikes()[d.id];
     return `<button class="mhlike${liked ? ' mhlike--liked' : ''}" data-id="${d.id}"
@@ -3942,7 +3971,7 @@
       <div class="hcard__img">
         ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         ${d.descuento_pct > 0 ? `<span class="hcard__pct">-${d.descuento_pct}%</span>` : ""}
-        ${_heartBtn(d)}
+        ${_heartBtn(d)}${_flagBtn(d)}
       </div>
       <div class="hcard__body">
         <span class="hcard__store">${d.tienda || ""}</span>
@@ -3979,7 +4008,7 @@
       <div class="dcard__img">
         ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         ${d.descuento_pct > 0 ? `<span class="dcard__pct-big">-${d.descuento_pct}%</span>` : ""}
-        ${_heartBtn(d)}
+        ${_heartBtn(d)}${_flagBtn(d)}
       </div>
       <div class="dcard__body">
         <span class="dcard__store">${d.tienda || ""}</span>
@@ -3997,7 +4026,7 @@
       <div class="whero__img">
         ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         ${d.descuento_pct > 0 ? `<span class="whero__pct">-${d.descuento_pct}%</span>` : ""}
-        ${_heartBtn(d)}
+        ${_heartBtn(d)}${_flagBtn(d)}
       </div>
       <div class="whero__body">
         <span class="whero__label">Deal del momento</span>
@@ -4367,6 +4396,8 @@
       b.classList.toggle("mhlike--liked", !liked);
       b.setAttribute("aria-label", !liked ? "Quitar de favoritos" : "Añadir a favoritos");
     });
+    // Votos: el corazón impulsa "más votados"
+    _syncVote(dealId, !liked);
     // Sync con API si el usuario está logueado
     const token = localStorage.getItem('flipazo_user_token');
     if (token) {
@@ -4442,6 +4473,12 @@
       if (r.ok) {
         if (isSaved) { savedFavs.delete(dealId); btn.classList.remove('saved'); }
         else         { savedFavs.add(dealId);    btn.classList.add('saved');    }
+        // Sincronizar votos: el corazón impulsa "más votados"
+        _syncVote(dealId, !isSaved);
+        // Sync mhlikes también para coherencia entre vistas
+        const likes = _getMhLikes();
+        if (isSaved) delete likes[dealId]; else likes[dealId] = 1;
+        _saveMhLikes(likes);
       }
     } catch {}
   }

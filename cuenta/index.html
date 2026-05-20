@@ -577,7 +577,10 @@
     </div>
 
     <!-- Favoritos -->
-    <span class="section-label">Mis favoritos</span>
+    <a href="#favorites-wrap" class="section-label" style="text-decoration:none;display:flex;align-items:center;justify-content:space-between;">
+      <span>Mis favoritos</span>
+      <span style="font-size:9px;letter-spacing:.08em;color:var(--accent)">Ver todos ↓</span>
+    </a>
     <div id="favorites-wrap">
       <div class="favorites-empty">Cargando…</div>
     </div>
@@ -795,10 +798,13 @@
           <div class="fav-card__body">
             <div class="fav-card__tienda">${d.tienda}</div>
             <div class="fav-card__title">${d.titulo}</div>
-            <div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
               <span class="fav-card__price">${d.precio_actual.toFixed(2)}€</span>
               ${d.precio_original > d.precio_actual
                 ? `<span class="fav-card__original">${d.precio_original.toFixed(2)}€</span>`
+                : ''}
+              ${d.descuento_pct > 0
+                ? `<span style="font-family:var(--mono);font-size:10px;font-weight:700;background:var(--accent);color:#fff;padding:2px 6px;border-radius:4px;">-${d.descuento_pct}%</span>`
                 : ''}
             </div>
             <div class="fav-card__actions">
