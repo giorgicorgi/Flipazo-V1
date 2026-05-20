@@ -3834,9 +3834,9 @@
     const sh   = document.querySelector(".section-header");
     const hero = document.getElementById("js-hero");
     const back = document.getElementById("js-mhome-back");
-    if (mh)   mh.style.display = "";
+    if (mh)   mh.style.display = _desktopDiscovery ? "block" : "";
     if (gw)   gw.style.display = "none";
-    if (sh)   sh.style.display = "none";
+    if (sh && !_desktopDiscovery) sh.style.display = "none";  // keep header on desktop
     if (hero) hero.style.display = "none";
     if (back) back.style.display = "none";
     _cameFromMhome = false;
@@ -3847,9 +3847,20 @@
     const mh   = document.getElementById("js-mobile-home");
     const gw   = document.getElementById("js-grid-wrap");
     const sh   = document.querySelector(".section-header");
-    if (mh) mh.style.display = "none";
+    if (mh) { mh.style.display = "none"; mh.classList.remove("mhome--desktop"); }
     if (gw) gw.style.display = "";
     if (sh) sh.style.display = "";
+    // sync desktop toggle back to "todos" if needed
+    if (_desktopDiscovery) {
+      _desktopDiscovery = false;
+      const t = document.getElementById("js-dvt-todos");
+      const e = document.getElementById("js-dvt-explorar");
+      if (t) { t.classList.add("dvt-btn--active"); t.setAttribute("aria-pressed","true"); }
+      if (e) { e.classList.remove("dvt-btn--active"); e.setAttribute("aria-pressed","false"); }
+      const zoom = document.getElementById("js-zoom-control");
+      if (zoom) zoom.style.display = "";
+      try { localStorage.setItem("flipazo_desktop_view","todos"); } catch {}
+    }
   }
 
   function goBackToMhome() {
