@@ -2411,7 +2411,7 @@
     <div class="login-gate-card">
       <button class="login-gate-close" onclick="closeLoginGate()" aria-label="Cerrar">✕</button>
       <h2>Únete a Flipazo</h2>
-      <p id="login-gate-msg">Crea una cuenta gratuita para votar y comentar</p>
+      <p id="login-gate-msg">Crea una cuenta para votar y comentar</p>
       <a href="https://api.flipazo.es/auth/google" class="paywall-btn paywall-btn--google">
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
           <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 2.9l5.7-5.7C34.5 6.5 29.5 4 24 4 12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20c0-1.3-.1-2.6-.4-3.9z"/>
@@ -3143,7 +3143,7 @@
 
   async function vote(dealId, direction, btn) {
     if (!dealId) return;
-    if (!isLoggedIn()) { showLoginGate("Inicia sesión para votar"); return; }
+    if (!isLoggedIn()) { showLoginGate("Crea una cuenta para votar"); return; }
     const votes = getUserVotes();
     const prev  = votes[dealId];
 
@@ -3793,7 +3793,7 @@
   (function initFilterToggle() {
     try {
       const saved = localStorage.getItem("flipazo_filters_open");
-      filtersOpen = saved === null ? true : saved === "1";
+      filtersOpen = saved === null ? false : saved === "1";
     } catch {}
     const fb  = document.getElementById("js-filter-block");
     const btn = document.getElementById("js-filter-toggle");
@@ -4388,7 +4388,7 @@
   function _saveMhLikes(v) { try { localStorage.setItem("flipazo_mhlikes", JSON.stringify(v)); } catch {} }
 
   function mhLike(dealId, btn) {
-    if (!isLoggedIn()) { showLoginGate("Inicia sesión para guardar favoritos"); return; }
+    if (!isLoggedIn()) { showLoginGate("Crea una cuenta para guardar favoritos"); return; }
     const likes = _getMhLikes();
     const liked = !!likes[dealId];
     if (liked) delete likes[dealId];
@@ -4635,7 +4635,7 @@
   async function submitComment() {
     const dealId = _currentCommentDealId;
     if (!dealId) return;
-    if (!isLoggedIn()) { showLoginGate('Inicia sesión para comentar'); return; }
+    if (!isLoggedIn()) { showLoginGate('Crea una cuenta para comentar'); return; }
     const ta      = document.getElementById('comment-textarea');
     const content = ta.value.trim();
     if (!content) return;
