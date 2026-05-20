@@ -978,8 +978,9 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", p
     if re.search(r'\b(maillot|culott?e)s?\b', t) and descuento_pct <= 60:
         return False
     # Ropa de moda/deporte: solo si marca conocida + descuento real ≥50%
-    # Excepción: Barrabés vende exclusivamente marcas premium outdoor — umbral plano 40%
-    if tienda != "Barrabes" and any(r in t for r in _PALABRAS_ROPA):
+    # Excepción: Barrabés y Esdemarca aplican su propia whitelist de marcas
+    # en el filtro local (más estricta que _MARCAS_ROPA), así que se eximen.
+    if tienda not in ("Barrabes", "Esdemarca") and any(r in t for r in _PALABRAS_ROPA):
         if descuento_pct < 50 or not any(m in t for m in _MARCAS_ROPA):
             return False
     # Cecotec: marca de gama baja con precios de referencia inflados — solo descuentos fuertes

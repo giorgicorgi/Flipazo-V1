@@ -43,12 +43,36 @@ _ESDEMARCA_PRECIO_MIN    = 25.0
 _ESDEMARCA_PRECIO_MAX    = 1200.0  # bolsos/abrigos premium superan los 800€ generales
 
 _ESDEMARCA_MARCAS = {m.lower() for m in [
-    "Polo Ralph Lauren", "Lauren Ralph Lauren", "Birkenstock", "BA&SH",
-    "Hispanitas", "UGG", "Wonders", "Skechers", "Dr. Martens", "Dr Martens",
-    "Weekend Max Mara", "Michael Kors", "Rotate", "Guess", "HOFF", "Art",
-    "C.P. Company", "Premiata", "New Balance", "Asics", "Timberland",
-    "A|X Armani Exchange", "Armani Exchange", "HOKA", "Barbour", "BOSS",
-    "Hackett London", "Hackett", "Fred Perry",
+    # Premium italiano / lujo accesible
+    "Polo Ralph Lauren", "Lauren Ralph Lauren", "Weekend Max Mara", "Max Mara",
+    "Michael Kors", "Rotate", "C.P. Company", "Premiata", "Stone Island",
+    "Moncler", "Karl Lagerfeld", "A|X Armani Exchange", "Armani Exchange",
+    # Británico / heritage
+    "Barbour", "BOSS", "Hugo Boss", "Hackett London", "Hackett",
+    "Fred Perry", "Superdry", "Ben Sherman", "Lyle & Scott", "Belstaff",
+    # Denim premium / casual
+    "Tommy Hilfiger", "Tommy Jeans", "Calvin Klein", "Lacoste",
+    "Diesel", "Pepe Jeans", "Levi's", "Levis", "Replay", "G-Star", "G-Star Raw",
+    "Carhartt", "Scotch & Soda", "Dockers",
+    # Streetwear / surf-skate
+    "Element", "Quiksilver", "Billabong", "O'Neill", "Volcom",
+    "Vans", "Converse", "DC Shoes",
+    # Sport mainstream
+    "Nike", "Adidas", "Puma", "Reebok", "New Balance", "Asics",
+    "Champion", "Fila", "Le Coq Sportif", "Diadora", "Kappa",
+    # Outdoor / running técnico
+    "Columbia", "The North Face", "North Face", "Patagonia", "Helly Hansen",
+    "Salomon", "Merrell", "Timberland", "HOKA", "On", "On Running",
+    "Saucony", "Brooks", "Mizuno", "Berghaus", "Jack Wolfskin",
+    # Calzado urbano y outlet
+    "Birkenstock", "UGG", "Dr. Martens", "Dr Martens", "Skechers",
+    "Camper", "Pikolinos", "Panama Jack", "Mustang", "Geox", "Clarks",
+    "Hispanitas", "Wonders", "HOFF", "Art", "Crocs",
+    # Mujer / lujo accesorios
+    "BA&SH", "Guess", "Liu Jo", "Pinko", "Patrizia Pepe",
+    "Furla", "Longchamp", "Coach", "Tory Burch", "Kate Spade",
+    # Mid-luxury contemporáneo
+    "Maje", "Sandro", "The Kooples",
 ]}
 
 # Palabras que descartan el producto (búsqueda en título lowercase)
@@ -299,8 +323,15 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
             else:
                 product_url = raw_url
 
+            # El feed da `name` y `brand` por separado; muchos títulos no
+            # incluyen la marca (ej. "Chaqueta Windbreaker Verde" para Superdry).
+            # La prefijamos para que la card lo muestre y el deal sea reconocible.
+            titulo_out = (
+                f"{brand} {titulo}" if brand.lower() not in titulo_lower else titulo
+            )
+
             resultado.append({
-                "titulo":          titulo,
+                "titulo":          titulo_out,
                 "asin":            product_url,
                 "precio_actual":   precio_actual,
                 "precio_original": precio_original,
