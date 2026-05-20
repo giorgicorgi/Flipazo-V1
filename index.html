@@ -2473,11 +2473,18 @@
   // ── Tech sub-categories ──────────────────────────────────────
   const TECH_SUBCATS = [
     { id: "todas",      label: "Todo Tech" },
-    { id: "audio",      label: "Audio",        test: d => /auricular|cascos|airpods|wh-?1000|bose\b|jabra|sennheiser|hyperx|altavoz|speaker|earbuds/i.test(d.titulo) },
+    { id: "audio",      label: "Audio",        test: d => /auricular|cascos|airpods|wh-?1000|bose\b|jabra|sennheiser|hyperx|altavoz|speaker|earbuds|soundbar|barra de sonido|sonos\b|jbl\b/i.test(d.titulo) },
     { id: "gaming",     label: "Videojuegos",  test: d => /gaming|ps5|playstation|xbox|nintendo|switch\b|mando\b|consola\b|steam\b|razer|corsair|steelseries/i.test(d.titulo) },
-    { id: "moviles",    label: "Móviles",      test: d => /smartphone|m[oó]vil|iphone|galaxy\b|redmi|xiaomi|oneplus|oppo\b/i.test(d.titulo) },
-    { id: "portatiles", label: "Portátiles",   test: d => /port[aá]til|laptop|macbook|chromebook|pc gaming/i.test(d.titulo) },
-    { id: "tv",         label: "TV",           test: d => /televisor|\btv\b|oled\b|qled\b|smart.?tv/i.test(d.titulo) },
+    { id: "moviles",    label: "Móviles",
+      test: d => /smartphone|m[oó]vil(?!\s+(?:port[aá]til|de\s+ducha))|iphone\s+\d|galaxy\s+(?:s\d+|note|z\s*flip|z\s*fold|a\d+|m\d+)|redmi\s+(?:note\s*)?\d+|pixel\s+\d|oneplus\s+\d|poco\s+[a-z]?\d|motorola\s+(?:edge|moto\s*g|moto\s*e|razr)|oppo\s+(?:reno|find|a\s*\d+)|honor\s+(?:\d|magic)|huawei\s+(?:mate|p\d+|nova)/i.test(d.titulo)
+              && !/auricular|earbuds|\bbuds\b|cascos|\bwatch\b|smartwatch|reloj.*intelig|cepillo|toothbrush|proyector|projector|patinete|scooter|aspirador|robot.*aspir|bombilla|c[aá]mara\s+seguridad|sensor|cargador|funda|protector|carcasa|hub\s+usb|cable\s+|adaptador|altavoz|speaker|\btablet\b|\bipad\b|trackpad|teclado|rat[oó]n|mouse\b|smart.?tv|televisor|monitor|impresora|router/i.test(d.titulo) },
+    { id: "portatiles", label: "Portátiles",
+      test: d => (/\blaptop\b|\bmacbook\b|chromebook|galaxy\s+book|surface\s+(?:laptop|book|pro)|thinkpad|zenbook|vivobook|matebook|lenovo\s+legion|asus\s+(?:tuf|rog|expertbook)|ordenador\s+port[aá]til|pc\s+port[aá]til|notebook\b/i.test(d.titulo)
+                || (/\bport[aá]til\b/i.test(d.titulo) && !/altavoz|speaker|disco|ssd|cargador|funda|earbuds|auricular|cascos|aspirador|impresora|estufa|ventilador|nevera|calentador|patinete|silla|mesa|cafetera|micr[oó]fono|webcam|powerbank|power\s*bank|bater[ií]a|consola|nintendo|switch\b|monitor|proyector|projector|telefon|tel[eé]fono|m[oó]vil/i.test(d.titulo)))
+              && !/altavoz|speaker.*port|earbuds|auricular.*port|cascos.*port/i.test(d.titulo) },
+    { id: "tv",         label: "TV",
+      test: d => /televisor\b|smart.?tv\b|\bqled\b|\boled\s+tv\b|\btv\s+(?:4k|uhd|hd|led|lcd|qled|oled|smart|\d{2,3})|(?:lg|samsung|sony|hisense|tcl|philips|panasonic)\s+(?:tv\b|televisor\b|\bqled\b|smart\s*tv)|\btv\b/i.test(d.titulo)
+              && !/smartphone|m[oó]vil|iphone|galaxy\s+(?:s\d+|a\d+|note|z\s*flip|z\s*fold|m\d+)|redmi\s+(?:note\s*)?\d+|pixel\s+\d|oneplus|poco\s+[a-z]?\d|huawei\s+(?:p\d|mate)|honor\s+\d|motorola\s+(?:edge|moto)/i.test(d.titulo) },
     { id: "foto",       label: "Foto/Vídeo",   test: d => /c[aá]mara\s+(?:r[eé]flex|mirrorless|deportiva|compacta|de\s+acci[oó]n|instant[aá]nea|fotos?|digital)|\bcanon\b|\bnikon\b|\bfujifilm\b|sony.*c[aá]mara|c[aá]mara.*sony|\bpanasonic.*lumix|gopro|dron\b|drone\b|objetivo\b|teleobjetivo\b|tr[ií]pode\b/i.test(d.titulo) && !/smartphone|m[oó]vil|iphone|galaxy\b|redmi|xiaomi|oneplus|oppo\b/i.test(d.titulo) },
     { id: "gadgets",    label: "Gadgets",      test: d => !/smartphone|m[oó]vil|iphone|galaxy\b|redmi|xiaomi|oneplus|oppo\b/i.test(d.titulo) && !/port[aá]til|laptop|macbook|chromebook|pc gaming/i.test(d.titulo) && !/televisor|\btv\b|oled\b|qled\b|smart.?tv/i.test(d.titulo) && !/c[aá]mara.*(?:r[eé]flex|mirrorless|digital)|\bcanon\b|\bnikon\b|\bfujifilm\b|gopro/i.test(d.titulo) },
   ];
@@ -2502,7 +2509,7 @@
     { id: "herramientas", label: "Herramientas",  test: d => _RX.herramientas.test(d.titulo) },
     { id: "deportes",     label: "Deportes",      test: d => _RX.deportes.test(d.titulo) || ["Mammoth Bikes","Decathlon","PrivateSportShop"].includes(d.tienda) },
     { id: "hogar",        label: "Hogar",         test: d => _RX.hogar.test(d.titulo) },
-    { id: "belleza",      label: "Belleza",       test: d => _RX.belleza.test(d.titulo) && !/freidora|airfryer|air.?fryer|microondas|\bhorno\b|cafetera|thermomix|robot.*cocina|batidora/i.test(d.titulo) },
+    { id: "belleza",      label: "Cuidado Personal", test: d => _RX.belleza.test(d.titulo) && !/freidora|airfryer|air.?fryer|microondas|\bhorno\b|cafetera|thermomix|robot.*cocina|batidora/i.test(d.titulo) },
     { id: "juguetes",     label: "Juguetes",      test: d => _RX.juguetes.test(d.titulo) },
     { id: "moda",         label: "Moda",          test: d => _RX.moda.test(d.titulo) || d.tienda === "Desigual" },
   ];
@@ -3751,13 +3758,18 @@
   function goBackToMhome() {
     // Restaura el mobile home en la posición de scroll guardada
     _showMobileHome();
+    // Reset estado de navegación al inicial — clave para que el home funcione correctamente
+    activeCategory   = "todas";
+    activeTechSubcat = "todas";
+    activeSort       = "recientes";
     if (_mhomeDeals.length) renderMobileHome(_mhomeDeals);
-    // Activar la pill "Todas" en el cat bar
-    const bar = document.getElementById("js-cat-bar");
-    if (bar) {
-      activeCategory = "todas";
-      bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "todas"));
-    }
+    // Sync UI bars
+    const cb = document.getElementById("js-cat-bar");
+    if (cb) cb.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "todas"));
+    document.querySelectorAll(".sort-tab").forEach(b =>
+      b.classList.toggle("sort-tab--active", b.dataset.sort === "recientes"));
+    const sb = document.getElementById("js-subcat-bar");
+    if (sb) sb.style.display = "none";
     requestAnimationFrame(() => {
       window.scrollTo({ top: _mhomeScrollY, behavior: "instant" });
     });
@@ -3864,7 +3876,7 @@
     { id: "moda",         label: "Moda",         light: "#FFF0F6", dark: "#27122a" },
     { id: "hogar",        label: "Hogar",        light: "#FFF8EE", dark: "#261d0c" },
     { id: "calzado",      label: "Calzado",      light: "#F2EDFF", dark: "#1c122d" },
-    { id: "belleza",      label: "Belleza",      light: "#FFEDED", dark: "#271212" },
+    { id: "belleza",      label: "Cuidado Personal", light: "#FFEDED", dark: "#271212" },
     { id: "juguetes",     label: "Juguetes",     light: "#FFFADF", dark: "#252107" },
     { id: "herramientas", label: "Herramientas", light: "#F0F0F0", dark: "#1c1c1c" },
   ];
@@ -3927,8 +3939,10 @@
 
     const featured = deals.find(d => (d.deal_score || 0) >= 70 && d.imagen_url) || deals.find(d => d.imagen_url);
     const techDeals    = deals.filter(d => dealMatchesCategory(d, "tecnologia")).slice(0, 40);
-    const tvDeals      = deals.filter(d => /televisor|\btv\b|oled\b|qled\b|smart.?tv/i.test(d.titulo)).slice(0, 40);
-    const audioDeals   = deals.filter(d => /auricular|cascos|airpods|wh-?1000|bose\b|jabra|sennheiser|hyperx|altavoz|speaker|earbuds|soundbar/i.test(d.titulo)).slice(0, 40);
+    const _tvSubcat    = TECH_SUBCATS.find(s => s.id === "tv");
+    const _audioSubcat = TECH_SUBCATS.find(s => s.id === "audio");
+    const tvDeals      = deals.filter(d => _tvSubcat?.test(d)).slice(0, 40);
+    const audioDeals   = deals.filter(d => _audioSubcat?.test(d)).slice(0, 40);
     const lcDeals      = deals.filter(d => (d.precio_actual || 0) > 0 && (d.precio_actual || 0) < 25).slice(0, 40);
     const modaDeals    = deals.filter(d => dealMatchesCategory(d, "moda")).slice(0, 40);
     const topDiscDeals = [...deals].sort((a,b) => (b.descuento_pct||0)-(a.descuento_pct||0)).slice(0, 40);
@@ -3939,7 +3953,7 @@
     const lowcostSection = lcDeals.length ? `<section class="mhome__section">
       <div class="mhome__section-head">
         <h2 class="mhome__section-title">Por debajo de 25€</h2>
-        <a class="mhome__see-all" href="#" onclick="event.preventDefault();document.querySelector('[data-sort=\\'low_cost\\']').click()">Ver todo</a>
+        <a class="mhome__see-all" href="#" onclick="event.preventDefault();mhomeSort('low_cost')">Ver todo</a>
       </div>
       <div class="mhome__scroll" style="align-items:flex-start;gap:14px">${lcDeals.map(renderCircleCard).join("")}</div>
     </section>` : "";
@@ -3962,11 +3976,11 @@
       _mhSection("Moda",                   modaDeals.map(renderHCard).join(""),      "mhomeCat('moda')") +
       _mhSection("Mayores descuentos",     topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro") +
       _mhSection("Deportes",               depDeals.map(renderHCard).join(""),       "mhomeCat('deportes')") +
-      _mhSection("Tecnología — TV",        tvDeals.map(renderHCard).join(""),        "mhomeCat('tecnologia')") +
+      _mhSection("Tecnología — TV",        tvDeals.map(renderHCard).join(""),        "mhomeTechSubcat('tv')") +
       _mhSection("Para el hogar",          hogarDeals.map(renderHCard).join(""),     "mhomeCat('hogar')") +
       _mhSection("Calzado",                calzadoDeals.map(renderHCard).join(""),   "mhomeCat('calzado')") +
       storeSection +
-      _mhSection("Tecnología — Audio",     audioDeals.map(renderHCard).join(""),     "mhomeCat('tecnologia')");
+      _mhSection("Tecnología — Audio",     audioDeals.map(renderHCard).join(""),     "mhomeTechSubcat('audio')");
   }
 
   // ── Carga asíncrona ───────────────────────────────────────────
@@ -4044,6 +4058,50 @@
     }
     window.scrollTo({ top: 0, behavior: "instant" });
     if (allDeals.length) renderGrid(); else loadMore();
+  }
+
+  // Ir a una pestaña de orden (ej: Por debajo de 25€) desde el mobile home
+  function mhomeSort(sortId) {
+    _mhomeScrollY  = window.scrollY;
+    _cameFromMhome = true;
+    history.pushState({ flipazo_view: 'grid', sortId }, '');
+    _showRegularGrid();
+    const back = document.getElementById("js-mhome-back");
+    if (back && _isMobileViewport()) back.style.display = "inline-flex";
+    activeSort = sortId;
+    document.querySelectorAll(".sort-tab").forEach(b =>
+      b.classList.toggle("sort-tab--active", b.dataset.sort === sortId));
+    const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Oportunidades de Reventa", low_cost: "Low Cost · Menos de 25€" };
+    const titleEl = document.getElementById("js-section-title");
+    if (titleEl) titleEl.textContent = titles[sortId] || "Clasificados";
+    allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
+    document.getElementById("js-grid").innerHTML = "";
+    window.scrollTo({ top: 0, behavior: "instant" });
+    loadMore();
+  }
+
+  // Ir a una subcategoría de tecnología (TV, Audio, etc.) desde el mobile home
+  function mhomeTechSubcat(subcatId) {
+    _mhomeScrollY  = window.scrollY;
+    _cameFromMhome = true;
+    history.pushState({ flipazo_view: 'grid', catId: 'tecnologia', subcatId }, '');
+    _showRegularGrid();
+    const back = document.getElementById("js-mhome-back");
+    if (back && _isMobileViewport()) back.style.display = "inline-flex";
+    activeCategory   = "tecnologia";
+    activeTechSubcat = subcatId;
+    const bar = document.getElementById("js-cat-bar");
+    if (bar) bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "tecnologia"));
+    buildSubcatBar();
+    const sb = document.getElementById("js-subcat-bar");
+    if (sb) sb.querySelectorAll(".subcat-pill").forEach(b => b.classList.toggle("subcat-pill--active", b.dataset.subcat === subcatId));
+    const scLabel = (TECH_SUBCATS.find(s => s.id === subcatId) || {}).label || "";
+    const titleEl = document.getElementById("js-section-title");
+    if (titleEl) titleEl.textContent = scLabel ? `Tecnología — ${scLabel}` : "Tecnología";
+    allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
+    document.getElementById("js-grid").innerHTML = "";
+    window.scrollTo({ top: 0, behavior: "instant" });
+    loadMore();
   }
 
   window.addEventListener('popstate', e => {
