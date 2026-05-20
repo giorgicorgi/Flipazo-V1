@@ -4039,15 +4039,15 @@
   const _MH_STORES = [
     { name: "Amazon",        abbr: "AMZ",  color: "#FF9900" },
     { name: "MediaMarkt",    abbr: "MM",   color: "#CC0000" },
-    { name: "PcComponentes", abbr: "PCC",  color: "#0069B4" },
+    { name: "Desigual",      abbr: "DSG",  color: "#E8652A" },
+    { name: "Esdemarca",     abbr: "ESD",  color: "#1A3C6E" },
+    { name: "PCBox",         abbr: "PCB",  color: "#F7941D" },
     { name: "Decathlon",     abbr: "DEC",  color: "#0082C3" },
-    { name: "Worten",        abbr: "WOR",  color: "#E31837" },
     { name: "Mammoth Bikes", abbr: "MBI",  color: "#2E7D32" },
-    { name: "El Corte Inglés", abbr: "ECI", color: "#006A4E" },
   ];
 
   function _renderStoreRow() {
-    const storeLabel = s => s.name === "El Corte Inglés" ? "ECI" : s.name === "Mammoth Bikes" ? "Mammoth" : s.name === "PcComponentes" ? "PcComp." : s.name;
+    const storeLabel = s => s.name === "Mammoth Bikes" ? "Mammoth" : s.name;
     return _MH_STORES.map(s =>
       `<a class="scard" href="#" onclick="event.preventDefault();mhomeStore('${s.name}')">
         <div class="scard__logo" style="background:${s.color}18;border-color:${s.color}30">
