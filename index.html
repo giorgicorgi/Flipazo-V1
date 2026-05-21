@@ -3379,7 +3379,7 @@
     showLoading(true);
 
     try {
-      const isCatFilter = activeCategory !== "todas" || !!activeStore;
+      const isCatFilter = activeCategory !== "todas" || !!activeStore || activeSort === "low_cost";
       const limit = isCatFilter ? 200 : PAGE_SIZE;
       const batch = await fetchDeals(limit, currentOffset);
       if (batch.length < limit) hasMore = false;
