@@ -2774,6 +2774,12 @@
     return `${rel} · ${diaStr} ${hora}`;
   }
 
+  function esc(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   function fmtPrice(n) {
     const parts = Number(n).toFixed(2).split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -2822,7 +2828,7 @@
       ? `<div class="deal__savings">Ahorras ${fmtPrice(ahorro)}${isMinHistorico ? " · Precio mínimo histórico" : ""}</div>` : "";
 
     const razonamiento = (!d.razonamiento || _RAZON_GENERICAS.has(d.razonamiento.trim())) ? "" : d.razonamiento;
-    const razonHtml = razonamiento ? `<p class="deal__reason">"${razonamiento}"</p>` : "";
+    const razonHtml = razonamiento ? `<p class="deal__reason">"${esc(razonamiento)}"</p>` : "";
 
     // ── Discovery layer: tags, hook, social context ──────────────
     const tags = Array.isArray(d.emotional_tags) ? d.emotional_tags : [];
@@ -2856,14 +2862,14 @@
 
     const hook         = (d.hook || "").trim();
     const showHook     = hook.length > 0 && !isExpired;
-    const cleanedTitle = cleanHeroTitle(d.titulo || "");
+    const cleanedTitle = esc(cleanHeroTitle(d.titulo || ""));
     const titleBlock   = showHook
-      ? `<h2 class="deal__hook">${hook}</h2>
+      ? `<h2 class="deal__hook">${esc(hook)}</h2>
          <p class="deal__title-sub">${cleanedTitle}</p>`
       : `<h2 class="deal__title">${cleanedTitle}</h2>`;
 
     const social       = (d.social_context || "").trim();
-    const socialHtml   = (social && !isExpired) ? `<p class="deal__social">${social}</p>` : "";
+    const socialHtml   = (social && !isExpired) ? `<p class="deal__social">${esc(social)}</p>` : "";
 
     const dealId    = d.id || "";
     const flagCount = d.flags_expirado || 0;
@@ -3017,7 +3023,7 @@
     const buyUrl       = d.url_affiliate || "#";
     const wallapopUrl  = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent(extractModelQuery(d.titulo))}`;
     const isReventa    = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
-    const cleanTitle   = cleanHeroTitle(d.titulo || "");
+    const cleanTitle   = esc(cleanHeroTitle(d.titulo || ""));
     const ahorro       = (d.precio_original > 0 && d.precio_actual > 0) ? d.precio_original - d.precio_actual : 0;
     const isMinHist    = d.precio_historico_min > 0 && d.precio_actual <= d.precio_historico_min * 1.05;
     const savingsHtml  = ahorro > 0
@@ -3036,7 +3042,7 @@
           <a href="${buyUrl}" target="_blank" rel="noopener sponsored" style="text-decoration:none">
             <h2 class="hero__title">${cleanTitle}</h2>
           </a>
-          ${(d.razonamiento && !_RAZON_GENERICAS.has(d.razonamiento.trim())) ? `<p class="hero__reason">"${d.razonamiento}"</p>` : ""}
+          ${(d.razonamiento && !_RAZON_GENERICAS.has(d.razonamiento.trim())) ? `<p class="hero__reason">"${esc(d.razonamiento)}"</p>` : ""}
           <div class="hero__price-row">
             ${d.precio_original > 0 ? `<span class="hero__original">${fmtPrice(d.precio_original)}</span>` : ""}
             <span class="hero__price">${fmtPrice(d.precio_actual || 0)}</span>
@@ -3241,7 +3247,7 @@
   function renderSearchDropdown(results, query) {
     const dd = document.getElementById("js-search-dropdown");
     if (!results.length) {
-      dd.innerHTML = `<div class="search-empty">Sin resultados para "${query}"</div>`;
+      dd.innerHTML = `<div class="search-empty">Sin resultados para "${esc(query)}"</div>`;
       dd.hidden = false; return;
     }
     const seeAll = results.length > 8
@@ -3255,8 +3261,8 @@
           ? `<img class="search-result__img" src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">`
           : `<div class="search-result__img"></div>`}
         <div class="search-result__info">
-          <div class="search-result__title">${d.titulo || ""}</div>
-          <div class="search-result__meta">${d.tienda || ""} · ${timeAgo(d.timestamp)}</div>
+          <div class="search-result__title">${esc(d.titulo)}</div>
+          <div class="search-result__meta">${esc(d.tienda)} · ${timeAgo(d.timestamp)}</div>
         </div>
         <span class="search-result__price">${fmtPrice(d.precio_actual || 0)}</span>
       </a>`).join("") + seeAll;
@@ -3939,7 +3945,7 @@
 
   function _mhT(titulo, max) {
     const t = cleanHeroTitle(titulo || "");
-    return t.length > max ? t.slice(0, max) + "…" : t;
+    return esc(t.length > max ? t.slice(0, max) + "…" : t);
   }
 
   // Llama al endpoint de voto cuando el corazón cambia de estado
