@@ -19,6 +19,7 @@ listos para que flipazo_main los convierta y filtre con _es_producto_valido.
 import os
 import re
 import urllib.parse
+from collections import Counter
 from datetime import datetime, timedelta
 
 import requests
@@ -242,12 +243,11 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
     y descuento ≥50%. Se ignoran los parámetros genéricos y se usan las
     constantes _ESDEMARCA_* para mantener control independiente del pipeline.
     """
-    resultado: list[dict] = []
-    vistos: set[str] = set()
+    # Paso 1: recoger todos los candidatos válidos (sin dedup aún) para contar variantes
+    candidatos: list[tuple[str, dict]] = []
 
     for item in raw:
         try:
-            # Marca (campo dedicado, más fiable que parsear el título)
             brand = (item.get("brand") or "").strip()
             if brand.lower() not in _ESDEMARCA_MARCAS:
                 continue
@@ -258,11 +258,9 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
 
             titulo_lower = titulo.lower()
 
-            # Exclusiones por título
             if any(excl in titulo_lower for excl in _ESDEMARCA_EXCLUIR):
                 continue
 
-            # Exclusiones por categoría TD
             cats_raw = item.get("categories") or []
             cat_text = " ".join(
                 (c.get("name") or "") for c in cats_raw if isinstance(c, dict)
@@ -270,7 +268,6 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
             if any(kw in cat_text for kw in _ESDEMARCA_CAT_EXCLUIR):
                 continue
 
-            # Debe encajar en al menos una categoría aceptada
             texto_check = titulo_lower + " " + cat_text
             if not any(kw in texto_check for kw in _ESDEMARCA_INCLUIR):
                 continue
@@ -287,7 +284,6 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
             if not (_ESDEMARCA_PRECIO_MIN <= precio_actual <= _ESDEMARCA_PRECIO_MAX):
                 continue
 
-            # Esdemarca usa "PreviousPRICE" (capital PRICE)
             fields_raw = item.get("fields", {})
             strike_raw = (
                 _get_field(fields_raw, "PreviousPRICE")
@@ -306,16 +302,8 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
             if disponibilidad not in ("in stock", "available", "en stock"):
                 continue
 
-            # Deduplicar por modelo (ignorar variantes de talla/color del mismo artículo)
             clave = _clave_dedup_esdemarca(brand, titulo)
-            if clave in vistos:
-                continue
-            vistos.add(clave)
 
-            # productUrl viene como tdvisit.esdemarca.com/click?a(...)url(ENCODED_URL)
-            # Los paréntesis a()/p()/url() se URL-encodean en Telegram y algunos navegadores
-            # → "link not active". Extraemos la URL real y dejamos que link_builder genere
-            # el deep link estándar clk.tradedoubler.com (formato ?p=&a=&url=, sin paréntesis).
             raw_url = offer.get("productUrl", "")
             idx = raw_url.rfind("url(")
             if idx != -1 and raw_url.endswith(")"):
@@ -323,14 +311,11 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
             else:
                 product_url = raw_url
 
-            # El feed da `name` y `brand` por separado; muchos títulos no
-            # incluyen la marca (ej. "Chaqueta Windbreaker Verde" para Superdry).
-            # La prefijamos para que la card lo muestre y el deal sea reconocible.
             titulo_out = (
                 f"{brand} {titulo}" if brand.lower() not in titulo_lower else titulo
             )
 
-            resultado.append({
+            candidatos.append((clave, {
                 "titulo":          titulo_out,
                 "asin":            product_url,
                 "precio_actual":   precio_actual,
@@ -338,9 +323,21 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
                 "descuento_pct":   descuento_pct,
                 "tienda":          "Esdemarca",
                 "imagen_url":      ((item.get("productImage") or {}).get("url") or ""),
-            })
+            }))
         except Exception:
             continue
+
+    # Paso 2: contar variantes por modelo y deduplicar
+    conteo = Counter(c for c, _ in candidatos)
+    vistos: set[str] = set()
+    resultado: list[dict] = []
+    for clave, d in candidatos:
+        if clave in vistos:
+            continue
+        vistos.add(clave)
+        n = conteo[clave]
+        d["pocas_unidades"] = "Últimas unidades" if n == 1 else ("Pocas tallas" if n <= 3 else "")
+        resultado.append(d)
 
     return resultado
 
@@ -407,6 +404,12 @@ def _filtrar_toni_pons(raw: list[dict], precio_minimo: float, precio_maximo: flo
             stock_raw = _get_field(fields_raw, "sell_on_google_quantity")
             stock_qty = int(stock_raw) if stock_raw.isdigit() else 0
 
+            pocas = ""
+            if stock_qty == 1:
+                pocas = "Últimas unidades"
+            elif 2 <= stock_qty <= 3:
+                pocas = "Pocas tallas"
+
             resultado.append({
                 "titulo":          titulo,
                 "asin":            offer.get("productUrl", ""),
@@ -416,6 +419,7 @@ def _filtrar_toni_pons(raw: list[dict], precio_minimo: float, precio_maximo: flo
                 "tienda":          "Toni Pons",
                 "imagen_url":      ((item.get("productImage") or {}).get("url") or ""),
                 "stock_qty":       stock_qty,
+                "pocas_unidades":  pocas,
             })
         except Exception:
             continue
@@ -462,8 +466,8 @@ def _filtrar_desigual(raw: list[dict], precio_minimo: float, precio_maximo: floa
 
     Se excluye ropa básica; se permiten calzado, bolsos, accesorios y prendas exteriores.
     """
-    resultado: list[dict] = []
-    vistos: set[str] = set()
+    # Paso 1: recoger candidatos válidos sin dedup para contar variantes por modelo
+    candidatos: list[tuple[str, dict]] = []
 
     for item in raw:
         try:
@@ -480,7 +484,6 @@ def _filtrar_desigual(raw: list[dict], precio_minimo: float, precio_maximo: floa
                 continue
             offer = offers[0]
 
-            # Estructura invertida: priceHistory = precio original, "Sale price" = rebajado
             price_history = offer.get("priceHistory") or []
             precio_original = _parse_precio(
                 (price_history[0].get("price") or {}).get("value") if price_history else None
@@ -500,17 +503,12 @@ def _filtrar_desigual(raw: list[dict], precio_minimo: float, precio_maximo: floa
             if descuento_pct < _DESIGUAL_DESCUENTO_MIN:
                 continue
 
-            # Algunos productos TD de Desigual no tienen availability — se permite vacío
             disponibilidad = (offer.get("availability") or "").lower()
             if disponibilidad and disponibilidad not in ("in stock", "available", "en stock"):
                 continue
 
             clave = _clave_dedup_desigual(titulo)
-            if clave in vistos:
-                continue
-            vistos.add(clave)
-
-            resultado.append({
+            candidatos.append((clave, {
                 "titulo":          titulo,
                 "asin":            offer.get("productUrl", ""),
                 "precio_actual":   precio_actual,
@@ -518,9 +516,21 @@ def _filtrar_desigual(raw: list[dict], precio_minimo: float, precio_maximo: floa
                 "descuento_pct":   descuento_pct,
                 "tienda":          "Desigual",
                 "imagen_url":      ((item.get("productImage") or {}).get("url") or ""),
-            })
+            }))
         except Exception:
             continue
+
+    # Paso 2: contar variantes por modelo y deduplicar
+    conteo = Counter(c for c, _ in candidatos)
+    vistos: set[str] = set()
+    resultado: list[dict] = []
+    for clave, d in candidatos:
+        if clave in vistos:
+            continue
+        vistos.add(clave)
+        n = conteo[clave]
+        d["pocas_unidades"] = "Últimas unidades" if n == 1 else ("Pocas tallas" if n <= 3 else "")
+        resultado.append(d)
 
     return resultado
 

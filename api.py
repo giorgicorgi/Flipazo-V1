@@ -687,6 +687,7 @@ def get_deals(
             COALESCE(social_context,'') AS social_context,
             COALESCE(emotional_tags,'[]') AS emotional_tags,
             COALESCE(stock_qty,      0) AS stock_qty,
+            COALESCE(pocas_unidades,'') AS pocas_unidades,
             precio_actualizado_en,
             publicado_en    AS timestamp,
             (SELECT COUNT(*) FROM deal_comments WHERE deal_id = deals_publicados.deal_id) AS comment_count
@@ -732,6 +733,7 @@ def _normalize_deal_row(r) -> dict:
     try:    d["emotional_tags"] = json.loads(d.get("emotional_tags") or "[]")
     except: d["emotional_tags"] = []
     d["stock_qty"]            = int(d.get("stock_qty", 0) or 0)
+    d["pocas_unidades"]       = d.get("pocas_unidades") or ""
     d["precio_actualizado_en"] = d.get("precio_actualizado_en") or None
     return d
 
