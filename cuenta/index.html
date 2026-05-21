@@ -607,22 +607,16 @@
 
   // ── Init ─────────────────────────────────────────────
   (function init() {
-    const p      = new URLSearchParams(window.location.search);
-    const tok    = p.get('token');
-    const err    = p.get('error');
+    const p   = new URLSearchParams(window.location.search);
+    const err = p.get('error');
 
-    if (tok) {
-      localStorage.setItem('flipazo_user_token', tok);
-      window.history.replaceState({}, '', window.location.pathname);
-      loadAccount(tok);
-      return;
-    }
     if (err) {
       showMsg(errorMessages[err] || 'Ha ocurrido un error. Inténtalo de nuevo.', 'error');
       return;
     }
-    const stored = localStorage.getItem('flipazo_user_token');
-    if (stored) loadAccount(stored);
+    // Limpiar cualquier parámetro residual de la URL sin recargar
+    if (window.location.search) window.history.replaceState({}, '', window.location.pathname);
+    loadAccount();
   })();
 
   const errorMessages = {
@@ -697,8 +691,8 @@
             showMsg(data.error || 'Email o contraseña incorrectos.', 'error');
           return;
         }
-        localStorage.setItem('flipazo_user_token', data.token);
-        loadAccount(data.token);
+        localStorage.setItem('flipazo_auth_flag', '1');
+        loadAccount();
       } catch { showMsg('Error de conexión. Inténtalo de nuevo.', 'error'); }
       finally { btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
     }
@@ -714,23 +708,16 @@
   function clearMsg() { document.getElementById('msg-banner').style.display = 'none'; }
 
   // ── Cargar cuenta ──────────────────────────────────
-  async function loadAccount(token) {
+  async function loadAccount() {
     try {
-      const r = await fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!r.ok) { localStorage.removeItem('flipazo_user_token'); return; }
+      const r = await fetch(`${API}/auth/me`, { credentials: 'include' });
+      if (!r.ok) { localStorage.removeItem('flipazo_auth_flag'); return; }
       const user = await r.json();
+      localStorage.setItem('flipazo_auth_flag', '1');
       currentUser = user;
       renderAccount(user);
-      loadFavorites(token);
-    } catch {
-      const stored = localStorage.getItem('flipazo_user_token');
-      if (stored) {
-        try {
-          const p = JSON.parse(atob(stored.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-          renderAccount({ name: p.name||'', email: p.email||'', avatar_url: p.avatar||'', provider: p.provider||'google', premium: false, newsletter: false });
-        } catch { /* noop */ }
-      }
-    }
+      loadFavorites();
+    } catch { /* red de error — no limpiar sesión */ }
   }
 
   function renderAccount(user) {
@@ -769,22 +756,20 @@
 
   // ── Newsletter ─────────────────────────────────────
   async function toggleNewsletter(el) {
-    const token = localStorage.getItem('flipazo_user_token');
-    if (!token) { el.checked = !el.checked; return; }
     try {
       await fetch(`${API}/api/user/newsletter`, {
-        method:  'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ subscribed: el.checked }),
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscribed: el.checked }),
       });
     } catch { el.checked = !el.checked; }
   }
 
   // ── Favoritos ──────────────────────────────────────
-  async function loadFavorites(token) {
+  async function loadFavorites() {
     const wrap = document.getElementById('favorites-wrap');
     try {
-      const r    = await fetch(`${API}/api/user/favorites`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(`${API}/api/user/favorites`, { credentials: 'include' });
       const data = await r.json();
       if (!data.length) {
         wrap.innerHTML = '<div class="favorites-empty">Aún no tienes favoritos guardados.<br>Pulsa ♥ en cualquier oferta para guardarla aquí.</div>';
@@ -820,10 +805,8 @@
   }
 
   async function removeFavorite(dealId) {
-    const token = localStorage.getItem('flipazo_user_token');
-    if (!token) return;
     await fetch(`${API}/api/user/favorites/${dealId}`, {
-      method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+      method: 'DELETE', credentials: 'include'
     });
     const el = document.getElementById(`fav-${dealId}`);
     if (el) el.remove();
@@ -834,8 +817,9 @@
   }
 
   // ── Logout ─────────────────────────────────────────
-  function logout() {
-    localStorage.removeItem('flipazo_user_token');
+  async function logout() {
+    await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
+    localStorage.removeItem('flipazo_auth_flag');
     currentUser = null;
     document.getElementById('account-screen').style.display = 'none';
     document.getElementById('sub-card-free').style.display    = 'none';

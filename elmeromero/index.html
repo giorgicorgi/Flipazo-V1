@@ -517,7 +517,6 @@
 <script>
   const API = 'https://api.flipazo.es';
   const PAGE_SZ = 50;
-  let token = localStorage.getItem('flipazo_admin_token');
   let dealsOffset = 0;
   let filterTimer = null;
   let expiredFilter = false;
@@ -526,7 +525,7 @@
   let blogEditingId = null;
 
   // ── Utils ─────────────────────────────────────────────
-  function h()   { return { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }; }
+  function h()   { return { 'Content-Type': 'application/json' }; }
   function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function eur(n){ return Number(n||0).toLocaleString('es',{style:'currency',currency:'EUR',maximumFractionDigits:0}); }
   function fdate(s){ if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString('es',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}); }
@@ -535,27 +534,29 @@
   function slugify(s){ return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-').replace(/-+/g,'-'); }
 
   // ── Auth ─────────────────────────────────────────────
-  if (token) {
-    showPanel();
-  } else {
+  (async function checkAuth() {
+    try {
+      var res = await fetch(API+'/admin/me', { credentials: 'include' });
+      if (res.ok) { showPanel(); return; }
+    } catch(e) {}
     document.getElementById('login-screen').style.display = 'flex';
     ['username','password'].forEach(function(id){ document.getElementById(id).addEventListener('keydown', function(e){ if(e.key==='Enter') login(); }); });
-  }
+  })();
 
   async function login() {
     var btn=document.getElementById('login-btn'), errEl=document.getElementById('login-error');
     var username=document.getElementById('username').value.trim(), password=document.getElementById('password').value;
     btn.disabled=true; btn.textContent='Verificando…'; errEl.style.display='none';
     try {
-      var res=await fetch(API+'/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+      var res=await fetch(API+'/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({username,password})});
       var data=await res.json();
       if(!res.ok){errEl.textContent=data.error||'Credenciales incorrectas';errEl.style.display='block';btn.disabled=false;btn.textContent='Entrar';return;}
-      token=data.token; localStorage.setItem('flipazo_admin_token',token); showPanel();
+      showPanel();
     } catch(e){errEl.textContent='Error de conexión con la API';errEl.style.display='block';btn.disabled=false;btn.textContent='Entrar';}
   }
 
-  function logout() {
-    localStorage.removeItem('flipazo_admin_token'); token=null;
+  async function logout() {
+    try { await fetch(API+'/admin/logout',{method:'POST',credentials:'include'}); } catch(e) {}
     document.getElementById('admin-panel').style.display='none';
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('password').value='';
@@ -585,7 +586,7 @@
   // ── Overview ─────────────────────────────────────────
   async function loadOverview() {
     try {
-      var res=await fetch(API+'/admin/stats',{headers:h()});
+      var res=await fetch(API+'/admin/stats',{headers:h(),credentials:'include'});
       if(res.status===401) return logout();
       var d=await res.json();
       document.getElementById('stats-grid').innerHTML=[
@@ -620,7 +621,7 @@
     if(expiredFilter) p.set('expirado','1');
 
     try {
-      var res=await fetch(API+'/admin/deals?'+p,{headers:h()});
+      var res=await fetch(API+'/admin/deals?'+p,{headers:h(),credentials:'include'});
       if(res.status===401) return logout();
       var data=await res.json();
       document.getElementById('deals-label').textContent=(data.total).toLocaleString('es')+' deals';
@@ -674,7 +675,7 @@
     if(!ids.length) return;
     if(!confirm('¿Eliminar '+ids.length+' deal(s) permanentemente?')) return;
     try {
-      var res=await fetch(API+'/admin/deals/bulk',{method:'DELETE',headers:h(),body:JSON.stringify({deal_ids:ids})});
+      var res=await fetch(API+'/admin/deals/bulk',{method:'DELETE',headers:h(),credentials:'include',body:JSON.stringify({deal_ids:ids})});
       if(res.status===401) return logout();
       if(res.ok){selectedDeals.clear();loadDeals();}
     } catch(e){}
@@ -686,7 +687,7 @@
     var btn=row&&row.querySelector('.del-btn');
     if(btn){btn.disabled=true;btn.textContent='…';}
     try {
-      var res=await fetch(API+'/admin/deals/'+id,{method:'DELETE',headers:h()});
+      var res=await fetch(API+'/admin/deals/'+id,{method:'DELETE',headers:h(),credentials:'include'});
       if(res.ok) row&&row.remove(); else if(btn){btn.textContent='Error';btn.style.color='var(--accent)';}
     } catch(e){if(btn){btn.disabled=false;btn.textContent='Borrar';}}
   }
@@ -702,7 +703,7 @@
     if(!titulo){alert('El título no puede estar vacío');return;}
     var saveBtn=document.getElementById('edit-save-btn'); saveBtn.disabled=true; saveBtn.textContent='Guardando…';
     try {
-      var res=await fetch(API+'/admin/deals/'+editDealId,{method:'PATCH',headers:h(),body:JSON.stringify({titulo,url_afiliado})});
+      var res=await fetch(API+'/admin/deals/'+editDealId,{method:'PATCH',headers:h(),credentials:'include',body:JSON.stringify({titulo,url_afiliado})});
       if(res.status===401) return logout();
       if(!res.ok){alert('Error al guardar el deal');return;}
       closeEdit(); loadDeals();
@@ -715,7 +716,7 @@
   // ── Blog ─────────────────────────────────────────────
   async function loadBlogPosts(){
     try {
-      var data=await fetch(API+'/admin/blog',{headers:h()}).then(function(r){return r.json();});
+      var data=await fetch(API+'/admin/blog',{headers:h(),credentials:'include'}).then(function(r){return r.json();});
       if(data.error) return logout();
       blogPosts=data.posts||[]; renderBlogList();
     } catch(e){document.getElementById('blog-post-list').innerHTML='<div class="loading-msg">Error cargando posts.</div>';}
@@ -795,7 +796,7 @@
     };
     var isNew=!id, url=isNew?API+'/admin/blog':API+'/admin/blog/'+id, method=isNew?'POST':'PUT';
     try {
-      var res=await fetch(url,{method,headers:h(),body:JSON.stringify(body)});
+      var res=await fetch(url,{method,headers:h(),credentials:'include',body:JSON.stringify(body)});
       if(res.status===401) return logout();
       if(!res.ok){alert('Error al guardar el post');return;}
       var data=await res.json();
@@ -811,7 +812,7 @@
     var id=document.getElementById('blog-field-id').value;
     if(!id||!confirm('¿Eliminar este post permanentemente?')) return;
     try {
-      var res=await fetch(API+'/admin/blog/'+id,{method:'DELETE',headers:h()});
+      var res=await fetch(API+'/admin/blog/'+id,{method:'DELETE',headers:h(),credentials:'include'});
       if(res.status===401) return logout();
       if(res.ok){cancelBlogEdit();await loadBlogPosts();}
     } catch(e){alert('Error de conexión');}
@@ -839,10 +840,10 @@
     var el=document.getElementById('analytics-content');
     el.innerHTML='<div class="loading-msg">Cargando…</div>';
     try {
-      var statsRes=await fetch(API+'/admin/stats',{headers:h()});
+      var statsRes=await fetch(API+'/admin/stats',{headers:h(),credentials:'include'});
       if(statsRes.status===401) return logout();
       var stats=await statsRes.json();
-      var dealsRes=await fetch(API+'/admin/deals?limit=100&offset=0',{headers:h()});
+      var dealsRes=await fetch(API+'/admin/deals?limit=100&offset=0',{headers:h(),credentials:'include'});
       var data=await dealsRes.json(), deals=data.deals||[];
 
       var canal=stats.clicks_canal||{};
@@ -870,7 +871,7 @@
     var el=document.getElementById('votos-content');
     el.innerHTML='<div class="loading-msg">Cargando…</div>';
     try {
-      var res=await fetch(API+'/admin/deals?limit=200&offset=0',{headers:h()});
+      var res=await fetch(API+'/admin/deals?limit=200&offset=0',{headers:h(),credentials:'include'});
       if(res.status===401) return logout();
       var data=await res.json();
       var deals=[...(data.deals||[])].sort(function(a,b){return(b.votes_up-b.votes_down)-(a.votes_up-a.votes_down);});
@@ -904,7 +905,7 @@
     el.innerHTML='<div class="loading-msg">Cargando…</div>';
     try {
       var url=API+'/admin/users?limit=200'+(q?'&q='+encodeURIComponent(q):'');
-      var res=await fetch(url,{headers:h()});
+      var res=await fetch(url,{headers:h(),credentials:'include'});
       if(res.status===401) return logout();
       var d=await res.json();
       var users=d.users||[];
@@ -973,7 +974,7 @@
     var el=document.getElementById('sobre-content');
     el.innerHTML='<div class="loading-msg">Cargando…</div>';
     try {
-      var res=await fetch(API+'/admin/paginas/sobre',{headers:h()});
+      var res=await fetch(API+'/admin/paginas/sobre',{headers:h(),credentials:'include'});
       if(res.status===401) return logout();
       var d=res.ok ? await res.json() : {};
       sobreData = d.content || _defaultSobre();
@@ -1071,7 +1072,7 @@
     try {
       var data=_readSobre();
       var res=await fetch(API+'/admin/paginas/sobre',{
-        method:'PUT',headers:h(),
+        method:'PUT',headers:h(),credentials:'include',
         body:JSON.stringify({content:data})
       });
       if(res.status===401) return logout();

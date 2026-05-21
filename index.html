@@ -4423,11 +4423,10 @@
     // Votos: el corazón impulsa "más votados"
     _syncVote(dealId, !liked);
     // Sync con API si el usuario está logueado
-    const token = localStorage.getItem('flipazo_user_token');
-    if (token) {
+    if (isLoggedIn()) {
       fetch(`${FAV_API}/api/user/favorites/${dealId}`, {
         method: liked ? 'DELETE' : 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        credentials: 'include'
       }).catch(() => {});
     }
   }
@@ -4464,9 +4463,8 @@
   let savedFavs = new Set();
 
   (function initFavs() {
-    const token = localStorage.getItem('flipazo_user_token');
-    if (!token) return;
-    fetch(`${FAV_API}/api/user/favorites`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!isLoggedIn()) return;
+    fetch(`${FAV_API}/api/user/favorites`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         const mhLikesStore = _getMhLikes();
@@ -4486,14 +4484,14 @@
   })();
 
   async function toggleFavorite(btn, dealId) {
-    const token = localStorage.getItem('flipazo_user_token');
-    if (!token) { window.location.href = '/cuenta'; return; }
+    if (!isLoggedIn()) { window.location.href = '/cuenta'; return; }
     const isSaved = savedFavs.has(dealId);
     const method  = isSaved ? 'DELETE' : 'POST';
     try {
       const r = await fetch(`${FAV_API}/api/user/favorites/${dealId}`, {
-        method, headers: { Authorization: `Bearer ${token}` }
+        method, credentials: 'include'
       });
+      if (r.status === 401) { window.location.href = '/cuenta'; return; }
       if (r.ok) {
         if (isSaved) { savedFavs.delete(dealId); btn.classList.remove('saved'); }
         else         { savedFavs.add(dealId);    btn.classList.add('saved');    }
@@ -4511,12 +4509,7 @@
 <script>
   // ── Auth helpers ───────────────────────────────────────────────
   function isLoggedIn() {
-    const t = localStorage.getItem('flipazo_user_token');
-    if (!t) return false;
-    try {
-      const payload = JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-      return payload.exp > Date.now() / 1000;
-    } catch { return false; }
+    return !!localStorage.getItem('flipazo_auth_flag');
   }
 
   // ── Login gate ────────────────────────────────────────────────
@@ -4662,11 +4655,11 @@
     if (!content) return;
     const btn   = document.getElementById('comments-send-btn');
     btn.disabled = true;
-    const token = localStorage.getItem('flipazo_user_token');
     try {
       const res = await fetch(`${API_BASE}/api/deals/${dealId}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ content }),
       });
       if (res.status === 401) { closeComments(); showLoginGate('Sesión expirada, vuelve a iniciar sesión'); return; }

@@ -62,6 +62,10 @@ JWT_SECRET      = os.getenv("JWT_SECRET", secrets.token_hex(32))
 JWT_ADMIN_HOURS = 12    # horas de validez del token admin
 JWT_USER_HOURS  = 720   # 30 días para tokens de usuario
 
+# ── Cookie settings ────────────────────────────────────────────────────────────
+_COOKIE_SECURE = os.getenv("ENV", "production") != "development"
+_COOKIE_DOMAIN = ".flipazo.es" if _COOKIE_SECURE else None
+
 # ── Google OAuth ───────────────────────────────────────────────────────────────
 GOOGLE_CLIENT_ID     = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
@@ -148,21 +152,50 @@ def _jwt_decode(token: str) -> dict | None:
         return None
 
 
+def _set_user_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        "flipazo_user_jwt", token,
+        httponly=True, secure=_COOKIE_SECURE, samesite="lax",
+        max_age=JWT_USER_HOURS * 3600, path="/", domain=_COOKIE_DOMAIN,
+    )
+
+def _set_admin_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        "flipazo_admin_jwt", token,
+        httponly=True, secure=_COOKIE_SECURE, samesite="strict",
+        max_age=JWT_ADMIN_HOURS * 3600, path="/", domain=_COOKIE_DOMAIN,
+    )
+
+def _clear_user_cookie(response: Response) -> None:
+    response.delete_cookie("flipazo_user_jwt", path="/", domain=_COOKIE_DOMAIN)
+
+def _clear_admin_cookie(response: Response) -> None:
+    response.delete_cookie("flipazo_admin_jwt", path="/", domain=_COOKIE_DOMAIN)
+
+
 def _require_admin(request: Request) -> dict | None:
-    """Extrae y valida el JWT admin del header Authorization. None si no autorizado."""
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
+    """Valida JWT admin desde cookie httpOnly (fallback: Authorization header)."""
+    token = request.cookies.get("flipazo_admin_jwt", "")
+    if not token:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            token = auth[7:]
+    if not token:
         return None
-    payload = _jwt_decode(auth[7:])
+    payload = _jwt_decode(token)
     return payload if payload and payload.get("role") == "admin" else None
 
 
 def _require_user(request: Request) -> dict | None:
-    """Extrae y valida el JWT de usuario. None si no autenticado."""
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
+    """Valida JWT de usuario desde cookie httpOnly (fallback: Authorization header)."""
+    token = request.cookies.get("flipazo_user_jwt", "")
+    if not token:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            token = auth[7:]
+    if not token:
         return None
-    payload = _jwt_decode(auth[7:])
+    payload = _jwt_decode(token)
     return payload if payload and payload.get("role") == "user" else None
 
 
@@ -1007,7 +1040,7 @@ def redirect_afiliado(deal_id: str, request: Request, canal: str = "web"):
 
 @app.post("/admin/login")
 def admin_login(body: AdminLoginBody):
-    """Autentica al administrador. Devuelve JWT con role=admin."""
+    """Autentica al administrador. Setea httpOnly cookie con JWT admin."""
     if not ADMIN_PASSWORD:
         return JSONResponse(
             status_code=503,
@@ -1018,7 +1051,26 @@ def admin_login(body: AdminLoginBody):
     if not (ok_user and ok_pass):
         return JSONResponse(status_code=401, content={"error": "Credenciales incorrectas"})
     token = _jwt_create({"role": "admin", "sub": body.username}, JWT_ADMIN_HOURS)
-    return {"token": token, "expires_in": JWT_ADMIN_HOURS * 3600}
+    response = JSONResponse({"ok": True, "expires_in": JWT_ADMIN_HOURS * 3600})
+    _set_admin_cookie(response, token)
+    return response
+
+
+@app.get("/admin/me")
+def admin_me(request: Request):
+    """Verifica si hay sesión admin activa. Usado por el panel para comprobar auth."""
+    payload = _require_admin(request)
+    if not payload:
+        return JSONResponse(status_code=401, content={"error": "No autenticado"})
+    return {"username": payload.get("sub", "")}
+
+
+@app.post("/admin/logout")
+def admin_logout():
+    """Cierra sesión admin eliminando la cookie httpOnly."""
+    response = JSONResponse({"ok": True})
+    _clear_admin_cookie(response)
+    return response
 
 
 @app.get("/admin/deals")
@@ -1289,10 +1341,9 @@ def auth_google_callback(code: str = "", state: str = "", error: str = ""):
         "provider": "google",
     }, JWT_USER_HOURS)
 
-    return RedirectResponse(
-        f"{FRONTEND_CUENTA}?token={urllib.parse.quote(token, safe='')}",
-        status_code=302,
-    )
+    response = RedirectResponse(FRONTEND_CUENTA, status_code=302)
+    _set_user_cookie(response, token)
+    return response
 
 
 @app.get("/auth/apple")
@@ -1361,10 +1412,9 @@ async def auth_apple_callback(request: Request):
         "provider": "apple",
     }, JWT_USER_HOURS)
 
-    return RedirectResponse(
-        f"{FRONTEND_CUENTA}?token={urllib.parse.quote(token, safe='')}",
-        status_code=302,
-    )
+    response = RedirectResponse(FRONTEND_CUENTA, status_code=302)
+    _set_user_cookie(response, token)
+    return response
 
 
 @app.get("/auth/me")
@@ -1471,7 +1521,17 @@ def auth_login_email(body: EmailLoginBody):
         "role": "user", "sub": user_id, "email": user["email"],
         "name": user["name"], "avatar": "", "provider": "email",
     }, JWT_USER_HOURS)
-    return {"token": token}
+    response = JSONResponse({"ok": True, "name": user["name"], "email": user["email"]})
+    _set_user_cookie(response, token)
+    return response
+
+
+@app.post("/auth/logout")
+def auth_logout():
+    """Cierra sesión de usuario eliminando la cookie httpOnly."""
+    response = JSONResponse({"ok": True})
+    _clear_user_cookie(response)
+    return response
 
 
 @app.get("/auth/verify-email")
@@ -1491,10 +1551,9 @@ def auth_verify_email(token: str = ""):
         "role": "user", "sub": user["id"], "email": user["email"],
         "name": user["name"], "avatar": "", "provider": "email",
     }, JWT_USER_HOURS)
-    return RedirectResponse(
-        f"{FRONTEND_CUENTA}?token={urllib.parse.quote(jwt, safe='')}",
-        status_code=302,
-    )
+    response = RedirectResponse(FRONTEND_CUENTA, status_code=302)
+    _set_user_cookie(response, jwt)
+    return response
 
 
 # ══════════════════════════════════════════════════════════════════════════════
