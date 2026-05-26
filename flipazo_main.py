@@ -39,6 +39,18 @@ ANTHROPIC_API_KEY    = os.getenv("ANTHROPIC_API_KEY")
 REDIRECT_BASE_URL    = os.getenv("REDIRECT_BASE_URL", "https://flipazo.es")  # dominio propio para /r/{id}
 TELEGRAM_ADMIN_CHAT_ID = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")  # chat personal para alertas de error
 
+# ── Threads (Meta) ────────────────────────────────────────────────
+# Setup: developers.facebook.com → App → Threads API → User token
+# Permisos necesarios: threads_basic, threads_content_publish
+THREADS_USER_ID = os.getenv("THREADS_USER_ID", "")   # ID numérico del usuario Threads
+THREADS_TOKEN   = os.getenv("THREADS_TOKEN", "")     # Long-lived access token (60 días)
+
+# ── WhatsApp Cloud API (Meta) ─────────────────────────────────────
+# Setup: developers.facebook.com → App → WhatsApp → Getting Started
+# Número de teléfono verificado en Meta Business → PHONE_NUMBER_ID
+WA_PHONE_NUMBER_ID = os.getenv("WA_PHONE_NUMBER_ID", "")  # ID del número de negocio
+WA_TOKEN           = os.getenv("WA_TOKEN", "")            # System user token permanente
+
 # ── Umbrales Track A: ARBITRAJE (reventa) ────────────────────────
 DESCUENTO_MINIMO        = 40    # % mínimo
 PRECIO_MINIMO           = 25.0  # € mínimo producto
@@ -971,7 +983,15 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", p
     if len(titulo) < 10 or len(titulo.split()) < 2:
         return False
     t = titulo.lower()
-    if any(p in t for p in PALABRAS_PROHIBIDAS):
+    # Tiendas outdoor/especializadas: pantalones técnicos, mallas y leggings son
+    # ropa técnica de montaña, no ropa básica genérica — se eximen del bloqueo global.
+    _OUTDOOR_EXEMPT = frozenset({"pantalón", "pantalones", "mallas", "malla", "leggings", "leggins"})
+    _prohibidas = (
+        PALABRAS_PROHIBIDAS
+        if tienda not in {"Barrabes", "Decathlon"}
+        else [p for p in PALABRAS_PROHIBIDAS if p not in _OUTDOOR_EXEMPT]
+    )
+    if any(p in t for p in _prohibidas):
         return False
     if _TALLA_RE.search(titulo):
         return False
@@ -2392,6 +2412,15 @@ class DeduplicacionDB:
                     borrado_en TEXT NOT NULL
                 )
             """)
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS wa_suscriptores (
+                    telefono   TEXT PRIMARY KEY,  -- formato internacional sin + (ej. 34612345678)
+                    nombre     TEXT DEFAULT '',
+                    activo     INTEGER DEFAULT 1,
+                    alta_en    TEXT NOT NULL,
+                    baja_en    TEXT
+                )
+            """)
             # Backfill familia_key para registros existentes (migración única)
             sin_familia = con.execute(
                 "SELECT deal_id, titulo FROM deals_publicados WHERE familia_key IS NULL OR familia_key = ''"
@@ -2623,6 +2652,133 @@ def enviar_telegram(mensaje: str, imagen_url: str = "") -> bool:
     except Exception as e:
         print(f"❌ Telegram error: {e}")
         return False
+
+
+def _msg_threads(p: Producto) -> str:
+    """Texto plano para Threads. Sin HTML — solo emojis y saltos de línea. Máx 500 chars."""
+    icono = "♻️" if p.tipo == "ARBITRAJE" else "⚡"
+    ahorro = p.precio_original - p.precio_actual
+    lineas = [
+        f"{icono} {p.titulo[:80]}",
+        f"{p.tienda}",
+        "",
+        f"{p.precio_original} € → {p.precio_actual} € · -{p.descuento_pct}% (ahorras {ahorro:.0f} €)",
+    ]
+    if p.hook:
+        lineas.append("")
+        lineas.append(p.hook[:120])
+    lineas += ["", f"🛒 Ver oferta → {p.url_affiliate}", "", "#chollos #ofertas #flipazo"]
+    return "\n".join(lineas)[:500]
+
+
+def _msg_whatsapp(p: Producto) -> str:
+    """Formato WhatsApp: negrita con *, cursiva con _, tachado con ~. Máx 4096 chars."""
+    icono = "♻️" if p.tipo == "ARBITRAJE" else "⚡"
+    ahorro = p.precio_original - p.precio_actual
+    lineas = [
+        f"{icono} *{p.titulo[:80]}*",
+        f"_{p.tienda}_",
+        "",
+        f"~{p.precio_original} €~  →  *{p.precio_actual} €*  ·  *-{p.descuento_pct}%*",
+        f"Ahorras *{ahorro:.0f} €*",
+    ]
+    if p.hook:
+        lineas += ["", p.hook[:150]]
+    lineas += ["", f"🛒 Ver oferta: {p.url_affiliate}"]
+    if p.tipo == "ARBITRAJE" and p.beneficio_neto > 0:
+        lineas += ["", f"💰 Reventa en Wallapop: hasta +{p.beneficio_neto:.0f} € de beneficio"]
+    return "\n".join(lineas)
+
+
+def publicar_en_threads(p: Producto) -> bool:
+    """Publica un deal en Threads vía Meta Graph API. Desactivado si no hay credenciales."""
+    if not THREADS_USER_ID or not THREADS_TOKEN:
+        return False
+    try:
+        base = f"https://graph.threads.net/v1.0/{THREADS_USER_ID}"
+        texto = _msg_threads(p)
+
+        # Paso 1: crear contenedor
+        r1 = requests.post(
+            f"{base}/threads",
+            params={"access_token": THREADS_TOKEN},
+            json={"media_type": "TEXT", "text": texto},
+            timeout=15,
+        )
+        creation_id = r1.json().get("id")
+        if not creation_id:
+            print(f"❌ Threads crear contenedor: {r1.text[:200]}")
+            return False
+
+        # Paso 2: publicar
+        r2 = requests.post(
+            f"{base}/threads_publish",
+            params={"access_token": THREADS_TOKEN},
+            json={"creation_id": creation_id},
+            timeout=15,
+        )
+        ok = r2.status_code == 200
+        if not ok:
+            print(f"❌ Threads publicar: {r2.text[:200]}")
+        return ok
+    except Exception as e:
+        print(f"❌ Threads error: {e}")
+        return False
+
+
+def _wa_suscriptores() -> list[str]:
+    """Devuelve la lista de números suscritos a alertas WA (formato internacional, sin +)."""
+    try:
+        with sqlite3.connect(DB_PATH) as con:
+            rows = con.execute(
+                "SELECT telefono FROM wa_suscriptores WHERE activo=1"
+            ).fetchall()
+            return [r[0] for r in rows]
+    except Exception:
+        return []
+
+
+def _enviar_whatsapp_individual(telefono: str, mensaje: str) -> bool:
+    """Envía un mensaje de texto libre a un número vía WhatsApp Cloud API.
+
+    NOTA: los mensajes de negocio iniciados fuera de una ventana de 24h
+    requieren plantillas aprobadas por Meta. Para la fase de lanzamiento usamos
+    texto libre asumiendo ventana activa (usuario nos ha escrito antes).
+    Cuando tengamos plantillas aprobadas, usar message_type='template' aquí.
+    """
+    try:
+        r = requests.post(
+            f"https://graph.facebook.com/v20.0/{WA_PHONE_NUMBER_ID}/messages",
+            headers={"Authorization": f"Bearer {WA_TOKEN}", "Content-Type": "application/json"},
+            json={
+                "messaging_product": "whatsapp",
+                "to": telefono,
+                "type": "text",
+                "text": {"body": mensaje},
+            },
+            timeout=15,
+        )
+        return r.status_code == 200
+    except Exception as e:
+        print(f"❌ WhatsApp [{telefono}]: {e}")
+        return False
+
+
+def broadcast_whatsapp(p: Producto) -> int:
+    """Envía el deal a todos los suscriptores de WhatsApp. Devuelve número de envíos ok."""
+    if not WA_PHONE_NUMBER_ID or not WA_TOKEN:
+        return 0
+    suscriptores = _wa_suscriptores()
+    if not suscriptores:
+        return 0
+    msg = _msg_whatsapp(p)
+    ok = 0
+    for telefono in suscriptores:
+        if _enviar_whatsapp_individual(telefono, msg):
+            ok += 1
+    if ok:
+        print(f"   📱 WhatsApp: {ok}/{len(suscriptores)} enviados")
+    return ok
 
 
 def alertar_admin(titulo: str, detalle: str = ""):
@@ -2860,6 +3016,8 @@ async def run_pipeline(modo: str = "completo"):
                 if ok:
                     dedup.marcar_publicado(p)
                     publicados += 1
+                    publicar_en_threads(p)
+                    broadcast_whatsapp(p)
                 await asyncio.sleep(1.5)
 
             print(f"\n🏁 Ciclo {modo}: {publicados}/{len(deals_nuevos)} publicados ({omitidos} omitidos por dedup)")

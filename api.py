@@ -46,7 +46,7 @@ from typing import Optional
 
 import requests as _http
 from dotenv import load_dotenv
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
@@ -86,6 +86,11 @@ API_URL         = os.getenv("API_URL",          "https://api.flipazo.es")
 # ── Email (Gmail SMTP para verificación de cuentas) ────────────────────────────
 EMAIL_ADDRESS      = os.getenv("EMAIL_ADDRESS",      "")
 EMAIL_APP_PASSWORD = os.getenv("EMAIL_APP_PASSWORD", "")
+
+# ── WhatsApp Cloud API ─────────────────────────────────────────────────────────
+WA_PHONE_NUMBER_ID  = os.getenv("WA_PHONE_NUMBER_ID", "")
+WA_TOKEN            = os.getenv("WA_TOKEN", "")
+WA_VERIFY_TOKEN     = os.getenv("WA_VERIFY_TOKEN", "flipazo_wa_verify")  # token de verificación webhook
 
 # ── OAuth state store en memoria (anti-CSRF) ───────────────────────────────────
 _oauth_states: dict[str, float] = {}
@@ -606,6 +611,15 @@ def _ensure_schema():
                 tienda     TEXT,
                 precio     REAL,
                 borrado_en TEXT NOT NULL
+            )
+        """)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS wa_suscriptores (
+                telefono   TEXT PRIMARY KEY,
+                nombre     TEXT DEFAULT '',
+                activo     INTEGER DEFAULT 1,
+                alta_en    TEXT NOT NULL,
+                baja_en    TEXT
             )
         """)
 
@@ -1823,3 +1837,107 @@ def admin_users(request: Request, limit: int = 100, offset: int = 0, q: str = ""
             "newsletter", "email_verified", "created_at", "last_login"]
     users = [dict(zip(cols, r)) for r in rows]
     return {"users": users, "total": total, "limit": limit, "offset": offset}
+
+
+# ── WhatsApp Cloud API — webhook opt-in ────────────────────────────────────────
+
+@app.get("/wa/webhook")
+def wa_webhook_verify(request: Request):
+    """Verificación del webhook por parte de Meta. GET con hub.challenge."""
+    mode      = request.query_params.get("hub.mode")
+    token     = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+    if mode == "subscribe" and token == WA_VERIFY_TOKEN:
+        return Response(content=challenge, media_type="text/plain")
+    return JSONResponse(status_code=403, content={"error": "Token inválido"})
+
+
+@app.post("/wa/webhook")
+async def wa_webhook_message(request: Request):
+    """
+    Recibe mensajes entrantes de WhatsApp vía Meta webhook.
+    Comandos reconocidos:
+      ALTA   → suscribirse a alertas de deals
+      BAJA   → desuscribirse
+      (otro) → mensaje de bienvenida con instrucciones
+    """
+    try:
+        body = await request.json()
+        entry = body.get("entry", [{}])[0]
+        changes = entry.get("changes", [{}])[0]
+        value = changes.get("value", {})
+        messages = value.get("messages", [])
+        if not messages:
+            return {"ok": True}
+
+        msg = messages[0]
+        from_number = msg.get("from", "")
+        text = (msg.get("text") or {}).get("body", "").strip().upper()
+
+        if not from_number:
+            return {"ok": True}
+
+        now = datetime.now(timezone.utc).isoformat()
+        with _get_db() as con:
+            if text in ("ALTA", "SUSCRIBIR", "START", "HOLA", "INFO"):
+                con.execute(
+                    "INSERT INTO wa_suscriptores (telefono, alta_en, activo) "
+                    "VALUES (?, ?, 1) ON CONFLICT(telefono) DO UPDATE SET activo=1, baja_en=NULL",
+                    (from_number, now),
+                )
+                _wa_responder(from_number, "✅ ¡Suscrito a Flipazo!\n\nTe avisaremos de los mejores chollos del día. Para darte de baja responde BAJA.")
+            elif text in ("BAJA", "STOP", "UNSUBSCRIBE"):
+                con.execute(
+                    "UPDATE wa_suscriptores SET activo=0, baja_en=? WHERE telefono=?",
+                    (now, from_number),
+                )
+                _wa_responder(from_number, "✅ Dado de baja. Responde ALTA cuando quieras volver.")
+            else:
+                _wa_responder(
+                    from_number,
+                    "👋 ¡Hola! Soy Flipazo, el buscador de chollos verificados en España.\n\n"
+                    "• Responde *ALTA* para recibir los mejores deals del día\n"
+                    "• Responde *BAJA* para desuscribirte\n\n"
+                    "También puedes seguirnos en t.me/flipazo"
+                )
+        return {"ok": True}
+    except Exception as e:
+        print(f"❌ WA webhook error: {e}")
+        return {"ok": True}  # siempre 200 para Meta
+
+
+def _wa_responder(telefono: str, mensaje: str) -> None:
+    """Envía un mensaje de respuesta vía WhatsApp Cloud API."""
+    if not WA_PHONE_NUMBER_ID or not WA_TOKEN:
+        return
+    try:
+        _http.post(
+            f"https://graph.facebook.com/v20.0/{WA_PHONE_NUMBER_ID}/messages",
+            headers={"Authorization": f"Bearer {WA_TOKEN}", "Content-Type": "application/json"},
+            json={
+                "messaging_product": "whatsapp",
+                "to": telefono,
+                "type": "text",
+                "text": {"body": mensaje},
+            },
+            timeout=10,
+        )
+    except Exception:
+        pass
+
+
+@app.get("/admin/wa-suscriptores")
+def admin_wa_suscriptores(request: Request):
+    """Lista de suscriptores de WhatsApp. Requiere JWT admin."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    with _get_db() as con:
+        rows = con.execute(
+            "SELECT telefono, nombre, activo, alta_en, baja_en FROM wa_suscriptores ORDER BY alta_en DESC"
+        ).fetchall()
+    suscriptores = [
+        {"telefono": r[0], "nombre": r[1], "activo": bool(r[2]), "alta_en": r[3], "baja_en": r[4]}
+        for r in rows
+    ]
+    activos = sum(1 for s in suscriptores if s["activo"])
+    return {"suscriptores": suscriptores, "total": len(suscriptores), "activos": activos}
