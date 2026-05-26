@@ -707,9 +707,9 @@ async def _extraer_precios_busqueda(card) -> tuple[float, float]:
             txt = await precios_loc.first.inner_text()
             precio_actual = float(re.sub(r'[^\d,]', '', txt).replace(',', '.'))
 
-        # Precio original: solo span.a-price.a-text-strike (precio EU-regulado 30 días).
-        # span.a-text-price es el List Price/MSRP del fabricante y puede estar muy inflado.
-        original_loc = card.locator('span.a-price.a-text-strike span.a-offscreen')
+        # Precio original: Amazon usa data-a-strike="true" en span.a-text-price (antes a-text-strike).
+        # Puede ser list price del fabricante; el sanity check de ratio ×10 filtra outliers extremos.
+        original_loc = card.locator('span.a-text-price span.a-offscreen')
         if await original_loc.count() > 0:
             txt = await original_loc.first.inner_text()
             precio_original = float(re.sub(r'[^\d,]', '', txt).replace(',', '.'))
