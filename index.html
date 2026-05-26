@@ -1889,6 +1889,7 @@
       transition: opacity 150ms;
     }
     .cgrid__pill:active { opacity: 0.72; }
+    [data-theme="dark"] .cgrid__pill { color: #FFFFFF; }
 
     /* ── SCard: tienda circular ── */
     .scard {
@@ -2935,7 +2936,7 @@
       });
     }
     if (activeSort === "reventa") return deals.filter(d => d.tipo === "REVENTA" || d.tipo === "ARBITRAJE");
-    if (activeSort === "low_cost") return [...deals].filter(d => (d.precio_actual || 0) < 25).sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0));
+    if (activeSort === "low_cost") return deals.filter(d => (d.precio_actual || 0) < 25);
     return deals;
   }
 
@@ -3574,7 +3575,13 @@
   }
 
   // ── Store bar ─────────────────────────────────────────────────
-  let _allKnownStores = new Set();
+  // Pre-poblamos con las tiendas activas para que aparezcan en el filtro aunque no tengan deals en el primer lote.
+  const _KNOWN_STORES = [
+    "Amazon", "MediaMarkt", "PCBox", "PcComponentes", "El Corte Inglés",
+    "Decathlon", "Worten", "Mammoth Bikes", "Private Sport Shop",
+    "Esdemarca", "Desigual", "Toni Pons", "Beep"
+  ];
+  let _allKnownStores = new Set(_KNOWN_STORES);
 
   function buildStoreBar(extraStores) {
     const bar = document.getElementById("js-store-bar");
@@ -3936,7 +3943,12 @@
       if (zoom) zoom.style.display = "";
       if (todosBtn)   { todosBtn.classList.add("dvt-btn--active"); todosBtn.setAttribute("aria-pressed","true"); }
       if (explorarBtn){ explorarBtn.classList.remove("dvt-btn--active"); explorarBtn.setAttribute("aria-pressed","false"); }
-      if (!allDeals.length) loadDeals();
+      if (!allDeals.length) {
+        currentOffset = 0; hasMore = true; isLoading = false;
+        loadMore();
+      } else {
+        renderGrid();
+      }
     }
     try { localStorage.setItem("flipazo_desktop_view", view); } catch {}
   }
@@ -4066,14 +4078,14 @@
   // ── Categorías y tiendas ──────────────────────────────────────
 
   const _MH_CATS = [
-    { id: "tecnologia",   label: "Tecnología",   light: "#EEF4FF", dark: "#152035" },
-    { id: "deportes",     label: "Deportes",     light: "#EDFAEF", dark: "#122815" },
-    { id: "moda",         label: "Moda",         light: "#FFF0F6", dark: "#27122a" },
-    { id: "hogar",        label: "Hogar",        light: "#FFF8EE", dark: "#261d0c" },
-    { id: "calzado",      label: "Calzado",      light: "#F2EDFF", dark: "#1c122d" },
-    { id: "belleza",      label: "Cuidado Personal", light: "#FFEDED", dark: "#271212" },
-    { id: "juguetes",     label: "Juguetes",     light: "#FFFADF", dark: "#252107" },
-    { id: "herramientas", label: "Herramientas", light: "#F0F0F0", dark: "#1c1c1c" },
+    { id: "tecnologia",   label: "Tecnología",       light: "#EEF4FF", dark: "#1E40AF" },
+    { id: "deportes",     label: "Deportes",         light: "#EDFAEF", dark: "#15803D" },
+    { id: "moda",         label: "Moda",             light: "#FFF0F6", dark: "#BE185D" },
+    { id: "hogar",        label: "Hogar",            light: "#FFF8EE", dark: "#B45309" },
+    { id: "calzado",      label: "Calzado",          light: "#F2EDFF", dark: "#6D28D9" },
+    { id: "belleza",      label: "Cuidado Personal", light: "#FFEDED", dark: "#B91C1C" },
+    { id: "juguetes",     label: "Juguetes",         light: "#FFFADF", dark: "#A16207" },
+    { id: "herramientas", label: "Herramientas",     light: "#F0F0F0", dark: "#4B5563" },
   ];
 
   function _renderCategoryGrid() {
@@ -4230,6 +4242,8 @@
     const btn = bar ? bar.querySelector(`[data-cat="${catId}"]`) : null;
     if (btn) {
       activeCategory = catId;
+      activeSort = "recientes";
+      document.querySelectorAll(".sort-tab").forEach(b => b.classList.toggle("sort-tab--active", b.dataset.sort === "recientes"));
       bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === catId));
       buildSubcatBar();
       const titleEl = document.getElementById("js-section-title");
@@ -4249,14 +4263,21 @@
     const back = document.getElementById("js-mhome-back");
     if (back && _isMobileViewport()) back.style.display = "inline-flex";
     activeStore = storeName;
+    activeSort = "recientes";
+    activeCategory = "todas";
+    document.querySelectorAll(".sort-tab").forEach(b => b.classList.toggle("sort-tab--active", b.dataset.sort === "recientes"));
+    const cb = document.getElementById("js-cat-bar");
+    if (cb) cb.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "todas"));
     const bar = document.getElementById("js-store-bar");
     if (bar) {
       bar.querySelectorAll(".store-pill").forEach(b => b.classList.toggle("store-pill--active", b.dataset.store === storeName));
       const row = document.getElementById("js-store-row");
       if (row) row.style.display = "flex";
     }
+    allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
+    document.getElementById("js-grid").innerHTML = "";
     window.scrollTo({ top: 0, behavior: "instant" });
-    if (allDeals.length) renderGrid(); else loadMore();
+    loadMore();
   }
 
   // Ir a una pestaña de orden (ej: Por debajo de 25€) desde el mobile home
@@ -4289,6 +4310,8 @@
     if (back && _isMobileViewport()) back.style.display = "inline-flex";
     activeCategory   = "tecnologia";
     activeTechSubcat = subcatId;
+    activeSort = "recientes";
+    document.querySelectorAll(".sort-tab").forEach(b => b.classList.toggle("sort-tab--active", b.dataset.sort === "recientes"));
     const bar = document.getElementById("js-cat-bar");
     if (bar) bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "tecnologia"));
     buildSubcatBar();

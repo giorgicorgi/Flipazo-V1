@@ -431,7 +431,7 @@ def _filtrar_toni_pons(raw: list[dict], precio_minimo: float, precio_maximo: flo
 # Constantes Desigual
 # ---------------------------------------------------------------------------
 
-_DESIGUAL_DESCUENTO_MIN = 60
+_DESIGUAL_DESCUENTO_MIN = 50  # outlet Desigual ofrece pocos productos al 60%+; con 50% hay ~675/ciclo
 _DESIGUAL_PRECIO_MIN    = 25.0
 _DESIGUAL_PRECIO_MAX    = 300.0  # calzado y bolsos Desigual raramente superan los 300€
 

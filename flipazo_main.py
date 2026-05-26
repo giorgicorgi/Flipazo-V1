@@ -1522,11 +1522,13 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         )
         for d in td_raw:
             _registrar_observacion_precio(d)
-            # Feeds TD usan PreviousPrice del fabricante (MSRP), no wasPrice real del retailer.
-            # Si precio_original > 2.5× precio_actual el descuento es ficticio (ej. 186€ MSRP → 68€ real).
+            # MediaMarkt y PCBox usan PreviousPrice = MSRP fabricante → si descuento >60% suele ser ficticio.
+            # Esdemarca / Toni Pons / Desigual usan PreviousPrice/SalePrice real del retailer (outlet),
+            # donde descuentos del 60-80% son habituales y legítimos — no aplicar el filtro 2.5×.
             _p_act = d.get("precio_actual", 0)
             _p_ori = d.get("precio_original", 0)
-            if _p_act > 0 and _p_ori > _p_act * 2.5:
+            _tienda = d.get("tienda", "")
+            if _tienda in ("MediaMarkt", "PCBox") and _p_act > 0 and _p_ori > _p_act * 2.5:
                 continue
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=_p_act):
                 continue
