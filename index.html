@@ -3932,8 +3932,9 @@
       if (todosBtn)   { todosBtn.classList.remove("dvt-btn--active"); todosBtn.setAttribute("aria-pressed","false"); }
       if (explorarBtn){ explorarBtn.classList.add("dvt-btn--active"); explorarBtn.setAttribute("aria-pressed","true"); }
       if (!_mhomeDeals.length) {
-        loadMobileHome(); // fetches and renders when done
+        loadMobileHome(); // fetches, replaceState y renderiza cuando termina
       } else {
+        history.replaceState({ flipazo_view: 'home', desktop: true }, '');
         renderMobileHome(_mhomeDeals);
       }
     } else {
@@ -4219,7 +4220,7 @@
       if (!allDeals.length) {
         allDeals = batch; currentOffset = batch.length; hasMore = false;
       }
-      history.replaceState({ flipazo_view: 'home' }, '');
+      history.replaceState({ flipazo_view: 'home', desktop: _desktopDiscovery }, '');
       if (_isMobileDiscovery() || _desktopDiscovery) renderMobileHome(batch);
     } catch {
       if (mh) mh.innerHTML = `<p style="padding:24px 16px;color:var(--text-mid);font-size:14px">Error cargando las ofertas. Recarga la página.</p>`;
@@ -4325,9 +4326,31 @@
     loadMore();
   }
 
+  function _restoreDesktopExplorar() {
+    _desktopDiscovery = true;
+    const mh  = document.getElementById("js-mobile-home");
+    const gw  = document.getElementById("js-grid-wrap");
+    const hero = document.getElementById("js-hero");
+    const zoom = document.getElementById("js-zoom-control");
+    const todosBtn   = document.getElementById("js-dvt-todos");
+    const explorarBtn = document.getElementById("js-dvt-explorar");
+    if (mh)  { mh.classList.add("mhome--desktop"); mh.style.display = "block"; }
+    if (gw)   gw.style.display = "none";
+    if (hero) hero.style.display = "none";
+    if (zoom) zoom.style.display = "none";
+    if (todosBtn)    { todosBtn.classList.remove("dvt-btn--active"); todosBtn.setAttribute("aria-pressed","false"); }
+    if (explorarBtn) { explorarBtn.classList.add("dvt-btn--active"); explorarBtn.setAttribute("aria-pressed","true"); }
+    if (_mhomeDeals.length) renderMobileHome(_mhomeDeals);
+    requestAnimationFrame(() => window.scrollTo({ top: _mhomeScrollY, behavior: "instant" }));
+  }
+
   window.addEventListener('popstate', e => {
-    if (!_isMobileViewport()) return;
-    if (e.state && e.state.flipazo_view === 'home') goBackToMhome();
+    if (!e.state || e.state.flipazo_view !== 'home') return;
+    if (e.state.desktop) {
+      _restoreDesktopExplorar();
+    } else {
+      goBackToMhome();
+    }
   });
 
   // ── Filter panel (FAB) ───────────────────────────────────────
