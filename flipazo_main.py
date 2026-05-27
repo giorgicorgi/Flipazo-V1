@@ -999,9 +999,8 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", p
     if re.search(r'\b(maillot|culott?e)s?\b', t) and descuento_pct <= 60:
         return False
     # Ropa de moda/deporte: solo si marca conocida + descuento real ≥50%
-    # Excepción: Barrabés y Esdemarca aplican su propia whitelist de marcas
-    # en el filtro local (más estricta que _MARCAS_ROPA), así que se eximen.
-    if tienda not in ("Barrabes", "Esdemarca") and any(r in t for r in _PALABRAS_ROPA):
+    # Excepción: Barrabés (outdoor técnico), Decathlon (deporte), Esdemarca (moda con whitelist propia)
+    if tienda not in ("Barrabes", "Decathlon", "Esdemarca") and any(r in t for r in _PALABRAS_ROPA):
         if descuento_pct < 50 or not any(m in t for m in _MARCAS_ROPA):
             return False
     # Cecotec: marca de gama baja con precios de referencia inflados — solo descuentos fuertes
@@ -1195,6 +1194,11 @@ async def scrape_pccomponentes(context: BrowserContext) -> list[Producto]:
 
 
 
+def _parse_precio_es(texto_precio: str) -> float:
+    """Convierte '2.899,00' o '229,95' → float (formato español con separador de miles)."""
+    return float(texto_precio.replace(".", "").replace(",", "."))
+
+
 async def scrape_mammoth(context: BrowserContext) -> list[Producto]:
     """
     Scraper para Mammoth Bikes outlet.
@@ -1206,10 +1210,6 @@ async def scrape_mammoth(context: BrowserContext) -> list[Producto]:
     page = await context.new_page()
     productos: list[Producto] = []
     hrefs_vistos: set[str] = set()
-
-    def _parse_precio_es(texto_precio: str) -> float:
-        """Convierte '2.899,00' o '229,95' → float."""
-        return float(texto_precio.replace(".", "").replace(",", "."))
 
     try:
         for url in MAMMOTH_URLS:
@@ -1566,9 +1566,12 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     # ── Decathlon feed (historial de precios propio, caché 23h) ───────────────
     try:
         dec_raw = await asyncio.to_thread(fetch_decathlon_productos)
-        for d in dec_raw:
+        dec_añadidos = 0
+        for d in sorted(dec_raw, key=lambda x: -x.get("descuento_pct", 0)):
+            if dec_añadidos >= 2:
+                break
             _registrar_observacion_precio(d)
-            if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda="Decathlon", precio=d.get("precio_actual", 0)):
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
                 continue
@@ -1577,6 +1580,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             if clave not in vistos:
                 vistos.add(clave)
                 todos.append(p)
+                dec_añadidos += 1
     except Exception as e:
         print(f"   ❌ Error en Decathlon feed: {e}")
         alertar_admin("Error en Decathlon feed", str(e))
