@@ -30,7 +30,7 @@ DB_PATH            = os.getenv("DB_PATH", "flipazo_deals.db")
 
 _FID            = "21529"
 _API_BASE       = "https://api.tradedoubler.com/1.0/products.json"
-_PAGE_SIZE      = 500
+_PAGE_SIZE      = 100   # máximo aceptado por ToysRus (500 → 400 Bad Request)
 
 _DESCUENTO_MIN    = 40
 _PRECIO_MIN       = 25.0
