@@ -4,88 +4,98 @@
   <!-- ── Páginas principales ── -->
   <url>
     <loc>https://www.flipazo.es/</loc>
-    <lastmod>2026-05-19</lastmod>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>hourly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.flipazo.es/sobre</loc>
-    <lastmod>2026-05-20</lastmod>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.flipazo.es/blog</loc>
-    <lastmod>2026-05-19</lastmod>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
-  <!-- ── Artículos de blog ──────────────────────────────────────
-       Añadir aquí cada artículo cuando tenga contenido completo.
-       Google penaliza las páginas "thin content" (solo resumen).
-  ─────────────────────────────────────────────────────────────── -->
+  <!-- ── Artículos de blog ── -->
 
   <url>
+    <loc>https://www.flipazo.es/blog/que-puedo-regalar</loc>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.flipazo.es/blog/ofertas-en-espana-hoy</loc>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.flipazo.es/blog/mejores-canales-ofertas-espana-2025</loc>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.flipazo.es/blog/que-es-un-chollo-de-verdad</loc>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.flipazo.es/blog/amazon-precio-historico-como-verificarlo</loc>
-    <lastmod>2026-05-20</lastmod>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.flipazo.es/blog/como-saber-si-una-oferta-es-real</loc>
-    <lastmod>2026-05-20</lastmod>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.flipazo.es/blog/efecto-black-friday-como-suben-precios</loc>
-    <lastmod>2026-05-20</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.flipazo.es/blog/mejores-canales-ofertas-espana-2025</loc>
-    <lastmod>2026-05-20</lastmod>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.flipazo.es/blog/ofertas-que-desaparecen-en-horas</loc>
-    <lastmod>2026-05-20</lastmod>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.flipazo.es/blog/por-que-ponen-el-precio-tachado</loc>
-    <lastmod>2026-05-20</lastmod>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.flipazo.es/blog/precio-referencia-vs-precio-real</loc>
-    <lastmod>2026-05-20</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.flipazo.es/blog/que-es-un-chollo-de-verdad</loc>
-    <lastmod>2026-05-20</lastmod>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.flipazo.es/blog/que-significa-descuento-real</loc>
-    <lastmod>2026-05-20</lastmod>
+    <lastmod>2026-05-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.flipazo.es/blog/compre-productos-vendi-wallapop-esto-gane</loc>
+    <lastmod>2026-05-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
 
-  <!-- Páginas legales excluidas del sitemap:
-       - privacidad y cookies tienen <meta name="robots" content="noindex"> →
-         incluirlas en el sitemap contradice la señal noindex.
-       - aviso-legal.html (con .html) genera un 301 por cleanUrls de Vercel →
-         usa la URL canónica /aviso-legal si quieres incluirla. -->
   <url>
     <loc>https://www.flipazo.es/aviso-legal</loc>
     <changefreq>yearly</changefreq>
