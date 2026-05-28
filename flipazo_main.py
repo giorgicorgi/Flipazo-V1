@@ -2885,18 +2885,31 @@ async def run_pipeline(modo: str = "completo"):
                                 p.titulo, p.precio_actual, browser
                             )
                             if datos:
-                                ahorro = round(p.precio_actual - datos["precio_actual"], 2)
+                                ahorro      = round(p.precio_actual - datos["precio_actual"], 2)
+                                tienda_orig = p.tienda  # capturar antes de sobreescribir
                                 p.asin          = datos["asin"]
                                 p.precio_actual = datos["precio_actual"]
-                                # Conservar precio_original del deal de origen (ref. EU-regulada);
-                                # si Amazon tiene uno mayor, usarlo (descuento más fiable)
-                                if datos["precio_original_amazon"] > p.precio_actual:
-                                    p.precio_original = max(p.precio_original, datos["precio_original_amazon"])
-                                if p.precio_original > 0:
-                                    p.descuento_pct = max(0, round((1 - p.precio_actual / p.precio_original) * 100))
+                                # Feeds con PreviousPrice = MSRP fabricante: no heredar su precio_original.
+                                # Solo usar la referencia que muestre Amazon en la card de búsqueda.
+                                _TIENDAS_MSRP = {"Beep"}
+                                if tienda_orig in _TIENDAS_MSRP:
+                                    ref_amazon = datos["precio_original_amazon"]
+                                    if ref_amazon > p.precio_actual:
+                                        p.precio_original = ref_amazon
+                                        p.descuento_pct = max(0, round((1 - p.precio_actual / ref_amazon) * 100))
+                                    else:
+                                        # Sin referencia fiable → descuento = 0 → descartado por filtro
+                                        p.precio_original = 0.0
+                                        p.descuento_pct   = 0
+                                else:
+                                    # Para otras tiendas, conservar precio_original de origen (ref. EU-regulada)
+                                    # y actualizar si Amazon muestra uno mayor.
+                                    if datos["precio_original_amazon"] > p.precio_actual:
+                                        p.precio_original = max(p.precio_original, datos["precio_original_amazon"])
+                                    if p.precio_original > 0:
+                                        p.descuento_pct = max(0, round((1 - p.precio_actual / p.precio_original) * 100))
                                 if datos["imagen_url"]:
                                     p.imagen_url = datos["imagen_url"]
-                                tienda_orig = p.tienda
                                 p.tienda = "Amazon"
                                 mejorados += 1
                                 print(f"   💸 {tienda_orig}→Amazon  −{ahorro}€  {p.titulo[:45]}")
