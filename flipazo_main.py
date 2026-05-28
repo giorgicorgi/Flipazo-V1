@@ -1005,11 +1005,20 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", p
     return True
 
 
-def _precio_aceptable(precio_actual: float, descuento: int) -> bool:
-    """Devuelve True si pasa el filtro estándar O el filtro low-cost."""
+# Umbral LC por tienda para items < 25€. El default (40%) aplica a MediaMarkt, ToysRus, Amazon…
+# Esdemarca sube a 60% (ropa de temporada con precio hinchado); Decathlon a 50% (deporte técnico).
+_LC_DESCUENTO_MIN_POR_TIENDA: dict[str, int] = {
+    "Esdemarca": 60,
+    "Decathlon": 50,
+}
+
+
+def _precio_aceptable(precio_actual: float, descuento: int, tienda: str = "") -> bool:
+    """Devuelve True si pasa el filtro estándar O el filtro low-cost (umbral LC por tienda)."""
     if precio_actual >= PRECIO_MINIMO and descuento >= DESCUENTO_MINIMO:
         return True
-    if PRECIO_MINIMO_LC <= precio_actual < PRECIO_MINIMO and descuento >= DESCUENTO_LC_MINIMO:
+    lc_min = _LC_DESCUENTO_MIN_POR_TIENDA.get(tienda, DESCUENTO_LC_MINIMO)
+    if PRECIO_MINIMO_LC <= precio_actual < PRECIO_MINIMO and descuento >= lc_min:
         return True
     return False
 
@@ -1542,7 +1551,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
                 continue
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=_p_act):
                 continue
-            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
+            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda=_tienda):
                 continue
             p = Producto(**d)
             clave = f"{p.tienda}:{p.titulo[:40].lower()}"
@@ -1563,7 +1572,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             _registrar_observacion_precio(d)
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda="Decathlon", precio=d.get("precio_actual", 0)):
                 continue
-            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
+            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda="Decathlon"):
                 continue
             p = Producto(**d)
             clave = f"Decathlon:{p.titulo[:40].lower()}"
@@ -1581,7 +1590,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         for d in tr_raw:
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
                 continue
-            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
+            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda="ToysRus"):
                 continue
             p = Producto(**d)
             clave = f"ToysRus:{p.titulo[:40].lower()}"
