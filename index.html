@@ -2658,7 +2658,7 @@
   function dealMatchesStore(deal) { return !activeStore || deal.tienda === activeStore; }
 
   function dealMatchesFilters(deal) {
-    if (activeSort !== "low_cost" && (deal.precio_actual || 0) < 25) return false;
+    if (activeSort === "low_cost" && (deal.precio_actual || 0) >= 25) return false;
     return dealMatchesCategory(deal, activeCategory) && dealMatchesStore(deal);
   }
 
