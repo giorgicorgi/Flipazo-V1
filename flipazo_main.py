@@ -637,8 +637,11 @@ async def _extraer_de_busqueda(page: Page, vistos: set) -> list[Producto]:
             if descuento == 0 and precio_original > precio_actual:
                 descuento = round((1 - precio_actual / precio_original) * 100)
 
+            # Registrar observación de precio ANTES del filtro — acumula historial propio.
+            # precio_original es el "was price" de Amazon = referencia real de mercado.
+            _registrar_precio_amazon(asin, precio_actual, precio_original)
+
             # Tope de descuento: >90% sin badge externo es siempre un error de precio por unidad/kg.
-            # Los descuentos reales de Amazon raramente superan el 80-85%.
             if descuento > 90:
                 continue
 
@@ -781,9 +784,11 @@ async def _buscar_precio_amazon_mas_barato(
                 precio_actual, precio_original = await _extraer_precios_busqueda(card)
                 if precio_actual <= 0:
                     continue
-                # Solo omitir si Amazon es claramente más caro (>15%):
-                # cuando Amazon está al mismo precio que la "oferta", queremos el dato
-                # para detectar MSRPs inflados del retailer de origen.
+
+                # Registrar precio real de Amazon (sin filtro de descuento = precio de mercado).
+                _registrar_precio_amazon(asin, precio_actual, precio_original)
+
+                # Solo omitir si Amazon es claramente más caro (>15%)
                 if precio_actual > precio_no_amazon * 1.15:
                     continue
 
@@ -950,6 +955,54 @@ def _precio_valido_para_categoria(titulo: str, precio: float) -> bool:
         if any(kw in t for kw in keywords) and precio < precio_min:
             return False
     return True
+
+
+_MIN_DIAS_HISTORIAL_AMAZON = 3   # días mínimos para usar historial propio
+
+
+def _registrar_precio_amazon(asin: str, precio: float, precio_original: float) -> None:
+    """Registra una observación diaria de precios Amazon en price_history.
+    Un registro por ASIN por día (INSERT OR IGNORE — conserva la primera del día).
+    Se llama para TODOS los productos vistos en Amazon, no solo los que pasan filtros.
+    """
+    if not asin or precio <= 0:
+        return
+    try:
+        fecha = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        with sqlite3.connect(DB_PATH) as con:
+            con.execute(
+                "INSERT OR IGNORE INTO price_history (asin, tienda, precio, precio_original, fecha) "
+                "VALUES (?, 'Amazon', ?, ?, ?)",
+                (asin, precio, precio_original or 0.0, fecha),
+            )
+    except Exception:
+        pass
+
+
+def _calcular_historial_amazon(asin: str, dias: int = 30) -> tuple[float, float, int]:
+    """
+    Estadísticas del historial propio de precios Amazon para un ASIN.
+    Devuelve (min_precio_original, avg_precio_original, n_dias).
+
+    Usamos precio_original (el "was price" de Amazon) como referencia real —
+    no el precio descontado, que siempre es bajo porque nuestras URLs filtran ≥40%.
+    El avg/min de precio_original a lo largo de días es el precio normal del producto.
+    """
+    desde = (datetime.now(timezone.utc) - timedelta(days=dias)).strftime("%Y-%m-%d")
+    try:
+        with sqlite3.connect(DB_PATH) as con:
+            row = con.execute(
+                """SELECT MIN(precio_original), AVG(precio_original), COUNT(DISTINCT fecha)
+                   FROM price_history
+                   WHERE asin = ? AND tienda = 'Amazon'
+                     AND fecha >= ? AND precio_original > 0""",
+                (asin, desde),
+            ).fetchone()
+        if row and row[2] and row[2] >= _MIN_DIAS_HISTORIAL_AMAZON:
+            return round(row[0], 2), round(row[1], 2), int(row[2])
+    except Exception:
+        pass
+    return 0.0, 0.0, 0
 
 
 def _registrar_observacion_precio(d: dict) -> None:
@@ -1749,14 +1802,23 @@ async def verificar_con_ccc(
     productos: list[Producto], context: BrowserContext
 ) -> list[Producto]:
     """
-    Fallback: verifica con CamelCamelCamel cuando no hay KEEPA_API_KEY.
-    Usa Playwright — puede ser bloqueado por Cloudflare.
+    Fallback cuando no hay KEEPA_API_KEY.
+    Prioridad: historial propio (price_history) → CamelCamelCamel (Playwright).
     """
-    print(f"\n📊 Verificando historial en CamelCamelCamel ({len(productos)} productos)...")
+    print(f"\n📊 Verificando historial ({len(productos)} productos) — historial propio + CCC...")
     verificados: list[Producto] = []
 
     for p in productos:
-        min_h, avg_h = await _scrape_ccc(p.asin, context)
+        # 1. Historial propio: precio_original acumulado durante scans de Amazon
+        min_h, avg_h, n_dias = _calcular_historial_amazon(p.asin)
+        fuente = f"historial propio ({n_dias}d)"
+
+        if avg_h <= 0:
+            # 2. Fallback a CCC si no hay datos propios suficientes
+            min_h, avg_h = await _scrape_ccc(p.asin, context)
+            fuente = "CCC"
+            await asyncio.sleep(1.5)
+
         p.precio_historico_min = min_h
 
         if min_h > 0:
@@ -1780,10 +1842,10 @@ async def verificar_con_ccc(
 
             ratio = p.precio_actual / min_h
             if ratio <= RATIO_HISTORICO_MAX:
-                print(f"   ✅ {p.titulo[:45]:<45} | {p.precio_actual}€ (hist. mín {min_h}€ / avg {ref_normal}€)")
+                print(f"   ✅ [{fuente}] {p.titulo[:42]:<42} | {p.precio_actual}€ (mín {min_h}€ / avg {ref_normal}€)")
                 verificados.append(p)
             else:
-                print(f"   ❌ Precio actual {ratio:.2f}x del mínimo histórico: {p.titulo[:40]}")
+                print(f"   ❌ [{fuente}] {ratio:.2f}x del mínimo ({min_h}€): {p.titulo[:40]}")
         else:
             if (p.precio_original > 0 and p.precio_actual > 0
                     and p.precio_original / p.precio_actual > 8
