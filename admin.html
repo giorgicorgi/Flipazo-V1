@@ -379,6 +379,22 @@
     .col-dt   { width: 90px; }
     .col-exp  { width: 46px; }
     .col-del  { width: 44px; }
+
+    /* ── Store filter select ── */
+    .tienda-filter {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .tienda-filter:focus { border-color: var(--accent); }
+    .tienda-filter.active { border-color: var(--accent); background: #fff5f4; color: var(--accent); font-weight: 700; }
   </style>
 </head>
 <body>
@@ -536,6 +552,24 @@
       <div class="deals-toolbar__left">
         <h2>Deals</h2>
         <input class="deals-search" id="deals-search" type="text" placeholder="Buscar por título…" />
+        <select class="tienda-filter" id="deals-tienda-filter" title="Filtrar por tienda">
+          <option value="">Todas las tiendas</option>
+          <option value="Amazon">Amazon</option>
+          <option value="Barrabes">Barrabés</option>
+          <option value="Beep">Beep</option>
+          <option value="Decathlon">Decathlon</option>
+          <option value="Desigual">Desigual</option>
+          <option value="El Corte Inglés">El Corte Inglés</option>
+          <option value="Esdemarca">Esdemarca</option>
+          <option value="Mammoth Bikes">Mammoth Bikes</option>
+          <option value="MediaMarkt">MediaMarkt</option>
+          <option value="PCBox">PCBox</option>
+          <option value="PcComponentes">PcComponentes</option>
+          <option value="Private Sport Shop">Private Sport Shop</option>
+          <option value="ToysRus">ToysRus</option>
+          <option value="ToniPons">Toni Pons</option>
+          <option value="Worten">Worten</option>
+        </select>
       </div>
       <div class="deals-toolbar__right">
         <span id="deals-count-label" style="color:var(--ink-3);font-size:12px"></span>
@@ -842,7 +876,7 @@
   // ── Deals ────────────────────────────────────────────────────────────
   const DEALS_LIMIT = 50;
   const selectedDeals = new Set();
-  const dealsState = { deals: [], total: -1, offset: 0, search: "" };
+  const dealsState = { deals: [], total: -1, offset: 0, search: "", tienda: "" };
   let dealsSearchTimer = null;
   let dealsExpiredFilter = false;
 
@@ -871,7 +905,8 @@
     document.getElementById("deals-empty").style.display   = "none";
 
     const p = new URLSearchParams({ limit: DEALS_LIMIT, offset: dealsState.offset });
-    if (dealsState.search) p.set("busqueda", dealsState.search);
+    if (dealsState.search)  p.set("busqueda", dealsState.search);
+    if (dealsState.tienda)  p.set("tienda",   dealsState.tienda);
     if (dealsExpiredFilter) p.set("expirado", "1");
 
     try {
@@ -979,6 +1014,12 @@
     clearTimeout(dealsSearchTimer);
     dealsState.search = this.value.trim();
     dealsSearchTimer = setTimeout(() => loadDeals(true), 400);
+  });
+
+  document.getElementById("deals-tienda-filter").addEventListener("change", function() {
+    dealsState.tienda = this.value;
+    this.classList.toggle("active", !!this.value);
+    loadDeals(true);
   });
 
   function dealsPage(dir) {
