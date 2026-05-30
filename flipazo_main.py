@@ -41,6 +41,11 @@ TELEGRAM_ADMIN_CHAT_ID = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")  # chat persona
 # ── Threads (Meta) ────────────────────────────────────────────────
 # Setup: developers.facebook.com → App → Threads API → User token
 # Permisos necesarios: threads_basic, threads_content_publish
+# ── Keepa (historial de precios Amazon) ──────────────────────────
+# API docs: https://keepa.com/#!api  — domain 9 = Amazon.es
+# Tier free: 100 tokens/día. Deal típico = 1 token. Plan $15/mes = 2500 tokens/día.
+KEEPA_API_KEY = os.getenv("KEEPA_API_KEY", "")
+
 THREADS_USER_ID = os.getenv("THREADS_USER_ID", "")   # ID numérico del usuario Threads
 THREADS_TOKEN   = os.getenv("THREADS_TOKEN", "")     # Long-lived access token (60 días)
 
@@ -1620,15 +1625,132 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
 #  Buscamos el precio mínimo histórico del canal "Amazon" (venta directa).
 # ════════════════════════════════════════════════════════════════
 
+def _consultar_keepa(asin: str) -> tuple[float, float]:
+    """
+    Consulta el historial de precios en Keepa para Amazon.es (domain=9).
+    Devuelve (precio_minimo_90d, precio_promedio_90d) en EUR.
+    Usa Buy Box > Amazon directo > Marketplace New (orden de preferencia).
+    Retorna (0.0, 0.0) si no hay API key o no hay datos.
+    """
+    if not KEEPA_API_KEY:
+        return 0.0, 0.0
+    try:
+        resp = requests.get(
+            "https://api.keepa.com/product",
+            params={"key": KEEPA_API_KEY, "domain": "9", "asin": asin, "stats": "90"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        products = resp.json().get("products", [])
+        if not products:
+            return 0.0, 0.0
+
+        stats = products[0].get("stats", {})
+        if not stats:
+            return 0.0, 0.0
+
+        # Keepa stats.avgInInterval / stats.minInInterval = últimos 90 días
+        # Fallback a stats.avg / stats.min si no hay intervalo.
+        avg_arr = stats.get("avgInInterval") or stats.get("avg") or []
+        min_arr = stats.get("minInInterval") or stats.get("min") or []
+
+        # Índices Keepa: 3=Buy Box, 2=Amazon directo, 0=Marketplace New
+        def _pick(arr: list) -> float:
+            for idx in (3, 2, 0):
+                if len(arr) > idx and arr[idx] not in (-1, None) and arr[idx] > 0:
+                    return round(arr[idx] / 100, 2)   # cents → EUR
+            return 0.0
+
+        avg_eur = _pick(avg_arr)
+        min_eur = _pick(min_arr)
+        if avg_eur <= 0:
+            return 0.0, 0.0
+        return (min_eur if min_eur > 0 else avg_eur), avg_eur
+
+    except Exception as e:
+        print(f"   ⚠️  Keepa error ({asin}): {e}")
+        return 0.0, 0.0
+
+
+async def verificar_con_keepa(productos: list[Producto]) -> list[Producto]:
+    """
+    Filtra y corrige productos usando historial de precios de Keepa (90 días, Buy Box).
+    Sin Playwright — simple HTTP. Funciona en ciclos FLASH si hay API key.
+
+    Mismas dos comprobaciones que CCC:
+      1. precio_original > avg_90d × 1.25 → referencia inflada → recalcular o descartar.
+      2. precio_actual > min_90d × 1.20 → ya no es el mínimo → descartar.
+    """
+    if not KEEPA_API_KEY:
+        print("   ⚠️  KEEPA_API_KEY no configurada — saltando verificación Keepa")
+        return productos
+
+    print(f"\n📊 Verificando historial en Keepa ({len(productos)} productos)...")
+    verificados: list[Producto] = []
+
+    for p in productos:
+        min_h, avg_h = await asyncio.to_thread(_consultar_keepa, p.asin)
+        p.precio_historico_min = min_h
+
+        if avg_h > 0:
+            ref_normal = avg_h
+
+            # ── Comprobación 1: referencia de precio inflada ──────────────────────
+            if p.precio_original > 0 and p.precio_original > ref_normal * RATIO_PRECIO_REF_INFLADO:
+                descuento_real = round((1 - p.precio_actual / ref_normal) * 100)
+                if descuento_real < DESCUENTO_MINIMO:
+                    print(
+                        f"   ❌ Desc. falso — avg 90d {avg_h}€ → desc. real {descuento_real}%: "
+                        f"{p.titulo[:38]}"
+                    )
+                    await asyncio.sleep(0.3)
+                    continue
+                print(
+                    f"   ⚠️  Ref. corregida {p.precio_original}€→{ref_normal}€ "
+                    f"(desc. real {descuento_real}%): {p.titulo[:38]}"
+                )
+                p.precio_original = ref_normal
+                p.descuento_pct   = max(0, descuento_real)
+
+            # ── Comprobación 2: precio actual vs mínimo 90d ───────────────────────
+            ratio = p.precio_actual / min_h if min_h > 0 else 1.0
+            if ratio <= RATIO_HISTORICO_MAX:
+                print(
+                    f"   ✅ {p.titulo[:45]:<45} | "
+                    f"{p.precio_actual}€ (avg 90d {avg_h}€ / mín {min_h}€)"
+                )
+                verificados.append(p)
+            else:
+                print(
+                    f"   ❌ Precio actual {ratio:.2f}x del mínimo 90d ({min_h}€): "
+                    f"{p.titulo[:40]}"
+                )
+        else:
+            # Sin historial Keepa — aplicar check de ratio extremo
+            if (p.precio_original > 0 and p.precio_actual > 0
+                    and p.precio_original / p.precio_actual > 8
+                    and p.descuento_pct > 75):
+                print(
+                    f"   ❌ Sin Keepa + ratio extremo "
+                    f"{p.precio_original/p.precio_actual:.1f}x: {p.titulo[:40]}"
+                )
+                await asyncio.sleep(0.3)
+                continue
+            print(f"   ⚠️  Sin historial Keepa: {p.titulo[:45]}")
+            verificados.append(p)
+
+        await asyncio.sleep(0.3)   # ~3 req/s — dentro del free tier de Keepa
+
+    print(f"✅ {len(verificados)}/{len(productos)} productos verificados con Keepa")
+    return verificados
+
+
 async def verificar_con_ccc(
     productos: list[Producto], context: BrowserContext
 ) -> list[Producto]:
     """
-    Filtra y corrige productos usando historial de CamelCamelCamel.
-    Dos comprobaciones:
-      1. Precio de referencia inflado: si precio_original > promedio_histórico × 1.25,
-         recalcula el descuento real. Si es < DESCUENTO_MINIMO → descuento falso → descarta.
-      2. Precio actual demasiado caro vs mínimo histórico: si actual > mínimo × 1.15 → descarta.
+    Fallback: verifica con CamelCamelCamel cuando no hay KEEPA_API_KEY.
+    Usa Playwright — puede ser bloqueado por Cloudflare.
     """
     print(f"\n📊 Verificando historial en CamelCamelCamel ({len(productos)} productos)...")
     verificados: list[Producto] = []
@@ -1638,10 +1760,6 @@ async def verificar_con_ccc(
         p.precio_historico_min = min_h
 
         if min_h > 0:
-            # ── Comprobación 1: referencia de precio inflada artificialmente ──────
-            # Usamos el promedio (no el mínimo) como proxy del precio "normal".
-            # Si precio_original excede el promedio histórico en >25%, el vendedor
-            # infló el precio de referencia para simular un descuento mayor.
             ref_normal = avg_h if avg_h > 0 else min_h
             if p.precio_original > 0 and p.precio_original > ref_normal * RATIO_PRECIO_REF_INFLADO:
                 descuento_real = round((1 - p.precio_actual / ref_normal) * 100)
@@ -1653,8 +1771,6 @@ async def verificar_con_ccc(
                     )
                     await asyncio.sleep(1.5)
                     continue
-                # Hay descuento genuino aunque la referencia esté inflada:
-                # corregimos precio_original y descuento_pct para mostrar honestamente
                 print(
                     f"   ⚠️  Ref. corregida {p.precio_original}€→{ref_normal}€ "
                     f"(desc. real {descuento_real}%): {p.titulo[:38]}"
@@ -1662,7 +1778,6 @@ async def verificar_con_ccc(
                 p.precio_original = ref_normal
                 p.descuento_pct   = max(0, descuento_real)
 
-            # ── Comprobación 2: precio actual vs mínimo histórico ────────────────
             ratio = p.precio_actual / min_h
             if ratio <= RATIO_HISTORICO_MAX:
                 print(f"   ✅ {p.titulo[:45]:<45} | {p.precio_actual}€ (hist. mín {min_h}€ / avg {ref_normal}€)")
@@ -1670,8 +1785,6 @@ async def verificar_con_ccc(
             else:
                 print(f"   ❌ Precio actual {ratio:.2f}x del mínimo histórico: {p.titulo[:40]}")
         else:
-            # Sin historial CCC — bloquear si el ratio precio_original/actual es extremo:
-            # indica ASIN accesorio que heredó el precio de referencia del producto padre.
             if (p.precio_original > 0 and p.precio_actual > 0
                     and p.precio_original / p.precio_actual > 8
                     and p.descuento_pct > 75):
@@ -1684,7 +1797,7 @@ async def verificar_con_ccc(
             print(f"   ⚠️  Sin historial CCC: {p.titulo[:45]}")
             verificados.append(p)
 
-        await asyncio.sleep(1.5)  # Respetar rate limit de CCC
+        await asyncio.sleep(1.5)
 
     print(f"✅ {len(verificados)} productos con precio verificado")
     return verificados
@@ -2935,14 +3048,21 @@ async def run_pipeline(modo: str = "completo"):
                 if descartados:
                     print(f"   🚫 {descartados} deal(s) descartados: precio Amazon demasiado bajo para la categoría")
 
-            # ── Fase 2: CCC solo para productos de Amazon ─────────
+            # ── Fase 2: verificación historial Amazon (Keepa > CCC) ──
             amazon_prods = [p for p in productos if p.tienda == "Amazon"]
             otros_prods  = [p for p in productos if p.tienda != "Amazon"]
 
-            if amazon_prods and modo == "completo":
-                amazon_verificados = await verificar_con_ccc(amazon_prods, browser)
+            if amazon_prods:
+                if KEEPA_API_KEY:
+                    # Keepa: HTTP puro, sin Playwright, funciona en FLASH y COMPLETO
+                    amazon_verificados = await verificar_con_keepa(amazon_prods)
+                elif modo == "completo":
+                    # Fallback CCC — solo en COMPLETO (Playwright necesario)
+                    amazon_verificados = await verificar_con_ccc(amazon_prods, browser)
+                else:
+                    amazon_verificados = amazon_prods  # Flash sin Keepa: sin verificar
             else:
-                amazon_verificados = amazon_prods  # Flash: saltar CCC para velocidad
+                amazon_verificados = amazon_prods
 
             # ── Fase 2b: Ratio cap para PCBox ──────────────────────
             pcbox_prods     = [p for p in otros_prods if p.tienda == "PCBox"]
