@@ -363,6 +363,18 @@ def _check_price_expired(url_afiliado: str, precio_stored: float = 0, timeout: i
             if td_m:
                 url = f"https://www.mediamarkt.es/es/product/_{td_m.group(1)}.html"
 
+        elif "clk.tradedoubler.com" in url_afiliado and "&url=" in url_afiliado:
+            # Deep links propios (clk.tradedoubler.com/click?p=PID&a=AID&url=DEST_URL)
+            # El &url= contiene la URL real del producto (Esdemarca, PCBox, etc.).
+            # clk.tradedoubler.com hace redirect JS — requests no lo sigue.
+            # Extraemos la URL destino y la verificamos directamente.
+            import urllib.parse as _up
+            qs = _up.parse_qs(_up.urlparse(url_afiliado).query)
+            dest = _up.unquote(qs.get("url", [""])[0])
+            if not dest:
+                return None
+            url = dest
+
         elif "tdvisit." in url_afiliado:
             # TD white-label (tdvisit.esdemarca.com, etc.) — JS redirect, no verificable via web
             return None
@@ -390,11 +402,25 @@ def _check_price_expired(url_afiliado: str, precio_stored: float = 0, timeout: i
         if "tradedoublerguid" in content:
             return None
 
+        # Esdemarca: stock 100% JS/AJAX — indetectable en HTML estático.
+        # Si la URL de respuesta conserva el mismo ID de producto → activo.
+        # Si redirigió a otro ID o a una página sin ID → producto retirado.
+        if "esdemarca.com" in resp.url:
+            req_id_m  = _re.search(r'-(\d{6,})\.html', url)
+            resp_id_m = _re.search(r'-(\d{6,})\.html', resp.url)
+            if req_id_m and resp_id_m and req_id_m.group(1) == resp_id_m.group(1):
+                return False  # URL conserva el mismo producto → activo
+            if req_id_m and resp_id_m and req_id_m.group(1) != resp_id_m.group(1):
+                return True   # redirigido a otro producto/categoría
+            if req_id_m and not resp_id_m:
+                return True   # redirigido a página sin ID → retirado
+
         signals = [
             "actualmente no disponible", "currently unavailable",
             "no está disponible", "este artículo no está disponible",
-            "temporalmente sin existencias", "agotado", "out of stock",
+            "temporalmente sin existencias", "out of stock",
             "producto no encontrado", "página no encontrada",
+            "agotado",
         ]
         return any(s in content for s in signals)
 
