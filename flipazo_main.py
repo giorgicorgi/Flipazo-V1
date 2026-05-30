@@ -734,8 +734,10 @@ async def _buscar_precio_amazon_mas_barato(
     """
     Busca el producto en Amazon.es sin el filtro URL ≥40%.
     Usa el número de modelo como ancla (ej: WH-CH520, QC45) para evitar falsos positivos.
-    Retorna dict con datos de Amazon si Amazon tiene el mismo modelo más barato.
-    Retorna None si no se encuentra, el modelo no coincide, o Amazon es más caro o igual.
+    Devuelve datos de Amazon si encuentra el modelo, incluso cuando Amazon no es más barato
+    (campo 'es_mas_barato' indica si conviene sustituir). Solo omite cuando Amazon es
+    claramente más caro (>15% sobre el precio de la oferta de origen).
+    Retorna None si no se encuentra el modelo o Amazon es claramente más caro.
     """
     modelo_m = _MODELO_RE.search(titulo.upper())
     if not modelo_m:
@@ -772,8 +774,13 @@ async def _buscar_precio_amazon_mas_barato(
                     continue  # Modelo diferente → falso positivo
 
                 precio_actual, precio_original = await _extraer_precios_busqueda(card)
-                if precio_actual <= 0 or precio_actual >= precio_no_amazon:
-                    continue  # Amazon no es más barato
+                if precio_actual <= 0:
+                    continue
+                # Solo omitir si Amazon es claramente más caro (>15%):
+                # cuando Amazon está al mismo precio que la "oferta", queremos el dato
+                # para detectar MSRPs inflados del retailer de origen.
+                if precio_actual > precio_no_amazon * 1.15:
+                    continue
 
                 imagen_url = ""
                 img_loc = card.locator("img.s-image")
@@ -783,10 +790,11 @@ async def _buscar_precio_amazon_mas_barato(
                         imagen_url = src
 
                 return {
-                    "asin":           asin,
-                    "precio_actual":  precio_actual,
-                    "precio_original_amazon": precio_original,  # ref interna de Amazon (puede ser 0)
-                    "imagen_url":     imagen_url,
+                    "asin":                   asin,
+                    "precio_actual":          precio_actual,
+                    "precio_original_amazon": precio_original,
+                    "imagen_url":             imagen_url,
+                    "es_mas_barato":          precio_actual < precio_no_amazon,
                 }
             except Exception:
                 continue
@@ -2868,27 +2876,57 @@ async def run_pipeline(modo: str = "completo"):
                                 p.titulo, p.precio_actual, browser
                             )
                             if datos:
-                                ahorro      = round(p.precio_actual - datos["precio_actual"], 2)
-                                tienda_orig = p.tienda  # capturar antes de sobreescribir
-                                p.asin          = datos["asin"]
-                                p.precio_actual = datos["precio_actual"]
-                                # Feeds con PreviousPrice = MSRP fabricante: no heredar su precio_original.
-                                # Solo usar la referencia que muestre Amazon en la card de búsqueda.
-                                # Conservar precio_original de origen (ref. EU-regulada);
-                                # si Amazon muestra uno mayor, usarlo.
-                                if datos["precio_original_amazon"] > p.precio_actual:
-                                    p.precio_original = max(p.precio_original, datos["precio_original_amazon"])
-                                if p.precio_original > 0:
-                                    p.descuento_pct = max(0, round((1 - p.precio_actual / p.precio_original) * 100))
-                                if datos["imagen_url"]:
-                                    p.imagen_url = datos["imagen_url"]
-                                p.tienda = "Amazon"
-                                mejorados += 1
-                                print(f"   💸 {tienda_orig}→Amazon  −{ahorro}€  {p.titulo[:45]}")
+                                tienda_orig = p.tienda
+                                if datos.get("es_mas_barato", True):
+                                    # ── Amazon más barato → sustituir deal ──────────
+                                    ahorro = round(p.precio_actual - datos["precio_actual"], 2)
+                                    p.asin          = datos["asin"]
+                                    p.precio_actual = datos["precio_actual"]
+                                    if datos["precio_original_amazon"] > p.precio_actual:
+                                        p.precio_original = max(p.precio_original, datos["precio_original_amazon"])
+                                    if p.precio_original > 0:
+                                        p.descuento_pct = max(0, round((1 - p.precio_actual / p.precio_original) * 100))
+                                    if datos["imagen_url"]:
+                                        p.imagen_url = datos["imagen_url"]
+                                    p.tienda = "Amazon"
+                                    mejorados += 1
+                                    print(f"   💸 {tienda_orig}→Amazon  −{ahorro}€  {p.titulo[:45]}")
+                                else:
+                                    # ── Amazon al mismo precio que la «oferta» ───────
+                                    # El precio de Amazon ES el precio real de mercado.
+                                    # Recalcular descuento usando Amazon como referencia.
+                                    amazon_px  = datos["precio_actual"]
+                                    amazon_ref = datos["precio_original_amazon"]
+                                    ref_real   = amazon_ref if amazon_ref > amazon_px else amazon_px
+                                    if ref_real > 0:
+                                        desc_real = max(0, round((1 - p.precio_actual / ref_real) * 100))
+                                        if desc_real < DESCUENTO_MINIMO:
+                                            print(
+                                                f"   ❌ MSRP inflado {p.tienda} — Amazon {amazon_px:.2f}€"
+                                                f" (ref. real {ref_real:.2f}€)"
+                                                f" → desc. real {desc_real}%"
+                                                f" < {DESCUENTO_MINIMO}%: {p.titulo[:35]}"
+                                            )
+                                            p.descuento_pct   = 0
+                                            p.precio_original = ref_real
+                                        else:
+                                            print(
+                                                f"   ⚠️  Ref. corregida {tienda_orig}"
+                                                f" {p.precio_original:.2f}€→{ref_real:.2f}€"
+                                                f" (desc. real {desc_real}%): {p.titulo[:35]}"
+                                            )
+                                            p.precio_original = ref_real
+                                            p.descuento_pct   = desc_real
                             await asyncio.sleep(1.2)
                         except Exception as e:
                             print(f"   ⚠️  Amazon price-check skip ({p.titulo[:30]}): {e}")
                     print(f"   ✅ {mejorados}/{len(no_amazon_raw)} deals actualizados a precio Amazon")
+
+                # Descartar deals cuyo descuento real quedó < mínimo tras corrección de referencia MSRP
+                n_msrp = sum(1 for p in productos if p.descuento_pct < DESCUENTO_MINIMO)
+                if n_msrp:
+                    print(f"   🚫 {n_msrp} deal(s) descartados: MSRP inflado (desc. real < {DESCUENTO_MINIMO}%)")
+                    productos = [p for p in productos if p.descuento_pct >= DESCUENTO_MINIMO]
 
                 # Re-validar precio mínimo por categoría tras reclasificación a Amazon
                 n_antes = len(productos)
