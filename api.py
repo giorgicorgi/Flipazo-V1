@@ -1030,22 +1030,21 @@ def flag_expired(deal_id: str, request: Request):
         ).start()
         return {"flags": new_flags, "expirado": True}
 
-    # Umbral de comunidad: ≥3 flags sin poder verificar → expirar por consenso
-    # (Amazon CAPTCHA y TD white-label impiden verificación automática desde el VPS)
-    if resultado is None and new_flags >= 3:
+    # 1 flag sin poder verificar → expirar por consenso
+    if resultado is None and new_flags >= 1:
         with _get_db() as con:
             con.execute(
                 "UPDATE deals_publicados SET expirado = 1 WHERE deal_id = ?",
                 (deal_id,),
             )
             con.commit()
-        print(f"🔴 Deal marcado expirado (comunidad ≥3 flags): {titulo[:50]}")
+        print(f"🔴 Deal marcado expirado (flag comunidad): {titulo[:50]}")
         threading.Thread(
             target=_notify_admin_expiry, args=(deal_id, titulo, None), daemon=True
         ).start()
         return {"flags": new_flags, "expirado": True}
 
-    # No confirmado (activo o no verificable con <3 flags) — background verifica y notifica
+    # No confirmado (activo o verificación fallida con 0 flags) — background verifica y notifica
     threading.Thread(
         target=_background_check_expiry,
         args=(deal_id, url_afiliado, titulo, precio_stored),
