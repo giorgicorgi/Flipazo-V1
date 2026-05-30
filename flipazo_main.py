@@ -27,7 +27,6 @@ from scrapers.pss_email import get_pss_productos
 from scrapers.tradedoubler_feed import fetch_tradedoubler_productos
 from scrapers.decathlon_feed   import fetch_decathlon_productos
 from scrapers.toysrus_feed     import fetch_toysrus_productos
-from scrapers.beep_feed        import fetch_beep_productos
 from discovery import calcular_deal_score, asignar_tags, generar_hooks_batch
 
 load_dotenv()
@@ -1534,7 +1533,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         print(f"   ❌ Error en scraper PSS: {e}")
         alertar_admin("Error en scraper PSS", str(e))
 
-    # ── Tradedoubler feeds (MediaMarkt/ToysRus/Beep) — caché 23h ──────────────
+    # ── Tradedoubler feeds (MediaMarkt/ToysRus) — caché 23h ──────────────────
     try:
         td_raw = await asyncio.to_thread(
             fetch_tradedoubler_productos, DESCUENTO_MINIMO, PRECIO_MINIMO_LC, PRECIO_MAXIMO
@@ -1601,22 +1600,6 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         print(f"   ❌ Error en ToysRus feed: {e}")
         alertar_admin("Error en ToysRus feed", str(e))
 
-    # ── Beep feed (historial de precios propio, caché 23h) ────────────────────
-    try:
-        beep_raw = await asyncio.to_thread(fetch_beep_productos)
-        for d in beep_raw:
-            if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
-                continue
-            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"]):
-                continue
-            p = Producto(**d)
-            clave = f"Beep:{p.titulo[:40].lower()}"
-            if clave not in vistos:
-                vistos.add(clave)
-                todos.append(p)
-    except Exception as e:
-        print(f"   ❌ Error en Beep feed: {e}")
-        alertar_admin("Error en Beep feed", str(e))
 
     print(f"\n✅ Total: {len(todos)} productos únicos de {len({p.tienda for p in todos})} tiendas")
     return todos
@@ -1928,7 +1911,7 @@ _CAT_RE = {
 }
 _TIENDA_CAT = {
     "PcComponentes": "tecnologia",   # solo componentes/periféricos — OK como fallback
-    # MediaMarkt, Worten y Beep venden tecnología Y electrodomésticos Y belleza:
+    # MediaMarkt y Worten venden tecnología Y electrodomésticos Y belleza:
     # no usar como fallback de categoría — dejar que _CAT_RE decida o asignar "otras"
     "Decathlon":     "deportes",
     "Mammoth Bikes": "deportes",
@@ -2891,23 +2874,12 @@ async def run_pipeline(modo: str = "completo"):
                                 p.precio_actual = datos["precio_actual"]
                                 # Feeds con PreviousPrice = MSRP fabricante: no heredar su precio_original.
                                 # Solo usar la referencia que muestre Amazon en la card de búsqueda.
-                                _TIENDAS_MSRP = {"Beep"}
-                                if tienda_orig in _TIENDAS_MSRP:
-                                    ref_amazon = datos["precio_original_amazon"]
-                                    if ref_amazon > p.precio_actual:
-                                        p.precio_original = ref_amazon
-                                        p.descuento_pct = max(0, round((1 - p.precio_actual / ref_amazon) * 100))
-                                    else:
-                                        # Sin referencia fiable → descuento = 0 → descartado por filtro
-                                        p.precio_original = 0.0
-                                        p.descuento_pct   = 0
-                                else:
-                                    # Para otras tiendas, conservar precio_original de origen (ref. EU-regulada)
-                                    # y actualizar si Amazon muestra uno mayor.
-                                    if datos["precio_original_amazon"] > p.precio_actual:
-                                        p.precio_original = max(p.precio_original, datos["precio_original_amazon"])
-                                    if p.precio_original > 0:
-                                        p.descuento_pct = max(0, round((1 - p.precio_actual / p.precio_original) * 100))
+                                # Conservar precio_original de origen (ref. EU-regulada);
+                                # si Amazon muestra uno mayor, usarlo.
+                                if datos["precio_original_amazon"] > p.precio_actual:
+                                    p.precio_original = max(p.precio_original, datos["precio_original_amazon"])
+                                if p.precio_original > 0:
+                                    p.descuento_pct = max(0, round((1 - p.precio_actual / p.precio_original) * 100))
                                 if datos["imagen_url"]:
                                     p.imagen_url = datos["imagen_url"]
                                 p.tienda = "Amazon"
