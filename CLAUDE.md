@@ -90,7 +90,7 @@ discovery/               ← scoring.py + emotional_layer.py (hooks con Haiku)
 | Toni Pons | Feed TD (fid=118025, ~248 deals/día, calzado) | ✅ |
 | PcComponentes | 5 URLs Playwright (networkidle, slugs ≥2 guiones) | ✅ |
 | Decathlon | 7 categorías Playwright | ✅ |
-| Worten | 5 secciones Playwright | ✅ |
+| Worten | 5 secciones Playwright | ❌ Sin implementar (no existe scrape_worten) |
 | El Corte Inglés | 10 secciones Playwright | ⚠️ Cloudflare, circuit breaker 60min |
 | Mammoth Bikes | 10 outlet pages (precios ES: `1.234,56 €`) | ✅ |
 | Private Sport Shop | Gmail IMAP + Playwright | ⚠️ Cloudflare, circuit breaker |

@@ -1222,6 +1222,11 @@ async def scrape_pccomponentes(context: BrowserContext) -> list[Producto]:
                             if precio_original > precio_actual > 0 else 0
                         )
 
+                        _registrar_observacion_precio({
+                            "asin": href, "tienda": "PcComponentes",
+                            "precio_actual": precio_actual, "precio_original": precio_original,
+                        })
+
                         if not _precio_aceptable(precio_actual, descuento):
                             continue
 
@@ -1390,6 +1395,11 @@ async def scrape_mammoth(context: BrowserContext) -> list[Producto]:
                         if descuento == 0 and precio_original > precio_actual > 0:
                             descuento = round((1 - precio_actual / precio_original) * 100)
 
+                        _registrar_observacion_precio({
+                            "asin": href, "tienda": "Mammoth Bikes",
+                            "precio_actual": precio_actual, "precio_original": precio_original,
+                        })
+
                         if descuento < DESCUENTO_MINIMO:
                             continue
                         if not (PRECIO_MINIMO <= precio_actual <= PRECIO_MAXIMO_BICI):
@@ -1522,6 +1532,11 @@ async def scrape_barrabes(context: BrowserContext) -> list[Producto]:
 
                         if descuento == 0 and precio_original > precio_actual > 0:
                             descuento = round((1 - precio_actual / precio_original) * 100)
+
+                        _registrar_observacion_precio({
+                            "asin": href, "tienda": "Barrabes",
+                            "precio_actual": precio_actual, "precio_original": precio_original,
+                        })
 
                         if not _precio_aceptable(precio_actual, descuento):
                             continue
