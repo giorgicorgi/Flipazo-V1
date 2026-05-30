@@ -3260,9 +3260,7 @@
       dd.innerHTML = `<div class="search-empty">Sin resultados para "${esc(query)}"</div>`;
       dd.hidden = false; return;
     }
-    const seeAll = results.length > 8
-      ? `<div class="search-see-all" role="option" onclick="applySearch(document.getElementById('js-search-input').value.trim(),null)">Ver los ${results.length} resultados →</div>`
-      : "";
+    const seeAll = `<div class="search-see-all" role="option" onclick="applySearch(document.getElementById('js-search-input').value.trim(),null)">Ver todo "${esc(query)}" — ${results.length} resultado${results.length !== 1 ? "s" : ""} →</div>`;
     dd.innerHTML = results.slice(0, 8).map(d => `
       <a class="search-result" role="option"
          href="${d.url_affiliate || "#"}" target="_blank" rel="noopener sponsored"
@@ -3281,6 +3279,7 @@
 
   async function applySearch(query, scrollToId) {
     if (_isMobileViewport()) _showRegularGrid();
+    if (_desktopDiscovery) setDesktopView("todos");
     await ensureSearchData();
     const dd = document.getElementById("js-search-dropdown");
     dd.hidden = true;
