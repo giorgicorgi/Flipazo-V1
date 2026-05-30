@@ -38,6 +38,7 @@ _PRECIO_MAX       = 800.0
 _PRECIO_TRACK_MAX = 2000.0   # más amplio para registrar historial de electrónica cara
 _DIAS_HISTORIAL   = 30
 _MIN_DIAS_DATOS   = 7        # días distintos requeridos para publicar deals
+_MIN_DIAS_EN_MAX  = 3        # el precio máximo debe haberse registrado en ≥N días distintos
 
 _lock:       threading.Lock = threading.Lock()
 _last_fetch: datetime | None = None
@@ -181,6 +182,8 @@ def _calcular_deals(productos: list[dict]) -> list[dict]:
     """
     Para cada EAN con ≥ MIN_DIAS_DATOS días de historial (excluyendo hoy),
     compara el precio actual con el máximo histórico de los últimos 30 días.
+    El precio máximo debe haberse registrado en ≥ _MIN_DIAS_EN_MAX días distintos
+    para filtrar precios erróneos/MSRP del feed que solo aparecen 1-2 días.
     """
     hoy      = datetime.utcnow().strftime("%Y-%m-%d")
     hace_30d = (datetime.utcnow() - timedelta(days=_DIAS_HISTORIAL)).strftime("%Y-%m-%d")
@@ -190,17 +193,29 @@ def _calcular_deals(productos: list[dict]) -> list[dict]:
     with sqlite3.connect(DB_PATH) as con:
         _init_tablas(con)
         rows = con.execute("""
-            SELECT ean,
-                   MAX(precio)  AS precio_max,
-                   COUNT(fecha) AS n_dias
-            FROM   beep_precios
-            WHERE  fecha >= ? AND fecha < ?
-            GROUP  BY ean
-            HAVING COUNT(fecha) >= ?
-        """, (hace_30d, hoy, _MIN_DIAS_DATOS)).fetchall()
+            WITH base AS (
+                SELECT ean,
+                       MAX(precio)  AS precio_max,
+                       COUNT(fecha) AS n_dias
+                FROM   beep_precios
+                WHERE  fecha >= ? AND fecha < ?
+                GROUP  BY ean
+                HAVING COUNT(fecha) >= ?
+            )
+            SELECT b.ean, b.precio_max, b.n_dias,
+                   COUNT(p.fecha) AS dias_en_max
+            FROM   base b
+            JOIN   beep_precios p
+                   ON  p.ean   = b.ean
+                   AND p.fecha >= ? AND p.fecha < ?
+                   AND p.precio >= b.precio_max * 0.98
+            GROUP  BY b.ean
+            HAVING COUNT(p.fecha) >= ?
+        """, (hace_30d, hoy, _MIN_DIAS_DATOS,
+              hace_30d, hoy, _MIN_DIAS_EN_MAX)).fetchall()
 
     deals: list[dict] = []
-    for (ean, precio_max, _n_dias) in rows:
+    for (ean, precio_max, _n_dias, _dias_en_max) in rows:
         prod = prod_map.get(ean)
         if not prod:
             continue  # producto ya no in-stock hoy
