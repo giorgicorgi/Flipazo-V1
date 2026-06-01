@@ -1023,6 +1023,22 @@
     .deal--expirado .deal__discount-badge,
     .deal--expirado .deal__reventa-badge { display: none; }
 
+    /* Expirado en tarjetas de Explorar (mismo diseño que Todos) */
+    .mh-expirado { filter: grayscale(100%); opacity: 0.60; }
+    .mh-expirado .hcard__pct,
+    .mh-expirado .dcard__pct-big,
+    .mh-expirado .ccard__pct,
+    .mh-expirado .whero__pct { display: none; }
+    /* Chip centrado para la tarjeta redonda (circle) */
+    .ccard__expired {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.72); color: #fff;
+      font-family: var(--sans); font-size: 8px; font-weight: 800;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 4px 8px; border-radius: 9999px; z-index: 4; white-space: nowrap;
+      pointer-events: none;
+    }
+
     /* ── Card body ───────────────────────────────────────────────── */
     .deal__store {
       font-family: var(--sans); font-size: 10px; font-weight: 800;
@@ -4040,11 +4056,12 @@
 
   function renderHCard(d) {
     const url = d.url_affiliate || "#";
-    return `<div class="hcard-wrap">
+    return `<div class="hcard-wrap${d.expirado ? ' mh-expirado' : ''}">
       <a class="hcard" href="${url}" target="_blank" rel="noopener sponsored">
         <div class="hcard__img">
           ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
           ${d.descuento_pct > 0 ? `<span class="hcard__pct">-${d.descuento_pct}%</span>` : ""}
+          ${d.expirado ? `<div class="deal__expired-label">Oferta expirada</div>` : ""}
         </div>
         <div class="hcard__body">
           <span class="hcard__store">${d.tienda || ""}</span>
@@ -4064,7 +4081,7 @@
 
   function renderCircleCard(d) {
     const url = d.url_affiliate || "#";
-    return `<div style="display:inline-flex;flex-direction:column;flex-shrink:0;position:relative">
+    return `<div class="${d.expirado ? 'mh-expirado' : ''}" style="display:inline-flex;flex-direction:column;flex-shrink:0;position:relative">
       ${_heartBtn(d, "mhlike--overlay")}
       <a class="ccard" href="${url}" target="_blank" rel="noopener sponsored">
         <div class="ccard__img-wrap">
@@ -4072,6 +4089,7 @@
             ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
           </div>
           ${d.descuento_pct > 0 ? `<span class="ccard__pct">-${d.descuento_pct}%</span>` : ""}
+          ${d.expirado ? `<span class="ccard__expired">Expirada</span>` : ""}
         </div>
         <p class="ccard__title">${_mhT(d.titulo, 28)}</p>
         <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
@@ -4084,11 +4102,12 @@
 
   function renderDiscountCard(d) {
     const url = d.url_affiliate || "#";
-    return `<div class="dcard-wrap">
+    return `<div class="dcard-wrap${d.expirado ? ' mh-expirado' : ''}">
       <a class="dcard" href="${url}" target="_blank" rel="noopener sponsored">
         <div class="dcard__img">
           ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
           ${d.descuento_pct > 0 ? `<span class="dcard__pct-big">-${d.descuento_pct}%</span>` : ""}
+          ${d.expirado ? `<div class="deal__expired-label">Oferta expirada</div>` : ""}
         </div>
         <div class="dcard__body">
           <span class="dcard__store">${d.tienda || ""}</span>
@@ -4107,11 +4126,12 @@
     if (!d) return "";
     const url = d.url_affiliate || "#";
     const hookOrTitle = (d.hook && d.hook.trim()) ? d.hook.trim() : cleanHeroTitle(d.titulo || "");
-    return `<div class="whero-wrap">
+    return `<div class="whero-wrap${d.expirado ? ' mh-expirado' : ''}">
       <a class="whero" href="${url}" target="_blank" rel="noopener sponsored">
         <div class="whero__img">
           ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
           ${d.descuento_pct > 0 ? `<span class="whero__pct">-${d.descuento_pct}%</span>` : ""}
+          ${d.expirado ? `<div class="deal__expired-label">Oferta expirada</div>` : ""}
         </div>
         <div class="whero__body">
           <span class="whero__label">Deal del momento</span>
