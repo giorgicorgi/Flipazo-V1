@@ -2334,6 +2334,17 @@ def _build_wallapop_query(titulo: str) -> str:
     return " ".join(tokens[:6])
 
 
+def _estimar_precio_wallapop(p: Producto) -> float:
+    """Estimación conservadora del precio de reventa (Wallapop bloqueado o sin datos).
+    Usa 62% del precio original — por debajo del valor real de mercado para branded items.
+    Solo rentable con descuentos reales ≥50% en productos >300€.
+    """
+    ref = p.precio_original if p.precio_original > p.precio_actual * 1.1 else 0.0
+    if ref <= 0:
+        return 0.0
+    return round(ref * 0.62, 2)
+
+
 async def obtener_precio_wallapop(p: Producto, context: BrowserContext) -> float:
     """Scrape Wallapop para obtener precio medio de mercado."""
     query = urllib.parse.quote(_build_wallapop_query(p.titulo))
@@ -2344,6 +2355,11 @@ async def obtener_precio_wallapop(p: Producto, context: BrowserContext) -> float
         await page.goto(url, timeout=35000)
         await _aceptar_cookies(page)
         await asyncio.sleep(3)
+
+        # Verificar bloqueo antes de intentar scraping
+        title = await page.title()
+        if "error" in title.lower() or "403" in title or "blocked" in title.lower():
+            return 0.0
 
         precios: list[float] = []
         # Wallapop usa web components; buscar precio en múltiples selectores
@@ -3168,17 +3184,35 @@ async def run_pipeline(modo: str = "completo"):
 
             if arbitraje:
                 print(f"\n🔍 Wallapop para {len(arbitraje)} candidatos de arbitraje...")
+                wallapop_disponible = True  # se pone False al primer 403
                 for p in arbitraje:
-                    precio_w = await obtener_precio_wallapop(p, browser)
-                    if precio_w > 0:
-                        p.precio_wallapop = precio_w
+                    if wallapop_disponible:
+                        precio_w = await obtener_precio_wallapop(p, browser)
+                        if precio_w > 0:
+                            p.precio_wallapop = precio_w
+                            fuente_w = "Wallapop"
+                        else:
+                            wallapop_disponible = False  # asumimos bloqueo, evitar más intentos
+                            print("   ⚠️  Wallapop bloqueado — usando estimación conservadora")
+                            fuente_w = "estimado"
+                    else:
+                        fuente_w = "estimado"
+
+                    if fuente_w == "estimado" and p.precio_wallapop <= 0:
+                        estimado = _estimar_precio_wallapop(p)
+                        if estimado > 0:
+                            p.precio_wallapop = estimado
+                        else:
+                            fuente_w = "sin_ref"
+
                     neto = p.beneficio_neto
                     if neto >= BENEFICIO_NETO_MINIMO or p.score_ai >= 88:
                         deals_finales.append(p)
-                        print(f"   🎯 {p.tienda:<12} {p.titulo[:40]:<40} | neto +{neto:.0f}€ ({p.roi:.0f}% ROI)")
+                        print(f"   🎯 {p.tienda:<12} {p.titulo[:40]:<40} | neto +{neto:.0f}€ ({fuente_w})")
                     else:
-                        print(f"   📉 {p.tienda:<12} {p.titulo[:40]:<40} | neto {neto:.0f}€ insuf.")
-                    await asyncio.sleep(2)
+                        print(f"   📉 {p.tienda:<12} {p.titulo[:40]:<40} | neto {neto:.0f}€ insuf. ({fuente_w})")
+                    if wallapop_disponible:
+                        await asyncio.sleep(2)
 
             # Track OFERTA: publicar directamente (no necesitan Wallapop)
             for p in ofertas:
