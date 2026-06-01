@@ -2133,6 +2133,18 @@
     .mhlike--liked svg { fill: #FF2255; stroke: #FF2255; }
     .mhlike:not(.mhlike--liked) svg { fill: none; stroke: #fff; stroke-width: 2; }
 
+    /* ── COMMENT button en tarjetas del home ─────────────────────── */
+    .mhcomment {
+      position: absolute; bottom: 0; left: 0;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: rgba(0,0,0,.30); backdrop-filter: blur(4px);
+      border: none; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 4; flex-shrink: 0;
+      transition: transform 150ms, background 150ms;
+    }
+    .mhcomment:active { transform: scale(0.80); }
+    .mhcomment svg { width: 11px; height: 11px; fill: none; stroke: rgba(255,255,255,.75); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
     /* ── FLAG button en tarjetas del home ────────────────────────── */
     .mhflag {
       position: absolute; bottom: 0; right: 0;
@@ -2904,6 +2916,7 @@
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
           ${d.comment_count > 0 ? `<span class="vote-count">${d.comment_count}</span>` : ''}
+          <span style="font-size:8px;letter-spacing:.12em">Comentarios</span>
         </button>
       </div>`;
 
@@ -4005,13 +4018,23 @@
     </button>`;
   }
 
+  function _commentBtn(d) {
+    return `<button class="mhcomment" data-id="${d.id}"
+      aria-label="Comentarios" title="Ver comentarios"
+      onclick="event.stopPropagation();event.preventDefault();openComments('${d.id}',this)">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </button>`;
+  }
+
   function renderHCard(d) {
     const url = d.url_affiliate || "#";
     return `<a class="hcard" href="${url}" target="_blank" rel="noopener sponsored">
       <div class="hcard__img">
         ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         ${d.descuento_pct > 0 ? `<span class="hcard__pct">-${d.descuento_pct}%</span>` : ""}
-        ${_heartBtn(d)}${_flagBtn(d)}
+        ${_heartBtn(d)}${_flagBtn(d)}${_commentBtn(d)}
       </div>
       <div class="hcard__body">
         <span class="hcard__store">${d.tienda || ""}</span>
@@ -4049,7 +4072,7 @@
       <div class="dcard__img">
         ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         ${d.descuento_pct > 0 ? `<span class="dcard__pct-big">-${d.descuento_pct}%</span>` : ""}
-        ${_heartBtn(d)}${_flagBtn(d)}
+        ${_heartBtn(d)}${_flagBtn(d)}${_commentBtn(d)}
       </div>
       <div class="dcard__body">
         <span class="dcard__store">${d.tienda || ""}</span>
@@ -4068,7 +4091,7 @@
       <div class="whero__img">
         ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
         ${d.descuento_pct > 0 ? `<span class="whero__pct">-${d.descuento_pct}%</span>` : ""}
-        ${_heartBtn(d)}${_flagBtn(d)}
+        ${_heartBtn(d)}${_flagBtn(d)}${_commentBtn(d)}
       </div>
       <div class="whero__body">
         <span class="whero__label">Deal del momento</span>
@@ -4728,7 +4751,7 @@
   document.addEventListener('click', e => {
     const bubble = document.getElementById('comments-bubble');
     if (!bubble.classList.contains('open')) return;
-    if (!bubble.contains(e.target) && !e.target.closest('.vote-btn--comment')) closeComments();
+    if (!bubble.contains(e.target) && !e.target.closest('.vote-btn--comment') && !e.target.closest('.mhcomment')) closeComments();
   });
 </script>
 
