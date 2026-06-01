@@ -2014,7 +2014,9 @@
       .mhome--desktop .dcard { width: 176px; }
       .mhome--desktop .dcard__img { width: 176px; height: 148px; }
       .mhome--desktop .dcard__pct-big { font-size: 20px; }
-      .mhome--desktop .whero { margin: 0 15% 24px; min-height: 148px; max-width: 560px; }
+      /* whero ahora va en .whero-wrap → alinear el wrapper con las secciones (15%) */
+      .mhome--desktop .whero-wrap { margin: 0 15% 24px; }
+      .mhome--desktop .whero { margin: 0; min-height: 148px; max-width: 560px; }
       .mhome--desktop .whero__img { width: 148px; }
       .mhome--desktop .whero__hook { font-size: 15px; }
       .mhome--desktop .whero__now { font-size: 17px; }
@@ -4542,7 +4544,7 @@
   const FAV_API = 'https://api.flipazo.es';
   let savedFavs = new Set();
 
-  (function initFavs() {
+  function initFavs() {
     if (!isLoggedIn()) return;
     fetch(`${FAV_API}/api/user/favorites`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
@@ -4561,7 +4563,8 @@
           if (savedFavs.has(btn.dataset.id)) btn.classList.add('mhlike--liked');
         });
       }).catch(() => {});
-  })();
+  }
+  initFavs();
 
   async function toggleFavorite(btn, dealId) {
     if (!isLoggedIn()) { window.location.href = '/cuenta'; return; }
@@ -4591,6 +4594,25 @@
   function isLoggedIn() {
     return !!localStorage.getItem('flipazo_auth_flag');
   }
+
+  // Reconcilia el flag local con la sesión real (cookie httpOnly) al cargar.
+  // Si el usuario inició sesión vía Google/email en /cuenta, la cookie existe en .flipazo.es;
+  // aquí confirmamos contra /auth/me y sincronizamos flipazo_auth_flag en consecuencia.
+  (function reconcileSession() {
+    fetch('https://api.flipazo.es/auth/me', { credentials: 'include' })
+      .then(r => {
+        if (r.ok) {
+          if (!localStorage.getItem('flipazo_auth_flag')) {
+            localStorage.setItem('flipazo_auth_flag', '1');
+            // Refrescar favoritos/estado ahora que sabemos que hay sesión
+            if (typeof initFavs === 'function') { try { initFavs(); } catch {} }
+          }
+        } else if (r.status === 401) {
+          localStorage.removeItem('flipazo_auth_flag');
+        }
+      })
+      .catch(() => {});
+  })();
 
   // ── Login gate ────────────────────────────────────────────────
   function showLoginGate(msg) {

@@ -1380,7 +1380,9 @@ def auth_google_callback(code: str = "", state: str = "", error: str = ""):
         "provider": "google",
     }, JWT_USER_HOURS)
 
-    response = RedirectResponse(FRONTEND_CUENTA, status_code=302)
+    # Token en la URL para que el frontend (localStorage) lo recoja + cookie httpOnly para API calls.
+    sep = "&" if "?" in FRONTEND_CUENTA else "?"
+    response = RedirectResponse(f"{FRONTEND_CUENTA}{sep}token={token}", status_code=302)
     _set_user_cookie(response, token)
     return response
 
@@ -1451,7 +1453,8 @@ async def auth_apple_callback(request: Request):
         "provider": "apple",
     }, JWT_USER_HOURS)
 
-    response = RedirectResponse(FRONTEND_CUENTA, status_code=302)
+    sep = "&" if "?" in FRONTEND_CUENTA else "?"
+    response = RedirectResponse(f"{FRONTEND_CUENTA}{sep}token={token}", status_code=302)
     _set_user_cookie(response, token)
     return response
 

@@ -173,12 +173,15 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 52px; height: 52px;
-      background: var(--brand);
-      border-radius: 14px;
+      width: 64px; height: 64px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
       margin-bottom: 22px;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(245,40,52,0.12);
     }
-    .auth-logo svg { width: 28px; height: 28px; }
+    .auth-logo img { width: 100%; height: 100%; object-fit: contain; }
 
     .auth-card__title {
       font-family: var(--serif);
@@ -604,10 +607,7 @@
       <!-- Step 1: Choose method -->
       <div class="auth-card" id="step-choose">
         <div class="auth-logo">
-          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M14 4L4 9V19L14 24L24 19V9L14 4Z" fill="white" opacity="0.9"/>
-            <path d="M14 4L14 14M14 14L4 9M14 14L24 9M14 14V24" stroke="rgba(245,40,52,0.4)" stroke-width="1" fill="none"/>
-          </svg>
+          <img src="/favicon.png" alt="Flipazo" width="64" height="64">
         </div>
         <h1 class="auth-card__title">Únete a Flipazo</h1>
         <p class="auth-card__sub">Guarda tus ofertas favoritas y recibe alertas de chollos en tiempo real.</p>
@@ -808,6 +808,7 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Email o contraseña incorrectos');
         localStorage.setItem('flipazo_user_token', data.access_token);
+        localStorage.setItem('flipazo_auth_flag', '1');
         showDashboard();
       } catch (ex) {
         err.textContent = ex.message;
@@ -838,6 +839,7 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'No se pudo crear la cuenta');
         localStorage.setItem('flipazo_user_token', data.access_token);
+        localStorage.setItem('flipazo_auth_flag', '1');
         showDashboard();
       } catch (ex) {
         err.textContent = ex.message;
@@ -850,6 +852,9 @@
     /* ── Logout ── */
     function logout() {
       localStorage.removeItem('flipazo_user_token');
+      localStorage.removeItem('flipazo_auth_flag');
+      // Limpiar la cookie httpOnly en el backend (para credentials:include en index.html)
+      fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
       document.getElementById('view-dashboard').style.display = 'none';
       document.getElementById('view-auth').style.display = '';
       showStep('choose');
@@ -917,6 +922,7 @@
       const token = params.get('token') || hashParams.get('token');
       if (token) {
         localStorage.setItem('flipazo_user_token', token);
+        localStorage.setItem('flipazo_auth_flag', '1'); // para que index.html reconozca la sesión
         history.replaceState({}, '', '/cuenta');
       }
     })();
