@@ -1174,6 +1174,10 @@
     .vote-btn--flag.voted { border-color: var(--brand); color: var(--brand); background: rgba(245,40,52,0.06); }
     .vote-btn--comment { padding: 5px 9px; color: var(--text-faint); }
     .vote-btn--comment:hover { color: var(--ink); border-color: var(--ink); background: var(--surface); }
+    .vote-btn--like { padding: 5px 9px; color: var(--text-faint); }
+    .vote-btn--like:hover { color: var(--brand); border-color: var(--brand); background: rgba(245,40,52,0.05); }
+    .vote-btn--like.saved { color: var(--brand); border-color: var(--brand); }
+    .vote-btn--like.saved svg { fill: var(--brand); }
     .vote-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
     .vote-count { font-size: 11px; }
 
@@ -1187,13 +1191,7 @@
       font-family: var(--sans); font-size: 10px; font-weight: 600;
       color: #9CA3AF;
     }
-    .deal__fav {
-      background: none; border: none; cursor: pointer;
-      font-size: 15px; color: var(--text-faint);
-      transition: color 0.15s, transform 0.15s; padding: 2px;
-    }
-    .deal__fav:hover   { color: var(--brand); transform: scale(1.2); }
-    .deal__fav.saved   { color: var(--brand); }
+    /* El corazón "favorito" vive ahora en la fila de votos (.vote-btn--like) */
 
     /* ── Discovery layer (hook, tags, social context) ────────────── */
     .deal__tags {
@@ -2131,24 +2129,34 @@
     }
     .card-actions__spacer { flex: 1; }
 
-    /* Botones de acción: icono limpio, sin fondo, estilo Instagram */
+    /* Botones de acción: icono limpio y sutil, sin fondo, estilo Instagram */
     .mhlike, .mhflag, .mhcomment {
-      width: 30px; height: 30px; border: none; background: none;
+      width: 26px; height: 26px; border: none; background: none;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; flex-shrink: 0; padding: 0; border-radius: 50%;
-      color: var(--ink);
+      color: var(--text-dim);
       transition: transform 120ms, background 120ms;
     }
     .mhlike:active, .mhflag:active, .mhcomment:active { transform: scale(0.82); }
     .mhlike:hover, .mhflag:hover, .mhcomment:hover { background: var(--surface); }
 
-    .mhlike svg { width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 2; transition: fill 150ms, stroke 150ms; }
+    .mhlike svg { width: 17px; height: 17px; fill: none; stroke: var(--text-dim); stroke-width: 1.9; transition: fill 150ms, stroke 150ms; }
     .mhlike--liked svg { fill: #FF2255; stroke: #FF2255; }
 
-    .mhcomment svg { width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .mhcomment svg { width: 17px; height: 17px; fill: none; stroke: var(--text-dim); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 
-    .mhflag svg { width: 17px; height: 17px; fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .mhflag svg { width: 14px; height: 14px; fill: none; stroke: var(--text-dim); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
     .mhflag--flagged svg { stroke: #FF2255; }
+
+    /* ── Corazón sobrepuesto (tarjetas redondas / circle card) ──── */
+    .mhlike--overlay {
+      position: absolute; top: 0; right: 0; z-index: 4;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(0,0,0,.32); backdrop-filter: blur(4px);
+    }
+    .mhlike--overlay svg { width: 15px; height: 15px; stroke: #fff; }
+    .mhlike--overlay.mhlike--liked svg { fill: #FF2255; stroke: #FF2255; }
+    .mhlike--overlay:hover { background: rgba(0,0,0,.42); }
   </style>
 </head>
 
@@ -2885,10 +2893,19 @@
 
     const dealId    = d.id || "";
     const flagCount = d.flags_expirado || 0;
+    const likeCount = d.votes_up || 0;
     const isFlagged = !!(_getFlagged()[dealId]);
 
     const votesHtml = `
       <div class="deal__votes" id="votes-${dealId}">
+        <button class="vote-btn vote-btn--like deal__fav" data-id="${dealId}"
+                onclick="toggleFavorite(this,'${dealId}')"
+                aria-label="Me gusta" title="Me gusta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+          <span class="vote-count vote-count--like"${likeCount >= 1 ? "" : ' style="display:none"'}>${likeCount}</span>
+        </button>
         <button class="vote-btn vote-btn--flag${isExpired || isFlagged ? " voted" : ""}"
                 onclick="flagExpired('${dealId}', this)"
                 aria-label="Reportar oferta expirada" title="¿Ya no disponible?">
@@ -2931,7 +2948,6 @@
         ${votesHtml}
         <div class="deal__bottom">
           <p class="deal__time" data-ts="${d.timestamp || ""}">${timeAgo(d.timestamp)}</p>
-          <button class="deal__fav" data-id="${d.id}" onclick="toggleFavorite(this,'${d.id}')" aria-label="Guardar en favoritos">♥</button>
         </div>
       </article>`;
   }
@@ -3997,9 +4013,9 @@
     </button>`;
   }
 
-  function _heartBtn(d) {
+  function _heartBtn(d, extraClass = "") {
     const liked = !!_getMhLikes()[d.id];
-    return `<button class="mhlike${liked ? ' mhlike--liked' : ''}" data-id="${d.id}"
+    return `<button class="mhlike${liked ? ' mhlike--liked' : ''}${extraClass ? ' ' + extraClass : ''}" data-id="${d.id}"
       aria-label="${liked ? 'Quitar de favoritos' : 'Añadir a favoritos'}"
       onclick="mhLike('${d.id}',this)">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -4044,7 +4060,8 @@
 
   function renderCircleCard(d) {
     const url = d.url_affiliate || "#";
-    return `<div style="display:inline-flex;flex-direction:column;flex-shrink:0">
+    return `<div style="display:inline-flex;flex-direction:column;flex-shrink:0;position:relative">
+      ${_heartBtn(d, "mhlike--overlay")}
       <a class="ccard" href="${url}" target="_blank" rel="noopener sponsored">
         <div class="ccard__img-wrap">
           <div class="ccard__circle">
@@ -4058,9 +4075,6 @@
           <span class="ccard__now">${fmtPrice(d.precio_actual || 0)}</span>
         </div>
       </a>
-      <div class="card-actions" style="justify-content:center;padding:2px 0 4px">
-        ${_heartBtn(d)}
-      </div>
     </div>`;
   }
 
@@ -4580,6 +4594,15 @@
         else         { savedFavs.add(dealId);    btn.classList.add('saved');    }
         // Sincronizar votos: el corazón impulsa "más votados"
         _syncVote(dealId, !isSaved);
+        // Actualizar contador de likes en vivo (vista Todos)
+        const cnt = btn.querySelector('.vote-count--like');
+        if (cnt) {
+          const dRef = (allDeals.find(x => String(x.id) === String(dealId)) || {});
+          const n = Math.max(0, dRef.votes_up != null ? dRef.votes_up
+                                : parseInt(cnt.textContent || '0') + (isSaved ? -1 : 1));
+          cnt.textContent = n;
+          cnt.style.display = n >= 1 ? '' : 'none';
+        }
         // Sync mhlikes también para coherencia entre vistas
         const likes = _getMhLikes();
         if (isSaved) delete likes[dealId]; else likes[dealId] = 1;
