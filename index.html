@@ -2007,13 +2007,6 @@
       .mhome--desktop .mhome__scroll::-webkit-scrollbar { display: block; height: 4px; }
       .mhome--desktop .mhome__scroll::-webkit-scrollbar-track { background: transparent; }
       .mhome--desktop .mhome__scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-      /* Bigger cards — button positions match larger image heights */
-      .mhome--desktop .hcard-wrap .mhcomment { top: 144px; }
-      .mhome--desktop .dcard-wrap .mhcomment { top: 124px; }
-      .mhome--desktop .whero-wrap .mhcomment { top: 124px; }
-      .mhome--desktop .hcard-wrap .mhflag    { top: 144px; }
-      .mhome--desktop .dcard-wrap .mhflag    { top: 124px; }
-      .mhome--desktop .whero-wrap .mhflag    { top: 124px; }
       .mhome--desktop .hcard { width: 200px; }
       .mhome--desktop .hcard__img { width: 200px; height: 168px; }
       .mhome--desktop .hcard__title { font-size: 13px; }
@@ -2124,7 +2117,7 @@
       #js-mhome-back { display: inline-flex; }
     }
 
-    /* ── HEART button en tarjetas del home móvil ─────────────────── */
+    /* ── HEART button (overlay imagen, solo dentro de <a>) ──────── */
     .mhlike {
       position: absolute; top: 0; right: 0;
       width: 28px; height: 28px; border-radius: 50%;
@@ -2139,30 +2132,39 @@
     .mhlike--liked svg { fill: #FF2255; stroke: #FF2255; }
     .mhlike:not(.mhlike--liked) svg { fill: none; stroke: #fff; stroke-width: 2; }
 
-    /* ── Wrapper para cards del home (permite botones fuera del <a>) ─ */
-    .hcard-wrap, .dcard-wrap, .whero-wrap {
-      position: relative; display: inline-block; flex-shrink: 0;
-    }
-    .whero-wrap { display: block; }
+    /* ── Wrapper + fila de acciones para cards del home ────────── */
+    .hcard-wrap, .dcard-wrap { display: inline-flex; flex-direction: column; flex-shrink: 0; }
+    .whero-wrap { display: flex; flex-direction: column; margin: 0 16px 24px; }
+    .whero-wrap .whero { margin: 0; }
 
-    /* ── COMMENT + FLAG en tarjetas del home — ambos izquierda ──── */
-    /* hcard img=128px → bottom=0 → top 104px; dcard=108px→84px; whero≈116px→92px */
-    .mhcomment {
-      position: absolute; top: 104px; left: 2px;
-      width: 24px; height: 24px; border-radius: 50%;
-      background: rgba(0,0,0,.30); backdrop-filter: blur(4px);
-      border: none; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; z-index: 5; flex-shrink: 0;
-      transition: transform 150ms, background 150ms;
+    .card-actions {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 8px 6px; background: var(--card-bg);
+      border-top: 1px solid var(--border-faint);
     }
-    .dcard-wrap .mhcomment { top: 84px; }
-    .whero-wrap .mhcomment { top: 92px; }
-    .mhcomment:active { transform: scale(0.80); }
-    .mhcomment svg { width: 11px; height: 11px; fill: none; stroke: rgba(255,255,255,.75); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .hcard-wrap .card-actions { border-radius: 0 0 14px 14px; box-shadow: var(--card-shadow); }
+    .dcard-wrap .card-actions { border-radius: 0 0 14px 14px; box-shadow: var(--card-shadow); }
+    .whero-wrap  .card-actions { border-radius: 0 0 18px 18px; box-shadow: var(--card-shadow); }
 
-    /* ── FLAG button en tarjetas del home ────────────────────────── */
+    /* botones dentro de .card-actions: flow normal, sin absolute */
+    .card-actions .mhlike,
+    .card-actions .mhflag,
+    .card-actions .mhcomment {
+      position: static; width: 28px; height: 28px;
+      background: none; backdrop-filter: none;
+      color: var(--text-faint);
+    }
+    .card-actions .mhlike svg { stroke: var(--text-faint); }
+    .card-actions .mhlike--liked { background: none; }
+    .card-actions .mhlike--liked svg { fill: #FF2255; stroke: #FF2255; }
+    .card-actions .mhflag svg { stroke: var(--text-faint); }
+    .card-actions .mhflag--flagged svg { stroke: #FF2255; }
+    .card-actions .mhcomment svg { stroke: var(--text-faint); }
+    .card-actions__spacer { flex: 1; }
+
+    /* ── FLAG + COMMENT buttons (solo en card-actions) ─────────── */
     .mhflag {
-      position: absolute; top: 104px; left: 28px; bottom: auto; right: auto;
+      position: absolute; bottom: 0; right: 0;
       width: 24px; height: 24px; border-radius: 50%;
       background: rgba(0,0,0,.30); backdrop-filter: blur(4px);
       border: none; display: flex; align-items: center; justify-content: center;
@@ -2174,8 +2176,17 @@
     .mhflag svg { fill: none; stroke: rgba(255,255,255,.75); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .mhflag--flagged { background: rgba(245,40,52,.25); }
     .mhflag--flagged svg { stroke: #FF2255; }
-    .dcard-wrap .mhflag { top: 84px; }
-    .whero-wrap .mhflag { top: 92px; }
+
+    .mhcomment {
+      position: absolute; bottom: 0; left: 0;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: rgba(0,0,0,.30); backdrop-filter: blur(4px);
+      border: none; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 4; flex-shrink: 0;
+      transition: transform 150ms, background 150ms;
+    }
+    .mhcomment:active { transform: scale(0.80); }
+    .mhcomment svg { width: 11px; height: 11px; fill: none; stroke: rgba(255,255,255,.75); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   </style>
 </head>
 
@@ -4063,26 +4074,34 @@
           ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
         </div>
       </a>
-      ${_heartBtn(d)}${_commentBtn(d)}${_flagBtn(d)}
+      <div class="card-actions">
+        ${_heartBtn(d)}
+        <div class="card-actions__spacer"></div>
+        ${_commentBtn(d)}${_flagBtn(d)}
+      </div>
     </div>`;
   }
 
   function renderCircleCard(d) {
     const url = d.url_affiliate || "#";
-    return `<a class="ccard" href="${url}" target="_blank" rel="noopener sponsored">
-      <div class="ccard__img-wrap">
-        <div class="ccard__circle">
-          ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+    return `<div style="display:inline-flex;flex-direction:column;flex-shrink:0">
+      <a class="ccard" href="${url}" target="_blank" rel="noopener sponsored">
+        <div class="ccard__img-wrap">
+          <div class="ccard__circle">
+            ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+          </div>
+          ${d.descuento_pct > 0 ? `<span class="ccard__pct">-${d.descuento_pct}%</span>` : ""}
         </div>
-        ${d.descuento_pct > 0 ? `<span class="ccard__pct">-${d.descuento_pct}%</span>` : ""}
+        <p class="ccard__title">${_mhT(d.titulo, 28)}</p>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+          ${d.precio_original > 0 ? `<span class="ccard__orig">${fmtPrice(d.precio_original)}</span>` : ""}
+          <span class="ccard__now">${fmtPrice(d.precio_actual || 0)}</span>
+        </div>
+      </a>
+      <div class="card-actions" style="border-radius:0 0 10px 10px;background:transparent;border-top:none;justify-content:center;padding:2px 0 4px">
         ${_heartBtn(d)}
       </div>
-      <p class="ccard__title">${_mhT(d.titulo, 28)}</p>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
-        ${d.precio_original > 0 ? `<span class="ccard__orig">${fmtPrice(d.precio_original)}</span>` : ""}
-        <span class="ccard__now">${fmtPrice(d.precio_actual || 0)}</span>
-      </div>
-    </a>`;
+    </div>`;
   }
 
   function renderDiscountCard(d) {
@@ -4100,7 +4119,11 @@
           ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
         </div>
       </a>
-      ${_heartBtn(d)}${_commentBtn(d)}${_flagBtn(d)}
+      <div class="card-actions">
+        ${_heartBtn(d)}
+        <div class="card-actions__spacer"></div>
+        ${_commentBtn(d)}${_flagBtn(d)}
+      </div>
     </div>`;
   }
 
@@ -4125,7 +4148,11 @@
         </div>
         <svg style="flex-shrink:0;align-self:center;margin-right:12px;color:var(--text-dim)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </a>
-      ${_heartBtn(d)}${_commentBtn(d)}${_flagBtn(d)}
+      <div class="card-actions">
+        ${_heartBtn(d)}
+        <div class="card-actions__spacer"></div>
+        ${_commentBtn(d)}${_flagBtn(d)}
+      </div>
     </div>`;
   }
 
