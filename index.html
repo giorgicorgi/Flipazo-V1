@@ -2117,76 +2117,36 @@
       #js-mhome-back { display: inline-flex; }
     }
 
-    /* ── HEART button (overlay imagen, solo dentro de <a>) ──────── */
-    .mhlike {
-      position: absolute; top: 0; right: 0;
-      width: 28px; height: 28px; border-radius: 50%;
-      background: rgba(0,0,0,.30); backdrop-filter: blur(4px);
-      border: none; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; z-index: 4; flex-shrink: 0;
-      transition: transform 150ms, background 150ms;
-    }
-    .mhlike:active { transform: scale(0.80); }
-    .mhlike svg { width: 14px; height: 14px; transition: fill 150ms, stroke 150ms; }
-    .mhlike--liked { background: rgba(255,30,80,.18); }
-    .mhlike--liked svg { fill: #FF2255; stroke: #FF2255; }
-    .mhlike:not(.mhlike--liked) svg { fill: none; stroke: #fff; stroke-width: 2; }
-
-    /* ── Wrapper + fila de acciones para cards del home ────────── */
+    /* ── Wrapper + barra de acciones estilo Instagram ──────────── */
     .hcard-wrap, .dcard-wrap { display: inline-flex; flex-direction: column; flex-shrink: 0; }
     .whero-wrap { display: flex; flex-direction: column; margin: 0 16px 24px; }
     .whero-wrap .whero { margin: 0; }
 
+    /* Fila de iconos sin contenedor — directamente bajo la tarjeta */
     .card-actions {
-      display: flex; align-items: center; gap: 6px;
-      padding: 5px 8px 6px; background: var(--card-bg);
-      border-top: 1px solid var(--border-faint);
+      display: flex; align-items: center; gap: 2px;
+      padding: 6px 4px 2px;
     }
-    .hcard-wrap .card-actions { border-radius: 0 0 14px 14px; box-shadow: var(--card-shadow); }
-    .dcard-wrap .card-actions { border-radius: 0 0 14px 14px; box-shadow: var(--card-shadow); }
-    .whero-wrap  .card-actions { border-radius: 0 0 18px 18px; box-shadow: var(--card-shadow); }
-
-    /* botones dentro de .card-actions: flow normal, sin absolute */
-    .card-actions .mhlike,
-    .card-actions .mhflag,
-    .card-actions .mhcomment {
-      position: static; width: 28px; height: 28px;
-      background: none; backdrop-filter: none;
-      color: var(--text-faint);
-    }
-    .card-actions .mhlike svg { stroke: var(--text-faint); }
-    .card-actions .mhlike--liked { background: none; }
-    .card-actions .mhlike--liked svg { fill: #FF2255; stroke: #FF2255; }
-    .card-actions .mhflag svg { stroke: var(--text-faint); }
-    .card-actions .mhflag--flagged svg { stroke: #FF2255; }
-    .card-actions .mhcomment svg { stroke: var(--text-faint); }
     .card-actions__spacer { flex: 1; }
 
-    /* ── FLAG + COMMENT buttons (solo en card-actions) ─────────── */
-    .mhflag {
-      position: absolute; bottom: 0; right: 0;
-      width: 24px; height: 24px; border-radius: 50%;
-      background: rgba(0,0,0,.30); backdrop-filter: blur(4px);
-      border: none; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; z-index: 4; flex-shrink: 0;
-      transition: transform 150ms, background 150ms;
+    /* Botones de acción: icono limpio, sin fondo, estilo Instagram */
+    .mhlike, .mhflag, .mhcomment {
+      width: 30px; height: 30px; border: none; background: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; padding: 0; border-radius: 50%;
+      color: var(--ink);
+      transition: transform 120ms, background 120ms;
     }
-    .mhflag:active { transform: scale(0.80); }
-    .mhflag svg { width: 11px; height: 11px; flex-shrink: 0; }
-    .mhflag svg { fill: none; stroke: rgba(255,255,255,.75); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .mhflag--flagged { background: rgba(245,40,52,.25); }
-    .mhflag--flagged svg { stroke: #FF2255; }
+    .mhlike:active, .mhflag:active, .mhcomment:active { transform: scale(0.82); }
+    .mhlike:hover, .mhflag:hover, .mhcomment:hover { background: var(--surface); }
 
-    .mhcomment {
-      position: absolute; bottom: 0; left: 0;
-      width: 24px; height: 24px; border-radius: 50%;
-      background: rgba(0,0,0,.30); backdrop-filter: blur(4px);
-      border: none; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; z-index: 4; flex-shrink: 0;
-      transition: transform 150ms, background 150ms;
-    }
-    .mhcomment:active { transform: scale(0.80); }
-    .mhcomment svg { width: 11px; height: 11px; fill: none; stroke: rgba(255,255,255,.75); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .mhlike svg { width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 2; transition: fill 150ms, stroke 150ms; }
+    .mhlike--liked svg { fill: #FF2255; stroke: #FF2255; }
+
+    .mhcomment svg { width: 20px; height: 20px; fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .mhflag svg { width: 17px; height: 17px; fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .mhflag--flagged svg { stroke: #FF2255; }
   </style>
 </head>
 
@@ -4046,7 +4006,7 @@
     </button>`;
   }
 
-  function _commentBtn(d) {
+  function _renderCommentBtn(d) {
     return `<button class="mhcomment" data-id="${d.id}"
       aria-label="Comentarios" title="Ver comentarios"
       onclick="openComments('${d.id}',this)">
@@ -4075,9 +4035,7 @@
         </div>
       </a>
       <div class="card-actions">
-        ${_heartBtn(d)}
-        <div class="card-actions__spacer"></div>
-        ${_commentBtn(d)}${_flagBtn(d)}
+        ${_heartBtn(d)}${_renderCommentBtn(d)}${_flagBtn(d)}
       </div>
     </div>`;
   }
@@ -4098,7 +4056,7 @@
           <span class="ccard__now">${fmtPrice(d.precio_actual || 0)}</span>
         </div>
       </a>
-      <div class="card-actions" style="border-radius:0 0 10px 10px;background:transparent;border-top:none;justify-content:center;padding:2px 0 4px">
+      <div class="card-actions" style="justify-content:center;padding:2px 0 4px">
         ${_heartBtn(d)}
       </div>
     </div>`;
@@ -4120,9 +4078,7 @@
         </div>
       </a>
       <div class="card-actions">
-        ${_heartBtn(d)}
-        <div class="card-actions__spacer"></div>
-        ${_commentBtn(d)}${_flagBtn(d)}
+        ${_heartBtn(d)}${_renderCommentBtn(d)}${_flagBtn(d)}
       </div>
     </div>`;
   }
@@ -4149,9 +4105,7 @@
         <svg style="flex-shrink:0;align-self:center;margin-right:12px;color:var(--text-dim)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </a>
       <div class="card-actions">
-        ${_heartBtn(d)}
-        <div class="card-actions__spacer"></div>
-        ${_commentBtn(d)}${_flagBtn(d)}
+        ${_heartBtn(d)}${_renderCommentBtn(d)}${_flagBtn(d)}
       </div>
     </div>`;
   }
