@@ -2008,6 +2008,9 @@
       .mhome--desktop .mhome__scroll::-webkit-scrollbar-track { background: transparent; }
       .mhome--desktop .mhome__scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
       /* Bigger cards */
+      .mhome--desktop .hcard-wrap .mhcomment { top: 144px; }
+      .mhome--desktop .dcard-wrap .mhcomment { top: 124px; }
+      .mhome--desktop .whero-wrap .mhcomment { top: 124px; }
       .mhome--desktop .hcard { width: 200px; }
       .mhome--desktop .hcard__img { width: 200px; height: 168px; }
       .mhome--desktop .hcard__title { font-size: 13px; }
@@ -2133,15 +2136,24 @@
     .mhlike--liked svg { fill: #FF2255; stroke: #FF2255; }
     .mhlike:not(.mhlike--liked) svg { fill: none; stroke: #fff; stroke-width: 2; }
 
+    /* ── Wrapper para cards del home (permite botones fuera del <a>) ─ */
+    .hcard-wrap, .dcard-wrap, .whero-wrap {
+      position: relative; display: inline-block; flex-shrink: 0;
+    }
+    .whero-wrap { display: block; }
+
     /* ── COMMENT button en tarjetas del home ─────────────────────── */
+    /* Posicionado sobre la imagen: hcard img = 128px, dcard img = 108px, whero img = 116px */
     .mhcomment {
-      position: absolute; bottom: 0; left: 0;
+      position: absolute; top: 104px; left: 0;
       width: 24px; height: 24px; border-radius: 50%;
       background: rgba(0,0,0,.30); backdrop-filter: blur(4px);
       border: none; display: flex; align-items: center; justify-content: center;
       cursor: pointer; z-index: 4; flex-shrink: 0;
       transition: transform 150ms, background 150ms;
     }
+    .dcard-wrap .mhcomment { top: 84px; }
+    .whero-wrap .mhcomment { top: 92px; }
     .mhcomment:active { transform: scale(0.80); }
     .mhcomment svg { width: 11px; height: 11px; fill: none; stroke: rgba(255,255,255,.75); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -4021,7 +4033,7 @@
   function _commentBtn(d) {
     return `<button class="mhcomment" data-id="${d.id}"
       aria-label="Comentarios" title="Ver comentarios"
-      onclick="event.stopPropagation();event.preventDefault();openComments('${d.id}',this)">
+      onclick="openComments('${d.id}',this)">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
@@ -4030,22 +4042,25 @@
 
   function renderHCard(d) {
     const url = d.url_affiliate || "#";
-    return `<a class="hcard" href="${url}" target="_blank" rel="noopener sponsored">
-      <div class="hcard__img">
-        ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
-        ${d.descuento_pct > 0 ? `<span class="hcard__pct">-${d.descuento_pct}%</span>` : ""}
-        ${_heartBtn(d)}${_flagBtn(d)}${_commentBtn(d)}
-      </div>
-      <div class="hcard__body">
-        <span class="hcard__store">${d.tienda || ""}</span>
-        <p class="hcard__title">${_mhT(d.titulo, 50)}</p>
-        <div class="hcard__prices">
-          ${d.precio_original > 0 ? `<span class="hcard__orig">${fmtPrice(d.precio_original)}</span>` : ""}
-          <span class="hcard__now">${fmtPrice(d.precio_actual || 0)}</span>
+    return `<div class="hcard-wrap">
+      <a class="hcard" href="${url}" target="_blank" rel="noopener sponsored">
+        <div class="hcard__img">
+          ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+          ${d.descuento_pct > 0 ? `<span class="hcard__pct">-${d.descuento_pct}%</span>` : ""}
+          ${_heartBtn(d)}${_flagBtn(d)}
         </div>
-        ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
-      </div>
-    </a>`;
+        <div class="hcard__body">
+          <span class="hcard__store">${d.tienda || ""}</span>
+          <p class="hcard__title">${_mhT(d.titulo, 50)}</p>
+          <div class="hcard__prices">
+            ${d.precio_original > 0 ? `<span class="hcard__orig">${fmtPrice(d.precio_original)}</span>` : ""}
+            <span class="hcard__now">${fmtPrice(d.precio_actual || 0)}</span>
+          </div>
+          ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
+        </div>
+      </a>
+      ${_commentBtn(d)}
+    </div>`;
   }
 
   function renderCircleCard(d) {
@@ -4068,42 +4083,48 @@
 
   function renderDiscountCard(d) {
     const url = d.url_affiliate || "#";
-    return `<a class="dcard" href="${url}" target="_blank" rel="noopener sponsored">
-      <div class="dcard__img">
-        ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
-        ${d.descuento_pct > 0 ? `<span class="dcard__pct-big">-${d.descuento_pct}%</span>` : ""}
-        ${_heartBtn(d)}${_flagBtn(d)}${_commentBtn(d)}
-      </div>
-      <div class="dcard__body">
-        <span class="dcard__store">${d.tienda || ""}</span>
-        <p class="dcard__title">${_mhT(d.titulo, 50)}</p>
-        <span class="dcard__now">${fmtPrice(d.precio_actual || 0)}</span>
-        ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
-      </div>
-    </a>`;
+    return `<div class="dcard-wrap">
+      <a class="dcard" href="${url}" target="_blank" rel="noopener sponsored">
+        <div class="dcard__img">
+          ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+          ${d.descuento_pct > 0 ? `<span class="dcard__pct-big">-${d.descuento_pct}%</span>` : ""}
+          ${_heartBtn(d)}${_flagBtn(d)}
+        </div>
+        <div class="dcard__body">
+          <span class="dcard__store">${d.tienda || ""}</span>
+          <p class="dcard__title">${_mhT(d.titulo, 50)}</p>
+          <span class="dcard__now">${fmtPrice(d.precio_actual || 0)}</span>
+          ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
+        </div>
+      </a>
+      ${_commentBtn(d)}
+    </div>`;
   }
 
   function renderWhero(d) {
     if (!d) return "";
     const url = d.url_affiliate || "#";
     const hookOrTitle = (d.hook && d.hook.trim()) ? d.hook.trim() : cleanHeroTitle(d.titulo || "");
-    return `<a class="whero" href="${url}" target="_blank" rel="noopener sponsored">
-      <div class="whero__img">
-        ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
-        ${d.descuento_pct > 0 ? `<span class="whero__pct">-${d.descuento_pct}%</span>` : ""}
-        ${_heartBtn(d)}${_flagBtn(d)}${_commentBtn(d)}
-      </div>
-      <div class="whero__body">
-        <span class="whero__label">Deal del momento</span>
-        <p class="whero__hook">${hookOrTitle.slice(0, 90)}</p>
-        <div class="whero__prices">
-          ${d.precio_original > 0 ? `<span class="whero__orig">${fmtPrice(d.precio_original)}</span>` : ""}
-          <span class="whero__now">${fmtPrice(d.precio_actual || 0)}</span>
+    return `<div class="whero-wrap">
+      <a class="whero" href="${url}" target="_blank" rel="noopener sponsored">
+        <div class="whero__img">
+          ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+          ${d.descuento_pct > 0 ? `<span class="whero__pct">-${d.descuento_pct}%</span>` : ""}
+          ${_heartBtn(d)}${_flagBtn(d)}
         </div>
-        ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
-      </div>
-      <svg style="flex-shrink:0;align-self:center;margin-right:12px;color:var(--text-dim)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-    </a>`;
+        <div class="whero__body">
+          <span class="whero__label">Deal del momento</span>
+          <p class="whero__hook">${hookOrTitle.slice(0, 90)}</p>
+          <div class="whero__prices">
+            ${d.precio_original > 0 ? `<span class="whero__orig">${fmtPrice(d.precio_original)}</span>` : ""}
+            <span class="whero__now">${fmtPrice(d.precio_actual || 0)}</span>
+          </div>
+          ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
+        </div>
+        <svg style="flex-shrink:0;align-self:center;margin-right:12px;color:var(--text-dim)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+      ${_commentBtn(d)}
+    </div>`;
   }
 
   // ── Categorías y tiendas ──────────────────────────────────────
