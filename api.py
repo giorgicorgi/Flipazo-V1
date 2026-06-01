@@ -98,6 +98,11 @@ _oauth_states: dict[str, float] = {}
 # ── Rate-limit para flags de expiración (IP:deal_id → expiry timestamp) ────────
 _flag_rate_limit: dict[str, float] = {}
 _FLAG_COOLDOWN = 3600  # 1 h por IP por deal — evita multivoto del mismo usuario
+# Protocolo de revisión: cuántos flags independientes hacen falta para expirar
+# un deal que NO se pudo verificar automáticamente (resultado None).
+# Verificación positiva (resultado True) expira con 1 solo flag; este umbral
+# solo aplica al caso "no verificable" para evitar falsos expirados.
+_FLAG_CONSENSUS_MIN = 3
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -1030,21 +1035,31 @@ def flag_expired(deal_id: str, request: Request):
         ).start()
         return {"flags": new_flags, "expirado": True}
 
-    # 1 flag sin poder verificar → expirar por consenso
-    if resultado is None and new_flags >= 1:
+    # No verificable (resultado None): NO expirar con un solo flag.
+    # Solo expira por consenso de varios reportes independientes (protocolo de revisión)
+    # para evitar falsos expirados cuando la verificación falla (Cloudflare/CAPTCHA/JS redirect).
+    if resultado is None and new_flags >= _FLAG_CONSENSUS_MIN:
         with _get_db() as con:
             con.execute(
                 "UPDATE deals_publicados SET expirado = 1 WHERE deal_id = ?",
                 (deal_id,),
             )
             con.commit()
-        print(f"🔴 Deal marcado expirado (flag comunidad): {titulo[:50]}")
+        print(f"🔴 Deal marcado expirado (consenso {new_flags} flags): {titulo[:50]}")
         threading.Thread(
             target=_notify_admin_expiry, args=(deal_id, titulo, None), daemon=True
         ).start()
         return {"flags": new_flags, "expirado": True}
 
-    # No confirmado (activo o verificación fallida con 0 flags) — background verifica y notifica
+    # No confirmado todavía:
+    #  - resultado False → precio verificado activo, sigue en el feed
+    #  - resultado None con pocos flags → pendiente de consenso / revisión manual del admin
+    if resultado is None:
+        # Avisar al admin para revisión manual (sin expirar aún)
+        threading.Thread(
+            target=_notify_admin_expiry, args=(deal_id, titulo, None), daemon=True
+        ).start()
+    # Background verifica de nuevo y notifica si confirma expiración
     threading.Thread(
         target=_background_check_expiry,
         args=(deal_id, url_afiliado, titulo, precio_stored),

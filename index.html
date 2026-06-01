@@ -2168,6 +2168,10 @@
     .mhflag svg { width: 14px; height: 14px; fill: none; stroke: var(--text-dim); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
     .mhflag--flagged svg { stroke: #FF2255; }
 
+    /* El botón de comentarios crece para mostrar el contador (si ≥1) */
+    .mhcomment { width: auto; min-width: 26px; padding: 0 5px; gap: 2px; border-radius: 13px; }
+    .mhcomment .mh-count { font-family: var(--sans); font-size: 10px; font-weight: 700; color: var(--text-dim); line-height: 1; }
+
     /* ── Corazón sobrepuesto (tarjetas redondas / circle card) ──── */
     .mhlike--overlay {
       position: absolute; top: 0; right: 0; z-index: 4;
@@ -4045,12 +4049,14 @@
   }
 
   function _renderCommentBtn(d) {
+    const n = d.comment_count || 0;
     return `<button class="mhcomment" data-id="${d.id}"
       aria-label="Comentarios" title="Ver comentarios"
       onclick="openComments('${d.id}',this)">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
+      ${n > 0 ? `<span class="mh-count">${n}</span>` : ""}
     </button>`;
   }
 
