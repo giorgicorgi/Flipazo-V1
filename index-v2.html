@@ -7,7 +7,7 @@
   <meta name="description" content="Una selección diaria de descuentos reales en España. Únicamente ofertas superiores al 40% de marcas reconocidas en electrónica, deportes, hogar y más. Pocas ofertas. Las correctas." />
   <meta property="og:title" content="Flipazo — Las Mejores Ofertas de España" />
   <meta property="og:description" content="Descuentos verificados superiores al 40%. Actualizados automáticamente cada hora." />
-  <meta property="og:url" content="https://flipazo.es" />
+  <meta property="og:url" content="https://www.flipazo.es" />
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png">
   <link rel="apple-touch-icon" href="/favicon.png">
@@ -2700,7 +2700,7 @@
       "@context": "https://schema.org", "@type": "ItemList",
       "name": "Mejores ofertas del día — Flipazo",
       "description": "Ofertas con descuento real verificado de Amazon, MediaMarkt, PcComponentes y más.",
-      "url": "https://flipazo.es",
+      "url": "https://www.flipazo.es",
       "itemListElement": sample.map((d, i) => ({
         "@type": "ListItem", "position": i + 1,
         "item": {
@@ -2711,7 +2711,7 @@
             "@type": "Offer",
             "price": (d.precio_actual || 0).toFixed(2), "priceCurrency": "EUR",
             "availability": "https://schema.org/InStock",
-            "url": `https://flipazo.es/r/${d.id}`,
+            "url": `https://www.flipazo.es/r/${d.id}`,
           }
         }
       }))
