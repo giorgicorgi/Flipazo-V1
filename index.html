@@ -142,7 +142,7 @@
 
       /* Grid */
       --grid-cols:      4;
-      --grid-gap:       18px;
+      --grid-gap:       26px;
     }
 
     /* ── Dark mode ───────────────────────────────────────────────── */
@@ -914,8 +914,9 @@
     .deals-grid {
       display: grid;
       grid-template-columns: repeat(var(--grid-cols, 4), 1fr);
-      gap: var(--grid-gap);
-      padding: 24px 40px;
+      /* Más aire: separación vertical entre filas mayor que la horizontal */
+      gap: calc(var(--grid-gap) + 12px) var(--grid-gap);
+      padding: 28px 40px 48px;
     }
 
     /* ── Deal card ───────────────────────────────────────────────── */
@@ -1611,7 +1612,7 @@
       .about { grid-template-columns: 1fr 1fr; gap: 32px; }
     }
     @media (max-width: 768px) {
-      :root { --grid-cols: 2; --grid-gap: 12px; }
+      :root { --grid-cols: 2; --grid-gap: 16px; }
 
       /* Header: 2 rows — row1: logo + nav + toggle, row2: search full width */
       .site-header__inner {
