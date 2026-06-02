@@ -937,6 +937,32 @@
     }
     .deal--featured { border-color: rgba(245,40,52,0.18); }
 
+    /* ── Deals destacados (descuento alto / score alto / buena marca) ── */
+    .deal--hot {
+      border-color: rgba(245,40,52,0.42);
+      box-shadow: 0 0 0 1px rgba(245,40,52,0.16), 0 10px 26px rgba(245,40,52,0.10), var(--card-shadow);
+    }
+    .deal--hot:hover {
+      box-shadow: 0 0 0 1px rgba(245,40,52,0.30), 0 16px 34px rgba(245,40,52,0.16);
+      transform: translateY(-4px);
+    }
+    /* Acento superior sutil dentro de la imagen */
+    .deal--hot .deal__image-wrap::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 2;
+      background: linear-gradient(90deg, #F52834, #FF6B35);
+    }
+    .deal--chollazo .deal__image-wrap::before {
+      background: linear-gradient(90deg, #F52834, #B91C1C);
+    }
+    /* Badge destacado (reemplaza el badge de tienda en la imagen) */
+    .deal__badge--hot {
+      background: linear-gradient(135deg, #F52834, #FF6B35);
+      color: #fff; border-color: transparent;
+      font-weight: 900; letter-spacing: 0.05em;
+      box-shadow: 0 2px 9px rgba(245,40,52,0.40);
+    }
+    .deal__badge--chollazo { background: linear-gradient(135deg, #F52834, #B91C1C); }
+
     /* ── Card image ──────────────────────────────────────────────── */
     .deal__image-wrap {
       position: relative;
@@ -2855,8 +2881,21 @@
     const expiredBand = isExpired
       ? `<div class="deal__expired-label">Oferta expirada</div>` : "";
 
+    // ── Destacado: descuento alto / score alto (incluye calidad de marca) ──
+    const _score = d.deal_score || 0;
+    const _desc  = d.descuento_pct || 0;
+    const isChollazo = !isExpired && (_desc >= 60 || _score >= 88);
+    const isHot      = !isExpired && (_desc > 50 || _score >= 80);
+    const hotClass   = isChollazo ? " deal--hot deal--chollazo" : (isHot ? " deal--hot" : "");
+    // En destacados, el badge de imagen muestra el sello en vez del nombre de tienda
+    const overlayBadge = isChollazo
+      ? `<span class="deal__badge deal__badge--hot deal__badge--chollazo">🔥 CHOLLAZO</span>`
+      : isHot
+        ? `<span class="deal__badge deal__badge--hot">⭐ DESTACADO</span>`
+        : `<span class="deal__badge ${badgeClass}">${badgeLabel}</span>`;
+
     const imgHtml = `<div class="deal__image-wrap">
-           <span class="deal__badge ${badgeClass}">${badgeLabel}</span>
+           ${overlayBadge}
            ${d.descuento_pct > 0 && !isExpired ? `<span class="deal__discount-badge">−${d.descuento_pct}%</span>` : ""}
            ${revBadge}
            ${d.imagen_url
@@ -2953,7 +2992,7 @@
       </div>`;
 
     return `
-      <article class="deal${d.descuento_pct > 50 ? ' deal--featured' : ''}${isExpired ? ' deal--expirado' : ''}">
+      <article class="deal${hotClass}${isExpired ? ' deal--expirado' : ''}">
         ${imgHtml}
         ${tagsHtml}
         <p class="deal__store">${d.tienda || ""}</p>
