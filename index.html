@@ -4229,7 +4229,11 @@
     const mh = document.getElementById("js-mobile-home");
     if (!mh) return;
 
-    const featured = deals.find(d => (d.deal_score || 0) >= 70 && d.imagen_url) || deals.find(d => d.imagen_url);
+    // Mismo "Deal del momento" que la vista Todos: getDealOfDay con idéntico filtro
+    // de elegibilidad (precio ≥25€, sin tiendas outlet) → ambos coinciden vía localStorage.
+    const HERO_BLACKLIST = new Set(["Esdemarca", "Desigual"]);
+    const heroEligible = deals.filter(d => (d.precio_actual || 0) >= 25 && !HERO_BLACKLIST.has(d.tienda));
+    const featured = getDealOfDay(heroEligible.length ? heroEligible : deals);
     const techDeals    = deals.filter(d => dealMatchesCategory(d, "tecnologia")).slice(0, 40);
     const _tvSubcat    = TECH_SUBCATS.find(s => s.id === "tv");
     const _audioSubcat = TECH_SUBCATS.find(s => s.id === "audio");
@@ -4241,6 +4245,8 @@
     const depDeals     = deals.filter(d => dealMatchesCategory(d, "deportes")).slice(0, 40);
     const hogarDeals   = deals.filter(d => dealMatchesCategory(d, "hogar")).slice(0, 40);
     const calzadoDeals = deals.filter(d => dealMatchesCategory(d, "calzado")).slice(0, 40);
+    const bellezaDeals  = deals.filter(d => dealMatchesCategory(d, "belleza")).slice(0, 40);
+    const juguetesDeals = deals.filter(d => dealMatchesCategory(d, "juguetes")).slice(0, 40);
 
     const lowcostSection = lcDeals.length ? `<section class="mhome__section">
       <div class="mhome__section-head">
@@ -4264,12 +4270,14 @@
       (featured ? renderWhero(featured) : "") +
       _mhSection("Tecnología — Todo Tech", techDeals.map(renderHCard).join(""),      "mhomeCat('tecnologia')") +
       lowcostSection +
+      _mhSection("Para el hogar",          hogarDeals.map(renderHCard).join(""),     "mhomeCat('hogar')") +
       catSection +
       _mhSection("Moda",                   modaDeals.map(renderHCard).join(""),      "mhomeCat('moda')") +
       _mhSection("Mayores descuentos",     topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro") +
       _mhSection("Deportes",               depDeals.map(renderHCard).join(""),       "mhomeCat('deportes')") +
+      _mhSection("Cuidado Personal",       bellezaDeals.map(renderHCard).join(""),   "mhomeCat('belleza')") +
       _mhSection("Tecnología — TV",        tvDeals.map(renderHCard).join(""),        "mhomeTechSubcat('tv')") +
-      _mhSection("Para el hogar",          hogarDeals.map(renderHCard).join(""),     "mhomeCat('hogar')") +
+      _mhSection("Juguetes",               juguetesDeals.map(renderHCard).join(""),  "mhomeCat('juguetes')") +
       _mhSection("Calzado",                calzadoDeals.map(renderHCard).join(""),   "mhomeCat('calzado')") +
       storeSection +
       _mhSection("Tecnología — Audio",     audioDeals.map(renderHCard).join(""),     "mhomeTechSubcat('audio')");
