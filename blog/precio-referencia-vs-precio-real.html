@@ -151,6 +151,19 @@
         </div>
       </div>
     </article>
+    <aside class="art-aside" aria-label="Chollos recientes">
+      <div class="art-aside__head">
+        <span class="art-aside__kicker">🔥 En directo</span>
+        <h2 class="art-aside__title">Chollos recientes</h2>
+      </div>
+      <div class="deal-mini-list" id="blog-deals">
+        <div class="deal-mini deal-mini--skeleton"></div>
+        <div class="deal-mini deal-mini--skeleton"></div>
+        <div class="deal-mini deal-mini--skeleton"></div>
+        <div class="deal-mini deal-mini--skeleton"></div>
+      </div>
+      <a href="/" class="art-aside__cta">Ver todas las ofertas →</a>
+    </aside>
   </div>
 </main>
 
@@ -200,5 +213,6 @@
   }
   (function(){ const t = document.documentElement.getAttribute('data-theme')||'light'; const b = document.getElementById('theme-toggle'); if(b) b.textContent = t==='dark'?'☀':'☾'; })();
 </script>
+<script src="/blog-sidebar.js" defer></script>
 </body>
 </html>

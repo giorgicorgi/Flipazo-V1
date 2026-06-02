@@ -69,7 +69,6 @@
       --text-dim:   #6B7280;
     }
     [data-theme="dark"] .site-header { background: #111827; border-color: #1F2937; }
-    [data-theme="dark"] .pull-quote { background: #1F2937; }
     [data-theme="dark"] .criteria-card { border-color: #374151; }
     [data-theme="dark"] .affiliate-box { background: #1a1500; border-color: #92400e; }
     [data-theme="dark"] .footer { border-color: #374151; }
@@ -99,6 +98,8 @@
       padding: 64px 40px 48px;
       border-bottom: 1.5px solid #e0e0e0;
       max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
     }
     .page-hero__eyebrow {
       font-family: var(--sans);
@@ -125,36 +126,59 @@
       color: var(--ink-light);
       line-height: 1.75;
       max-width: 560px;
+      margin: 0 auto;
     }
 
     /* ── Content ── */
-    .content { max-width: 760px; padding: 48px 40px 80px; }
+    .content { max-width: 760px; padding: 48px 40px 80px; margin: 0 auto; }
 
-    .story-block { margin-bottom: 48px; }
+    .story-block { margin-bottom: 40px; text-align: center; }
     .story-block p {
       font-family: var(--sans);
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 500;
       line-height: 1.85;
       color: #333;
-      margin-bottom: 20px;
+      margin: 0 auto 20px;
+      max-width: 640px;
     }
     .story-block p:last-child { margin-bottom: 0; }
+    .story-block p strong { color: var(--ink); font-weight: 800; }
+
+    /* Párrafo destacado: el "manifiesto" del sistema */
+    .story-block--feature {
+      background: linear-gradient(160deg, #fafaf8, #fff);
+      border: 1.5px solid #ececec;
+      border-radius: 18px;
+      padding: 32px 32px;
+      margin: 32px auto 40px;
+      max-width: 640px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.05);
+    }
+    .story-block--feature p {
+      font-family: var(--serif);
+      font-size: 19px;
+      line-height: 1.65;
+      color: var(--ink);
+      font-weight: 500;
+      max-width: none;
+    }
+    [data-theme="dark"] .story-block--feature { background: #1F2937; border-color: #374151; }
 
     .pull-quote {
-      border-left: 4px solid var(--brand);
-      padding: 18px 28px;
-      margin: 36px 0;
-      background: #fafaf8;
-      border-radius: 0 4px 4px 0;
+      padding: 8px 28px;
+      margin: 40px auto;
+      max-width: 640px;
+      text-align: center;
     }
     .pull-quote p {
       font-family: var(--serif);
       font-style: italic;
-      font-size: 21px;
-      line-height: 1.45;
-      color: var(--ink);
+      font-size: 26px;
+      line-height: 1.4;
+      color: var(--brand);
       margin: 0;
+      font-weight: 700;
     }
 
     /* ── Criterios ── */
@@ -337,13 +361,11 @@
   <div class="content">
 
     <div class="story-block">
-      <p>Internet está lleno de "ofertas". Precios tachados que no existían, descuentos calculados sobre referencias infladas, marcas sin historial con grandes porcentajes en rojo. El 90% de lo que aparece como oferta no lo es.</p>
+      <p>Internet está lleno de "ofertas". Precios tachados que no existían, descuentos calculados sobre referencias infladas, marcas sin historial con grandes porcentajes en rojo. <strong>El 90% de lo que aparece como oferta no lo es.</strong></p>
+    </div>
 
-      <p>Encontrar los deals que sí valen requiere revisar miles de productos, verificar el precio histórico de cada uno y distinguir una liquidación real de un truco de marketing. La mayoría de la gente no tiene tiempo para eso.</p>
-
-      <p>Flipazo lo hace por ti.</p>
-
-      <p>Rastreamos las principales tiendas del mercado español —Amazon, MediaMarkt, PcComponentes, El Corte Inglés y más— y aplicamos un criterio estricto: solo productos con más del 40% de descuento real sobre el precio histórico verificado, solo marcas reconocidas, sin genéricos, sin accesorios, sin ruido.</p>
+    <div class="story-block story-block--feature">
+      <p>Diseñé un sistema que monitoriza cientos de productos al segundo. Para asegurar el tiro, combinamos algoritmos que comprueban el histórico de precios real con Inteligencia Artificial (Claude) encargada de aplicar un filtro editorial estricto. Si no es una marca top, si el descuento está inflado o si es un accesorio irrelevante, el sistema lo destruye. <strong>No llega a tu pantalla.</strong></p>
     </div>
 
     <div class="pull-quote">
@@ -351,9 +373,7 @@
     </div>
 
     <div class="story-block">
-      <p>Revisamos miles de productos cada día. La mayoría no supera el filtro. Los que sí, los publicamos en el momento: en la web y en el canal de Telegram, sin esperar.</p>
-
-      <p>Somos selectivos por principio. Y eso es exactamente lo que nos diferencia.</p>
+      <p>Lo que sí pasa el filtro, lo publicamos al momento —en la web y en el canal de Telegram, sin esperar. Somos selectivos por principio. Y eso es exactamente lo que nos diferencia.</p>
     </div>
 
     <!-- Criterios editoriales -->
@@ -421,7 +441,7 @@
     <!-- Afiliados -->
     <div class="affiliate-box">
       <p class="affiliate-box__label">Transparencia sobre afiliados</p>
-      <p>Usamos enlaces de afiliado. Si haces clic en un enlace y realizas una compra, podemos recibir una pequeña comisión sin coste adicional para ti. Así se financia este servicio y lo mantenemos gratuito. <strong>Nunca cobramos a ninguna marca para publicar sus productos.</strong> La selección es editorial, no publicitaria.</p>
+      <p>Una última cosa: somos transparentes. Si compras algo a través de nuestros enlaces, la tienda nos da una pequeña comisión. A ti te cuesta exactamente lo mismo y a nosotros nos ayuda a pagar los servidores y mantener Flipazo <strong>100% gratuito y libre de publicidad molesta</strong>. Nunca cobramos a ninguna marca para publicar sus productos: la selección es editorial, no publicitaria.</p>
       <p style="margin-top:10px"><strong>Programas activos:</strong> Amazon Associates (tag: flipazo-21) · Tradedoubler (Publisher ID 3481714 — MediaMarkt, PCBox, Esdemarca y otras). <strong>Solicitados:</strong> Awin (MIDs en proceso de aprobación para PcComponentes, El Corte Inglés y Private Sport Shop).</p>
     </div>
 
