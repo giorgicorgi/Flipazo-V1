@@ -4281,7 +4281,13 @@
     const audioDeals   = deals.filter(d => _audioSubcat?.test(d)).slice(0, 40);
     const lcDeals      = deals.filter(d => (d.precio_actual || 0) > 0 && (d.precio_actual || 0) < 25).slice(0, 40);
     const modaDeals    = deals.filter(d => dealMatchesCategory(d, "moda")).slice(0, 40);
-    const topDiscDeals = [...deals].sort((a,b) => (b.descuento_pct||0)-(a.descuento_pct||0)).slice(0, 40);
+    // Mayores descuentos: solo deals recientes (máx 3 días) para no mostrar chollos viejos
+    const _maxAntiguedadMs = 3 * 24 * 3600 * 1000;
+    const _ahora = Date.now();
+    const topDiscDeals = [...deals]
+      .filter(d => (_ahora - new Date(d.timestamp || 0).getTime()) <= _maxAntiguedadMs)
+      .sort((a,b) => (b.descuento_pct||0)-(a.descuento_pct||0))
+      .slice(0, 40);
     const depDeals     = deals.filter(d => dealMatchesCategory(d, "deportes")).slice(0, 40);
     const hogarDeals   = deals.filter(d => dealMatchesCategory(d, "hogar")).slice(0, 40);
     const calzadoDeals = deals.filter(d => dealMatchesCategory(d, "calzado")).slice(0, 40);
