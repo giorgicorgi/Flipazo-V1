@@ -79,6 +79,11 @@ APPLE_REDIRECT_URI = os.getenv(
     "APPLE_REDIRECT_URI", "https://api.flipazo.es/auth/apple/callback"
 )
 
+# ── Threads OAuth (setup one-time) ─────────────────────────────────────────────
+THREADS_APP_ID     = os.getenv("THREADS_APP_ID",     "1472052057551805")
+THREADS_APP_SECRET = os.getenv("THREADS_APP_SECRET", "")
+THREADS_REDIRECT   = "https://api.flipazo.es/auth/threads/callback"
+
 # ── Frontend (para redirects post-OAuth) ───────────────────────────────────────
 FRONTEND_CUENTA = os.getenv("FRONTEND_CUENTA", "https://flipazo.es/cuenta")
 API_URL         = os.getenv("API_URL",          "https://api.flipazo.es")
@@ -1589,6 +1594,115 @@ def auth_logout():
     response = JSONResponse({"ok": True})
     _clear_user_cookie(response)
     return response
+
+
+# ── Threads OAuth — setup one-time ─────────────────────────────────────────────
+
+@app.get("/auth/threads/start")
+def threads_auth_start():
+    """Redirige a Threads OAuth. Abre esta URL logueado como la cuenta de Flipazo en Threads."""
+    if not THREADS_APP_SECRET:
+        return JSONResponse(status_code=503, content={"error": "THREADS_APP_SECRET no configurado en .env"})
+    url = (
+        "https://threads.net/oauth/authorize"
+        f"?client_id={THREADS_APP_ID}"
+        f"&redirect_uri={urllib.parse.quote(THREADS_REDIRECT, safe='')}"
+        "&scope=threads_basic,threads_content_publish"
+        "&response_type=code"
+    )
+    return RedirectResponse(url, status_code=302)
+
+@app.get("/auth/threads/callback")
+def threads_auth_callback(code: str = "", error: str = ""):
+    """Callback OAuth de Threads: intercambia code → short-lived → long-lived token y muestra las credenciales."""
+    if error:
+        return JSONResponse(status_code=400, content={"error": error})
+    if not code:
+        return JSONResponse(status_code=400, content={"error": "Sin code en la respuesta"})
+    if not THREADS_APP_SECRET:
+        return JSONResponse(status_code=503, content={"error": "THREADS_APP_SECRET no configurado"})
+
+    # 1. Intercambiar code → short-lived token
+    try:
+        r1 = _http.post(
+            "https://graph.threads.net/oauth/access_token",
+            data={
+                "client_id":     THREADS_APP_ID,
+                "client_secret": THREADS_APP_SECRET,
+                "code":          code,
+                "grant_type":    "authorization_code",
+                "redirect_uri":  THREADS_REDIRECT,
+            },
+            timeout=15,
+        )
+        d1 = r1.json()
+        short_token = d1.get("access_token", "")
+        if not short_token:
+            return JSONResponse(status_code=502, content={"error": "No se obtuvo short-lived token", "detalle": d1})
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"error": f"Error intercambiando code: {e}"})
+
+    # 2. Short-lived → long-lived (60 días)
+    try:
+        r2 = _http.get(
+            "https://graph.threads.net/v1.0/access_token",
+            params={
+                "grant_type":    "th_exchange_token",
+                "client_id":     THREADS_APP_ID,
+                "client_secret": THREADS_APP_SECRET,
+                "access_token":  short_token,
+            },
+            timeout=15,
+        )
+        d2 = r2.json()
+        long_token = d2.get("access_token", "")
+        expires_in = d2.get("expires_in", "?")
+        if not long_token:
+            return JSONResponse(status_code=502, content={"error": "No se obtuvo long-lived token", "detalle": d2})
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"error": f"Error intercambiando long-lived: {e}"})
+
+    # 3. Obtener el User ID
+    try:
+        r3 = _http.get(
+            "https://graph.threads.net/v1.0/me",
+            params={"fields": "id,username", "access_token": long_token},
+            timeout=15,
+        )
+        d3 = r3.json()
+        user_id  = d3.get("id", "")
+        username = d3.get("username", "")
+    except Exception as e:
+        user_id = username = f"(error: {e})"
+
+    dias = round(int(expires_in) / 86400) if str(expires_in).isdigit() else expires_in
+    html = f"""<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<title>Threads Auth OK — Flipazo</title>
+<style>
+  body{{font-family:monospace;max-width:700px;margin:60px auto;padding:0 24px;background:#f8f8f8}}
+  h1{{color:#1a1a1a;font-size:22px}}
+  .box{{background:#fff;border:2px solid #1a1a1a;border-radius:12px;padding:24px;margin:20px 0}}
+  .label{{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:4px}}
+  .val{{font-size:14px;word-break:break-all;background:#f0f0f0;padding:10px 14px;border-radius:8px;margin-bottom:16px}}
+  .cmd{{background:#111;color:#0f0;padding:16px;border-radius:8px;font-size:12px;white-space:pre-wrap;line-height:1.7}}
+  .ok{{color:#00a550;font-size:18px;font-weight:700}}
+</style></head><body>
+<h1>✅ Threads conectado</h1>
+<p class="ok">@{username} — token válido {dias} días</p>
+<div class="box">
+  <div class="label">THREADS_USER_ID</div>
+  <div class="val">{user_id}</div>
+  <div class="label">THREADS_TOKEN (long-lived, {dias} días)</div>
+  <div class="val">{long_token}</div>
+</div>
+<div class="box">
+  <div class="label">Ejecuta esto en el servidor para activar Threads:</div>
+  <div class="cmd">ssh root@204.168.199.253 "echo 'THREADS_USER_ID={user_id}' >> /home/flipazo/app/.env && echo 'THREADS_TOKEN={long_token}' >> /home/flipazo/app/.env && systemctl restart flipazo.service && echo LISTO"</div>
+</div>
+<p style="color:#888;font-size:12px">⚠️ Guarda el token en un lugar seguro. Este endpoint no lo almacena.</p>
+</body></html>"""
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(html)
 
 
 @app.get("/auth/verify-email")
