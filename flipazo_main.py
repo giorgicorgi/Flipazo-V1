@@ -2641,9 +2641,12 @@ class DeduplicacionDB:
                 "SELECT 1 FROM deals_borrados WHERE deal_id = ?", (deal_id,)
             ).fetchone():
                 return True
+            # Mismo producto exacto (deal_id) → NUNCA se republica, aunque el deal siga
+            # vigente meses. Publicar 1 vez; los deals que duran mucho suelen ser poco
+            # atractivos y no aportan republicándose. (El historial se conserva siempre.)
             if con.execute(
-                "SELECT 1 FROM deals_publicados WHERE deal_id = ? AND publicado_en > ?",
-                (deal_id, limite),
+                "SELECT 1 FROM deals_publicados WHERE deal_id = ?",
+                (deal_id,),
             ).fetchone():
                 return True
             # Secondary: mismo título exacto + tienda (Playwright vs feed TD misma tienda).
@@ -3239,7 +3242,7 @@ async def run_pipeline(modo: str = "completo"):
                     deals_nuevos.append(p)
             omitidos = len(deals_finales) - len(deals_nuevos)
             if omitidos:
-                print(f"   ⏭️  {omitidos} deal(s) ya publicados en las últimas {DEDUP_TTL_HORAS}h — omitidos")
+                print(f"   ⏭️  {omitidos} deal(s) ya publicados anteriormente — omitidos (sin republicar)")
             if actualizados_precio:
                 print(f"   📉 {actualizados_precio} deal(s) con precio actualizado (bajó desde publicación)")
 
