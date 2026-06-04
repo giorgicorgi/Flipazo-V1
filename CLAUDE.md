@@ -3,7 +3,7 @@
 Canal de deals automatizado para España. Descuento ≥40% sobre precio histórico, filtrado con IA, publicado en Telegram y web (flipazo.es).
 
 **Modelo de negocio:** freemium (deals públicos) + premium 3,90€/mes (tiempo real, canal privado).  
-**Estado:** En producción en Hetzner. Pipeline completo funcionando. Pendiente: premium/Stripe, WhatsApp, Threads.
+**Estado:** En producción en Hetzner. Pipeline completo funcionando. Threads activo (@flipazo.es). Pendiente: premium/Stripe, WhatsApp.
 
 ---
 
@@ -133,9 +133,10 @@ discovery/               ← scoring.py + emotional_layer.py (hooks con Haiku)
 | Frontend Vercel | ✅ Scroll infinito, categorías, hamburguesa |
 | Afiliados Amazon + TD | ✅ |
 | Afiliados Awin | ⚠️ Solo MediaMarkt fallback activo |
+| Threads (@flipazo.es) | ✅ Auto-publica cada deal; token auto-renovado 24h |
 | Canal premium Telegram | 🔲 Pendiente |
 | Bot Telegram + Stripe | 🔲 Pendiente |
-| WhatsApp / Threads | 🔲 Pendiente |
+| WhatsApp | ⚠️ Código listo, faltan credenciales WA_TOKEN |
 
 ---
 
