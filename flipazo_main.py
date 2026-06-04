@@ -2929,6 +2929,47 @@ def publicar_en_threads(p: Producto) -> bool:
         return False
 
 
+def _refresh_threads_token() -> bool:
+    """Renueva el long-lived token de Threads (válido 60d) para que no expire.
+    El endpoint exige que el token tenga >24h; si es más nuevo, falla en silencio."""
+    global THREADS_TOKEN
+    if not THREADS_TOKEN:
+        return False
+    try:
+        r = requests.get(
+            "https://graph.threads.net/v1.0/refresh_access_token",
+            params={"grant_type": "th_refresh_token", "access_token": THREADS_TOKEN},
+            timeout=15,
+        )
+        data  = r.json()
+        nuevo = data.get("access_token", "")
+        if not nuevo:
+            return False  # token <24h o error transitorio → no crítico
+        THREADS_TOKEN = nuevo
+        # Persistir en .env para que sobreviva reinicios del servicio
+        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+        try:
+            with open(env_path) as f:
+                lineas = f.readlines()
+            for i, ln in enumerate(lineas):
+                if ln.startswith("THREADS_TOKEN="):
+                    lineas[i] = f"THREADS_TOKEN={nuevo}\n"
+                    break
+            else:
+                lineas.append(f"THREADS_TOKEN={nuevo}\n")
+            with open(env_path, "w") as f:
+                f.writelines(lineas)
+        except Exception as e:
+            print(f"⚠️ Threads token renovado en memoria pero no se pudo escribir .env: {e}")
+        exp = data.get("expires_in", 0)
+        dias = round(int(exp) / 86400) if str(exp).isdigit() else "?"
+        print(f"🔄 Threads token renovado (válido {dias} días)")
+        return True
+    except Exception as e:
+        print(f"⚠️ Error renovando Threads token: {e}")
+        return False
+
+
 def _wa_suscriptores() -> list[str]:
     """Devuelve la lista de números suscritos a alertas WA (formato internacional, sin +)."""
     try:
@@ -3302,6 +3343,7 @@ async def main():
     await asyncio.gather(
         _loop_flash(),
         _loop_completo(),
+        _loop_refresh_threads(),
     )
 
 
@@ -3326,6 +3368,17 @@ async def _loop_completo():
             print(f"❌ [COMPLETO] Error: {e}")
         print(f"\n💤 Próximo ciclo completo en {CICLO_COMPLETO_MIN} min...")
         await asyncio.sleep(CICLO_COMPLETO_MIN * 60)
+
+
+async def _loop_refresh_threads():
+    """Renueva el token de Threads cada 24h para que nunca expire (válido 60d).
+    El token recién creado necesita >24h, por eso el primer intento es a las 24h."""
+    while True:
+        await asyncio.sleep(24 * 3600)
+        try:
+            _refresh_threads_token()
+        except Exception as e:
+            print(f"⚠️ [THREADS REFRESH] Error: {e}")
 
 
 if __name__ == "__main__":
