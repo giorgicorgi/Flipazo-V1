@@ -896,6 +896,27 @@ _TALLA_RE = re.compile(
     re.IGNORECASE
 )
 
+# Detección de ROPA (prendas de vestir) — para excluir de Threads.
+# Incluye términos en inglés (Barrabés/outdoor) y prendas íntimas/técnicas.
+# No incluye calzado (zapatillas/botas) ni accesorios (mochilas, gafas, relojes).
+_ROPA_RE = re.compile(
+    r'\b('
+    # Español
+    r'camiseta|camisas?|polo|polos|sudadera|sudaderas|jersey|jers[eé]is?|'
+    r'chaquetas?|cazadoras?|abrigos?|parkas?|anorak|plum[ií]feros?|chalecos?|'
+    r'americanas?|blazer|pantal[oó]n|pantalones|vaqueros?|jeans?|bermudas?|'
+    r'faldas?|vestidos?|leggings?|mallas?|maillot|culotte|chandal|ch[aá]ndal|jogger|'
+    r'calcet[ií]n|calcetines|bragas?|b[oó]xer|calzoncillos?|sujetadores?|'
+    r'bikinis?|ba[ñn]adores?|pijamas?|bufandas?|guantes?|blusas?|cardigans?|'
+    r't[uú]nicas?|kimono|peto|gorros?|forro\s+polar|forros\s+polares|'
+    # Inglés (tiendas outdoor / técnicas)
+    r'shorts?|shirts?|t-?shirt|tee|jackets?|hoody|hoodie|sweater|pants?|tights?|'
+    r'legging|bra|panty|panties|briefs?|underwear|base\s?layer|baselayer|'
+    r'top|vest|socks?|beanie|hat|suw|longsleeve|long\s?sleeve|tank'
+    r')\b',
+    re.IGNORECASE
+)
+
 # Número de modelo — ancla para el check cross-tienda de mejor precio Amazon.
 # Captura patrones tipo: WH-CH520, WH-1000XM5, QC45, RTX-4080, MX300, DS-4, K380
 _MODELO_RE = re.compile(
@@ -2858,6 +2879,23 @@ def enviar_telegram(mensaje: str, imagen_url: str = "") -> bool:
         return False
 
 
+# Tiendas de moda pura: títulos poco fiables (marca+código), ~todo ropa → fuera de Threads.
+_TIENDAS_MODA = {
+    "Esdemarca", "Desigual", "Billabong", "Cole Haan", "Element Brand",
+    "Elliotti", "PrivateSportShop",
+}
+
+def _threads_elegible(p: Producto) -> bool:
+    """Threads es un canal curado: solo deals con ≥50% de descuento y que NO sean ropa."""
+    if (p.descuento_pct or 0) < 50:
+        return False
+    if getattr(p, "tienda", "") in _TIENDAS_MODA:
+        return False
+    if _ROPA_RE.search(p.titulo or "") or _TALLA_RE.search(p.titulo or ""):
+        return False
+    return True
+
+
 def _link_threads(p: Producto) -> str:
     """Link para el post: redirect propio (flipazo.es/r/) cuando el afiliado es un
     tracking link feo (Tradedoubler/Awin); link directo a tienda para el resto (Amazon, etc.)."""
@@ -3343,7 +3381,9 @@ async def run_pipeline(modo: str = "completo"):
                 if ok:
                     dedup.marcar_publicado(p)
                     publicados += 1
-                    publicar_en_threads(p)
+                    # Threads: canal curado — solo ≥50% descuento y sin ropa
+                    if _threads_elegible(p):
+                        publicar_en_threads(p)
                     broadcast_whatsapp(p)
                 await asyncio.sleep(1.5)
 
