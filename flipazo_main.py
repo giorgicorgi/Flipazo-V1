@@ -3228,35 +3228,36 @@ async def run_pipeline(modo: str = "completo"):
 
             if arbitraje:
                 print(f"\n🔍 Wallapop para {len(arbitraje)} candidatos de arbitraje...")
+                # El badge de reventa SOLO se muestra con precio real de Wallapop.
+                # Si Wallapop está bloqueado (IP datacenter), el deal se publica como
+                # OFERTA pura (sin badge ni beneficio inventado). Nada de estimaciones.
                 wallapop_disponible = True  # se pone False al primer 403
                 for p in arbitraje:
+                    precio_w = 0.0
                     if wallapop_disponible:
                         precio_w = await obtener_precio_wallapop(p, browser)
-                        if precio_w > 0:
-                            p.precio_wallapop = precio_w
-                            fuente_w = "Wallapop"
-                        else:
-                            wallapop_disponible = False  # asumimos bloqueo, evitar más intentos
-                            print("   ⚠️  Wallapop bloqueado — usando estimación conservadora")
-                            fuente_w = "estimado"
-                    else:
-                        fuente_w = "estimado"
+                        if precio_w <= 0:
+                            wallapop_disponible = False
+                            print("   ⚠️  Wallapop bloqueado — arbitrajes se publican como OFERTA (sin badge)")
 
-                    if fuente_w == "estimado" and p.precio_wallapop <= 0:
-                        estimado = _estimar_precio_wallapop(p)
-                        if estimado > 0:
-                            p.precio_wallapop = estimado
+                    if precio_w > 0:
+                        # DATOS REALES de Wallapop → evaluar margen de reventa
+                        p.precio_wallapop = precio_w
+                        neto = p.beneficio_neto
+                        if neto >= BENEFICIO_NETO_MINIMO or p.score_ai >= 88:
+                            deals_finales.append(p)
+                            print(f"   🎯 {p.tienda:<12} {p.titulo[:40]:<40} | neto +{neto:.0f}€ (Wallapop real)")
                         else:
-                            fuente_w = "sin_ref"
-
-                    neto = p.beneficio_neto
-                    if neto >= BENEFICIO_NETO_MINIMO or p.score_ai >= 88:
-                        deals_finales.append(p)
-                        print(f"   🎯 {p.tienda:<12} {p.titulo[:40]:<40} | neto +{neto:.0f}€ ({fuente_w})")
-                    else:
-                        print(f"   📉 {p.tienda:<12} {p.titulo[:40]:<40} | neto {neto:.0f}€ insuf. ({fuente_w})")
-                    if wallapop_disponible:
+                            # Sin margen real → publicar como OFERTA pura (sin badge)
+                            p.tipo = "OFERTA"; p.precio_wallapop = 0.0
+                            deals_finales.append(p)
+                            print(f"   ⚡ {p.tienda:<12} {p.titulo[:40]:<40} | margen {neto:.0f}€ insuf → OFERTA")
                         await asyncio.sleep(2)
+                    else:
+                        # SIN datos reales de Wallapop → OFERTA pura (sin badge de reventa)
+                        p.tipo = "OFERTA"; p.precio_wallapop = 0.0
+                        deals_finales.append(p)
+                        print(f"   ⚡ {p.tienda:<12} {p.titulo[:40]:<40} | sin Wallapop → OFERTA")
 
             # Track OFERTA: publicar directamente (no necesitan Wallapop)
             for p in ofertas:
