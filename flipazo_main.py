@@ -12,6 +12,7 @@ import os
 import random
 import re
 import sqlite3
+import time
 import urllib.parse
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -2528,9 +2529,9 @@ def _deal_hash(p: "Producto") -> str:
     return hashlib.md5(clave.encode()).hexdigest()
 
 
-def redirect_url(p: "Producto") -> str:
+def redirect_url(p: "Producto", canal: str = "telegram") -> str:
     """URL de tracking propio que luego redirige al link de afiliado."""
-    return f"{REDIRECT_BASE_URL}/r/{_deal_hash(p)}?canal=telegram"
+    return f"{REDIRECT_BASE_URL}/r/{_deal_hash(p)}?canal={canal}"
 
 
 class DeduplicacionDB:
@@ -2857,6 +2858,15 @@ def enviar_telegram(mensaje: str, imagen_url: str = "") -> bool:
         return False
 
 
+def _link_threads(p: Producto) -> str:
+    """Link para el post: redirect propio (flipazo.es/r/) cuando el afiliado es un
+    tracking link feo (Tradedoubler/Awin); link directo a tienda para el resto (Amazon, etc.)."""
+    url = p.url_affiliate or ""
+    if "tradedoubler.com" in url or "awin1.com" in url or not url:
+        return redirect_url(p, canal="threads")
+    return url
+
+
 def _msg_threads(p: Producto) -> str:
     """Texto plano para Threads. Sin HTML — solo emojis y saltos de línea. Máx 500 chars."""
     icono = "♻️" if p.tipo == "ARBITRAJE" else "⚡"
@@ -2870,7 +2880,7 @@ def _msg_threads(p: Producto) -> str:
     if p.hook:
         lineas.append("")
         lineas.append(p.hook[:120])
-    lineas += ["", f"🛒 Ver oferta → {p.url_affiliate}", "", "#chollos #ofertas #flipazo"]
+    lineas += ["", f"🛒 Ver oferta → {_link_threads(p)}", "", "#chollos #ofertas #flipazo"]
     return "\n".join(lineas)[:500]
 
 
@@ -2894,31 +2904,46 @@ def _msg_whatsapp(p: Producto) -> str:
 
 
 def publicar_en_threads(p: Producto) -> bool:
-    """Publica un deal en Threads vía Meta Graph API. Desactivado si no hay credenciales."""
+    """Publica un deal en Threads vía Meta Graph API. Desactivado si no hay credenciales.
+    Usa post tipo IMAGE con la foto del producto (la imagen no depende del link preview,
+    que falla con los redirects de Tradedoubler). Fallback a TEXT si la imagen falla."""
     if not THREADS_USER_ID or not THREADS_TOKEN:
         return False
-    try:
-        base = f"https://graph.threads.net/v1.0/{THREADS_USER_ID}"
-        texto = _msg_threads(p)
+    base  = f"https://graph.threads.net/v1.0/{THREADS_USER_ID}"
+    texto = _msg_threads(p)
 
-        # Paso 1: crear contenedor
-        r1 = requests.post(
+    def _crear(payload: dict) -> str:
+        r = requests.post(
             f"{base}/threads",
             params={"access_token": THREADS_TOKEN},
-            json={"media_type": "TEXT", "text": texto},
-            timeout=15,
+            json=payload,
+            timeout=20,
         )
-        creation_id = r1.json().get("id")
+        cid = r.json().get("id") if r.ok else None
+        if not cid:
+            print(f"⚠️ Threads contenedor ({payload.get('media_type')}): {r.text[:150]}")
+        return cid
+
+    try:
+        # Paso 1: contenedor IMAGE (con foto del producto) o TEXT como fallback
+        creation_id = None
+        if p.imagen_url:
+            creation_id = _crear({"media_type": "IMAGE", "image_url": p.imagen_url, "text": texto})
         if not creation_id:
-            print(f"❌ Threads crear contenedor: {r1.text[:200]}")
+            creation_id = _crear({"media_type": "TEXT", "text": texto})
+        if not creation_id:
             return False
+
+        # Threads recomienda esperar unos segundos a que procese la imagen antes de publicar
+        if p.imagen_url:
+            time.sleep(3)
 
         # Paso 2: publicar
         r2 = requests.post(
             f"{base}/threads_publish",
             params={"access_token": THREADS_TOKEN},
             json={"creation_id": creation_id},
-            timeout=15,
+            timeout=20,
         )
         ok = r2.status_code == 200
         if not ok:
