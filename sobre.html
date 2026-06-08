@@ -192,6 +192,31 @@
       color: var(--ink-light);
       margin-bottom: 20px;
     }
+    /* ── Aquí no hay trampa ── */
+    .trust-section { margin: 40px 0; }
+    .trust-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+    .trust-list li {
+      font-family: var(--sans); font-size: 17px; font-weight: 600; color: var(--ink);
+      line-height: 1.5; padding-left: 30px; position: relative;
+    }
+    .trust-list li::before {
+      content: "✓"; position: absolute; left: 0; top: -1px;
+      color: var(--brand); font-weight: 900; font-size: 18px;
+    }
+    .programs-line {
+      font-family: var(--sans); font-size: 13px; color: var(--ink-light);
+      line-height: 1.7; margin-top: 18px; padding-top: 14px; border-top: 1px solid #e0e0e0;
+    }
+    [data-theme="dark"] .programs-line { border-color: #374151; }
+
+    /* ── Cómo funciona / financiación ── */
+    .fin-section { margin: 48px 0; padding-top: 40px; border-top: 1.5px solid #e0e0e0; }
+    [data-theme="dark"] .fin-section { border-color: #374151; }
+    .fin-heading {
+      font-family: var(--serif); font-size: 26px; font-weight: 900;
+      line-height: 1.25; color: var(--ink); margin-bottom: 22px;
+    }
+
     .criteria-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
     .criteria-card {
       border: 1.5px solid #e0e0e0;
@@ -353,56 +378,39 @@
   </header>
 
   <div class="page-hero">
-    <p class="page-hero__eyebrow">Sobre Flipazo · Barcelona, 2025</p>
-    <h1 class="page-hero__title">El mercado produce de más.<br><em>Flipazo está para aprovecharlo.</em></h1>
-    <p class="page-hero__subtitle">Revisamos miles de productos cada día para publicar solo los que merecen tu atención. Sin comunidad que suba lo que quiera. Sin marcas que paguen para aparecer. Solo los mejores deals.</p>
+    <p class="page-hero__eyebrow">Sobre Flipazo · España</p>
+    <h1 class="page-hero__title">El mercado produce de más.<br><em>Y Flipazo lo aprovecha.</em></h1>
   </div>
 
   <div class="content">
 
     <div class="story-block">
-      <p>Internet está lleno de "ofertas". Precios tachados que no existían, descuentos calculados sobre referencias infladas, marcas sin historial con grandes porcentajes en rojo. <strong>El 90% de lo que aparece como oferta no lo es.</strong></p>
+      <p>Cada día se publican miles de productos en internet. Con precios tachados que nunca existieron, descuentos calculados sobre referencias infladas y marcas fantasmas con grandes porcentajes en rojo. <strong>Seamos claros: el 90% de lo que ves por ahí no es un chollo.</strong></p>
     </div>
 
     <div class="story-block story-block--feature">
-      <p>Diseñé un sistema que monitoriza cientos de productos al segundo. Para asegurar el tiro, combinamos algoritmos que comprueban el histórico de precios real con Inteligencia Artificial (Claude) encargada de aplicar un filtro editorial estricto. Si no es una marca top, si el descuento está inflado o si es un accesorio irrelevante, el sistema lo destruye. <strong>No llega a tu pantalla.</strong></p>
+      <p>Por eso creamos Flipazo. Se pueden perder horas buscando buenos chollos, así que diseñamos un sistema que analiza cientos de productos por segundo. Combina algoritmos que revisan el histórico de precios real para aplicar un filtro editorial implacable. Si la marca no es reconocida, si el descuento está inflado o si el producto no aporta nada, el sistema lo descarta. Así creamos un sistema de scoring para cada producto y si no pasa los filtros, <strong>no llega a tu pantalla.</strong></p>
     </div>
 
-    <div class="pull-quote">
-      <p>"Pocas ofertas. Las correctas."</p>
+    <!-- Aquí no hay trampa -->
+    <div class="trust-section">
+      <p class="criteria-section__label">Aquí no hay trampa</p>
+      <ul class="trust-list">
+        <li>Revisamos miles de productos, sólo publicamos lo mejor.</li>
+        <li>Ninguna tienda nos paga por aparecer en Flipazo.</li>
+        <li>Pocas ofertas, las correctas.</li>
+      </ul>
     </div>
 
-    <div class="story-block">
-      <p>Lo que sí pasa el filtro, lo publicamos al momento —en la web y en el canal de Telegram, sin esperar. Somos selectivos por principio. Y eso es exactamente lo que nos diferencia.</p>
-    </div>
-
-    <!-- Criterios editoriales -->
-    <div class="criteria-section">
-      <p class="criteria-section__label">Criterios editoriales — qué hace que un deal entre en Flipazo</p>
-      <div class="criteria-grid">
-        <div class="criteria-card">
-          <p class="criteria-card__num">≥40%</p>
-          <p class="criteria-card__text">Descuento verificado sobre el precio histórico real de los últimos 30 días, no sobre precios inflados artificialmente.</p>
-        </div>
-        <div class="criteria-card">
-          <p class="criteria-card__num">Marca</p>
-          <p class="criteria-card__text">Solo marcas reconocidas y productos de calidad contrastada. Sin genéricos ni productos sin historial.</p>
-        </div>
-        <div class="criteria-card">
-          <p class="criteria-card__num">Filtro</p>
-          <p class="criteria-card__text">Lista de exclusión estricta: sin carcasas, fundas, cables, accesorios baratos ni alimentación. Solo lo que merece la pena.</p>
-        </div>
-        <div class="criteria-card">
-          <p class="criteria-card__num">0€</p>
-          <p class="criteria-card__text">Ninguna marca paga para aparecer. Si un producto no pasa los filtros automáticos, no se publica.</p>
-        </div>
+    <!-- Cómo funciona y financiación -->
+    <div class="fin-section">
+      <h2 class="fin-heading">Cómo funciona el proyecto… y cómo nos financiamos.</h2>
+      <div class="story-block" style="margin-bottom:0">
+        <p>En España, Flipazo opera como un sitio editorial de comparación de precios. Buscamos de forma automática descuentos reales iguales o superiores al 40% sobre el historial de precio. Nuestro tráfico es orgánico, gente que nos busca en Google o llega a nosotros por Threads o desde la comunidad de Telegram. La audiencia vuelve porque la selección es buena.</p>
+        <p>Para mantener este proyecto libre de publicidad, somos transparentes: cada enlace que publicamos es un link de afiliado. Si compras algo a través de ellos, la tienda nos da una pequeña comisión. A ti te cuesta exactamente lo mismo y a nosotros nos ayuda a pagar los servidores.</p>
+        <p><strong>Nunca cobramos a ninguna marca para salir aquí. La selección es siempre editorial, jamás publicitaria.</strong></p>
       </div>
-    </div>
-
-    <!-- Origen -->
-    <div class="story-block" style="padding-top: 40px; border-top: 1.5px solid #e0e0e0; margin-top: 48px;">
-      <p class="criteria-section__label" style="margin-bottom: 16px;">Cómo nació</p>
-      <p>Flipazo se creó para encontrar descuentos reales sin perder horas buscando. El sistema rastrea, verifica y publica con criterios editoriales estrictos, para que tú solo tengas que decidir si lo quieres.</p>
+      <p class="programs-line">Programas activos y transparencia: Amazon Associates. Tradedoubler. En proceso de aprobación: Awin.</p>
     </div>
 
     <!-- Canales y audiencia -->
@@ -430,19 +438,6 @@
           <a href="/blog" class="channel-card__link">flipazo.es/blog →</a>
         </div>
       </div>
-    </div>
-
-    <!-- Métodos de promoción -->
-    <div class="promo-section">
-      <p class="promo-section__label">Cómo promocionamos las tiendas</p>
-      <p>Flipazo opera como sitio editorial de comparación de precios (deal site). Detectamos automáticamente descuentos reales ≥40% sobre el historial de precios verificado, y los publicamos en nuestra web y canal de Telegram. El tráfico es orgánico (SEO sobre términos de búsqueda de chollos en España) y directo desde el canal de Telegram. Cada enlace publicado es un deep link de afiliado a la tienda correspondiente. No hacemos email marketing masivo ni publicidad de pago. La audiencia llega porque la selección es estricta y la confianza, alta.</p>
-    </div>
-
-    <!-- Afiliados -->
-    <div class="affiliate-box">
-      <p class="affiliate-box__label">Transparencia sobre afiliados</p>
-      <p>Una última cosa: somos transparentes. Si compras algo a través de nuestros enlaces, la tienda nos da una pequeña comisión. A ti te cuesta exactamente lo mismo y a nosotros nos ayuda a pagar los servidores y mantener Flipazo <strong>100% gratuito y libre de publicidad molesta</strong>. Nunca cobramos a ninguna marca para publicar sus productos: la selección es editorial, no publicitaria.</p>
-      <p style="margin-top:10px"><strong>Programas activos:</strong> Amazon Associates (tag: flipazo-21) · Tradedoubler (Publisher ID 3481714 — MediaMarkt, PCBox, Esdemarca y otras). <strong>Solicitados:</strong> Awin (MIDs en proceso de aprobación para PcComponentes, El Corte Inglés y Private Sport Shop).</p>
     </div>
 
     <!-- Contacto -->
