@@ -2009,6 +2009,123 @@ def wa_webhook_verify(request: Request):
     return JSONResponse(status_code=403, content={"error": "Token inválido"})
 
 
+# ── Bot WhatsApp: deals por categoría a demanda ("envía CHOLLO al 2020") ───────
+# trigger = lo que el usuario escribe; deal = patrón para encontrar deals; cat = columna categoria.
+_WA_CATS = [
+    {"nombre": "Bicicletas", "emoji": "🚲",
+     "trigger": _re.compile(r'\b(bici|bicicleta|mtb|gravel|e-?bike|ciclism)', _re.I),
+     "deal":    _re.compile(r'\b(bici|bicicleta|mtb|gravel|e-?bike|ebike)\b', _re.I),
+     "tiendas": {"Mammoth Bikes"}},
+    {"nombre": "Videojuegos", "emoji": "🎮",
+     "trigger": _re.compile(r'\b(videojuego|video\s?juego|juego|gaming|consola|ps5|ps4|xbox|nintendo|switch)', _re.I),
+     "deal":    _re.compile(r'\b(ps5|ps4|playstation|xbox|nintendo|switch|dualsense|mando|consola|gaming|videojuego)\b', _re.I),
+     "tiendas": set()},
+    {"nombre": "Televisores", "emoji": "📺",
+     "trigger": _re.compile(r'\b(tv|tele|televis|smart\s?tv)', _re.I),
+     "deal":    _re.compile(r'\b(tv|televisor|oled|qled|smart\s?tv|proyector)\b', _re.I),
+     "tiendas": set()},
+    {"nombre": "Audio", "emoji": "🎧",
+     "trigger": _re.compile(r'\b(audio|auricular|cascos|altavoz|sonido|airpods)', _re.I),
+     "deal":    _re.compile(r'\b(auricular|cascos|altavoz|barra de sonido|airpods|earbuds|soundbar)\b', _re.I),
+     "tiendas": set()},
+    {"nombre": "Hogar", "emoji": "🏠",
+     "trigger": _re.compile(r'\b(hogar|casa|cocina|electrodom)', _re.I),
+     "deal":    _re.compile(r'\b(aspirador|robot|cafetera|freidora|air.?fryer|batidora|microondas|sart[eé]n|olla|plancha|colch[oó]n|sof[aá]|exprimidor|tostador|licuadora|lavadora|secadora|nevera|frigor[ií]fico|horno|vitrocer)', _re.I),
+     "cat": "hogar", "tiendas": set()},
+    {"nombre": "Tecnología", "emoji": "💻",
+     "trigger": _re.compile(r'\b(tecnolog|tech|inform[aá]tic|ordenador|gadget|m[oó]vil|port[aá]til|tablet)', _re.I),
+     "deal":    _re.compile(r'\b(port[aá]til|laptop|m[oó]vil|smartphone|tablet|monitor|teclado|rat[oó]n|smartwatch|ssd|disco duro|router|webcam|impresora|gr[aá]fica|procesador)\b', _re.I),
+     "cat": "tecnologia", "tiendas": {"PcComponentes", "PCBox"}},
+    {"nombre": "Deportes", "emoji": "⚽",
+     "trigger": _re.compile(r'\b(deporte|fitness|gym|running|correr|monta[ñn]a|outdoor)', _re.I),
+     "deal":    _re.compile(r'\b(mancuerna|fitness|running|trekking|monta[ñn]a|nataci[oó]n|f[uú]tbol|camping|mochila)', _re.I),
+     "cat": "deportes", "tiendas": {"Decathlon", "PrivateSportShop"}},
+    {"nombre": "Belleza y cuidado", "emoji": "💄",
+     "trigger": _re.compile(r'\b(belleza|cuidado|perfum|cosm[eé]tic|maquillaje|peluquer)', _re.I),
+     "deal":    _re.compile(r'\b(perfume|colonia|maquillaje|afeitadora|depiladora|secador|plancha de pelo|cepillo dental|crema|s[eé]rum)', _re.I),
+     "cat": "belleza", "tiendas": set()},
+    {"nombre": "Juguetes", "emoji": "🧸",
+     "trigger": _re.compile(r'\b(juguete|jugar|peque|infantil)', _re.I),
+     "deal":    _re.compile(r'\b(lego|playmobil|mu[ñn]eca|juguete|puzzle|juego de mesa|hot wheels|nerf|barbie|funko)', _re.I),
+     "cat": "juguetes", "tiendas": {"ToysRus"}},
+    {"nombre": "Herramientas", "emoji": "🔧",
+     "trigger": _re.compile(r'\b(herramienta|bricolaje|taladr|brico)', _re.I),
+     "deal":    _re.compile(r'\b(taladro|atornillador|makita|dewalt|sierra|lijadora|amoladora|destornillador|caja de herramienta)', _re.I),
+     "tiendas": set()},
+]
+_WA_STOP = {"los","las","una","unos","unas","del","para","con","que","las","mejores","ofertas",
+            "oferta","chollos","chollo","deals","deal","quiero","dame","enviame","envíame","busco",
+            "tienes","hay","algun","algún","alguna","mas","más","por","favor"}
+
+def _wa_buscar_deals(texto: str):
+    """Devuelve (nombre, emoji, [rows]) según la categoría pedida, o búsqueda libre."""
+    cat = next((c for c in _WA_CATS if c["trigger"].search(texto)), None)
+    with _get_db() as con:
+        rows = con.execute(
+            "SELECT deal_id, titulo, precio, precio_original, descuento_pct, tienda, COALESCE(categoria,'') AS categoria "
+            "FROM deals_publicados WHERE COALESCE(expirado,0)=0 ORDER BY publicado_en DESC LIMIT 700"
+        ).fetchall()
+    if cat:
+        vistos, out = set(), []
+        # Pasada 1: coincidencias precisas (título o tienda específica)
+        for r in rows:
+            if cat["deal"].search(r["titulo"] or "") or r["tienda"] in cat["tiendas"]:
+                out.append(r); vistos.add(r["deal_id"])
+                if len(out) >= 5:
+                    break
+        # Pasada 2: rellenar con la columna categoria si faltan
+        if len(out) < 5 and cat.get("cat"):
+            for r in rows:
+                if r["deal_id"] not in vistos and r["categoria"] == cat["cat"]:
+                    out.append(r)
+                    if len(out) >= 5:
+                        break
+        return (cat["nombre"], cat["emoji"], out)
+    # Sin categoría conocida → búsqueda libre por las palabras del mensaje
+    palabras = [w for w in _re.findall(r'[a-zñáéíóú0-9]{3,}', texto.lower()) if w not in _WA_STOP]
+    if palabras:
+        out = []
+        for r in rows:
+            tl = (r["titulo"] or "").lower()
+            if any(w in tl for w in palabras):
+                out.append(r)
+                if len(out) >= 5:
+                    break
+        if out:
+            return ("tu búsqueda", "🔎", out)
+    return None
+
+def _wa_formatear_deals(nombre: str, emoji: str, deals: list) -> str:
+    if not deals:
+        return (f"{emoji} No tengo chollos de *{nombre}* ahora mismo 😕\n\n"
+                "Prueba con: bicicletas, videojuegos, TV, audio, hogar, tecnología, "
+                "deportes, belleza, juguetes o herramientas.")
+    lineas = [f"{emoji} *Top {len(deals)} chollos de {nombre}:*", ""]
+    for i, d in enumerate(deals, 1):
+        precio = float(d["precio"] or 0)
+        orig   = float(d["precio_original"] or 0)
+        desc   = int(d["descuento_pct"] or 0)
+        link   = f"https://flipazo.es/r/{d['deal_id']}?canal=whatsapp"
+        precio_txt = (f"~{orig:.0f}€~ → *{precio:.2f}€*  (-{desc}%)" if orig > precio
+                      else f"*{precio:.2f}€*")
+        lineas.append(f"{i}. {(d['titulo'] or '')[:70]}")
+        lineas.append(f"   {precio_txt}")
+        lineas.append(f"   🛒 {link}")
+        lineas.append("")
+    lineas.append("_Pídeme otra categoría cuando quieras_ 😉")
+    return "\n".join(lineas)
+
+def _wa_ayuda() -> str:
+    return ("👋 ¡Hola! Soy *Flipazo*, tu buscador de chollos verificados.\n\n"
+            "📲 *Escríbeme una categoría* y te mando los 5 mejores chollos:\n"
+            "🚲 bicicletas · 🎮 videojuegos · 📺 TV · 🎧 audio\n"
+            "🏠 hogar · 💻 tecnología · ⚽ deportes · 💄 belleza\n"
+            "🧸 juguetes · 🔧 herramientas\n\n"
+            "O dime qué buscas (ej. _auriculares Sony_) y lo busco por ti.\n\n"
+            "• *ALTA* → recibe los mejores deals del día\n"
+            "• *BAJA* → darte de baja")
+
+
 @app.post("/wa/webhook")
 async def wa_webhook_message(request: Request):
     """
@@ -2029,34 +2146,38 @@ async def wa_webhook_message(request: Request):
 
         msg = messages[0]
         from_number = msg.get("from", "")
-        text = (msg.get("text") or {}).get("body", "").strip().upper()
+        text_raw = (msg.get("text") or {}).get("body", "").strip()
+        text = text_raw.upper()
 
         if not from_number:
             return {"ok": True}
 
         now = datetime.now(timezone.utc).isoformat()
-        with _get_db() as con:
-            if text in ("ALTA", "SUSCRIBIR", "START", "HOLA", "INFO"):
+        if text in ("ALTA", "SUSCRIBIR", "START"):
+            with _get_db() as con:
                 con.execute(
                     "INSERT INTO wa_suscriptores (telefono, alta_en, activo) "
                     "VALUES (?, ?, 1) ON CONFLICT(telefono) DO UPDATE SET activo=1, baja_en=NULL",
                     (from_number, now),
                 )
-                _wa_responder(from_number, "✅ ¡Suscrito a Flipazo!\n\nTe avisaremos de los mejores chollos del día. Para darte de baja responde BAJA.")
-            elif text in ("BAJA", "STOP", "UNSUBSCRIBE"):
+            _wa_responder(from_number, "✅ ¡Suscrito a Flipazo!\n\nTe avisaremos de los mejores chollos del día.\nEscríbeme una categoría (ej. *videojuegos*) y te mando los 5 mejores. Para baja responde BAJA.")
+        elif text in ("BAJA", "STOP", "UNSUBSCRIBE"):
+            with _get_db() as con:
                 con.execute(
                     "UPDATE wa_suscriptores SET activo=0, baja_en=? WHERE telefono=?",
                     (now, from_number),
                 )
-                _wa_responder(from_number, "✅ Dado de baja. Responde ALTA cuando quieras volver.")
+            _wa_responder(from_number, "✅ Dado de baja. Responde ALTA cuando quieras volver.")
+        elif text in ("HOLA", "INFO", "AYUDA", "HELP", "MENU", "MENÚ"):
+            _wa_responder(from_number, _wa_ayuda())
+        else:
+            # ¿Pide chollos de una categoría o una búsqueda?
+            resultado = _wa_buscar_deals(text_raw)
+            if resultado:
+                nombre, emoji, deals = resultado
+                _wa_responder(from_number, _wa_formatear_deals(nombre, emoji, deals))
             else:
-                _wa_responder(
-                    from_number,
-                    "👋 ¡Hola! Soy Flipazo, el buscador de chollos verificados en España.\n\n"
-                    "• Responde *ALTA* para recibir los mejores deals del día\n"
-                    "• Responde *BAJA* para desuscribirte\n\n"
-                    "También puedes seguirnos en t.me/flipazo"
-                )
+                _wa_responder(from_number, _wa_ayuda())
         return {"ok": True}
     except Exception as e:
         print(f"❌ WA webhook error: {e}")
