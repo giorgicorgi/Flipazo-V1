@@ -2329,6 +2329,12 @@
         <!-- Populated by JS -->
       </nav>
     </div>
+    <div class="filter-row" id="js-subcat-row" style="display:none">
+      <span class="filter-row__label">Subtipo</span>
+      <nav class="cat-bar-inner" id="js-subcat-bar" aria-label="Subcategorías">
+        <!-- Populated by JS -->
+      </nav>
+    </div>
     <div class="filter-row store-bar" id="js-store-row" style="display:none">
       <span class="filter-row__label">Tienda</span>
       <div class="store-bar-inner" id="js-store-bar" aria-label="Filtrar por tienda">
@@ -2337,9 +2343,6 @@
     </div>
   </div>
   </header>
-
-  <!-- ── TECH SUBCAT BAR ────────────────────────────────────────── -->
-  <nav class="subcat-bar" id="js-subcat-bar" aria-label="Subcategorías"></nav>
 
   <!-- ── SEARCH ACTIVE BANNER ──────────────────────────────────── -->
   <div class="search-active-banner" id="js-search-banner" style="display:none">
@@ -2724,7 +2727,6 @@
 
   const CATEGORIAS = [
     { id: "todas",        label: "Todas" },
-    { id: "calzado",      label: "Calzado",       test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"calzado") || _RX.calzado.test(d.titulo)) },
     { id: "tecnologia",   label: "Tecnología",    test: d => _scat(d,"tecnologia") || _RX.tecnologia.test(d.titulo) || d.tienda === "PcComponentes" },
     { id: "herramientas", label: "Herramientas",  hidden: true, test: d => _scat(d,"herramientas") || _RX.herramientas.test(d.titulo) },
     { id: "deportes",     label: "Deportes",      test: d => _scat(d,"deportes") || _RX.deportes.test(d.titulo) || ["Mammoth Bikes","Decathlon","PrivateSportShop","Barrabes"].includes(d.tienda) },
@@ -2732,6 +2734,7 @@
     { id: "belleza",      label: "Cuidado Personal", test: d => !_RX_APPAREL.test(d.titulo) && !_RX_KITCHEN.test(d.titulo) && (_scat(d,"belleza") || _RX.belleza.test(d.titulo)) },
     { id: "juguetes",     label: "Juguetes",      test: d => !_RX_CONSOLE.test(d.titulo) && (_scat(d,"juguetes") || _RX.juguetes.test(d.titulo)) },
     { id: "moda",         label: "Moda",          test: d => _scat(d,"moda") || _RX.moda.test(d.titulo) || _RX_APPAREL.test(d.titulo) || d.tienda === "Desigual" },
+    { id: "calzado",      label: "Calzado",       test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"calzado") || _RX.calzado.test(d.titulo)) },
   ];
 
   // ── Moda sub-categories (contenedor; se divide más adelante) ──
@@ -3640,18 +3643,18 @@
   }
 
   function buildSubcatBar() {
+    const row = document.getElementById("js-subcat-row");
     const bar = document.getElementById("js-subcat-bar");
-    if (!bar) return;
+    if (!bar || !row) return;
     const cfg = _subcatConfig();
     if (!cfg) {
-      bar.style.display = "none"; activeTechSubcat = "todas"; activeModaSubcat = "todas"; return;
+      row.style.display = "none"; activeTechSubcat = "todas"; activeModaSubcat = "todas"; return;
     }
     const active = cfg.get();
     bar.innerHTML = cfg.list.map(sc =>
       `<button class="subcat-pill${sc.id === active ? " subcat-pill--active" : ""}" data-subcat="${sc.id}">${sc.label}</button>`
     ).join("");
-    bar.style.display = "flex";
-    _positionSubcatBar();
+    row.style.display = "flex";
     bar.querySelectorAll(".subcat-pill").forEach(btn => {
       btn.addEventListener("click", () => {
         if (cfg.get() === btn.dataset.subcat) return;
@@ -4065,7 +4068,7 @@
     if (cb) cb.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "todas"));
     document.querySelectorAll(".sort-tab").forEach(b =>
       b.classList.toggle("sort-tab--active", b.dataset.sort === "recientes"));
-    const sb = document.getElementById("js-subcat-bar");
+    const sb = document.getElementById("js-subcat-row");
     if (sb) sb.style.display = "none";
     requestAnimationFrame(() => {
       window.scrollTo({ top: _mhomeScrollY, behavior: "instant" });
