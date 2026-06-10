@@ -2339,7 +2339,7 @@
   </header>
 
   <!-- ── TECH SUBCAT BAR ────────────────────────────────────────── -->
-  <nav class="subcat-bar" id="js-subcat-bar" aria-label="Subcategorías de tecnología"></nav>
+  <nav class="subcat-bar" id="js-subcat-bar" aria-label="Subcategorías"></nav>
 
   <!-- ── SEARCH ACTIVE BANNER ──────────────────────────────────── -->
   <div class="search-active-banner" id="js-search-banner" style="display:none">
@@ -2688,7 +2688,7 @@
   const TECH_SUBCATS = [
     { id: "todas",      label: "Todo Tech" },
     { id: "audio",      label: "Audio",        test: d => /auricular|cascos|airpods|wh-?1000|bose\b|jabra|sennheiser|hyperx|altavoz|speaker|earbuds|soundbar|barra de sonido|sonos\b|jbl\b/i.test(d.titulo) },
-    { id: "gaming",     label: "Videojuegos",  test: d => /gaming|ps5|playstation|xbox|nintendo|switch\b|mando\b|consola\b|steam\b|razer|corsair|steelseries/i.test(d.titulo) },
+    { id: "gaming",     label: "Videojuegos",  test: d => /gaming|\bps[345]\b|playstation|xbox|nintendo|switch\b|\bmando\b|consola\b|steam\b|gamepad|joystick|razer|corsair|steelseries/i.test(d.titulo) },
     { id: "moviles",    label: "Móviles",
       test: d => /smartphone|m[oó]vil(?!\s+(?:port[aá]til|de\s+ducha))|iphone\s+\d|galaxy\s+(?:s\d+|note|z\s*flip|z\s*fold|a\d+|m\d+)|redmi\s+(?:note\s*)?\d+|pixel\s+\d|oneplus\s+\d|poco\s+[a-z]?\d|motorola\s+(?:edge|moto\s*g|moto\s*e|razr)|oppo\s+(?:reno|find|a\s*\d+)|honor\s+(?:\d|magic)|huawei\s+(?:mate|p\d+|nova)/i.test(d.titulo)
               && !/auricular|earbuds|\bbuds\b|cascos|\bwatch\b|smartwatch|reloj.*intelig|cepillo|toothbrush|proyector|projector|patinete|scooter|aspirador|robot.*aspir|bombilla|c[aá]mara\s+seguridad|sensor|cargador|funda|protector|carcasa|hub\s+usb|cable\s+|adaptador|altavoz|speaker|\btablet\b|\bipad\b|trackpad|teclado|rat[oó]n|mouse\b|smart.?tv|televisor|monitor|impresora|router/i.test(d.titulo) },
@@ -2706,35 +2706,54 @@
 
   // ── Categories ───────────────────────────────────────────────
   const _RX = {
-    calzado:      /zapatilla[s]?|zapato[s]?|deportiva[s]?\b|\bbotas?\b|\bbotines?\b|sandalia[s]?\b|mocas[ií]n[es]*|sneaker[s]?|calzado\b|\bnike\b|\badidas\b|\bpuma\b|reebok|new balance|asics|\bjordan\b|air max|ultraboost|salomon\b|hoka\b|on running|saucony\b|brooks\b|mizuno\b|skechers\b|converse\b|\bvans\b|alpargata[s]?|espadrille[s]?|zuecos?\b/i,
-    tecnologia:   /smartphone|m[oó]vil|iphone|galaxy\b|tablet|ipad|port[aá]til|laptop|macbook|pc gaming|monitor\b|televisor|\btv\b|oled|qled|auricular|cascos|airpods|wh-?1000|bose\b|kindle|c[aá]mara\b|gopro|smartwatch|consola\b|ps5|playstation|xbox|nintendo|switch\b|ssd|disco duro|\bram\b|gpu|rtx|procesador|impresora|router|logitech|razer|corsair|steelseries|hyperx|teclado\b|rat[oó]n\b|altavoz.*bluetooth|echo dot|google home|chromecast|power\s*bank|bater[ií]a.*externa|proyectores?|projectors?/i,
+    calzado:      /zapatilla[s]?|zapato[s]?|deportiva[s]?\b|\bbotas?\b|\bbotines?\b|sandalia[s]?\b|mocas[ií]n[es]*|sneaker[s]?|calzado\b|\bnike\b|\badidas\b|\bpuma\b|reebok|new balance|asics|\bjordan\b|air max|ultraboost|salomon\b|hoka\b|on running|saucony\b|brooks\b|mizuno\b|skechers\b|converse\b|\bvans\b|alpargata[s]?|espadrille[s]?|zuecos?\b|bailarina[s]?|merceditas|n[aá]uticos?\b/i,
+    tecnologia:   /smartphone|m[oó]vil|iphone|galaxy\b|tablet|ipad|port[aá]til|laptop|macbook|pc gaming|monitor\b|televisor|\btv\b|oled|qled|auricular|cascos|airpods|wh-?1000|bose\b|kindle|c[aá]mara\b|gopro|smartwatch|consola\b|\bps[345]\b|playstation|xbox|nintendo|switch\b|ssd|disco duro|\bram\b|gpu|rtx|procesador|impresora|router|logitech|razer|corsair|steelseries|hyperx|teclado\b|rat[oó]n\b|altavoz.*bluetooth|altavoz\b|echo dot|google home|chromecast|power\s*bank|bater[ií]a.*externa|proyectores?|projectors?|barra de sonido|soundbar|subwoofer|gamepad|joystick|alfombrilla gaming|\bwebcam\b|pendrive|microsd|tarjeta de memoria|memoria usb|\bmemoria\b.{0,18}(usb|gb)|repetidor|tp-link|\bhub\b|thrustmaster|pizarra electr|graphics card|tarjeta gr[aá]fica|patinete el[eé]ctrico|scooter el[eé]ctrico|tel[eé]fono\b|antivirus|mcafee|\bpc\b.*(edition|game)/i,
     herramientas: /taladro|sierra\b|destornillador|amoladora|lijadora|compresor|k[aä]rcher|dewalt|makita|milwaukee|stanley\b|ryobi\b|bahco\b|nivel.*l[aá]ser|mult[ií]metro|flex[oó]metro|llave inglesa|alicate|bosch.*(taladro|sierra|amoladora|compresor|atornillador)/i,
     deportes:     /running\b|trail\b|fitness\b|gimnasio|mancuerna|kettlebell|\bpesas\b|nataci[oó]n|swim\b|f[uú]tbol|bal[oó]n|raqueta|p[aá]del|esqu[ií]|snowboard|surf\b|garmin|polar\b|fitbit|under armour|\bgiro\b|shimano|alpinestars|ciclismo|mountain bike|\bmtb\b|gravel\b|bicicleta|\bbici\b|sill[ií]n|escalada|senderismo\b/i,
-    hogar:        /cafetera|nespresso|delonghi|dolce.?gusto|sage\b|breville\b|krups\b|jura\b|aspirador|robot.?aspirador|roomba|irobot|roborock|lefant|dreame|ecovacs|eufy\b|freidora|airfryer|air.?fryer|microondas|lavadora|lavavajillas|frigor[ií]fico|nevera|secadora\b|\bhorno\b|plancha\b|plancha.*vapor|vaporeta|vaporizador|cepillo.*vapor|vapor.*cepillo|campana\b|campana.*extract|extractor.*humos|\bteka\b|batidora|thermomix|olla.*presi[oó]n|robot.*cocina|dyson|rowenta|tefal|cecotec|shark\b|bissell\b|kenwood\b|magimix\b|calefactor|aire.*acondicionado|ventilador\b|purificador|humidificador|deshumidificador|inducci[oó]n\b|vitrocer[aá]mic|colch[oó]n|l[aá]mpara\b|sill[oó]n\b|sof[aá]\b|escritorio\b|estanter[ií]a/i,
-    belleza:      /perfume\b|eau de parfum|eau de toilette|\bcolonia\b|fragancia\b|maquillaje|labial\b|crema.*facial|crema.*corporal|crema.*hidratante|s[eé]rum.*facial|\bdior\b|\bchanel\b|\barmani\b|ysl\b|calvin klein|hugo boss|lanc[oô]me|l'?oreal|nivea|olay\b|estee lauder|afeitadora|maquinilla.*afeit|rasuradora\b|oneblade|depiladora|epiladora|oral.?b|cepillo.*dental|irrigador.*bucal|remington\b|wahl\b|babyliss|ghd\b|plancha.*pelo|rizador|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo/i,
+    hogar:        /cafetera|nespresso|delonghi|dolce.?gusto|sage\b|breville\b|krups\b|jura\b|aspirador|robot.?aspirador|roomba|irobot|roborock|lefant|dreame|ecovacs|eufy\b|freidora|airfryer|air.?fryer|microondas|lavadora|lavavajillas|frigor[ií]fico|nevera|secadora\b|\bhorno\b|plancha\b|plancha.*vapor|vaporeta|vaporizador|cepillo.*vapor|vapor.*cepillo|campana\b|campana.*extract|extractor.*humos|\bteka\b|batidora|thermomix|olla.*presi[oó]n|robot.*cocina|dyson|rowenta|tefal|cecotec|shark\b|bissell\b|kenwood\b|magimix\b|calefactor|aire.*acondicionado|ventilador\b|purificador|humidificador|deshumidificador|inducci[oó]n\b|vitrocer[aá]mic|colch[oó]n|l[aá]mpara\b|sill[oó]n\b|sof[aá]\b|escritorio\b|estanter[ií]a|molinillo|licuadora|exprimidor|tostadora|hervidor|sandwichera|gofrera|escoba de vapor|regleta|bombilla|tira led|enchufe intelig|\btermo\b|botella|fiambrera|cesto de secado/i,
+    belleza:      /perfume\b|eau de parfum|eau de toilette|\bcolonia\b|fragancia\b|maquillaje|labial\b|crema.*facial|crema.*corporal|crema.*hidratante|s[eé]rum.*facial|\bdior\b|\bchanel\b|\barmani\b|ysl\b|calvin klein|hugo boss|lanc[oô]me|l'?oreal|nivea|olay\b|estee lauder|afeitadora|maquinilla.*afeit|rasuradora\b|oneblade|depiladora|epiladora|oral.?b|cepillo.*dental|cepillo el[eé]ctrico|sonicare|irrigador\b|cepillo alisador|alisador\b|moldeador|stylecare|cortador.*(barba|pelo)|cortabarba|\bsecador\b|remington\b|wahl\b|babyliss|ghd\b|plancha.*pelo|rizador|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo/i,
     juguetes:     /\blego\b|playmobil|hasbro|mattel|hot wheels|barbie|juguete|mu[ñn]eca\b|\bfunko\b|\bnerf\b|juego de mesa|puzzle\b|puzle\b|scalextric|rc\b.*coche|coche.*teledirigido|\bteledirigido\b/i,
-    moda:         /\bbolso[s]?\b|carteras?\b|monedero[s]?\b|mochila[s]?\b|maleta[s]?\b|lacoste|ralph lauren|\bdior\b|\bchanel\b|\barmani\b|calvin klein|tommy hilfiger|tommy jeans|pepe jeans|guess\b|gant\b|emporio armani|hugo boss|\bboss\b|barbour|hackett|fred perry|ba[&+]sh|levis?|levi['']?s|wrangler|replay\b|scotch.?soda|massimo dutti|gafas.*sol|gafas.*graduada|\bcintur[oó]n[s]?\b|\bcorbata[s]?\b|\bbufanda[s]?\b|\bgorra[s]?\b|\bpendiente[s]?\b(?!.*audio)/i,
+    moda:         /\bbolso[s]?\b|carteras?\b|monedero[s]?\b|mochila[s]?\b|maleta[s]?\b|lacoste|ralph lauren|\bdior\b|\bchanel\b|\barmani\b|calvin klein|tommy hilfiger|tommy jeans|pepe jeans|guess\b|gant\b|emporio armani|hugo boss|\bboss\b|barbour|hackett|fred perry|ba[&+]sh|levis?|levi['']?s|wrangler|replay\b|scotch.?soda|massimo dutti|gafas.*sol|gafas.*graduada|\bcintur[oó]n[s]?\b|\bcorbata[s]?\b|\bbufanda[s]?\b|\bgorra[s]?\b|\bpendiente[s]?\b(?!.*audio)|\breloj\b/i,
   };
+
+  // Excluyentes para evitar contaminación cruzada (autoritativos sobre la categoría del servidor)
+  const _RX_APPAREL = /camiseta|\bcamisa\b|camis[oó]n|pantal[oó]n|pantalones|\bshort|bermuda|sudadera|\bpolo\b|jersey|jers[eé]y|jersei|abrigo|chaqueta|chaquet[oó]n|cazadora|b[oó]mber|parka|anorak|chubasquero|impermeable|vestido|falda|blusa|\btop\b|leggins?|\bmallas?\b|tights?\b|calcet[ií]n|calcetines|ba[ñn]ador|bikini|biquini|ch[aá]ndal|forro polar|plum[ií]fero|\bplumas\b|americana|blazer|\btraje\b|gabardina|sujetador|\bbra\b|sports?\s*bra|braga[s]?|calzoncillo|boxer|cardigan|c[aá]rdigan|sun top|arm guard|manguito|\bbody\b|\bpant\b|panty/i;
+  const _RX_CONSOLE = /\bps[345]\b|playstation|\bxbox\b|nintendo|\bswitch\b|\bwii\b/i;
+  const _RX_KITCHEN = /freidora|airfryer|air.?fryer|microondas|\bhorno\b|cafetera|thermomix|robot.*cocina|batidora/i;
+  const _scat = (d, id) => d.categoria === id;
 
   const CATEGORIAS = [
     { id: "todas",        label: "Todas" },
-    { id: "calzado",      label: "Calzado",       test: d => _RX.calzado.test(d.titulo) },
-    { id: "tecnologia",   label: "Tecnología",    test: d => _RX.tecnologia.test(d.titulo) || d.tienda === "PcComponentes" },
-    { id: "herramientas", label: "Herramientas",  test: d => _RX.herramientas.test(d.titulo) },
-    { id: "deportes",     label: "Deportes",      test: d => _RX.deportes.test(d.titulo) || ["Mammoth Bikes","Decathlon","PrivateSportShop"].includes(d.tienda) },
-    { id: "hogar",        label: "Hogar",         test: d => _RX.hogar.test(d.titulo) },
-    { id: "belleza",      label: "Cuidado Personal", test: d => _RX.belleza.test(d.titulo) && !/freidora|airfryer|air.?fryer|microondas|\bhorno\b|cafetera|thermomix|robot.*cocina|batidora/i.test(d.titulo) },
-    { id: "juguetes",     label: "Juguetes",      test: d => _RX.juguetes.test(d.titulo) },
-    { id: "moda",         label: "Moda",          test: d => _RX.moda.test(d.titulo) || d.tienda === "Desigual" },
+    { id: "calzado",      label: "Calzado",       test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"calzado") || _RX.calzado.test(d.titulo)) },
+    { id: "tecnologia",   label: "Tecnología",    test: d => _scat(d,"tecnologia") || _RX.tecnologia.test(d.titulo) || d.tienda === "PcComponentes" },
+    { id: "herramientas", label: "Herramientas",  hidden: true, test: d => _scat(d,"herramientas") || _RX.herramientas.test(d.titulo) },
+    { id: "deportes",     label: "Deportes",      test: d => _scat(d,"deportes") || _RX.deportes.test(d.titulo) || ["Mammoth Bikes","Decathlon","PrivateSportShop","Barrabes"].includes(d.tienda) },
+    { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
+    { id: "belleza",      label: "Cuidado Personal", test: d => !_RX_APPAREL.test(d.titulo) && !_RX_KITCHEN.test(d.titulo) && (_scat(d,"belleza") || _RX.belleza.test(d.titulo)) },
+    { id: "juguetes",     label: "Juguetes",      test: d => !_RX_CONSOLE.test(d.titulo) && (_scat(d,"juguetes") || _RX.juguetes.test(d.titulo)) },
+    { id: "moda",         label: "Moda",          test: d => _scat(d,"moda") || _RX.moda.test(d.titulo) || _RX_APPAREL.test(d.titulo) || d.tienda === "Desigual" },
   ];
+
+  // ── Moda sub-categories (contenedor; se divide más adelante) ──
+  const MODA_SUBCATS = [
+    { id: "todas",      label: "Todo Moda" },
+    { id: "ropa",       label: "Ropa",       test: d => _RX_APPAREL.test(d.titulo) },
+    { id: "accesorios", label: "Accesorios", test: d => /\bbolso[s]?\b|carteras?\b|monedero[s]?\b|mochila[s]?\b|maleta[s]?\b|neceser|\bcintur[oó]n|\bcorbata|\bbufanda|\bpa[ñn]uelo|\bgorra|\bgafas\b|\bguantes?\b/i.test(d.titulo) },
+    { id: "relojes",    label: "Relojes",    test: d => /\breloj\b/i.test(d.titulo) },
+  ];
+  let activeModaSubcat = "todas";
 
   function dealMatchesCategory(deal, catId) {
     if (catId === "todas") return true;
     const cat = CATEGORIAS.find(c => c.id === catId);
-    const inCat = (deal.categoria === catId) || (cat ? cat.test(deal) : false);
+    const inCat = cat ? cat.test(deal) : false;
     if (!inCat) return false;
     if (catId === "tecnologia" && activeTechSubcat !== "todas") {
       const sc = TECH_SUBCATS.find(s => s.id === activeTechSubcat);
+      return sc ? sc.test(deal) : true;
+    }
+    if (catId === "moda" && activeModaSubcat !== "todas") {
+      const sc = MODA_SUBCATS.find(s => s.id === activeModaSubcat);
       return sc ? sc.test(deal) : true;
     }
     return true;
@@ -2833,6 +2852,7 @@
 
     activeCategory   = "todas";
     activeTechSubcat = "todas";
+    activeModaSubcat = "todas";
     document.querySelectorAll('.cat-pill').forEach(b =>
       b.classList.toggle('cat-pill--active', b.dataset.cat === 'todas'));
 
@@ -3569,7 +3589,10 @@
       updateCount();
       buildStoreBar();
 
-      if (hasMore && grid.querySelectorAll(".deal").length < 8) {
+      // Con filtro activo (categoría/tienda/sort) cargamos TODAS las páginas para
+      // mostrar absolutamente todo lo que cae en esa categoría, no solo la 1ª página.
+      const _wantAll = activeCategory !== "todas" || !!activeStore || activeSort === "low_cost";
+      if (hasMore && (_wantAll || grid.querySelectorAll(".deal").length < 8)) {
         showLoading(false); isLoading = false; loadMore(); return;
       }
       checkPaywall();
@@ -3609,21 +3632,30 @@
   }
 
   // ── Subcat bar ────────────────────────────────────────────────
+  // Config de subcategorías según la categoría activa (Tech o Moda)
+  function _subcatConfig() {
+    if (activeCategory === "tecnologia") return { list: TECH_SUBCATS, get: () => activeTechSubcat, set: v => { activeTechSubcat = v; } };
+    if (activeCategory === "moda")       return { list: MODA_SUBCATS, get: () => activeModaSubcat, set: v => { activeModaSubcat = v; } };
+    return null;
+  }
+
   function buildSubcatBar() {
     const bar = document.getElementById("js-subcat-bar");
     if (!bar) return;
-    if (activeCategory !== "tecnologia") {
-      bar.style.display = "none"; activeTechSubcat = "todas"; return;
+    const cfg = _subcatConfig();
+    if (!cfg) {
+      bar.style.display = "none"; activeTechSubcat = "todas"; activeModaSubcat = "todas"; return;
     }
-    bar.innerHTML = TECH_SUBCATS.map(sc =>
-      `<button class="subcat-pill${sc.id === activeTechSubcat ? " subcat-pill--active" : ""}" data-subcat="${sc.id}">${sc.label}</button>`
+    const active = cfg.get();
+    bar.innerHTML = cfg.list.map(sc =>
+      `<button class="subcat-pill${sc.id === active ? " subcat-pill--active" : ""}" data-subcat="${sc.id}">${sc.label}</button>`
     ).join("");
     bar.style.display = "flex";
     _positionSubcatBar();
     bar.querySelectorAll(".subcat-pill").forEach(btn => {
       btn.addEventListener("click", () => {
-        if (activeTechSubcat === btn.dataset.subcat) return;
-        activeTechSubcat = btn.dataset.subcat;
+        if (cfg.get() === btn.dataset.subcat) return;
+        cfg.set(btn.dataset.subcat);
         bar.querySelectorAll(".subcat-pill").forEach(b => b.classList.remove("subcat-pill--active"));
         btn.classList.add("subcat-pill--active");
         renderGrid();
@@ -3634,7 +3666,7 @@
   // ── Category bar ──────────────────────────────────────────────
   function buildCatBar() {
     const bar = document.getElementById("js-cat-bar");
-    bar.innerHTML = CATEGORIAS.map(cat =>
+    bar.innerHTML = CATEGORIAS.filter(cat => !cat.hidden).map(cat =>
       `<button class="cat-pill${cat.id === "todas" ? " cat-pill--active" : ""}" data-cat="${cat.id}">${cat.label}</button>`
     ).join("");
     bar.querySelectorAll(".cat-pill").forEach(btn => {
@@ -3642,6 +3674,7 @@
         if (activeCategory === btn.dataset.cat) return;
         activeCategory   = btn.dataset.cat;
         activeTechSubcat = "todas";
+        activeModaSubcat = "todas";
         bar.querySelectorAll(".cat-pill").forEach(b => b.classList.remove("cat-pill--active"));
         btn.classList.add("cat-pill--active");
         buildSubcatBar();
@@ -4024,6 +4057,7 @@
     // Reset estado de navegación al inicial — clave para que el home funcione correctamente
     activeCategory   = "todas";
     activeTechSubcat = "todas";
+    activeModaSubcat = "todas";
     activeSort       = "recientes";
     if (_mhomeDeals.length) renderMobileHome(_mhomeDeals);
     // Sync UI bars
@@ -4537,7 +4571,7 @@
     const sortEl = document.getElementById("js-fpanel-sorts");
     if (!catEl || !sortEl) return;
 
-    catEl.innerHTML = CATEGORIAS.map(c =>
+    catEl.innerHTML = CATEGORIAS.filter(c => !c.hidden).map(c =>
       `<button class="fpanel__pill${c.id === activeCategory ? ' fpanel__pill--active' : ''}"
                onclick="fpanelSelectCat('${c.id}')">${c.label}</button>`
     ).join("");
@@ -4599,7 +4633,7 @@
     // Sync con la cat-bar real para que el estado sea consistente
     const bar = document.getElementById("js-cat-bar");
     if (bar) {
-      activeCategory = catId; activeTechSubcat = "todas";
+      activeCategory = catId; activeTechSubcat = "todas"; activeModaSubcat = "todas";
       bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === catId));
       buildSubcatBar();
     }
