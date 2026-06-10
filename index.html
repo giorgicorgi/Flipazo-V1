@@ -1083,12 +1083,29 @@
 
     /* ── Pricing ─────────────────────────────────────────────────── */
     .deal__pricing {
-      display: flex; align-items: baseline; gap: 8px;
-      margin-bottom: 6px; flex-wrap: wrap;
+      display: flex; flex-direction: column; gap: 3px;
+      margin-bottom: 8px;
       padding: 0 16px;
     }
+    .deal__price-row {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    }
+    .deal__price-row--now {
+      border-top: 1px solid var(--border, #e6e6e6);
+      padding-top: 5px; margin-top: 2px;
+    }
+    .deal__price-meta {
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .deal__price-label {
+      font-family: var(--sans); font-size: 11px; font-weight: 600;
+      color: var(--text-mid); text-transform: uppercase; letter-spacing: .03em;
+    }
+    .deal__price-label--now {
+      color: #0581FC; font-weight: 800;
+    }
     .deal__current {
-      font-family: var(--sans); font-weight: 900; font-size: 26px;
+      font-family: var(--sans); font-weight: 900; font-size: 32px;
       color: #0581FC; line-height: 1;
     }
     .deal__original {
@@ -1623,6 +1640,8 @@
     .deals-grid--mosaic .deal__title    { font-size: 13px; }
     .deals-grid--mosaic .deal__current  { font-size: 20px; }
     .deals-grid--mosaic .deal__original { font-size: 11px; }
+    .deals-grid--mosaic .deal__price-label { display: none; }
+    .deals-grid--mosaic .deal__price-row--now { border-top: none; padding-top: 0; margin-top: 0; }
     .deals-grid--mosaic .deal__cta      { padding-bottom: 10px; }
     .deals-grid--mosaic .btn            { font-size: 11px; padding: 8px 12px; }
     .deals-grid--mosaic .deal__votes    { gap: 4px; }
@@ -2907,9 +2926,11 @@
          </div>`;
 
     const ahorro = d.precio_original > d.precio_actual ? d.precio_original - d.precio_actual : 0;
-    const isMinHistorico = (d.precio_historico_min > 0) && (d.precio_actual <= d.precio_historico_min * 1.05);
+    // Solo afirmamos "mínimo histórico" si el precio actual está realmente en/por debajo
+    // del mínimo verificado (sin tolerancia): no lo afirmamos sin certeza.
+    const isMinHistorico = (d.precio_historico_min > 0) && (d.precio_actual <= d.precio_historico_min);
     const ahorroHtml = ahorro > 1
-      ? `<div class="deal__savings">Ahorras ${fmtPrice(ahorro)}${isMinHistorico ? " · Precio mínimo histórico" : ""}</div>` : "";
+      ? `<div class="deal__savings">Estás ahorrando ${fmtPrice(ahorro)}${isMinHistorico ? " · Precio mínimo histórico" : ""}</div>` : "";
 
     const razonamiento = (!d.razonamiento || _RAZON_GENERICAS.has(d.razonamiento.trim())) ? "" : d.razonamiento;
     const razonHtml = razonamiento ? `<p class="deal__reason">"${esc(razonamiento)}"</p>` : "";
@@ -2999,9 +3020,18 @@
         ${titleBlock}
         ${socialHtml}
         <div class="deal__pricing">
-          ${d.precio_original > 0 ? `<span class="deal__original">${fmtPrice(d.precio_original)}</span>` : ""}
-          <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
-          ${d.descuento_pct > 0 && !isExpired ? `<span class="deal__pct">−${d.descuento_pct}%</span>` : ""}
+          ${d.precio_original > 0 ? `
+          <div class="deal__price-row">
+            <span class="deal__price-meta">
+              <span class="deal__price-label">Precio original</span>
+              ${d.descuento_pct > 0 && !isExpired ? `<span class="deal__pct">−${d.descuento_pct}%</span>` : ""}
+            </span>
+            <span class="deal__original">${fmtPrice(d.precio_original)}</span>
+          </div>` : ""}
+          <div class="deal__price-row deal__price-row--now">
+            <span class="deal__price-label deal__price-label--now">Ahora por</span>
+            <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
+          </div>
         </div>
         ${ahorroHtml}
         ${stockBadge}
@@ -3118,7 +3148,7 @@
     const isReventa    = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
     const cleanTitle   = esc(cleanHeroTitle(d.titulo || ""));
     const ahorro       = (d.precio_original > 0 && d.precio_actual > 0) ? d.precio_original - d.precio_actual : 0;
-    const isMinHist    = d.precio_historico_min > 0 && d.precio_actual <= d.precio_historico_min * 1.05;
+    const isMinHist    = d.precio_historico_min > 0 && d.precio_actual <= d.precio_historico_min;
     const savingsHtml  = ahorro > 0
       ? `<div class="hero__savings-row">
            <span class="hero__savings-pill">Ahorras ${fmtPrice(ahorro)}${isMinHist ? " · Precio mínimo histórico" : ""}</span>
