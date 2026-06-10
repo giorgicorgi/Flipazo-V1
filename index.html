@@ -1088,7 +1088,7 @@
       padding: 0 16px;
     }
     .deal__price-row {
-      display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+      display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
     }
     .deal__price-row--now {
       border-top: 1px solid var(--border, #e6e6e6);
@@ -1096,17 +1096,20 @@
     }
     .deal__price-meta {
       display: inline-flex; align-items: center; gap: 6px;
+      flex-shrink: 1; min-width: 0;
     }
     .deal__price-label {
-      font-family: var(--sans); font-size: 11px; font-weight: 600;
-      color: var(--text-mid); text-transform: uppercase; letter-spacing: .03em;
+      font-family: var(--sans); font-size: 10px; font-weight: 600;
+      color: var(--text-mid); text-transform: uppercase; letter-spacing: .02em;
+      line-height: 1.2;
     }
     .deal__price-label--now {
       color: #0581FC; font-weight: 800;
     }
     .deal__current {
       font-family: var(--sans); font-weight: 900; font-size: 32px;
-      color: #0581FC; line-height: 1;
+      color: #0581FC; line-height: 1; white-space: nowrap;
+      flex-shrink: 0;
     }
     .deal__original {
       font-family: var(--sans); font-size: 16px; font-weight: 500;
@@ -1114,7 +1117,9 @@
       text-decoration: line-through;
       text-decoration-color: var(--brand);
       text-decoration-thickness: 1.5px;
+      white-space: nowrap; flex-shrink: 0;
     }
+    .deal__pct { flex-shrink: 0; }
     .deal__pct {
       font-family: var(--sans); font-size: 12px; font-weight: 800;
       color: var(--brand); padding: 2px 8px;
