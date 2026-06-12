@@ -1669,7 +1669,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         dec_raw = await asyncio.to_thread(fetch_decathlon_productos)
         dec_añadidos = 0
         for d in sorted(dec_raw, key=lambda x: -x.get("descuento_pct", 0)):
-            if dec_añadidos >= 2:
+            if dec_añadidos >= 6:
                 break
             _registrar_observacion_precio(d)
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda="Decathlon", precio=d.get("precio_actual", 0)):
@@ -2042,6 +2042,11 @@ _MARCAS_ARBITRAJE = {
     "bose", "jabra", "sennheiser",
 }
 
+# Tiendas con feed curado + historial de precios PROPIO verificado: la bajada ya se
+# valida contra su propio histórico de 30 días, así que no exigimos marca reconocida
+# en la zona gris (sus marcas propias —Kiprun, Quechua…— no están en _MARCAS_CONOCIDAS).
+_TIENDAS_FEED_CONFIABLE = {"Decathlon"}
+
 # Umbrales pre-scorer
 _SCORE_AUTO_APROBAR  = 70   # ≥70 → auto-aprobado (ARBITRAJE o OFERTA según marca), sin Claude
 _SCORE_AUTO_DESCARTAR = 30  # <30 → descartado, sin Claude
@@ -2319,6 +2324,11 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
             p.score_oferta = _score_local(p)
             p.categoria    = "low_cost"
             p.razonamiento = f"low cost -{p.descuento_pct}%"
+        elif p.tienda in _TIENDAS_FEED_CONFIABLE:
+            # Feed curado con historial propio: bajada real ≥40% ya verificada
+            p.tipo         = "OFERTA"
+            p.score_oferta = _score_local(p)
+            p.razonamiento = ""
         else:
             continue  # DESCARTAR silenciosamente
 
