@@ -731,7 +731,7 @@ def get_deals(
 ):
     """Devuelve deals publicados ordenados del más reciente al más antiguo."""
     where_clauses, params = [], []
-    where_clauses.append("publicado_en >= datetime('now', '-7 days')")
+    where_clauses.append("publicado_en >= datetime('now', '-30 days')")
     if tipo:
         where_clauses.append("tipo = ?"); params.append(tipo.upper())
     if tienda:
@@ -902,7 +902,7 @@ def get_section(name: str, limit: int = Query(default=12, ge=1, le=50)):
 @app.get("/api/deals/count")
 def get_count():
     with _get_db() as con:
-        total = con.execute("SELECT COUNT(*) FROM deals_publicados").fetchone()[0]
+        total = con.execute("SELECT COUNT(*) FROM deals_publicados WHERE publicado_en >= datetime('now', '-30 days')").fetchone()[0]
     return {"total": total}
 
 

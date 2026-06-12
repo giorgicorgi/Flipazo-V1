@@ -2724,16 +2724,18 @@
   const _RX_CONSOLE = /\bps[345]\b|playstation|\bxbox\b|nintendo|\bswitch\b|\bwii\b/i;
   const _RX_KITCHEN = /freidora|airfryer|air.?fryer|microondas|\bhorno\b|cafetera|thermomix|robot.*cocina|batidora/i;
   const _scat = (d, id) => d.categoria === id;
+  // Tiendas 100% deporte: todo lo suyo (incl. ropa deportiva) va a Deportes, NUNCA a Moda
+  const _DEPORTE_STORES = new Set(["Barrabes", "Decathlon", "Mammoth Bikes", "PrivateSportShop"]);
 
   const CATEGORIAS = [
     { id: "todas",        label: "Todas" },
     { id: "tecnologia",   label: "Tecnología",    test: d => _scat(d,"tecnologia") || _RX.tecnologia.test(d.titulo) || d.tienda === "PcComponentes" },
     { id: "herramientas", label: "Herramientas",  hidden: true, test: d => _scat(d,"herramientas") || _RX.herramientas.test(d.titulo) },
-    { id: "deportes",     label: "Deportes",      test: d => _scat(d,"deportes") || _RX.deportes.test(d.titulo) || ["Mammoth Bikes","Decathlon","PrivateSportShop","Barrabes"].includes(d.tienda) },
+    { id: "deportes",     label: "Deportes",      test: d => _scat(d,"deportes") || _RX.deportes.test(d.titulo) || _DEPORTE_STORES.has(d.tienda) },
     { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
     { id: "belleza",      label: "Cuidado Personal", test: d => !_RX_APPAREL.test(d.titulo) && !_RX_KITCHEN.test(d.titulo) && (_scat(d,"belleza") || _RX.belleza.test(d.titulo)) },
     { id: "juguetes",     label: "Juguetes",      test: d => !_RX_CONSOLE.test(d.titulo) && (_scat(d,"juguetes") || _RX.juguetes.test(d.titulo)) },
-    { id: "moda",         label: "Moda",          test: d => _scat(d,"moda") || _RX.moda.test(d.titulo) || _RX_APPAREL.test(d.titulo) || d.tienda === "Desigual" },
+    { id: "moda",         label: "Moda",          test: d => !_DEPORTE_STORES.has(d.tienda) && (_scat(d,"moda") || _RX.moda.test(d.titulo) || _RX_APPAREL.test(d.titulo) || d.tienda === "Desigual") },
     { id: "calzado",      label: "Calzado",       test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"calzado") || _RX.calzado.test(d.titulo)) },
   ];
 
