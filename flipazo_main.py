@@ -2901,13 +2901,20 @@ _TIENDAS_MODA = {
     "Elliotti", "PrivateSportShop",
 }
 
+# Threads es un canal premium: solo los mejores deals para no saturar.
+# El score local combina descuento + marca reconocida + rango de precio (relación marca/precio/%).
+_THREADS_SCORE_MIN = 70
+
 def _threads_elegible(p: Producto) -> bool:
-    """Threads es un canal curado: solo deals con ≥50% de descuento y que NO sean ropa."""
+    """Threads curado: ≥50% descuento, sin ropa, y solo deals de score alto (marca/precio/%)."""
     if (p.descuento_pct or 0) < 50:
         return False
     if getattr(p, "tienda", "") in _TIENDAS_MODA:
         return False
     if _ROPA_RE.search(p.titulo or "") or _TALLA_RE.search(p.titulo or ""):
+        return False
+    # Solo los mejores: marca top + buen descuento + precio razonable
+    if _score_local(p) < _THREADS_SCORE_MIN:
         return False
     return True
 
