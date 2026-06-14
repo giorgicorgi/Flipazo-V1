@@ -1,32 +1,31 @@
 """
-scrapers/decathlon_feed.py — Feed de productos Decathlon ES con historial propio.
+scrapers/decathlon_feed.py — Feed de afiliado Decathlon ES (feed id=98).
 
-El feed XML de Decathlon no incluye precio de referencia/tachado. Este módulo
-construye su propio historial de precios en SQLite: cada vez que se descarga
-el feed (1 vez/día, caché 23h), guarda el precio de cada modelo. Cuando un
-modelo acumula >= MIN_DIAS_DATOS días de historial, podemos detectar bajadas
-reales respecto al máximo de los últimos 30 días.
+Esquema XML:  <Products><Product>...</Product>...</Products>
+Campos:       Sku, Product_ID, Name, Brand, Product_Nature, Images, Url,
+              InitialPrice (precio de referencia), Discount_Price (precio actual),
+              Avaibility_Model / AvaibilitySku (stock), Size.
 
-Feed URL:  os.getenv("DECATHLON_FEED_URL")
-Formato:   XML  <items><item>...</item></items>
-Campos:    ModelID, SkuID, Name, Price, Img, URL (ya es deep link afiliado),
-           Brand, Sport, Size
+A diferencia del feed antiguo (id=107, sin precio de referencia), este feed trae
+el descuento DIRECTO del retailer: (InitialPrice − Discount_Price) / InitialPrice.
+No necesita acumular 7 días de historial propio para detectar bajadas.
 
-Descarga 1 vez/día (caché 23h).
-Devuelve list[dict] con campos de Producto para que flipazo_main convierta con
-Producto(**d) y filtre con _es_producto_valido / _precio_aceptable.
+El feed pesa ~170 MB, así que se descarga en streaming a un fichero temporal y se
+parsea con ET.iterparse (memoria acotada), liberando cada nodo al procesarlo.
 
-Tablas propias en la BD (no interfieren con deals_publicados):
-  decathlon_precios   — historial de precios: (model_id, fecha, precio)
-  decathlon_productos — metadatos del modelo: nombre, url_afiliado, imagen, etc.
+Caché 23h. Devuelve list[dict] compatible con Producto(**d) en flipazo_main.
+
+Sigue registrando historial propio (decathlon_precios / decathlon_productos) para
+auditoría y posibles validaciones futuras.
 """
 
 import os
 import re
 import sqlite3
+import tempfile
 import threading
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import requests
 from dotenv import load_dotenv
@@ -36,20 +35,13 @@ load_dotenv()
 DECATHLON_FEED_URL = os.getenv("DECATHLON_FEED_URL", "")
 DB_PATH            = os.getenv("DB_PATH", "flipazo_deals.db")
 
-_DESCUENTO_MIN  = 40    # % mínimo — mismo que el pipeline general
-_PRECIO_MIN     = 25.0  # € mínimo para deals
-_PRECIO_MAX     = 800.0 # € máximo para deals
-_PRECIO_TRACK_MAX = 1500.0  # máximo para registrar historial (más amplio)
-_DIAS_HISTORIAL = 30    # días hacia atrás para calcular precio de referencia
-_MIN_DIAS_DATOS = 7     # días distintos requeridos antes de publicar deals
+_DESCUENTO_MIN = 40     # % mínimo — mismo que el pipeline general
+_PRECIO_MIN    = 25.0   # € mínimo para deals
+_PRECIO_MAX    = 800.0  # € máximo para deals
 
-# Regex para descartar variantes cuya única diferencia sea una talla de letra.
-# Ejemplos que captura: "S / W30 L31", "M", "XL", "XXL / 40"
-# Ejemplos que NO captura: "60 cm", "38", "Talla única", "89-95cm 2-3A"
-_TALLA_LETRA_RE = re.compile(
-    r'^\s*(?:XXL|XXXL|XXS|XS|XL|[SML])\s*(?:/|$)',
-    re.IGNORECASE
-)
+# Descarta variantes cuya única diferencia sea una talla de letra (S/M/L/XL…),
+# para preferir una URL/representación de talla numérica o única por modelo.
+_TALLA_LETRA_RE = re.compile(r'^\s*(?:XXL|XXXL|XXS|XS|XL|[SML])\s*(?:/|$)', re.IGNORECASE)
 
 _lock       = threading.Lock()
 _last_fetch: datetime | None = None
@@ -65,8 +57,11 @@ def _parse_precio(s) -> float:
         return 0.0
 
 
-def _tiene_talla_letra(size_str: str) -> bool:
-    return bool(_TALLA_LETRA_RE.match(size_str or ""))
+def _parse_int(s) -> int:
+    try:
+        return int(float(str(s or "0").replace(",", ".").strip()))
+    except Exception:
+        return 0
 
 
 # ── SQLite: tablas propias de Decathlon ────────────────────────────────────
@@ -92,18 +87,16 @@ def _init_tablas(con: sqlite3.Connection) -> None:
     con.commit()
 
 
-def _registrar_precios(productos: list[dict]) -> None:
-    """Guarda precio de HOY para cada modelo. Un registro por día (INSERT OR REPLACE)."""
+def _registrar_precios(modelos: dict[str, dict]) -> None:
+    """Guarda el precio actual de HOY para cada modelo (un registro por día)."""
     hoy     = datetime.utcnow().strftime("%Y-%m-%d")
     now_iso = datetime.utcnow().isoformat()
-
     with sqlite3.connect(DB_PATH) as con:
         _init_tablas(con)
-        for p in productos:
-            mid = p["model_id"]
+        for m in modelos.values():
             con.execute(
                 "INSERT OR REPLACE INTO decathlon_precios (model_id, fecha, precio) VALUES (?,?,?)",
-                (mid, hoy, p["precio"])
+                (m["model_id"], hoy, m["precio_actual"]),
             )
             con.execute("""
                 INSERT INTO decathlon_productos
@@ -111,128 +104,124 @@ def _registrar_precios(productos: list[dict]) -> None:
                 VALUES (?,?,?,?,?,?,?)
                 ON CONFLICT(model_id) DO UPDATE SET
                     nombre       = excluded.nombre,
+                    marca        = excluded.marca,
+                    deporte      = excluded.deporte,
                     imagen_url   = excluded.imagen_url,
                     url_afiliado = excluded.url_afiliado,
                     ultima_vez   = excluded.ultima_vez
-            """, (mid, p["nombre"], p["marca"], p["deporte"],
-                  p["imagen_url"], p["url"], now_iso))
+            """, (m["model_id"], m["nombre"], m["marca"], m["deporte"],
+                  m["imagen_url"], m["url"], now_iso))
         con.commit()
 
 
-def _calcular_deals(productos: list[dict]) -> list[dict]:
+# ── Descarga + parseo ──────────────────────────────────────────────────────
+
+def _descargar_a_fichero() -> str:
+    """Descarga el feed en streaming a un fichero temporal. Devuelve la ruta."""
+    fd, path = tempfile.mkstemp(suffix=".xml", prefix="decathlon_feed_")
+    with os.fdopen(fd, "wb") as f:
+        with requests.get(DECATHLON_FEED_URL, timeout=180, stream=True) as resp:
+            resp.raise_for_status()
+            for chunk in resp.iter_content(chunk_size=1 << 16):
+                if chunk:
+                    f.write(chunk)
+    return path
+
+
+def _parsear(path: str) -> tuple[dict[str, dict], int]:
     """
-    Para cada modelo con >= MIN_DIAS_DATOS días de historial (excluyendo hoy),
-    compara el precio actual con el máximo histórico para detectar bajadas reales.
+    iterparse del XML grande. Agrupa por Product_ID (colapsa tallas en un modelo).
+    Devuelve (modelos, total_productos). Memoria acotada: limpia cada nodo y la raíz.
     """
-    hoy      = datetime.utcnow().strftime("%Y-%m-%d")
-    hace_30d = (datetime.utcnow() - timedelta(days=_DIAS_HISTORIAL)).strftime("%Y-%m-%d")
+    modelos: dict[str, dict] = {}
+    total = 0
 
-    # Lookup rápido: model_id → producto completo (precio de hoy + metadatos)
-    prod_map = {p["model_id"]: p for p in productos}
+    def _procesar(el) -> None:
+        def _t(tag: str) -> str:
+            v = el.findtext(tag)
+            return v.strip() if v else ""
+        pid = _t("Product_ID")
+        if not pid:
+            return
+        precio_actual = _parse_precio(_t("Discount_Price"))
+        precio_ref    = _parse_precio(_t("InitialPrice"))
+        if precio_actual <= 0 or precio_ref <= 0:
+            return
+        disp     = _parse_int(_t("Avaibility_Model") or _t("AvaibilitySku"))
+        es_letra = bool(_TALLA_LETRA_RE.match(_t("Size")))
+        if pid not in modelos:
+            modelos[pid] = {
+                "model_id":      pid,
+                "nombre":        _t("Name"),
+                "marca":         _t("Brand") or "DECATHLON",
+                "deporte":       _t("Product_Nature"),
+                "precio_actual": precio_actual,
+                "precio_ref":    precio_ref,
+                "imagen_url":    _t("Images"),
+                "url":           _t("Url"),
+                "disp":          disp,
+                "_letra":        es_letra,
+            }
+        else:
+            m = modelos[pid]
+            m["disp"] = max(m["disp"], disp)
+            # Preferir variante de talla no-letra (mejor URL/representación)
+            if m["_letra"] and not es_letra:
+                m.update({
+                    "precio_actual": precio_actual,
+                    "precio_ref":    precio_ref,
+                    "url":           _t("Url") or m["url"],
+                    "_letra":        False,
+                })
 
-    with sqlite3.connect(DB_PATH) as con:
-        _init_tablas(con)
-        # Máximo y conteo de días ANTES de hoy (excluyendo el registro de hoy para
-        # que el precio de referencia sea siempre histórico, no el de la bajada)
-        rows = con.execute("""
-            SELECT model_id,
-                   MAX(precio)  AS precio_max,
-                   COUNT(fecha) AS n_dias
-            FROM   decathlon_precios
-            WHERE  fecha >= ? AND fecha < ?
-            GROUP  BY model_id
-            HAVING COUNT(fecha) >= ?
-        """, (hace_30d, hoy, _MIN_DIAS_DATOS)).fetchall()
+    context = ET.iterparse(path, events=("start", "end"))
+    _, root = next(context)  # primer start = <Products>
+    try:
+        for event, el in context:
+            if event == "end" and el.tag == "Product":
+                total += 1
+                _procesar(el)
+                el.clear()
+                root.clear()
+    except ET.ParseError as e:
+        # Feed truncado / descarga incompleta: conservamos lo parseado hasta el corte
+        print(f"   ⚠️  Decathlon feed truncado tras {total} productos: {e}")
 
+    return modelos, total
+
+
+def _detectar_deals(modelos: dict[str, dict]) -> list[dict]:
+    """Descuento directo InitialPrice vs Discount_Price; filtra rango, stock y umbral."""
     deals = []
-    for (mid, precio_max, n_dias) in rows:
-        prod = prod_map.get(mid)
-        if not prod:
+    for m in modelos.values():
+        pa, pr = m["precio_actual"], m["precio_ref"]
+        if pr <= pa:
+            continue                                   # sin bajada
+        if not (_PRECIO_MIN <= pa <= _PRECIO_MAX):
             continue
-
-        precio_hoy = prod["precio"]
-        if precio_hoy <= 0:
-            continue
-        if not (_PRECIO_MIN <= precio_hoy <= _PRECIO_MAX):
-            continue
-        if precio_max <= precio_hoy:
-            continue  # no hay bajada
-
-        descuento_pct = int((1 - precio_hoy / precio_max) * 100)
+        if m["disp"] <= 0:
+            continue                                   # sin stock
+        descuento_pct = int((1 - pa / pr) * 100)
         if descuento_pct < _DESCUENTO_MIN:
             continue
-
         deals.append({
-            "titulo":          prod["nombre"],
-            "asin":            prod["url"],   # URL con tracking afiliado ya incluido
-            "precio_actual":   precio_hoy,
-            "precio_original": round(precio_max, 2),
+            "titulo":          m["nombre"],
+            "asin":            m["url"],                # deep link afiliado ya incluido
+            "precio_actual":   pa,
+            "precio_original": round(pr, 2),
             "descuento_pct":   descuento_pct,
             "tienda":          "Decathlon",
-            "imagen_url":      prod["imagen_url"] or "",
+            "imagen_url":      m["imagen_url"] or "",
         })
-
     return deals
-
-
-# ── Parse y agrupación ─────────────────────────────────────────────────────
-
-def _parsear_feed(xml_text: str) -> list[dict]:
-    """
-    Parsea el XML y devuelve UN dict por ModelID (no por SKU/talla).
-    Para cada modelo, prioriza SKUs con talla no-letra (ej. numérica o "Talla única")
-    sobre variantes de letra (S, M, L, XL…) para obtener mejor URL de referencia.
-    Filtra precios fuera de rango de tracking.
-    """
-    root   = ET.fromstring(xml_text)
-    models: dict[str, dict] = {}
-
-    for item in root.findall("item"):
-        mid = (item.findtext("ModelID") or "").strip()
-        if not mid:
-            continue
-
-        precio = _parse_precio(item.findtext("Price") or "0")
-        if precio <= 0 or precio > _PRECIO_TRACK_MAX:
-            continue
-
-        size            = (item.findtext("Size") or "").strip()
-        es_talla_letra  = _tiene_talla_letra(size)
-
-        if mid not in models:
-            models[mid] = {
-                "model_id":        mid,
-                "nombre":          (item.findtext("Name") or "").strip(),
-                "precio":          precio,
-                "marca":           (item.findtext("Brand") or "DECATHLON").strip(),
-                "deporte":         (item.findtext("Sport") or "").strip(),
-                "imagen_url":      (item.findtext("Img") or "").strip(),
-                "url":             (item.findtext("URL") or "").strip(),
-                "_talla_solo_letra": es_talla_letra,
-            }
-        elif models[mid]["_talla_solo_letra"] and not es_talla_letra:
-            # Reemplazar la entrada con una variante de talla numérica/única (mejor URL)
-            m = models[mid]
-            m["url"]               = (item.findtext("URL") or m["url"]).strip()
-            m["_talla_solo_letra"] = False
-
-    # Limpiar campo interno antes de devolver
-    for m in models.values():
-        m.pop("_talla_solo_letra", None)
-
-    return list(models.values())
 
 
 # ── Punto de entrada público ───────────────────────────────────────────────
 
 def fetch_decathlon_productos() -> list[dict]:
     """
-    Descarga el feed XML de Decathlon (caché 23h), registra precios en BD
-    y devuelve deals detectados como list[dict] compatible con Producto(**d).
-
-    Los primeros MIN_DIAS_DATOS días devuelve [] (acumulando historial).
-    A partir de entonces devuelve deals reales con descuento calculado
-    contra el máximo de los últimos 30 días.
+    Descarga el feed Decathlon (caché 23h), registra historial y devuelve los deals
+    detectados como list[dict] compatible con Producto(**d).
     """
     global _last_fetch, _cache
 
@@ -245,22 +234,28 @@ def fetch_decathlon_productos() -> list[dict]:
         if _last_fetch and (now - _last_fetch).total_seconds() < 23 * 3600:
             return _cache
 
+        path = None
         try:
-            resp = requests.get(DECATHLON_FEED_URL, timeout=90)
-            resp.raise_for_status()
-
-            productos = _parsear_feed(resp.text)
-            _registrar_precios(productos)
-            deals     = _calcular_deals(productos)
+            path = _descargar_a_fichero()
+            modelos, total = _parsear(path)
+            _registrar_precios(modelos)
+            deals = _detectar_deals(modelos)
 
             _cache      = deals
             _last_fetch = now
             print(
-                f"📡 Decathlon feed: {len(productos)} modelos registrados, "
-                f"{len(deals)} deals detectados"
+                f"📡 Decathlon feed (id=98): {total} productos, "
+                f"{len(modelos)} modelos, {len(deals)} deals detectados"
             )
             return deals
 
         except Exception as e:
             print(f"❌ Decathlon feed error: {e}")
             return _cache  # caché anterior si falla
+
+        finally:
+            if path and os.path.exists(path):
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass

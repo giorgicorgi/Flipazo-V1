@@ -2673,12 +2673,13 @@ class DeduplicacionDB:
                 "SELECT 1 FROM deals_borrados WHERE deal_id = ?", (deal_id,)
             ).fetchone():
                 return True
-            # Mismo producto exacto (deal_id) → NUNCA se republica, aunque el deal siga
-            # vigente meses. Publicar 1 vez; los deals que duran mucho suelen ser poco
-            # atractivos y no aportan republicándose. (El historial se conserva siempre.)
+            # Mismo producto exacto (deal_id): no se republica DENTRO de la ventana TTL
+            # (DEDUP_TTL_HORAS = 7 días). Pasado ese plazo se permite reaparecer, para que
+            # los buenos chollos vuelvan a la superficie en vez de silenciar el canal.
+            # (El historial se conserva siempre; al republicar, marcar_publicado refresca la fila.)
             if con.execute(
-                "SELECT 1 FROM deals_publicados WHERE deal_id = ?",
-                (deal_id,),
+                "SELECT 1 FROM deals_publicados WHERE deal_id = ? AND publicado_en > ?",
+                (deal_id, limite),
             ).fetchone():
                 return True
             # Secondary: mismo título exacto + tienda (Playwright vs feed TD misma tienda).
