@@ -36,6 +36,7 @@ DECATHLON_FEED_URL = os.getenv("DECATHLON_FEED_URL", "")
 DB_PATH            = os.getenv("DB_PATH", "flipazo_deals.db")
 
 _DESCUENTO_MIN = 40     # % mínimo — mismo que el pipeline general
+_DESCUENTO_MAX = 70     # % máximo — por encima suele ser MSRP inflado de Marketplace (3os)
 _PRECIO_MIN    = 25.0   # € mínimo para deals
 _PRECIO_MAX    = 800.0  # € máximo para deals
 
@@ -202,7 +203,7 @@ def _detectar_deals(modelos: dict[str, dict]) -> list[dict]:
         if m["disp"] <= 0:
             continue                                   # sin stock
         descuento_pct = int((1 - pa / pr) * 100)
-        if descuento_pct < _DESCUENTO_MIN:
+        if not (_DESCUENTO_MIN <= descuento_pct <= _DESCUENTO_MAX):
             continue
         deals.append({
             "titulo":          m["nombre"],
