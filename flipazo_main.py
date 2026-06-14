@@ -524,6 +524,10 @@ _store_block_until: dict[str, datetime] = {}
 _CIRCUIT_BREAKER_MINUTOS = 60  # Skip la tienda 60 min tras 3 fallos consecutivos
 _store_fail_count: dict[str, int] = {}
 
+# Tiendas bloqueadas por Cloudflare sin solución conocida: NO alertar al admin por
+# "Scraper bloqueado" (el circuit breaker sigue actuando; solo se silencia el aviso).
+_NO_ALERTAR_BLOQUEO = {"PcComponentes"}
+
 
 async def _cargar_con_reintento(
     page: Page,
@@ -592,7 +596,8 @@ async def _cargar_con_reintento(
                 await asyncio.sleep(random.uniform(10, 20))
 
     print(f"   ⚠️  [{store}] No accesible tras {max_intentos} intentos — tienda omitida en este ciclo")
-    alertar_admin(f"Scraper bloqueado: {store}", f"No accesible tras {max_intentos} intentos.\nURL: {url}")
+    if store_key not in _NO_ALERTAR_BLOQUEO:
+        alertar_admin(f"Scraper bloqueado: {store}", f"No accesible tras {max_intentos} intentos.\nURL: {url}")
 
     # Circuit breaker: acumular fallos y bloquear si supera el umbral
     _store_fail_count[store_key] = _store_fail_count.get(store_key, 0) + 1
