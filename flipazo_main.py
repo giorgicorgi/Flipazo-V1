@@ -1081,8 +1081,9 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", p
     if re.search(r'\b(maillot|culott?e)s?\b', t) and descuento_pct <= 60:
         return False
     # Ropa de moda/deporte: solo si marca conocida + descuento real ≥50%
-    # Excepción: Barrabés (outdoor técnico), Decathlon (deporte), Esdemarca (moda con whitelist propia)
-    if tienda not in ("Barrabes", "Decathlon", "Esdemarca") and any(r in t for r in _PALABRAS_ROPA):
+    # Excepción: Barrabés (outdoor técnico), Decathlon (deporte), Esdemarca y Desigual
+    # (tiendas de moda de marca con descuentos reales de outlet — su catálogo ES ropa).
+    if tienda not in ("Barrabes", "Decathlon", "Esdemarca", "Desigual") and any(r in t for r in _PALABRAS_ROPA):
         if descuento_pct < 50 or not any(m in t for m in _MARCAS_ROPA):
             return False
     # Cecotec: marca de gama baja con precios de referencia inflados — solo descuentos fuertes
@@ -1656,7 +1657,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             _tienda = d.get("tienda", "")
             if _tienda in ("MediaMarkt", "PCBox") and _p_act > 0 and _p_ori > _p_act * 2.5:
                 continue
-            if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=_p_act):
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda=_tienda, precio=_p_act):
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda=_tienda):
                 continue
