@@ -1607,7 +1607,7 @@ def threads_auth_start():
         "https://threads.net/oauth/authorize"
         f"?client_id={THREADS_APP_ID}"
         f"&redirect_uri={urllib.parse.quote(THREADS_REDIRECT, safe='')}"
-        "&scope=threads_basic,threads_content_publish"
+        "&scope=threads_basic,threads_content_publish,threads_delete"
         "&response_type=code"
     )
     return RedirectResponse(url, status_code=302)
