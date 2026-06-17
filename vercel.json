@@ -17,6 +17,7 @@
     { "source": "/blog",        "destination": "/blog.html" },
     { "source": "/sobre",       "destination": "/sobre.html" },
     { "source": "/cuenta",      "destination": "/cuenta.html" },
-    { "source": "/3b1fa13b0f80cf697ef930ea6046de01.html", "destination": "/3b1fa13b0f80cf697ef930ea6046de01" }
+    { "source": "/3b1fa13b0f80cf697ef930ea6046de01.html", "destination": "/awin-verify" },
+    { "source": "/3b1fa13b0f80cf697ef930ea6046de01",      "destination": "/awin-verify" }
   ]
 }

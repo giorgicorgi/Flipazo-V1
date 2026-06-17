@@ -1,0 +1,28 @@
+
+LOGS
+
+Opción 1 — Logs en tiempo real (desde terminal)
+ssh root@204.168.199.253 "journalctl -u flipazo.service -f --no-pager"
+
+Opción 2 — Últimas 100 líneas (sin quedarte conectado)
+ssh root@204.168.199.253 "journalctl -u flipazo.service --no-pager -n 100"
+
+Opción 3 — Ver si el auto-deploy ya recogió el commit
+ssh root@204.168.199.253 "tail -20 /home/flipazo/app/deploy.log"
+
+El ciclo completo (donde corre PSS) se ejecuta cada 120 min, así que puede que toque esperar al siguiente ciclo para ver las líneas de PSS. Si quieres forzarlo ahora:
+ssh root@204.168.199.253 "systemctl restart flipazo.service"
+
+
+
+"Next steps?" (This simple phrase prompts Claude to proactively find any remaining issues or missed tasks).
+"Summarize what we did and update CLAUDE.md with the key decisions and next steps".
+"Refactor the code we just wrote to improve readability and tell me if the tests passed"
+
+Entrevistame usando Ask User Question para conocer más
+
+El canal de ofertas más flipante de España
+Ofertas reales. Descuentos verificados. 
+
+Chat ID numérico del canal: -1003854391958 (ya lo tienes si algún día lo necesitas)
+
