@@ -572,11 +572,13 @@ def fetch_tradedoubler_productos(
         return _cache
 
     todos: list[dict] = []
+    total_raw = 0
     for feed in _FEEDS:
         tienda, fid = feed["tienda"], feed["fid"]
         filtrar_fn = feed.get("filtrar_fn")
         print(f"   📡 TD feed: {tienda} (fid={fid})...")
         raw = _fetch_unlimited(fid)
+        total_raw += len(raw)
         if filtrar_fn is not None:
             filtrados = filtrar_fn(raw, precio_minimo, precio_maximo)
         else:
@@ -585,6 +587,13 @@ def fetch_tradedoubler_productos(
         desc_min = desc_min_map.get(tienda, descuento_minimo)
         print(f"      → {len(raw)} descargados, {len(filtrados)} con ≥{desc_min}% descuento")
         todos.extend(filtrados)
+
+    # Si NINGÚN feed devolvió datos, es un fallo de descarga (red / 429 rate-limit),
+    # no un "0 deals" legítimo. No cacheamos el vacío para no bloquear 23h: reintentamos
+    # en el próximo ciclo y mantenemos la caché anterior si la había.
+    if total_raw == 0:
+        print(f"   ⚠️  TD: 0 productos descargados en todos los feeds (red/429) — no se cachea, se reintentará. Caché previa: {len(_cache)} deals")
+        return _cache
 
     _cache = todos
     _last_fetch = ahora
