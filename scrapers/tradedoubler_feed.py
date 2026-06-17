@@ -39,7 +39,7 @@ _last_fetch: datetime | None = None
 # Constantes Esdemarca
 # ---------------------------------------------------------------------------
 
-_ESDEMARCA_DESCUENTO_MIN = 60   # umbral estricto para moda premium
+_ESDEMARCA_DESCUENTO_MIN = 50   # moda premium (bajado de 60→50 para más volumen de marca)
 _ESDEMARCA_PRECIO_MIN    = 25.0
 _ESDEMARCA_PRECIO_MAX    = 1200.0  # bolsos/abrigos premium superan los 800€ generales
 
