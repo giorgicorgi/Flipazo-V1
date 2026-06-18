@@ -2614,6 +2614,13 @@ class DeduplicacionDB:
                 "ALTER TABLE deals_publicados ADD COLUMN pocas_unidades  TEXT    DEFAULT ''",
                 "ALTER TABLE deals_publicados ADD COLUMN precio_actualizado_en TEXT DEFAULT NULL",
                 "ALTER TABLE deals_publicados ADD COLUMN familia_key     TEXT    DEFAULT ''",
+                # Verificación automática de precio a 3/7 días
+                "ALTER TABLE deals_publicados ADD COLUMN precio_publicado     REAL",          # precio del 1er descuento (inmutable)
+                "ALTER TABLE deals_publicados ADD COLUMN precio_verificado    REAL",          # último precio re-consultado
+                "ALTER TABLE deals_publicados ADD COLUMN precio_verificado_en TEXT DEFAULT NULL",
+                "ALTER TABLE deals_publicados ADD COLUMN mas_rebajado         INTEGER DEFAULT 0",
+                "ALTER TABLE deals_publicados ADD COLUMN verif_3d             INTEGER DEFAULT 0",
+                "ALTER TABLE deals_publicados ADD COLUMN verif_7d             INTEGER DEFAULT 0",
             ]:
                 try:
                     con.execute(col_sql)
@@ -2668,6 +2675,12 @@ class DeduplicacionDB:
                     con.execute("UPDATE deals_publicados SET familia_key = ? WHERE deal_id = ?",
                                 (_clave_familia(tit or ""), did))
                 print(f"   🔄 familia_key backfill: {len(sin_familia)} registros")
+            # Backfill precio_publicado (migración única): deals históricos toman su
+            # precio actual como "primer descuento" base para la verificación 3/7d.
+            con.execute(
+                "UPDATE deals_publicados SET precio_publicado = precio "
+                "WHERE precio_publicado IS NULL AND precio IS NOT NULL"
+            )
             con.commit()
 
     def ya_publicado(self, p: "Producto") -> bool:
@@ -2760,8 +2773,9 @@ class DeduplicacionDB:
                         precio_wallapop, beneficio_neto, razonamiento,
                         categoria, pros, contras,
                         deal_score, hook, social_context, emotional_tags,
-                        stock_qty, pocas_unidades, familia_key)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        stock_qty, pocas_unidades, familia_key, precio_publicado)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                        COALESCE((SELECT precio_publicado FROM deals_publicados WHERE deal_id = ?), ?))""",
                 (
                     _deal_hash(p), p.titulo, p.tienda, p.precio_actual, p.tipo,
                     p.url_affiliate, datetime.now(timezone.utc).isoformat(),
@@ -2777,6 +2791,9 @@ class DeduplicacionDB:
                     int(p.stock_qty or 0),
                     p.pocas_unidades or "",
                     _clave_familia(p.titulo),
+                    # precio_publicado: preserva el 1er descuento si el deal ya existía,
+                    # si no usa el precio actual de esta publicación.
+                    _deal_hash(p), p.precio_actual,
                 ),
             )
             # Registrar precio en historial propio (un registro por día y tienda)

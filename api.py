@@ -39,7 +39,7 @@ import sqlite3
 import threading
 import time
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
@@ -108,6 +108,13 @@ _FLAG_COOLDOWN = 3600  # 1 h por IP por deal — evita multivoto del mismo usuar
 # Verificación positiva (resultado True) expira con 1 solo flag; este umbral
 # solo aplica al caso "no verificable" para evitar falsos expirados.
 _FLAG_CONSENSUS_MIN = 3
+
+# ── Verificación automática de precio a 3/7 días ───────────────────────────────
+_VERIFIER_INTERVAL_S = 6 * 3600   # cada cuánto despierta el loop de verificación
+_VERIFIER_FIRST_DELAY_S = 90      # espera antes de la 1ª pasada (no competir con el arranque)
+_VERIFIER_SUBIDA_TOL = 1.02       # subida > 2% sobre el 1er descuento → expirado
+_VERIFIER_BAJADA_TOL = 0.98       # bajada > 2% (y ≥1€) → "¡Aún más rebajado!"
+_VERIFIER_MAX_POR_PASADA = 200    # límite de deals por pasada (no saturar)
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -491,6 +498,177 @@ def _background_check_expiry(deal_id: str, url_afiliado: str, titulo: str, preci
         print(f"❌ Background expiry check error: {e}")
 
 
+# ── Verificación automática de precio a 3/7 días ───────────────────────────────
+
+def _precio_actual_amazon(url_afiliado: str) -> float | None:
+    """Precio actual de un deal Amazon leído del propio historial (sin CAPTCHA).
+
+    El pipeline registra precios Amazon en price_history continuamente; usamos la
+    observación más reciente (últimos 4 días) del ASIN como precio actual.
+    Devuelve None si no hay dato reciente.
+    """
+    m = _re.search(r'/dp/([A-Z0-9]{10})', url_afiliado or "")
+    if not m:
+        return None
+    asin = m.group(1)
+    desde = (datetime.now(timezone.utc) - timedelta(days=4)).strftime("%Y-%m-%d")
+    try:
+        with _get_db() as con:
+            row = con.execute(
+                "SELECT precio FROM price_history "
+                "WHERE asin = ? AND tienda = 'Amazon' AND fecha >= ? AND precio > 0 "
+                "ORDER BY fecha DESC LIMIT 1",
+                (asin, desde),
+            ).fetchone()
+        if row and row["precio"]:
+            return float(row["precio"])
+    except Exception:
+        pass
+    return None
+
+
+def _precio_actual_deal(url_afiliado: str, tienda: str) -> float | None:
+    """Devuelve el precio numérico actual de un deal según su tienda, o None si no se puede.
+
+    - Tiendas TD (pdt.tradedoubler.com): precio del feed (caché 6h).
+    - Amazon: última observación de price_history (sin CAPTCHA).
+    - Resto: None (solo se podrá hacer check de disponibilidad).
+    """
+    url = url_afiliado or ""
+    if "tradedoubler.com" in url and _re.search(r'product\(\d+-\d+\)', url):
+        return _td_current_price(url)
+    if tienda == "Amazon" or "amazon.es/dp/" in url or "/dp/" in url:
+        return _precio_actual_amazon(url)
+    return None
+
+
+def _verificar_un_deal(con, deal: dict, hito: str) -> None:
+    """Verifica el precio de un deal y aplica el efecto (expirado / más rebajado).
+
+    `hito` es 'verif_3d' o 'verif_7d' — el checkpoint que se marca como procesado.
+    Reusa _precio_actual_deal (precio numérico) y _check_price_expired (disponibilidad).
+    """
+    deal_id      = deal["deal_id"]
+    titulo       = deal["titulo"] or ""
+    tienda       = deal["tienda"] or ""
+    url_afiliado = deal["url_afiliado"] or ""
+    # Base de comparación: precio del 1er descuento (inmutable). Fallback al precio actual.
+    precio_base  = float(deal["precio_publicado"] or deal["precio"] or 0)
+
+    ahora        = datetime.now(timezone.utc).isoformat()
+    precio_act   = _precio_actual_deal(url_afiliado, tienda)
+
+    expirado     = False
+    mas_rebajado = False
+    nuevo_precio = None
+
+    if precio_act is not None and precio_act > 0 and precio_base > 0:
+        if precio_act > precio_base * _VERIFIER_SUBIDA_TOL:
+            expirado = True            # subió de precio → oferta expirada
+        elif precio_act < precio_base * _VERIFIER_BAJADA_TOL and (precio_base - precio_act) >= 1.0:
+            mas_rebajado = True        # bajó aún más
+            nuevo_precio = precio_act
+    else:
+        # Sin precio numérico → check de disponibilidad/subida por URL (bool/None).
+        # Solo expira con confirmación positiva; None (no verificable) no toca el deal.
+        if _check_price_expired(url_afiliado, precio_stored=precio_base, timeout=5) is True:
+            expirado = True
+
+    # ── Aplicar resultado ──────────────────────────────────────────────────────
+    if expirado:
+        con.execute(
+            f"UPDATE deals_publicados SET expirado = 1, precio_verificado = ?, "
+            f"precio_verificado_en = ?, {hito} = 1 WHERE deal_id = ?",
+            (precio_act if precio_act is not None else None, ahora, deal_id),
+        )
+        print(f"🔴 [verif {hito}] expirado (subió/retirado): {titulo[:50]}")
+        threading.Thread(
+            target=_notify_admin_expiry, args=(deal_id, titulo, True), daemon=True
+        ).start()
+    elif mas_rebajado:
+        precio_original = float(deal["precio_original"] or 0)
+        descuento = (round((1 - nuevo_precio / precio_original) * 100)
+                     if precio_original > 0 else deal["descuento_pct"])
+        con.execute(
+            f"UPDATE deals_publicados SET mas_rebajado = 1, precio = ?, descuento_pct = ?, "
+            f"precio_verificado = ?, precio_verificado_en = ?, precio_actualizado_en = ?, "
+            f"{hito} = 1 WHERE deal_id = ?",
+            (nuevo_precio, descuento, nuevo_precio, ahora, ahora, deal_id),
+        )
+        print(f"📉 [verif {hito}] más rebajado {precio_base:.2f}→{nuevo_precio:.2f}€: {titulo[:50]}")
+    else:
+        # Sin cambio relevante (o no verificable): solo registrar la verificación y el hito.
+        con.execute(
+            f"UPDATE deals_publicados SET precio_verificado = ?, precio_verificado_en = ?, "
+            f"{hito} = 1 WHERE deal_id = ?",
+            (precio_act if precio_act is not None else None, ahora, deal_id),
+        )
+
+
+def _verificar_precios_pendientes() -> int:
+    """Una pasada: verifica deals que cruzaron el hito de 3d o 7d sin procesar.
+
+    Devuelve el número de deals verificados. Cada deal va en su propio try/except
+    para que un fallo puntual no detenga la pasada.
+    """
+    cols = ("deal_id, titulo, tienda, url_afiliado, precio, precio_publicado, "
+            "precio_original, descuento_pct")
+    procesados = 0
+    with _get_db() as con:
+        # Hito de 3 días (no procesado y con ≥3 días de antigüedad).
+        deals_3d = con.execute(
+            f"SELECT {cols} FROM deals_publicados "
+            "WHERE COALESCE(expirado,0)=0 AND COALESCE(verif_3d,0)=0 "
+            "AND publicado_en <= datetime('now','-3 days') "
+            "AND publicado_en > datetime('now','-7 days') "
+            "ORDER BY publicado_en ASC LIMIT ?",
+            (_VERIFIER_MAX_POR_PASADA,),
+        ).fetchall()
+        # Hito de 7 días (no procesado y con ≥7 días de antigüedad).
+        deals_7d = con.execute(
+            f"SELECT {cols} FROM deals_publicados "
+            "WHERE COALESCE(expirado,0)=0 AND COALESCE(verif_7d,0)=0 "
+            "AND publicado_en <= datetime('now','-7 days') "
+            "ORDER BY publicado_en ASC LIMIT ?",
+            (_VERIFIER_MAX_POR_PASADA,),
+        ).fetchall()
+
+        for hito, deals in (("verif_3d", deals_3d), ("verif_7d", deals_7d)):
+            for r in deals:
+                try:
+                    _verificar_un_deal(con, dict(r), hito)
+                    con.commit()
+                    procesados += 1
+                except Exception as e:
+                    print(f"⚠️ verificador deal {r['deal_id'][:8]} error: {e}")
+    if procesados:
+        print(f"✅ Verificador de precios: {procesados} deals procesados")
+    return procesados
+
+
+def _price_verifier_loop() -> None:
+    """Loop daemon: ejecuta una pasada de verificación cada _VERIFIER_INTERVAL_S."""
+    time.sleep(_VERIFIER_FIRST_DELAY_S)
+    while True:
+        try:
+            _verificar_precios_pendientes()
+        except Exception as e:
+            print(f"❌ Price verifier loop error: {e}")
+        time.sleep(_VERIFIER_INTERVAL_S)
+
+
+_verifier_started = False
+
+def _start_price_verifier() -> None:
+    """Arranca el thread del verificador una sola vez."""
+    global _verifier_started
+    if _verifier_started:
+        return
+    _verifier_started = True
+    threading.Thread(target=_price_verifier_loop, daemon=True).start()
+    print("🕒 Verificador de precios 3/7d arrancado (cada 6h)")
+
+
 # ── Startup: migraciones en caliente ─────────────────────────────────────────
 
 @app.on_event("startup")
@@ -513,6 +691,13 @@ def _ensure_schema():
             "emotional_tags  TEXT    DEFAULT '[]'",
             "stock_qty       INTEGER DEFAULT 0",
             "precio_actualizado_en TEXT DEFAULT NULL",
+            # Verificación automática de precio a 3/7 días
+            "precio_publicado     REAL",
+            "precio_verificado    REAL",
+            "precio_verificado_en TEXT DEFAULT NULL",
+            "mas_rebajado         INTEGER DEFAULT 0",
+            "verif_3d             INTEGER DEFAULT 0",
+            "verif_7d             INTEGER DEFAULT 0",
         ]:
             try:
                 con.execute(f"ALTER TABLE deals_publicados ADD COLUMN {col_def}")
@@ -659,7 +844,20 @@ def _ensure_schema():
             )
         """)
 
+        # Backfill precio_publicado (migración única): deals históricos toman su precio
+        # actual como "primer descuento" base para la verificación a 3/7 días.
+        try:
+            con.execute(
+                "UPDATE deals_publicados SET precio_publicado = precio "
+                "WHERE precio_publicado IS NULL AND precio IS NOT NULL"
+            )
+        except Exception:
+            pass
+
         con.commit()
+
+    # Arrancar el verificador automático de precios (3/7 días) en background.
+    _start_price_verifier()
 
 
 # ── Modelos ────────────────────────────────────────────────────────────────────
@@ -772,6 +970,10 @@ def get_deals(
             COALESCE(stock_qty,      0) AS stock_qty,
             COALESCE(pocas_unidades,'') AS pocas_unidades,
             precio_actualizado_en,
+            precio_publicado,
+            precio_verificado,
+            precio_verificado_en,
+            COALESCE(mas_rebajado,   0) AS mas_rebajado,
             publicado_en    AS timestamp,
             (SELECT COUNT(*) FROM deal_comments WHERE deal_id = deals_publicados.deal_id) AS comment_count
         FROM deals_publicados
@@ -818,6 +1020,11 @@ def _normalize_deal_row(r) -> dict:
     d["stock_qty"]            = int(d.get("stock_qty", 0) or 0)
     d["pocas_unidades"]       = d.get("pocas_unidades") or ""
     d["precio_actualizado_en"] = d.get("precio_actualizado_en") or None
+    # Verificación 3/7d: precio del 1er descuento, último precio verificado, flag rebajado
+    d["precio_publicado"]      = d.get("precio_publicado")  or 0.0
+    d["precio_verificado"]     = d.get("precio_verificado") or 0.0
+    d["precio_verificado_en"]  = d.get("precio_verificado_en") or None
+    d["mas_rebajado"]          = bool(d.get("mas_rebajado", 0))
     return d
 
 

@@ -1342,6 +1342,19 @@
       color: #047857; background: rgba(16,185,129,0.10);
       border-color: rgba(16,185,129,0.35);
     }
+    /* "¡Aún más rebajado!" — verificación 3/7d detectó bajada extra */
+    .deal__tag--rebajado {
+      color: #fff; background: #059669;
+      border-color: #059669; font-weight: 800;
+    }
+    /* Fila "Primer descuento" del desglose de 3 precios */
+    .deal__price-label--first { color: var(--text-dim, #9aa0a6); }
+    .deal__first-price {
+      font-family: var(--sans); font-size: 14px; font-weight: 500;
+      color: var(--text-dim, #9aa0a6);
+      text-decoration: line-through; text-decoration-thickness: 1.5px;
+      white-space: nowrap; flex-shrink: 0;
+    }
     .deal__hook {
       font-family: var(--serif); font-weight: 700;
       font-size: 16px; line-height: 1.3;
@@ -2875,7 +2888,7 @@
   // ── Mock data (localhost/file:// only) ───────────────────────
   const MOCK_DEALS = [
     { id:1, tipo:"REVENTA", tienda:"Amazon", titulo:"Sony WH-1000XM5 Auriculares Inalámbricos con Cancelación de Ruido", precio_actual:189.00, precio_original:279.00, descuento_pct:32, imagen_url:"https://m.media-amazon.com/images/I/61hNGBUPF3L._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:245.0, beneficio_neto:47.0, precio_historico_min:0, razonamiento:"", timestamp:new Date(Date.now()-8*60000).toISOString(), deal_score:78, hook:"Bose noise cancelling sin pagar el precio de los AirPods Max", social_context:"Lo recomiendan en cada hilo de Reddit de auriculares", emotional_tags:["⚡ Internet Favorite"] },
-    { id:2, tipo:"OFERTA",  tienda:"PcComponentes", titulo:"LG OLED55C44LA · Smart TV 4K 55\" OLED evo · Google TV", precio_actual:799.00, precio_original:1299.00, descuento_pct:38, imagen_url:"https://www.lg.com/es/images/televisores/md07522869/gallery/medium01.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:799.00, razonamiento:"Precio mínimo histórico en esta referencia. Alta liquidez.", timestamp:new Date(Date.now()-22*60000).toISOString(), deal_score:88, hook:"OLED de 55 pulgadas por debajo de muchos QLED de Samsung", social_context:"El precio más bajo de esta referencia en meses", emotional_tags:["🔥 Trending"] },
+    { id:2, tipo:"OFERTA",  tienda:"PcComponentes", titulo:"LG OLED55C44LA · Smart TV 4K 55\" OLED evo · Google TV", precio_actual:799.00, precio_original:1299.00, descuento_pct:38, imagen_url:"https://www.lg.com/es/images/televisores/md07522869/gallery/medium01.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:799.00, razonamiento:"Precio mínimo histórico en esta referencia. Alta liquidez.", timestamp:new Date(Date.now()-22*60000).toISOString(), deal_score:88, hook:"OLED de 55 pulgadas por debajo de muchos QLED de Samsung", social_context:"El precio más bajo de esta referencia en meses", emotional_tags:["🔥 Trending"], mas_rebajado:true, precio_publicado:899.00, precio_verificado:799.00 },
     { id:3, tipo:"REVENTA", tienda:"MediaMarkt", titulo:"Dyson V15 Detect Absolute · Aspirador sin cable con láser", precio_actual:499.00, precio_original:749.00, descuento_pct:33, imagen_url:"https://assets.dyson.com/content/dam/dyson/images/products/primary/394512-01.png", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:520.00, razonamiento:"Casi en mínimos. Dyson V15 con muy alta demanda.", timestamp:new Date(Date.now()-68*60000).toISOString(), deal_score:82, hook:"El Dyson que casi nadie compra al MSRP, finalmente a buen precio", social_context:"Volvió a bajar tras semanas alto", emotional_tags:["🔥 Trending"] },
   ];
 
@@ -3064,15 +3077,19 @@
                      : null;
     const stockTagHtml = (stockLabel && !isExpired)
       ? `<span class="deal__tag deal__tag--stock">${stockLabel}</span>` : "";
+    // "¡Aún más rebajado!" — la verificación a 3/7d detectó una bajada extra.
+    // Tiene prioridad sobre el tag genérico "Precio bajado".
+    const rebajadoTagHtml = (d.mas_rebajado && !isExpired)
+      ? `<span class="deal__tag deal__tag--rebajado">🔥 ¡Aún más rebajado!</span>` : "";
     const dropTagHtml = (() => {
-      if (isExpired || !d.precio_actualizado_en) return "";
+      if (isExpired || rebajadoTagHtml || !d.precio_actualizado_en) return "";
       const horasDrop = (Date.now() - new Date(d.precio_actualizado_en).getTime()) / 36e5;
       return horasDrop < 48 ? `<span class="deal__tag deal__tag--drop">📉 Precio bajado</span>` : "";
     })();
     const meaningfulTags = tags.filter(t => !t.includes("Worth Watching"));
     const allTagsHtml = [...meaningfulTags.slice(0, 1).map(t =>
       `<span class="deal__tag ${tagClassFor(t)}">${t}</span>`
-    ), dropTagHtml, stockTagHtml].filter(Boolean).join("");
+    ), rebajadoTagHtml, dropTagHtml, stockTagHtml].filter(Boolean).join("");
     const tagsHtml = (allTagsHtml && !isExpired) ? `
       <div class="deal__tags">${allTagsHtml}</div>` : "";
 
@@ -3141,6 +3158,11 @@
               ${d.descuento_pct > 0 && !isExpired ? `<span class="deal__pct">−${d.descuento_pct}%</span>` : ""}
             </span>
             <span class="deal__original">${fmtPrice(d.precio_original)}</span>
+          </div>` : ""}
+          ${(d.mas_rebajado && d.precio_publicado > 0 && d.precio_publicado > (d.precio_actual || 0)) ? `
+          <div class="deal__price-row">
+            <span class="deal__price-label deal__price-label--first">Primer descuento</span>
+            <span class="deal__first-price">${fmtPrice(d.precio_publicado)}</span>
           </div>` : ""}
           <div class="deal__price-row deal__price-row--now">
             <span class="deal__price-label deal__price-label--now">Ahora por</span>
@@ -4209,6 +4231,13 @@
     return esc(t.length > max ? t.slice(0, max) + "…" : t);
   }
 
+  // Badge "¡Aún más rebajado!" para cards mobile (verificación 3/7d detectó bajada extra)
+  function _rebajadoTag(d) {
+    return (d.mas_rebajado && !d.expirado)
+      ? `<span class="deal__tag deal__tag--rebajado" style="margin-top:4px;align-self:flex-start">🔥 ¡Aún más rebajado!</span>`
+      : "";
+  }
+
   // Llama al endpoint de voto cuando el corazón cambia de estado
   function _syncVote(dealId, add) {
     [allDeals, _mhomeDeals].forEach(arr => {
@@ -4274,6 +4303,7 @@
             ${d.precio_original > 0 ? `<span class="hcard__orig">${fmtPrice(d.precio_original)}</span>` : ""}
             <span class="hcard__now">${fmtPrice(d.precio_actual || 0)}</span>
           </div>
+          ${_rebajadoTag(d)}
           ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
         </div>
       </a>
@@ -4299,6 +4329,7 @@
         <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
           ${d.precio_original > 0 ? `<span class="ccard__orig">${fmtPrice(d.precio_original)}</span>` : ""}
           <span class="ccard__now">${fmtPrice(d.precio_actual || 0)}</span>
+          ${_rebajadoTag(d)}
         </div>
       </a>
     </div>`;
@@ -4317,6 +4348,7 @@
           <span class="dcard__store">${d.tienda || ""}</span>
           <p class="dcard__title">${_mhT(d.titulo, 50)}</p>
           <span class="dcard__now">${fmtPrice(d.precio_actual || 0)}</span>
+          ${_rebajadoTag(d)}
           ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
         </div>
       </a>
@@ -4344,6 +4376,7 @@
             ${d.precio_original > 0 ? `<span class="whero__orig">${fmtPrice(d.precio_original)}</span>` : ""}
             <span class="whero__now">${fmtPrice(d.precio_actual || 0)}</span>
           </div>
+          ${_rebajadoTag(d)}
           ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
         </div>
         <svg style="flex-shrink:0;align-self:center;margin-right:12px;color:var(--text-dim)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
