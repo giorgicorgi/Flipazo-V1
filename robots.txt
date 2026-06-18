@@ -16,4 +16,22 @@ Crawl-delay: 10
 User-agent: MJ12bot
 Disallow: /
 
+# Buscadores y asistentes de IA — bienvenidos (visibilidad en ChatGPT, Gemini, Claude, Perplexity)
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: GPTBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-Web
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+
 Sitemap: https://www.flipazo.es/sitemap.xml
