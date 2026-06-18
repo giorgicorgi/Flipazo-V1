@@ -3138,6 +3138,30 @@ def alertar_admin(titulo: str, detalle: str = ""):
     except Exception:
         pass  # nunca bloquear el pipeline por fallo de alerta
 
+
+# ── IndexNow: notifica a Bing/Yandex (y, vía Bing, a ChatGPT/Copilot) al instante ──
+INDEXNOW_KEY  = "b18d9ae0f353b8f3b3b91546ee319570"
+INDEXNOW_HOST = "www.flipazo.es"
+
+def _ping_indexnow(urls: list[str]) -> None:
+    """Avisa a los buscadores (IndexNow) que estas URLs han cambiado, para re-rastreo inmediato."""
+    if not urls:
+        return
+    try:
+        resp = requests.post(
+            "https://api.indexnow.org/indexnow",
+            json={
+                "host":        INDEXNOW_HOST,
+                "key":         INDEXNOW_KEY,
+                "keyLocation": f"https://{INDEXNOW_HOST}/{INDEXNOW_KEY}.txt",
+                "urlList":     urls,
+            },
+            timeout=15,
+        )
+        print(f"   🔔 IndexNow: HTTP {resp.status_code} para {len(urls)} URL(s)")
+    except Exception as e:
+        print(f"   ⚠️  IndexNow error: {e}")  # nunca bloquear el pipeline
+
 # ════════════════════════════════════════════════════════════════
 # PIPELINE ORQUESTADOR
 # ════════════════════════════════════════════════════════════════
@@ -3410,6 +3434,10 @@ async def run_pipeline(modo: str = "completo"):
                         publicar_en_threads(p)
                     broadcast_whatsapp(p)
                 await asyncio.sleep(1.5)
+
+            # IndexNow: si hubo deals nuevos, la home cambió → avisar a Bing/Yandex para re-rastreo
+            if publicados > 0:
+                _ping_indexnow([f"https://{INDEXNOW_HOST}/"])
 
             print(f"\n🏁 Ciclo {modo}: {publicados}/{len(deals_nuevos)} publicados ({omitidos} omitidos por dedup)")
 
