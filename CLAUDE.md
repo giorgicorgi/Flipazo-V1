@@ -19,7 +19,9 @@ Canal de deals automatizado para España. Descuento ≥40% sobre precio históri
 | Repo GitHub | `https://github.com/giorgicorgi/Flipazo-V1` |
 | Auto-deploy | `/home/flipazo/app/auto-deploy.sh` — cron cada 10 min |
 
-**Servicios systemd:** `flipazo.service` (pipeline) · `flipazo-analytics.service` (uvicorn, puerto 8080)
+**Servicios systemd:** `flipazo.service` (pipeline) · `flipazo-api.service` (uvicorn `api:app`, puerto 8081 — sirve `/api/deals`) · `flipazo-analytics.service` (uvicorn `analytics.tracker:app`, puerto 8080 — `/r/{id}` + `/stats`). nginx (80/443) hace reverse-proxy.
+
+> ⚠️ Al desplegar **`api.py`** hay que reiniciar **`flipazo-api.service`** (NO el analytics). El `_ensure_schema` de api.py (migraciones de columnas + arranque del verificador de precios) corre en el `startup` de ESE servicio.
 
 ### Comandos de operación
 
@@ -30,6 +32,10 @@ git add flipazo_main.py && git commit -m "fix: ..." && git push origin main
 # Deploy inmediato: scp + restart
 scp /Users/jorgeu/Desktop/Flipazo/flipazo_main.py root@204.168.199.253:/home/flipazo/app/flipazo_main.py
 ssh root@204.168.199.253 "systemctl restart flipazo.service"
+
+# Deploy inmediato de api.py → reiniciar flipazo-api.service (puerto 8081)
+scp /Users/jorgeu/Desktop/Flipazo/api.py root@204.168.199.253:/home/flipazo/app/api.py
+ssh root@204.168.199.253 "systemctl restart flipazo-api.service"
 
 # Logs
 ssh root@204.168.199.253 "journalctl -u flipazo.service -f --no-pager"
