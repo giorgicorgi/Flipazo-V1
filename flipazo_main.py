@@ -787,6 +787,14 @@ async def _buscar_precio_amazon_mas_barato(
                 if not modelo_en_res or modelo_en_res.group(1).upper() != modelo:
                     continue  # Modelo diferente → falso positivo
 
+                # Guard anti-colisión de SKU: además del modelo, los títulos deben
+                # compartir ≥1 palabra significativa. Sin esto, dos productos sin
+                # relación que comparten un código (ej. "H-6706" en un botín y en unas
+                # fundas de cojín) se emparejarían y el deal acabaría con título de uno
+                # y URL/precio del otro.
+                if not _titulos_comparten_termino(titulo, titulo_res):
+                    continue
+
                 precio_actual, precio_original = await _extraer_precios_busqueda(card)
                 if precio_actual <= 0:
                     continue
@@ -925,9 +933,41 @@ _ROPA_RE = re.compile(
 # Número de modelo — ancla para el check cross-tienda de mejor precio Amazon.
 # Captura patrones tipo: WH-CH520, WH-1000XM5, QC45, RTX-4080, MX300, DS-4, K380
 _MODELO_RE = re.compile(
-    r'\b([A-Z]{1,5}-[A-Z]{0,3}[0-9]{2,5}[A-Z0-9]{0,5}'   # WH-CH520, WH-1000XM5
+    r'\b([A-Z]{2,5}-[A-Z]{0,3}[0-9]{2,5}[A-Z0-9]{0,5}'   # WH-CH520, WH-1000XM5
     r'|[A-Z]{2,5}[0-9]{3,5}[A-Z0-9]{0,3})\b'              # QC45, WF1000XM5, RTX4080
 )
+# Nota: el prefijo antes del guion exige ≥2 letras a propósito. SKUs genéricos tipo
+# "H-6706" (1 letra + dígitos) NO son modelos reales y colisionan entre productos sin
+# relación (p.ej. un botín y unas fundas de cojín que comparten ese código de vendedor),
+# provocando que el cross-check de Amazon empareje productos distintos.
+
+# Tiendas de electrónica/tech donde tiene sentido el cross-check contra Amazon
+# (búsqueda en i=electronics anclada en número de modelo real). Para moda, calzado,
+# deportes, bicis o juguetes, ese cross-check es ruido y provoca falsos emparejamientos
+# por códigos SKU coincidentes → NO se aplica.
+_CROSSCHECK_AMAZON_TIENDAS = frozenset({"MediaMarkt", "PCBox", "PcComponentes", "Beep"})
+
+# Stopwords para comparar títulos en el cross-check Amazon (colores, género, conectores).
+# No deben contar como "término compartido" porque son demasiado genéricos.
+_TITULO_STOP = frozenset([
+    "para", "mujer", "hombre", "unisex", "niño", "niños", "niña", "niñas",
+    "con", "sin", "del", "las", "los", "para", "the", "and", "color",
+    "talla", "tallas", "negro", "negra", "blanco", "blanca", "azul", "rojo",
+    "roja", "verde", "gris", "rosa", "marron", "marrón", "beige", "plata",
+    "dorado", "dorada", "plateado", "casual", "regalo", "juego", "pack",
+])
+
+def _titulos_comparten_termino(t1: str, t2: str) -> bool:
+    """True si dos títulos comparten ≥1 palabra significativa (≥4 letras, no stopword).
+
+    Guard del cross-check Amazon: aunque dos productos compartan un código tipo modelo
+    (SKU coincidente), si no comparten ninguna palabra real del nombre son productos
+    distintos y NO deben emparejarse (evita el bug botín↔fundas de cojín por "H-6706").
+    """
+    def toks(t: str) -> set:
+        return {w for w in re.findall(r'[a-záéíóúñü]{4,}', t.lower()) if w not in _TITULO_STOP}
+    return bool(toks(t1) & toks(t2))
+
 
 # Prendas de ropa/moda: se permiten solo si hay marca conocida + descuento ≥50%
 _PALABRAS_ROPA = frozenset([
@@ -3244,9 +3284,12 @@ async def run_pipeline(modo: str = "completo"):
             # Si sí → actualiza tienda/ASIN/precio para usar el link Amazon (mejor afiliado + precio).
             # El precio_original del deal origen (strike_price regulado EU) se conserva como referencia.
             if modo == "completo":
-                no_amazon_raw = [p for p in productos if p.tienda != "Amazon"]
+                # Solo tiendas de electrónica: el cross-check busca en Amazon i=electronics
+                # anclado en nº de modelo. En moda/calzado/deportes los códigos SKU colisionan
+                # entre productos sin relación → falsos emparejamientos (título de uno, URL de otro).
+                no_amazon_raw = [p for p in productos if p.tienda in _CROSSCHECK_AMAZON_TIENDAS]
                 if no_amazon_raw:
-                    print(f"\n💸 Comprobando precio Amazon para {len(no_amazon_raw)} deals no-Amazon...")
+                    print(f"\n💸 Comprobando precio Amazon para {len(no_amazon_raw)} deals de electrónica...")
                     mejorados = 0
                     for p in no_amazon_raw:
                         try:
