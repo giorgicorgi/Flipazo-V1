@@ -73,6 +73,27 @@ DESCUENTO_OFERTA_MINIMO = 40    # % mínimo para ofertas puras
 PRECIO_MINIMO_LC    = 8.0   # € mínimo para aceptar items low cost
 DESCUENTO_LC_MINIMO = 40    # % mínimo para items low cost (igual que descuento estándar)
 
+# ── Gran electrodoméstico (gasto fuerte) ──────────────────────────
+# Lavadoras, secadoras, lavavajillas, frigoríficos, hornos, etc. casi nunca bajan del 40%
+# (MediaMarkt los rebaja típicamente 20-30%), pero son una compra cara donde el ahorro
+# ABSOLUTO importa (−30% de 600€ = 180€). Umbral reducido a 30% si el precio es alto.
+# La card lleva un disclaimer ("no llega al 40%, pero es un gran ahorro").
+GRAN_ELECTRO_PRECIO_MIN    = 300.0
+GRAN_ELECTRO_DESCUENTO_MIN = 30
+_GRAN_ELECTRO_RE = re.compile(
+    r'\b(lavadora|secadora|lavavajillas|frigor[ií]fico|nevera|congelador|'
+    r'vitrocer[aá]mic\w*|campana|microondas)\b|placa.*inducci[oó]n|\bhorno\b',
+    re.I,
+)
+
+def _es_gran_electrodomestico(titulo: str, precio: float) -> bool:
+    """True si el título es un gran electrodoméstico y el precio supera el suelo."""
+    return precio >= GRAN_ELECTRO_PRECIO_MIN and bool(_GRAN_ELECTRO_RE.search(titulo or ""))
+
+def _descuento_minimo_para(titulo: str, precio: float) -> int:
+    """Umbral de descuento aplicable: 30% para gran electrodoméstico caro, 40% normal."""
+    return GRAN_ELECTRO_DESCUENTO_MIN if _es_gran_electrodomestico(titulo, precio) else DESCUENTO_MINIMO
+
 # ── Pipeline ─────────────────────────────────────────────────────
 BATCH_SIZE_CLAUDE       = 15    # Productos por llamada a la API
 DEBUG_SCREENSHOTS       = os.getenv("DEBUG_SCREENSHOTS", "false").lower() == "true"
@@ -1146,9 +1167,12 @@ _LC_DESCUENTO_MIN_POR_TIENDA: dict[str, int] = {
 }
 
 
-def _precio_aceptable(precio_actual: float, descuento: int, tienda: str = "") -> bool:
-    """Devuelve True si pasa el filtro estándar O el filtro low-cost (umbral LC por tienda)."""
-    if precio_actual >= PRECIO_MINIMO and descuento >= DESCUENTO_MINIMO:
+def _precio_aceptable(precio_actual: float, descuento: int, tienda: str = "", titulo: str = "") -> bool:
+    """Devuelve True si pasa el filtro estándar O el filtro low-cost (umbral LC por tienda).
+
+    El umbral estándar baja a 30% para gran electrodoméstico caro (ver _descuento_minimo_para).
+    """
+    if precio_actual >= PRECIO_MINIMO and descuento >= _descuento_minimo_para(titulo, precio_actual):
         return True
     lc_min = _LC_DESCUENTO_MIN_POR_TIENDA.get(tienda, DESCUENTO_LC_MINIMO)
     if PRECIO_MINIMO_LC <= precio_actual < PRECIO_MINIMO and descuento >= lc_min:
@@ -1685,7 +1709,8 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     # ── Tradedoubler feeds (MediaMarkt/ToysRus) — caché 23h ──────────────────
     try:
         td_raw = await asyncio.to_thread(
-            fetch_tradedoubler_productos, DESCUENTO_MINIMO, PRECIO_MINIMO_LC, PRECIO_MAXIMO
+            fetch_tradedoubler_productos, DESCUENTO_MINIMO, PRECIO_MINIMO_LC, PRECIO_MAXIMO,
+            _descuento_minimo_para,
         )
         for d in td_raw:
             _registrar_observacion_precio(d)
@@ -1699,7 +1724,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
                 continue
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda=_tienda, precio=_p_act):
                 continue
-            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda=_tienda):
+            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda=_tienda, titulo=d["titulo"]):
                 continue
             p = Producto(**d)
             clave = f"{p.tienda}:{p.titulo[:40].lower()}"
@@ -1720,7 +1745,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             _registrar_observacion_precio(d)
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda="Decathlon", precio=d.get("precio_actual", 0)):
                 continue
-            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda="Decathlon"):
+            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda="Decathlon", titulo=d["titulo"]):
                 continue
             p = Producto(**d)
             clave = f"Decathlon:{p.titulo[:40].lower()}"
@@ -1738,7 +1763,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         for d in tr_raw:
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], precio=d.get("precio_actual", 0)):
                 continue
-            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda="ToysRus"):
+            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda="ToysRus", titulo=d["titulo"]):
                 continue
             p = Producto(**d)
             clave = f"ToysRus:{p.titulo[:40].lower()}"
@@ -2226,6 +2251,12 @@ def _score_local(p: "Producto") -> int:
     elif p.descuento_pct >= 40:
         score += 10
 
+    # Gran electrodoméstico (gasto fuerte): rara vez baja del 40%, pero el ahorro
+    # absoluto es alto. Bonus que garantiza que un 30-39% en un electrodoméstico caro
+    # entre en zona gris (≥_SCORE_AUTO_DESCARTAR) aunque la marca no sea "conocida".
+    if _es_gran_electrodomestico(p.titulo, p.precio_actual) and p.descuento_pct >= GRAN_ELECTRO_DESCUENTO_MIN:
+        score += 30
+
     # Marca reconocida (hasta 30 pts)
     titulo_lower = p.titulo.lower()
     if any(marca in titulo_lower for marca in _MARCAS_CONOCIDAS):
@@ -2322,7 +2353,7 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
         s = _score_local(p)
         if s >= _SCORE_AUTO_APROBAR:
             titulo_lower = p.titulo.lower()
-            if any(m in titulo_lower for m in _MARCAS_ARBITRAJE):
+            if any(m in titulo_lower for m in _MARCAS_ARBITRAJE) and not _es_gran_electrodomestico(p.titulo, p.precio_actual):
                 p.tipo         = "ARBITRAJE"
                 p.score_ai     = s
                 p.razonamiento = "marca premium + descuento alto → reventa viable"
@@ -2357,11 +2388,19 @@ async def score_con_claude(productos: list[Producto]) -> list[Producto]:
         tiene_marca     = any(m in titulo_lower for m in _MARCAS_CONOCIDAS)
         tiene_arbitraje = any(m in titulo_lower for m in _MARCAS_ARBITRAJE)
 
-        if tiene_arbitraje and p.descuento_pct >= 45:
+        es_gran_electro = _es_gran_electrodomestico(p.titulo, p.precio_actual)
+
+        if tiene_arbitraje and p.descuento_pct >= 45 and not es_gran_electro:
             p.tipo     = "ARBITRAJE"
             p.score_ai = _score_local(p)
             p.razonamiento = "marca con mercado de reventa + descuento sólido"
         elif tiene_marca:
+            p.tipo         = "OFERTA"
+            p.score_oferta = _score_local(p)
+            p.razonamiento = ""
+        elif es_gran_electro and p.descuento_pct >= GRAN_ELECTRO_DESCUENTO_MIN:
+            # Gran electrodoméstico al umbral reducido (30%): se publica como OFERTA
+            # aunque la marca no esté en _MARCAS_CONOCIDAS (Balay, Haier, Teka, Candy…).
             p.tipo         = "OFERTA"
             p.score_oferta = _score_local(p)
             p.razonamiento = ""
@@ -3321,12 +3360,13 @@ async def run_pipeline(modo: str = "completo"):
                                     ref_real   = amazon_ref if amazon_ref > amazon_px else amazon_px
                                     if ref_real > 0:
                                         desc_real = max(0, round((1 - p.precio_actual / ref_real) * 100))
-                                        if desc_real < DESCUENTO_MINIMO:
+                                        desc_min  = _descuento_minimo_para(p.titulo, p.precio_actual)
+                                        if desc_real < desc_min:
                                             print(
                                                 f"   ❌ MSRP inflado {p.tienda} — Amazon {amazon_px:.2f}€"
                                                 f" (ref. real {ref_real:.2f}€)"
                                                 f" → desc. real {desc_real}%"
-                                                f" < {DESCUENTO_MINIMO}%: {p.titulo[:35]}"
+                                                f" < {desc_min}%: {p.titulo[:35]}"
                                             )
                                             p.descuento_pct   = 0
                                             p.precio_original = ref_real
@@ -3344,10 +3384,11 @@ async def run_pipeline(modo: str = "completo"):
                     print(f"   ✅ {mejorados}/{len(no_amazon_raw)} deals actualizados a precio Amazon")
 
                 # Descartar deals cuyo descuento real quedó < mínimo tras corrección de referencia MSRP
-                n_msrp = sum(1 for p in productos if p.descuento_pct < DESCUENTO_MINIMO)
+                # (umbral por producto: 30% para gran electrodoméstico caro, 40% el resto)
+                n_msrp = sum(1 for p in productos if p.descuento_pct < _descuento_minimo_para(p.titulo, p.precio_actual))
                 if n_msrp:
-                    print(f"   🚫 {n_msrp} deal(s) descartados: MSRP inflado (desc. real < {DESCUENTO_MINIMO}%)")
-                    productos = [p for p in productos if p.descuento_pct >= DESCUENTO_MINIMO]
+                    print(f"   🚫 {n_msrp} deal(s) descartados: MSRP inflado (desc. real bajo el mínimo)")
+                    productos = [p for p in productos if p.descuento_pct >= _descuento_minimo_para(p.titulo, p.precio_actual)]
 
                 # Re-validar precio mínimo por categoría tras reclasificación a Amazon
                 n_antes = len(productos)

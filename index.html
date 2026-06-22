@@ -1186,6 +1186,16 @@
       margin: 0 16px 10px;
     }
 
+    /* Disclaimer gran electrodoméstico (descuento <40% honesto) */
+    .deal__appliance-note {
+      font-family: var(--sans); font-size: 10.5px; font-weight: 500;
+      line-height: 1.35; color: var(--text-mid);
+      background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.28);
+      border-radius: 10px; padding: 6px 10px; margin: 0 16px 10px;
+      display: flex; gap: 6px;
+    }
+    .deal__appliance-note::before { content: "ℹ️"; flex-shrink: 0; }
+
     /* ── Histórico ───────────────────────────────────────────────── */
     .deal__historico {
       font-family: var(--sans); font-size: 10px; font-weight: 600;
@@ -2890,6 +2900,7 @@
     { id:1, tipo:"REVENTA", tienda:"Amazon", titulo:"Sony WH-1000XM5 Auriculares Inalámbricos con Cancelación de Ruido", precio_actual:189.00, precio_original:279.00, descuento_pct:32, imagen_url:"https://m.media-amazon.com/images/I/61hNGBUPF3L._AC_SL1500_.jpg", url_affiliate:"#", precio_wallapop:245.0, beneficio_neto:47.0, precio_historico_min:0, razonamiento:"", timestamp:new Date(Date.now()-8*60000).toISOString(), deal_score:78, hook:"Bose noise cancelling sin pagar el precio de los AirPods Max", social_context:"Lo recomiendan en cada hilo de Reddit de auriculares", emotional_tags:["⚡ Internet Favorite"] },
     { id:2, tipo:"OFERTA",  tienda:"PcComponentes", titulo:"LG OLED55C44LA · Smart TV 4K 55\" OLED evo · Google TV", precio_actual:799.00, precio_original:1299.00, descuento_pct:38, imagen_url:"https://www.lg.com/es/images/televisores/md07522869/gallery/medium01.jpg", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:799.00, razonamiento:"Precio mínimo histórico en esta referencia. Alta liquidez.", timestamp:new Date(Date.now()-22*60000).toISOString(), deal_score:88, hook:"OLED de 55 pulgadas por debajo de muchos QLED de Samsung", social_context:"El precio más bajo de esta referencia en meses", emotional_tags:["🔥 Trending"], mas_rebajado:true, precio_publicado:899.00, precio_verificado:799.00 },
     { id:3, tipo:"REVENTA", tienda:"MediaMarkt", titulo:"Dyson V15 Detect Absolute · Aspirador sin cable con láser", precio_actual:499.00, precio_original:749.00, descuento_pct:33, imagen_url:"https://assets.dyson.com/content/dam/dyson/images/products/primary/394512-01.png", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:520.00, razonamiento:"Casi en mínimos. Dyson V15 con muy alta demanda.", timestamp:new Date(Date.now()-68*60000).toISOString(), deal_score:82, hook:"El Dyson que casi nadie compra al MSRP, finalmente a buen precio", social_context:"Volvió a bajar tras semanas alto", emotional_tags:["🔥 Trending"] },
+    { id:4, tipo:"OFERTA", tienda:"MediaMarkt", titulo:"Lavadora carga frontal - Samsung WW11DG5B25AE, 11 kg, 1400 rpm, EcoBubble", precio_actual:444.00, precio_original:599.00, descuento_pct:33, imagen_url:"", url_affiliate:"#", precio_wallapop:0, beneficio_neto:0, precio_historico_min:0, razonamiento:"", timestamp:new Date(Date.now()-95*60000).toISOString(), deal_score:55, hook:"", social_context:"", emotional_tags:[] },
   ];
 
   // ── Reventa popup ─────────────────────────────────────────────
@@ -3003,6 +3014,16 @@
     return parts[0] + "," + parts[1] + " €";
   }
 
+  // Gran electrodoméstico (espejo de _GRAN_ELECTRO_RE del backend): gasto fuerte que se
+  // publica desde el 30%. La card muestra un disclaimer honesto cuando no llega al 40%.
+  const _GRAN_ELECTRO_RE = /\b(lavadora|secadora|lavavajillas|frigor[ií]fico|nevera|congelador|vitrocer[aá]mic\w*|campana|microondas)\b|placa.*inducci[oó]n|\bhorno\b/i;
+  function esGranElectroSubUmbral(d) {
+    const pct = d.descuento_pct || 0;
+    return !d.expirado && pct >= 25 && pct < 40
+      && (d.precio_actual || 0) >= 300
+      && _GRAN_ELECTRO_RE.test(d.titulo || "");
+  }
+
   // ── Render card ───────────────────────────────────────────────
   function renderDeal(d) {
     const isReventa  = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
@@ -3058,6 +3079,11 @@
     const isMinHistorico = (d.precio_historico_min > 0) && (d.precio_actual <= d.precio_historico_min);
     const ahorroHtml = ahorro > 1
       ? `<div class="deal__savings">Estás ahorrando ${fmtPrice(ahorro)}${isMinHistorico ? " · Precio mínimo histórico" : ""}</div>` : "";
+
+    // Disclaimer honesto para gran electrodoméstico que no llega al −40%
+    const applianceNoteHtml = esGranElectroSubUmbral(d)
+      ? `<div class="deal__appliance-note">No llega al −40%, pero en un electrodoméstico así es un buen ahorro.</div>`
+      : "";
 
     const razonamiento = (!d.razonamiento || _RAZON_GENERICAS.has(d.razonamiento.trim())) ? "" : d.razonamiento;
     const razonHtml = razonamiento ? `<p class="deal__reason">"${esc(razonamiento)}"</p>` : "";
@@ -3170,6 +3196,7 @@
           </div>
         </div>
         ${ahorroHtml}
+        ${applianceNoteHtml}
         ${stockBadge}
         ${razonHtml}
         <div class="deal__cta">

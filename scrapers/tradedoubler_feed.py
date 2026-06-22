@@ -164,6 +164,7 @@ def _filtrar(
     descuento_minimo: int,
     precio_minimo: float,
     precio_maximo: float,
+    descuento_minimo_fn=None,
 ) -> list[dict]:
     """
     Aplica filtros básicos (precio, descuento, stock) y devuelve dicts con los
@@ -198,7 +199,10 @@ def _filtrar(
                 continue
 
             descuento_pct = int((1 - precio_actual / precio_original) * 100)
-            if descuento_pct < descuento_minimo:
+            # Umbral por producto: el callback baja a 30% para gran electrodoméstico caro
+            # (lavadoras, secadoras, etc.); el resto mantiene el mínimo estándar.
+            dmin = descuento_minimo_fn(titulo, precio_actual) if descuento_minimo_fn else descuento_minimo
+            if descuento_pct < dmin:
                 continue
 
             disponibilidad = (offer.get("availability") or "").lower()
@@ -553,6 +557,7 @@ def fetch_tradedoubler_productos(
     descuento_minimo: int = 40,
     precio_minimo: float = 25.0,
     precio_maximo: float = 800.0,
+    descuento_minimo_fn=None,
 ) -> list[dict]:
     """
     Descarga y filtra los feeds de MediaMarkt, PCBox y Esdemarca de Tradedoubler.
@@ -582,7 +587,7 @@ def fetch_tradedoubler_productos(
         if filtrar_fn is not None:
             filtrados = filtrar_fn(raw, precio_minimo, precio_maximo)
         else:
-            filtrados = _filtrar(raw, tienda, descuento_minimo, precio_minimo, precio_maximo)
+            filtrados = _filtrar(raw, tienda, descuento_minimo, precio_minimo, precio_maximo, descuento_minimo_fn)
         desc_min_map = {"Esdemarca": _ESDEMARCA_DESCUENTO_MIN, "Toni Pons": _TONI_PONS_DESCUENTO_MIN, "Desigual": _DESIGUAL_DESCUENTO_MIN}
         desc_min = desc_min_map.get(tienda, descuento_minimo)
         print(f"      → {len(raw)} descargados, {len(filtrados)} con ≥{desc_min}% descuento")
