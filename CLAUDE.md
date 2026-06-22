@@ -180,3 +180,4 @@ discovery/               ← scoring.py + emotional_layer.py (hooks con Haiku)
 | Ropa tallas S/M/L publicada | Sin filtro tallas | `_TALLA_RE` — tallas letra bloqueadas, numéricas permitidas |
 | TD feeds 0 deals | Precio en `priceHistory[0]` no en `price.value` | `offer["priceHistory"][0]["price"]["value"]` |
 | TD_PUBLISHER_ID incorrecto | Confusión publisher vs site ID | Site ID 3481714 (parámetro `&a=` del deep link) |
+| Título de deal no coincide con el producto/URL | Cross-check Amazon emparejaba por SKU coincidente (`_MODELO_RE` tomaba "H-6706" como modelo; un botín y unas fundas de cojín compartían ese código) → título de uno, URL/precio del otro | Cross-check solo para tiendas de electrónica (`_CROSSCHECK_AMAZON_TIENDAS`); `_MODELO_RE` exige ≥2 letras antes del guion; guard `_titulos_comparten_termino` (deben compartir ≥1 palabra real) |
