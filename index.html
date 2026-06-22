@@ -3124,7 +3124,7 @@
 
     const hook         = (d.hook || "").trim();
     const showHook     = hook.length > 0 && !isExpired;
-    const cleanedTitle = esc(cleanHeroTitle(d.titulo || ""));
+    const cleanedTitle = esc(marcaPrimero(d.titulo || ""));
     const titleBlock   = showHook
       ? `<h2 class="deal__hook">${esc(hook)}</h2>
          <p class="deal__title-sub">${cleanedTitle}</p>`
@@ -3295,6 +3295,56 @@
     return t;
   }
 
+  // ── Marca al frente del título ────────────────────────────────
+  // Publicamos solo marcas reconocidas → la marca debe ser lo primero que se lee.
+  // La marca puede venir en cualquier posición del título según la tienda
+  // (MediaMarkt "Cat - Marca Modelo", Decathlon "... Marca" al final, etc.).
+  // Lista curada (evita palabras ambiguas en español: poco/honor/on/giro/polar...).
+  const MARCAS_RECONOCIDAS = [
+    "The North Face","Helly Hansen","New Balance","Ultimate Ears","Calvin Klein","Ralph Lauren",
+    "Tommy Hilfiger","Stone Island","Harman Kardon","Audio-Technica","De'Longhi","Arc'teryx",
+    "Stanley","Shokz","Samsung","Xiaomi","Huawei","Realme","Motorola","Nokia","Sony","Apple",
+    "Philips","Braun","Rowenta","Tefal","Siemens","Bosch","Balay","Haier","Beko","Candy","Teka",
+    "Whirlpool","Electrolux","Hisense","Indesit","Smeg","Hoover","Liebherr","AEG","Zanussi","Cecotec",
+    "iRobot","Roborock","Roomba","Dreame","Ecovacs","Eufy","Dyson","Shark","Bissell","Karcher",
+    "Kenwood","Magimix","Vitamix","Nespresso","Breville","Sage","Razer","Logitech","Corsair",
+    "SteelSeries","HyperX","Bose","JBL","Jabra","Sennheiser","Marshall","Beats","Anker","Soundcore",
+    "Sonos","Denon","Pioneer","JVC","Klipsch","Nike","Adidas","Jordan","Asics","Puma","Reebok",
+    "Patagonia","Columbia","Timberland","Mammut","Salomon","Scarpa","Salewa","Rab","Oakley","Uvex",
+    "Regatta","Spiuk","Garmin","GoPro","Fitbit","Suunto","Coros","Wahoo","Casio","Seiko","Citizen",
+    "Timex","G-Shock","Makita","DeWalt","Milwaukee","Canon","Nikon","Fujifilm","Olympus","Lego",
+    "Nintendo","PlayStation","Xbox","Kindle","Dior","Chanel","Armani","Lacoste","Burberry","Panasonic",
+    "Remington","Oral-B","Wahl","Microsoft","Lenovo","Asus","Acer","Dell","Orbea","Cannondale",
+    "Specialized","Canyon","Scott","Giant","Trek","Conor","LG","TCL","Devialet","Teufel","Redmi",
+    "OnePlus","Oppo","Baseus"
+  ].sort((a, b) => b.length - a.length);  // multi-palabra primero
+
+  function _brandPat(b) {
+    return b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/'/g, "['´’]?");
+  }
+  function _detectarMarca(raw) {
+    for (const b of MARCAS_RECONOCIDAS) {
+      if (new RegExp("\\b" + _brandPat(b) + "\\b", "i").test(raw)) return b;
+    }
+    return null;
+  }
+  function _empiezaPorMarca(txt, b) {
+    return new RegExp("^\\s*" + _brandPat(b) + "\\b", "i").test(txt);
+  }
+  function marcaPrimero(raw) {
+    const cleaned = cleanHeroTitle(raw || "");
+    const brand = _detectarMarca(raw || "");
+    if (!brand) return cleaned;                       // sin marca reconocida → como está
+    if (_empiezaPorMarca(cleaned, brand)) return cleaned;  // ya al frente
+    // Quitar la marca (y un separador previo) del cuerpo y anteponerla
+    const rm = new RegExp("\\s*[-–—·,]?\\s*\\b" + _brandPat(brand) + "\\b", "i");
+    let body = cleaned.replace(rm, " ").replace(/\s{2,}/g, " ");
+    body = body.replace(/^[\s\-–—·,:]+|[\s\-–—·,:]+$/g, "").trim();
+    if (!body) return brand;
+    if (_empiezaPorMarca(body, brand)) return body;
+    return brand + " - " + body;
+  }
+
   function _heroUrgencyText(timestamp) {
     if (!timestamp) return "Oferta del día — actualizada esta mañana";
     const diff  = Date.now() - new Date(timestamp).getTime();
@@ -3309,7 +3359,7 @@
     const buyUrl       = d.url_affiliate || "#";
     const wallapopUrl  = `https://es.wallapop.com/app/search?keywords=${encodeURIComponent(extractModelQuery(d.titulo))}`;
     const isReventa    = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
-    const cleanTitle   = esc(cleanHeroTitle(d.titulo || ""));
+    const cleanTitle   = esc(marcaPrimero(d.titulo || ""));
     const ahorro       = (d.precio_original > 0 && d.precio_actual > 0) ? d.precio_original - d.precio_actual : 0;
     const isMinHist    = d.precio_historico_min > 0 && d.precio_actual <= d.precio_historico_min;
     const savingsHtml  = ahorro > 0
@@ -4254,7 +4304,7 @@
   // ── Card renderers ────────────────────────────────────────────
 
   function _mhT(titulo, max) {
-    const t = cleanHeroTitle(titulo || "");
+    const t = marcaPrimero(titulo || "");
     return esc(t.length > max ? t.slice(0, max) + "…" : t);
   }
 
@@ -4388,7 +4438,7 @@
   function renderWhero(d) {
     if (!d) return "";
     const url = d.url_affiliate || "#";
-    const hookOrTitle = (d.hook && d.hook.trim()) ? d.hook.trim() : cleanHeroTitle(d.titulo || "");
+    const hookOrTitle = (d.hook && d.hook.trim()) ? d.hook.trim() : marcaPrimero(d.titulo || "");
     return `<div class="whero-wrap${d.expirado ? ' mh-expirado' : ''}">
       <a class="whero" href="${url}" target="_blank" rel="noopener sponsored">
         <div class="whero__img">
