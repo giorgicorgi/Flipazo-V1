@@ -194,7 +194,12 @@ PALABRAS_PROHIBIDAS = [
     # Accesorios de bajo valor
     "funda", "case", "carcasa", "cristal", "correa", "cable", "tóner",
     "repuesto", "adhesivo", "soporte", "cargador", "adaptador",
-    "stylus", "pellicola", "protector",
+    "stylus", "pellicola",
+    # "protector" en frases específicas (protector de pantalla/cristal/cámara). NO bloquear
+    # "protector" sola: cazaba "protector solar" (dermocosmética de marca) por subcadena.
+    "protector de pantalla", "protector pantalla",
+    "protector de cristal", "protector cristal",
+    "protector de cámara", "protector cámara", "protector de lente",
     # Alimentación y salud (frases específicas, no "café" sola — bloquearía cafeteras)
     "café en grano", "café molido", "café soluble", "cápsulas de café",
     "café en cápsulas", "té verde", "té negro", "té rojo", "infusión",
@@ -2118,6 +2123,50 @@ _MARCAS_ARBITRAJE = {
 # en la zona gris (sus marcas propias —Kiprun, Quechua…— no están en _MARCAS_CONOCIDAS).
 _TIENDAS_FEED_CONFIABLE = {"Decathlon"}
 
+# ── Marca al frente del título ────────────────────────────────────
+# Publicamos solo marcas reconocidas → la marca debe ser lo primero que se lee, en
+# Telegram, Threads y web. La marca viene en posiciones distintas según la tienda
+# (MediaMarkt "Cat - Marca Modelo", Decathlon "... Marca" al final, etc.).
+# MANTENER EN SYNC con MARCAS_RECONOCIDAS de index.html. Curada para evitar palabras
+# ambiguas en español (poco/honor/on/giro/polar...).
+_MARCAS_TITULO = sorted([
+    "The North Face","Helly Hansen","New Balance","Ultimate Ears","Calvin Klein","Ralph Lauren",
+    "Tommy Hilfiger","Stone Island","Harman Kardon","Audio-Technica","De'Longhi","Arc'teryx",
+    "Stanley","Shokz","Samsung","Xiaomi","Huawei","Realme","Motorola","Nokia","Sony","Apple",
+    "Philips","Braun","Rowenta","Tefal","Siemens","Bosch","Balay","Haier","Beko","Candy","Teka",
+    "Whirlpool","Electrolux","Hisense","Indesit","Smeg","Hoover","Liebherr","AEG","Zanussi","Cecotec",
+    "iRobot","Roborock","Roomba","Dreame","Ecovacs","Eufy","Dyson","Shark","Bissell","Karcher",
+    "Kenwood","Magimix","Vitamix","Nespresso","Breville","Sage","Razer","Logitech","Corsair",
+    "SteelSeries","HyperX","Bose","JBL","Jabra","Sennheiser","Marshall","Beats","Anker","Soundcore",
+    "Sonos","Denon","Pioneer","JVC","Klipsch","Nike","Adidas","Jordan","Asics","Puma","Reebok",
+    "Patagonia","Columbia","Timberland","Mammut","Salomon","Scarpa","Salewa","Rab","Oakley","Uvex",
+    "Regatta","Spiuk","Garmin","GoPro","Fitbit","Suunto","Coros","Wahoo","Casio","Seiko","Citizen",
+    "Timex","G-Shock","Makita","DeWalt","Milwaukee","Canon","Nikon","Fujifilm","Olympus","Lego",
+    "Nintendo","PlayStation","Xbox","Kindle","Dior","Chanel","Armani","Lacoste","Burberry","Panasonic",
+    "Remington","Oral-B","Wahl","Microsoft","Lenovo","Asus","Acer","Dell","Orbea","Cannondale",
+    "Specialized","Canyon","Scott","Giant","Trek","Conor","LG","TCL","Devialet","Teufel","Redmi",
+    "OnePlus","Oppo","Baseus",
+], key=len, reverse=True)  # multi-palabra primero
+
+def _brand_pat(b: str) -> str:
+    return re.escape(b).replace("'", "['´’]?")
+
+def _marca_al_frente(titulo: str) -> str:
+    """Antepone la marca reconocida: 'Cat - Marca Modelo' → 'Marca - Cat Modelo'.
+    Conserva el resto del título. Si ya empieza por la marca o no hay marca conocida, lo deja igual."""
+    t = (titulo or "").strip()
+    if not t:
+        return t
+    brand = next((b for b in _MARCAS_TITULO
+                  if re.search(r'\b' + _brand_pat(b) + r'\b', t, re.I)), None)
+    if not brand:
+        return t
+    if re.match(r'^\s*' + _brand_pat(brand) + r'\b', t, re.I):
+        return t  # ya al frente
+    rest = re.sub(r'\s*[-–—·,]?\s*\b' + _brand_pat(brand) + r'\b', ' ', t, count=1, flags=re.I)
+    rest = re.sub(r'\s{2,}', ' ', rest).strip(' -–—·,:')
+    return f"{brand} - {rest}" if rest else brand
+
 # Umbrales pre-scorer
 _SCORE_AUTO_APROBAR  = 70   # ≥70 → auto-aprobado (ARBITRAJE o OFERTA según marca), sin Claude
 _SCORE_AUTO_DESCARTAR = 30  # <30 → descartado, sin Claude
@@ -3499,6 +3548,14 @@ async def run_pipeline(modo: str = "completo"):
                 print(f"   ⏭️  {omitidos} deal(s) ya publicados anteriormente — omitidos (sin republicar)")
             if actualizados_precio:
                 print(f"   📉 {actualizados_precio} deal(s) con precio actualizado (bajó desde publicación)")
+
+            # ── Marca al frente del título ────────────────────────
+            # La marca debe ser lo primero que se lee en Telegram, Threads y web.
+            # Se aplica aquí (sobre los que se van a publicar) para cubrir todos los
+            # canales a la vez. El dedup usa deal_id (URL/ASIN), no el título, así que
+            # reescribir el título no afecta la deduplicación.
+            for p in deals_nuevos:
+                p.titulo = _marca_al_frente(p.titulo)
 
             # ── Fase 4.7: Discovery enrichment (Deal Score + Tags + Hooks) ──
             # Solo enriquecemos deals que se van a publicar — evita gasto Haiku innecesario.
