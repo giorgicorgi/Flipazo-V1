@@ -130,6 +130,8 @@ AMAZON_SEARCH_URLS = [
     "https://www.amazon.es/s?i=shoes&k=jordan+nike+air+max+adidas+ultraboost+new+balance+990+550+asics+gel&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Perfumes — alta reventa y liquidez
     "https://www.amazon.es/s?i=beauty&k=perfume+eau+de+parfum+eau+de+toilette&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # Dermocosmética premium — protector solar y cuidado facial de marca (whitelist _MARCAS_DERMO)
+    "https://www.amazon.es/s?i=beauty&k=la+roche+posay+isdin+cerave+avene+vichy+eucerin+bioderma+sesderma&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # LEGO — sube de precio tras descatalogación
     "https://www.amazon.es/s?k=LEGO&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Herramientas de marca premium (Bosch, DeWalt, Makita, Milwaukee)
@@ -268,6 +270,23 @@ PALABRAS_PROHIBIDAS = [
     "kit de sangrado",  # kit de purga de frenos hidráulicos
     "kit sangrado",
 ]
+
+# ── Dermocosmética premium (whitelist) ────────────────────────────
+# Marcas de farmacia/dermo reconocidas con valor real. Solo estas se aceptan en
+# cuidado facial/solar; el resto de cosmética genérica sigue bloqueada.
+_MARCAS_DERMO = frozenset([
+    "la roche-posay", "la roche posay", "roche-posay", "roche posay",
+    "isdin", "cerave", "avène", "avene", "vichy", "eucerin", "bioderma",
+    "sesderma", "svr", "filorga", "caudalie", "nuxe", "a-derma", "aderma",
+    "cetaphil", "ducray", "martiderm", "endocare", "heliocare", "uriage",
+    "rilastil", "mustela", "neutrogena", "babé", "cantabria labs", "anthelios",
+])
+# Términos de cosmética que normalmente bloqueamos (bajo valor genérico) pero que
+# SÍ permitimos cuando el producto es de una marca dermo premium de la whitelist.
+_PALABRAS_COSMETICA = frozenset([
+    "crema hidratante", "sérum", "mascarilla facial", "champú",
+    "acondicionador", "gel de ducha", "esmalte de uñas",
+])
 
 # Recambios y componentes de bicicleta — bloqueados solo para Mammoth Bikes
 # (términos demasiado especializados; no aplica globalmente porque en otros contextos
@@ -1139,6 +1158,10 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", p
         if tienda not in {"Barrabes", "Decathlon"}
         else [p for p in PALABRAS_PROHIBIDAS if p not in _OUTDOOR_EXEMPT]
     )
+    # Dermocosmética de marca premium (La Roche-Posay, ISDIN, CeraVe…): se exime de los
+    # bloqueos de cosmética genérica (crema hidratante, sérum…) — la marca ya valida calidad.
+    if any(m in t for m in _MARCAS_DERMO):
+        _prohibidas = [p for p in _prohibidas if p not in _PALABRAS_COSMETICA]
     if any(p in t for p in _prohibidas):
         return False
     if _TALLA_RE.search(titulo):
@@ -2096,7 +2119,7 @@ _MARCAS_CONOCIDAS = {
     "norrona", "icebreaker", "compressport", "dynafit", "ortovox",
     # Moda premium adicional
     "ralph lauren", "tommy hilfiger", "stone island", "burberry",
-}
+} | _MARCAS_DERMO  # dermocosmética premium cuenta como marca reconocida (scoring + zona gris)
 
 # Marcas con mercado real de segunda mano en Wallapop/eBay.es → candidatas a ARBITRAJE
 _MARCAS_ARBITRAJE = {
@@ -2146,6 +2169,10 @@ _MARCAS_TITULO = sorted([
     "Remington","Oral-B","Wahl","Microsoft","Lenovo","Asus","Acer","Dell","Orbea","Cannondale",
     "Specialized","Canyon","Scott","Giant","Trek","Conor","LG","TCL","Devialet","Teufel","Redmi",
     "OnePlus","Oppo","Baseus",
+    # Dermocosmética premium
+    "La Roche-Posay","ISDIN","CeraVe","Avène","Vichy","Eucerin","Bioderma","Sesderma","Filorga",
+    "Caudalie","Nuxe","Cetaphil","Neutrogena","Martiderm","Heliocare","Uriage","Mustela","Ducray",
+    "Endocare","Rilastil","A-Derma","Anthelios",
 ], key=len, reverse=True)  # multi-palabra primero
 
 def _brand_pat(b: str) -> str:
@@ -2235,6 +2262,8 @@ _CAT_RE = {
         re.I),
     "belleza":      re.compile(
         r'perfume|colonia|eau de|fragancia|m[aá]quillaje|labial|'
+        r'protector solar|fotoprotector|anthelios|la roche.?posay|isdin|cerave|'
+        r'av[eè]ne|vichy|eucerin|bioderma|sesderma|filorga|caudalie|heliocare|'
         r'crema.*facial|crema.*corporal|crema.*hidratante|s[eé]rum.*facial|'
         r'\bdior\b|\bchanel\b|\barmani\b|ysl\b|calvin klein|hugo boss|'
         r'lanc[oô]me|loreal|l\'or[eé]al|nivea|olay\b|est[eé]e lauder|'
