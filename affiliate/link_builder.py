@@ -163,6 +163,10 @@ def build_affiliate_url(tienda: str, asin_or_url: str) -> str:
     if tienda == "Mammoth Bikes":
         return _awin_deep_link(MAMMOTH_AWIN_MID, asin_or_url)
 
+    # Padel Market — el feed AWIN ya entrega el aw_deep_link de afiliado: usar tal cual
+    if tienda == "Padel Market":
+        return asin_or_url
+
     if tienda == "Barrabes":
         return _awin_deep_link(BARRABES_AWIN_MID, asin_or_url)
 

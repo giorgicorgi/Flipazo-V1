@@ -26,6 +26,7 @@ from playwright_stealth import Stealth
 from affiliate.link_builder import build_affiliate_url
 from scrapers.pss_email import get_pss_productos
 from scrapers.tradedoubler_feed import fetch_tradedoubler_productos
+from scrapers.awin_feed         import fetch_awin_productos
 from scrapers.decathlon_feed   import fetch_decathlon_productos
 from scrapers.toysrus_feed     import fetch_toysrus_productos
 from discovery import calcular_deal_score, asignar_tags, generar_hooks_batch
@@ -1802,6 +1803,27 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         print(f"   ❌ Error en ToysRus feed: {e}")
         alertar_admin("Error en ToysRus feed", str(e))
 
+    # ── AWIN feed (Padel Market publicable; ECI/Brico solo histórico) ─────────
+    try:
+        awin_raw = await asyncio.to_thread(
+            fetch_awin_productos, DESCUENTO_MINIMO, PRECIO_MINIMO_LC, PRECIO_MAXIMO,
+            DB_PATH, _descuento_minimo_para,
+        )
+        for d in awin_raw:
+            _registrar_observacion_precio(d)
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda=d["tienda"], precio=d.get("precio_actual", 0)):
+                continue
+            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda=d["tienda"], titulo=d["titulo"]):
+                continue
+            p = Producto(**d)
+            clave = f"{p.tienda}:{p.titulo[:40].lower()}"
+            if clave not in vistos:
+                vistos.add(clave)
+                todos.append(p)
+    except Exception as e:
+        print(f"   ❌ Error en AWIN feed: {e}")
+        alertar_admin("Error en AWIN feed", str(e))
+
 
     print(f"\n✅ Total: {len(todos)} productos únicos de {len({p.tienda for p in todos})} tiendas")
     return todos
@@ -2119,6 +2141,9 @@ _MARCAS_CONOCIDAS = {
     "norrona", "icebreaker", "compressport", "dynafit", "ortovox",
     # Moda premium adicional
     "ralph lauren", "tommy hilfiger", "stone island", "burberry",
+    # Pádel (Padel Market)
+    "bullpadel", "babolat", "nox", "siux", "starvie", "varlion", "black crown",
+    "drop shot", "vibor-a", "vibora", "joma", "wilson", "dunlop",
 } | _MARCAS_DERMO  # dermocosmética premium cuenta como marca reconocida (scoring + zona gris)
 
 # Marcas con mercado real de segunda mano en Wallapop/eBay.es → candidatas a ARBITRAJE
@@ -2144,7 +2169,7 @@ _MARCAS_ARBITRAJE = {
 # Tiendas con feed curado + historial de precios PROPIO verificado: la bajada ya se
 # valida contra su propio histórico de 30 días, así que no exigimos marca reconocida
 # en la zona gris (sus marcas propias —Kiprun, Quechua…— no están en _MARCAS_CONOCIDAS).
-_TIENDAS_FEED_CONFIABLE = {"Decathlon"}
+_TIENDAS_FEED_CONFIABLE = {"Decathlon", "Padel Market"}
 
 # ── Marca al frente del título ────────────────────────────────────
 # Publicamos solo marcas reconocidas → la marca debe ser lo primero que se lee, en
@@ -2173,6 +2198,8 @@ _MARCAS_TITULO = sorted([
     "La Roche-Posay","ISDIN","CeraVe","Avène","Vichy","Eucerin","Bioderma","Sesderma","Filorga",
     "Caudalie","Nuxe","Cetaphil","Neutrogena","Martiderm","Heliocare","Uriage","Mustela","Ducray",
     "Endocare","Rilastil","A-Derma","Anthelios",
+    # Pádel
+    "Bullpadel","Babolat","StarVie","Varlion","Black Crown","Drop Shot","Vibor-A","Nox","Siux","Joma","Wilson","Dunlop",
 ], key=len, reverse=True)  # multi-palabra primero
 
 def _brand_pat(b: str) -> str:
@@ -2298,6 +2325,11 @@ def _inferir_categoria(p: "Producto") -> str:
     # Low cost tiene prioridad — precio < PRECIO_MINIMO con descuento exigente
     if PRECIO_MINIMO_LC <= p.precio_actual < PRECIO_MINIMO and p.descuento_pct >= DESCUENTO_LC_MINIMO:
         return "low_cost"
+
+    # Padel Market vende solo material de pádel → deportes (evita que un pala Adidas/Head
+    # caiga en "calzado" por la marca antes que en deportes).
+    if p.tienda == "Padel Market":
+        return "deportes"
 
     if p.tienda in _TIENDA_CAT:
         # Aun así verificar si el título sugiere otra categoría más específica
