@@ -34,6 +34,9 @@ _CACHE_TTL_H = 23
 
 _cache: list[dict] = []
 _last_fetch: datetime | None = None
+# Último resultado BUENO por feed (fid → deals filtrados). Si un feed falla la descarga
+# (timeout/429), reutilizamos su último resultado en vez de dejar la tienda fuera 23h.
+_feed_cache: dict[str, list[dict]] = {}
 
 # ---------------------------------------------------------------------------
 # Constantes Esdemarca
@@ -578,18 +581,29 @@ def fetch_tradedoubler_productos(
 
     todos: list[dict] = []
     total_raw = 0
+    fallos = 0  # feeds cuya descarga falló (0 productos crudos)
     for feed in _FEEDS:
         tienda, fid = feed["tienda"], feed["fid"]
         filtrar_fn = feed.get("filtrar_fn")
         print(f"   📡 TD feed: {tienda} (fid={fid})...")
         raw = _fetch_unlimited(fid)
         total_raw += len(raw)
+        desc_min_map = {"Esdemarca": _ESDEMARCA_DESCUENTO_MIN, "Toni Pons": _TONI_PONS_DESCUENTO_MIN, "Desigual": _DESIGUAL_DESCUENTO_MIN}
+        desc_min = desc_min_map.get(tienda, descuento_minimo)
+        if not raw:
+            # Descarga fallida (timeout/429/red). Estos feeds SIEMPRE traen miles de
+            # productos, así que 0 crudos = error, no "sin ofertas". Reutilizamos el
+            # último resultado bueno de ESTE feed para no dejar la tienda fuera 23h.
+            prev = _feed_cache.get(fid, [])
+            fallos += 1
+            print(f"      ⚠️  0 descargados (fallo de red) → reutilizando caché previa de {tienda}: {len(prev)} deals")
+            todos.extend(prev)
+            continue
         if filtrar_fn is not None:
             filtrados = filtrar_fn(raw, precio_minimo, precio_maximo)
         else:
             filtrados = _filtrar(raw, tienda, descuento_minimo, precio_minimo, precio_maximo, descuento_minimo_fn)
-        desc_min_map = {"Esdemarca": _ESDEMARCA_DESCUENTO_MIN, "Toni Pons": _TONI_PONS_DESCUENTO_MIN, "Desigual": _DESIGUAL_DESCUENTO_MIN}
-        desc_min = desc_min_map.get(tienda, descuento_minimo)
+        _feed_cache[fid] = filtrados  # guardar último resultado bueno por feed
         print(f"      → {len(raw)} descargados, {len(filtrados)} con ≥{desc_min}% descuento")
         todos.extend(filtrados)
 
@@ -601,6 +615,12 @@ def fetch_tradedoubler_productos(
         return _cache
 
     _cache = todos
-    _last_fetch = ahora
+    # Solo fijamos la caché de 23h si TODOS los feeds cargaron. Si alguno falló (y se
+    # rellenó con su caché previa), NO marcamos _last_fetch → se reintenta el próximo
+    # ciclo hasta que todos carguen, evitando dejar una tienda ausente 23h.
+    if fallos == 0:
+        _last_fetch = ahora
+    else:
+        print(f"   ⚠️  {fallos} feed(s) fallaron — no se fija caché 23h, se reintentará el próximo ciclo")
     print(f"   ✅ TD total: {len(todos)} deals de {len(_FEEDS)} tiendas")
     return todos
