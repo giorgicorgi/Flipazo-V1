@@ -8,9 +8,10 @@ Comportamiento por tienda (según lo que trae el feed):
   - Padel Market      → tiene `product_price_old` (precio antes) fiable → se PUBLICA
                         como deal si el descuento ≥ mínimo. `aw_deep_link` ya es el
                         enlace de afiliado, así que se usa directamente.
-  - El Corte Inglés   → el feed NO trae precio de referencia → no se puede detectar
-  - Brico Depot         descuento. Solo se REGISTRA el precio actual en price_history
-                        para ir construyendo histórico propio (detección futura).
+  - ECI / Zalando /   → el feed NO trae "precio antes". Se REGISTRA su precio diario en
+    Deporte Outlet /    price_history y se detectan bajadas ≥X% vs su propio máximo
+    Brico Depot         histórico (scrapers/price_drop.py, genérico) → se publican con
+                        descuento REAL verificado por nosotros, en cuanto hay ≥7 días de datos.
 
 Caché 23h en memoria, igual que el feed de Tradedoubler.
 """
@@ -22,8 +23,12 @@ import os
 import sqlite3
 from datetime import datetime, timedelta
 
+import collections
+
 import requests
 from dotenv import load_dotenv
+
+from scrapers.price_drop import cargar_referencias, evaluar_bajada
 
 load_dotenv()
 
@@ -51,6 +56,8 @@ _SOLO_HISTORICO = {"ElCorteIngles", "Brico Depot", "Zalando", "Deporte Outlet"}
 _HIST_PRECIO_MIN = float(os.getenv("AWIN_HIST_PRECIO_MIN", "100"))
 # Conservar histórico AWIN solo N días (acota el tamaño de price_history)
 _HIST_DIAS = 45
+# Máx. deals detectados por bajada por tienda y pasada (anti-flood en rebajas masivas)
+_MAX_DETECT_POR_TIENDA = int(os.getenv("PRICE_DROP_MAX_POR_TIENDA", "40"))
 
 
 def _to_float(s) -> float:
@@ -90,6 +97,11 @@ def fetch_awin_productos(
         gz = gzip.GzipFile(fileobj=r.raw)
         rdr = csv.DictReader(io.TextIOWrapper(gz, encoding="utf-8", errors="replace"))
 
+        # Referencias de histórico (precio_max sostenido) por producto, para detectar
+        # bajadas en las tiendas sin "precio antes" en el feed. 1 query antes de stremear.
+        ref_index = cargar_referencias(db_path, sorted(_SOLO_HISTORICO)) if db_path else {}
+        detect_cnt: collections.Counter = collections.Counter()
+
         publicables: list[dict] = []
         obs: list[tuple] = []  # (asin, tienda, precio, precio_ref, fecha) para price_history
         fecha_hoy = datetime.now().strftime("%Y-%m-%d")
@@ -103,12 +115,30 @@ def fetch_awin_productos(
             if cur <= 0:
                 continue
 
-            # ── Tiendas solo-histórico (ECI/Brico): registrar precio actual ──────
+            # ── Tiendas solo-histórico (ECI/Zalando/Deporte/Brico) ───────────────
+            # Registrar precio actual + detectar bajada ≥X% vs su propio máximo histórico.
             if tienda in _SOLO_HISTORICO:
                 if cur >= _HIST_PRECIO_MIN:
                     pid = ((row.get("merchant_product_id") or row.get("aw_product_id") or "")).strip()[:60]
                     if pid:
                         obs.append((pid, tienda, cur, _to_float(row.get("product_price_old")), fecha_hoy))
+                        # Detección de bajada por histórico propio (precio actual = feed de hoy)
+                        if detect_cnt[tienda] < _MAX_DETECT_POR_TIENDA:
+                            res = evaluar_bajada(ref_index.get((pid, tienda)), cur)
+                            if res:
+                                titulo = (row.get("product_name") or "").strip()
+                                in_stock = (row.get("in_stock") or "").strip().lower() in ("1", "yes", "true", "y")
+                                if titulo and in_stock:
+                                    publicables.append({
+                                        "titulo":          titulo,
+                                        "asin":            (row.get("aw_deep_link") or "").strip(),
+                                        "precio_actual":   cur,
+                                        "precio_original": res[0],   # precio_max histórico
+                                        "descuento_pct":   res[1],
+                                        "tienda":          tienda,
+                                        "imagen_url":      (row.get("merchant_image_url") or row.get("aw_image_url") or "").strip(),
+                                    })
+                                    detect_cnt[tienda] += 1
                 continue
 
             # ── Tiendas publicables (Padel Market): requieren precio de referencia ──
@@ -156,7 +186,9 @@ def fetch_awin_productos(
 
         _cache = publicables
         _last_fetch = ahora
-        print(f"   ✅ AWIN: {len(publicables)} deals publicables (Padel) · {n} filas · {len(obs)} obs histórico")
+        n_detect = sum(detect_cnt.values())
+        detalle = f" (incl. {n_detect} por bajada histórica: {dict(detect_cnt)})" if n_detect else ""
+        print(f"   ✅ AWIN: {len(publicables)} deals publicables{detalle} · {n} filas · {len(obs)} obs histórico")
         return publicables
 
     except Exception as e:

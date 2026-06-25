@@ -115,6 +115,11 @@ def build_affiliate_url(tienda: str, asin_or_url: str) -> str:
     if not asin_or_url:
         return ""
 
+    # Enlace AWIN ya construido (aw_deep_link de los feeds AWIN: Padel, ECI, Zalando,
+    # Deporte Outlet…) → usar tal cual, NO re-envolver. Genérico para cualquier tienda AWIN.
+    if asin_or_url.startswith(("https://www.awin1.com/", "http://www.awin1.com/")):
+        return asin_or_url
+
     # Amazon
     if tienda == "Amazon":
         return f"https://www.amazon.es/dp/{asin_or_url}?tag={AMAZON_AFFILIATE_TAG}"

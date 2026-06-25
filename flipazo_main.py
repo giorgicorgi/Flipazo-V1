@@ -1173,7 +1173,7 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", p
     # Ropa de moda/deporte: solo si marca conocida + descuento real ≥50%
     # Excepción: Barrabés (outdoor técnico), Decathlon (deporte), Esdemarca y Desigual
     # (tiendas de moda de marca con descuentos reales de outlet — su catálogo ES ropa).
-    if tienda not in ("Barrabes", "Decathlon", "Esdemarca", "Desigual") and any(r in t for r in _PALABRAS_ROPA):
+    if tienda not in ("Barrabes", "Decathlon", "Esdemarca", "Desigual", "Zalando", "Deporte Outlet") and any(r in t for r in _PALABRAS_ROPA):
         if descuento_pct < 50 or not any(m in t for m in _MARCAS_ROPA):
             return False
     # Cecotec: marca de gama baja con precios de referencia inflados — solo descuentos fuertes
@@ -2169,7 +2169,11 @@ _MARCAS_ARBITRAJE = {
 # Tiendas con feed curado + historial de precios PROPIO verificado: la bajada ya se
 # valida contra su propio histórico de 30 días, así que no exigimos marca reconocida
 # en la zona gris (sus marcas propias —Kiprun, Quechua…— no están en _MARCAS_CONOCIDAS).
-_TIENDAS_FEED_CONFIABLE = {"Decathlon", "Padel Market"}
+_TIENDAS_FEED_CONFIABLE = {
+    "Decathlon", "Padel Market",
+    # Tiendas AWIN con descuento detectado por NUESTRO histórico (price_drop) → ya verificado
+    "ElCorteIngles", "Zalando", "Deporte Outlet", "Brico Depot",
+}
 
 # ── Marca al frente del título ────────────────────────────────────
 # Publicamos solo marcas reconocidas → la marca debe ser lo primero que se lee, en
@@ -2314,9 +2318,11 @@ _TIENDA_CAT = {
     "PcComponentes": "tecnologia",   # solo componentes/periféricos — OK como fallback
     # MediaMarkt y Worten venden tecnología Y electrodomésticos Y belleza:
     # no usar como fallback de categoría — dejar que _CAT_RE decida o asignar "otras"
-    "Decathlon":     "deportes",
-    "Mammoth Bikes": "deportes",
-    "ToysRus":       "juguetes",
+    "Decathlon":      "deportes",
+    "Mammoth Bikes":  "deportes",
+    "ToysRus":        "juguetes",
+    "Deporte Outlet": "deportes",
+    "Zalando":        "moda",
 }
 
 
