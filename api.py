@@ -843,6 +843,22 @@ def _ensure_schema():
                 baja_en    TEXT
             )
         """)
+        # Promociones/cupones AWIN (las escribe el pipeline; la API solo las lee)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS promociones (
+                promo_id     TEXT PRIMARY KEY,
+                tienda       TEXT,
+                titulo       TEXT,
+                descripcion  TEXT DEFAULT '',
+                codigo       TEXT DEFAULT '',
+                url          TEXT,
+                start_date   TEXT DEFAULT '',
+                end_date     TEXT DEFAULT '',
+                estado       TEXT DEFAULT 'active',
+                capturada_en TEXT,
+                publicada_tg INTEGER DEFAULT 0
+            )
+        """)
 
         # Backfill precio_publicado (migración única): deals históricos toman su precio
         # actual como "primer descuento" base para la verificación a 3/7 días.
@@ -1111,6 +1127,24 @@ def get_count():
     with _get_db() as con:
         total = con.execute("SELECT COUNT(*) FROM deals_publicados WHERE publicado_en >= datetime('now', '-30 days')").fetchone()[0]
     return {"total": total}
+
+
+@app.get("/api/promociones")
+def get_promociones(limit: int = Query(default=40, ge=1, le=100)):
+    """Promos/cupones de tienda activos (AWIN). No expiradas, las que tienen código primero."""
+    try:
+        with _get_db() as con:
+            rows = con.execute(
+                "SELECT promo_id, tienda, titulo, descripcion, codigo, url, end_date, estado "
+                "FROM promociones "
+                "WHERE end_date = '' OR end_date >= ? "
+                "ORDER BY (codigo != '') DESC, tienda, capturada_en DESC "
+                "LIMIT ?",
+                (datetime.now(timezone.utc).isoformat(), limit),
+            ).fetchall()
+    except Exception:
+        return JSONResponse(content=[])
+    return JSONResponse(content=[dict(r) for r in rows])
 
 
 @app.get("/api/price-history/{asin}")

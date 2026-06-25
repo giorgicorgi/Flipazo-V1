@@ -27,6 +27,7 @@ from affiliate.link_builder import build_affiliate_url
 from scrapers.pss_email import get_pss_productos
 from scrapers.tradedoubler_feed import fetch_tradedoubler_productos
 from scrapers.awin_feed         import fetch_awin_productos
+from scrapers.awin_promotions   import fetch_awin_promociones
 from scrapers.decathlon_feed   import fetch_decathlon_productos
 from scrapers.toysrus_feed     import fetch_toysrus_productos
 from discovery import calcular_deal_score, asignar_tags, generar_hooks_batch
@@ -2861,6 +2862,22 @@ class DeduplicacionDB:
                     baja_en    TEXT
                 )
             """)
+            # Promociones/cupones de AWIN (Promotions API) — contenido tipo "promo de tienda"
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS promociones (
+                    promo_id     TEXT PRIMARY KEY,
+                    tienda       TEXT,
+                    titulo       TEXT,
+                    descripcion  TEXT DEFAULT '',
+                    codigo       TEXT DEFAULT '',
+                    url          TEXT,
+                    start_date   TEXT DEFAULT '',
+                    end_date     TEXT DEFAULT '',
+                    estado       TEXT DEFAULT 'active',
+                    capturada_en TEXT,
+                    publicada_tg INTEGER DEFAULT 0
+                )
+            """)
             # Backfill familia_key para registros existentes (migración única)
             sin_familia = con.execute(
                 "SELECT deal_id, titulo FROM deals_publicados WHERE familia_key IS NULL OR familia_key = ''"
@@ -3106,6 +3123,72 @@ def enviar_telegram(mensaje: str, imagen_url: str = "") -> bool:
     except Exception as e:
         print(f"❌ Telegram error: {e}")
         return False
+
+
+def _msg_promo(tienda: str, titulo: str, codigo: str, url: str) -> str:
+    """Mensaje HTML de Telegram para una promo/cupón de tienda."""
+    cod = f"\n🏷️ Código: <code>{html.escape(codigo)}</code>" if codigo else ""
+    return (
+        f"🎟️ <b>{html.escape(tienda)}</b>\n"
+        f"{html.escape(titulo)}{cod}\n\n"
+        f'👉 <a href="{url}">Ver promoción</a>'
+    )
+
+
+def actualizar_promociones():
+    """Refresca la tabla `promociones` desde la AWIN Promotions API y postea en Telegram
+    las promos nuevas accionables (con código o % de descuento). La web las sirve todas."""
+    try:
+        promos = await_safe_fetch_promos()
+    except Exception as e:
+        print(f"   ⚠️  promos fetch error: {e}")
+        return
+    if not promos:
+        return
+    ahora = datetime.now(timezone.utc).isoformat()
+    ids = [p["promo_id"] for p in promos if p.get("promo_id")]
+    with sqlite3.connect(DB_PATH) as con:
+        for p in promos:
+            if not p.get("promo_id"):
+                continue
+            con.execute(
+                "INSERT OR IGNORE INTO promociones "
+                "(promo_id, tienda, titulo, descripcion, codigo, url, start_date, end_date, estado, capturada_en, publicada_tg) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)",
+                (p["promo_id"], p["tienda"], p["titulo"], p["descripcion"], p["codigo"],
+                 p["url"], p["start_date"], p["end_date"], p["estado"], ahora),
+            )
+            con.execute(
+                "UPDATE promociones SET tienda=?, titulo=?, descripcion=?, codigo=?, url=?, "
+                "start_date=?, end_date=?, estado=?, capturada_en=? WHERE promo_id=?",
+                (p["tienda"], p["titulo"], p["descripcion"], p["codigo"], p["url"],
+                 p["start_date"], p["end_date"], p["estado"], ahora, p["promo_id"]),
+            )
+        # Quitar de la tabla las promos que ya no están activas en la API
+        if ids:
+            ph = ",".join("?" * len(ids))
+            con.execute(f"DELETE FROM promociones WHERE promo_id NOT IN ({ph})", ids)
+        # Postear en Telegram las NUEVAS accionables (con código o % en el título), cap 5/ciclo
+        nuevas = con.execute(
+            "SELECT promo_id, tienda, titulo, codigo, url FROM promociones "
+            "WHERE publicada_tg = 0 ORDER BY capturada_en LIMIT 20"
+        ).fetchall()
+        posteadas = 0
+        for pid, tienda, titulo, codigo, url in nuevas:
+            accionable = bool(codigo) or bool(re.search(r'\d+\s*%|descuento|gratis|rebajas', titulo, re.I))
+            if accionable and posteadas < 5:
+                if enviar_telegram(_msg_promo(tienda, titulo, codigo, url)):
+                    posteadas += 1
+                    time.sleep(1.5)
+            # marcar como procesada (accionable posteada, o no-accionable que solo va a web)
+            con.execute("UPDATE promociones SET publicada_tg = 1 WHERE promo_id = ?", (pid,))
+        con.commit()
+    print(f"   🎟️  Promos: {len(promos)} activas en BD · {posteadas} nuevas posteadas en Telegram")
+
+
+def await_safe_fetch_promos():
+    """Wrapper para llamar al fetcher de promos (red) de forma aislada."""
+    return fetch_awin_promociones()
 
 
 # Tiendas de moda pura: títulos poco fiables (marca+código), ~todo ropa → fuera de Threads.
@@ -3663,6 +3746,10 @@ async def run_pipeline(modo: str = "completo"):
             # IndexNow: si hubo deals nuevos, la home cambió → avisar a Bing/Yandex para re-rastreo
             if publicados > 0:
                 _ping_indexnow([f"https://{INDEXNOW_HOST}/"])
+
+            # Promociones/cupones AWIN (solo ciclo completo) — refresca BD + Telegram
+            if modo == "completo":
+                await asyncio.to_thread(actualizar_promociones)
 
             print(f"\n🏁 Ciclo {modo}: {publicados}/{len(deals_nuevos)} publicados ({omitidos} omitidos por dedup)")
 
