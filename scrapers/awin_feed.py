@@ -35,14 +35,17 @@ _last_fetch: datetime | None = None
 
 # merchant_name (tal cual viene en el feed) → nombre de tienda interno de Flipazo
 _MERCHANT_MAP = {
-    "Padel Market":        "Padel Market",
-    "El Corte Ingles ES":  "ElCorteIngles",
-    "BRICO DEPÔT_ES":      "Brico Depot",
+    "Padel Market":         "Padel Market",
+    "El Corte Ingles ES":   "ElCorteIngles",
+    "BRICO DEPÔT_ES":       "Brico Depot",
+    "Privé by Zalando ES":  "Zalando",
+    "Deporte Outlet ES":    "Deporte Outlet",
 }
 # Tiendas con product_price_old fiable → se publican como deals
 _PUBLICABLE = {"Padel Market"}
 # Tiendas sin precio de referencia → solo histórico (registro diario de precio actual)
-_SOLO_HISTORICO = {"ElCorteIngles", "Brico Depot"}
+# para detectar bajadas ≥40% por histórico propio (los feeds no traen "precio antes").
+_SOLO_HISTORICO = {"ElCorteIngles", "Brico Depot", "Zalando", "Deporte Outlet"}
 # Suelo de precio para registrar histórico (evita inflar la BD: ECI son ~967k productos).
 # A 100€ son ~246k obs/día; subir el suelo (env AWIN_HIST_PRECIO_MIN) reduce volumen.
 _HIST_PRECIO_MIN = float(os.getenv("AWIN_HIST_PRECIO_MIN", "100"))
@@ -142,7 +145,8 @@ def fetch_awin_productos(
                     )
                     desde = (datetime.now() - timedelta(days=_HIST_DIAS)).strftime("%Y-%m-%d")
                     con.execute(
-                        "DELETE FROM price_history WHERE tienda IN ('ElCorteIngles', 'Brico Depot') AND fecha < ?",
+                        "DELETE FROM price_history "
+                        "WHERE tienda IN ('ElCorteIngles', 'Brico Depot', 'Zalando', 'Deporte Outlet') AND fecha < ?",
                         (desde,),
                     )
                     con.commit()
