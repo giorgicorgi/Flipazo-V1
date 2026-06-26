@@ -2290,7 +2290,7 @@ _CAT_RE = {
         r'aspirador|robot.?aspirador|roomba|irobot|roborock|lefant|dreame|ecovacs|eufy\b|'
         r'freidora|airfryer|air.?fryer|microondas|lavadora|lavavajillas|'
         r'frigor[ií]fico|nevera|secadora\b|'
-        r'plancha\b|plancha.*vapor|vaporeta|vaporizador|cepillo.*vapor|vapor.*cepillo|'
+        r'plancha\b(?!.*(?:pelo|cabello|alisad))|plancha.*vapor|centro.*planchado|vaporeta|vaporizador|cepillo.*vapor|vapor.*cepillo|'
         r'campana\b|campana.*extract|extractor.*humos|extractor.*cocina|\bteka\b|'
         r'batidora|thermomix|olla.*presi[oó]n|robot.*cocina|procesador de alimentos|'
         r'amasadora|exprimidor|licuadora|tostadora|hervidor|sandwichera|gofrera|molinillo|'
@@ -2313,7 +2313,8 @@ _CAT_RE = {
         r'oral.?b|remington\b|wahl\b|babyliss|ghd\b|'
         # NOTA: "plancha de pelo" va a HOGAR (no aquí). Marcas de lujo sueltas (dior/armani/
         # calvin klein…) van a MODA — aquí solo cosmética/grooming.
-        r'rizador|moldeador|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo|cortabarba',
+        r'rizador|moldeador|alisador|plancha.*(?:pelo|cabello)|plancha alisadora|'
+        r'secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo|cortabarba',
         re.I),
     "juguetes":     re.compile(
         r'playmobil|\blego\b|hasbro|mattel|hot wheels|barbie|funko\b|'
