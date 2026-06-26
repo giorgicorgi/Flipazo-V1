@@ -2260,7 +2260,8 @@ _CAT_RE = {
         r'smartphone|m[oó]vil|iphone|galaxy\b|tablet|ipad|port[aá]til|laptop|macbook|'
         r'pc gaming|monitor\b|televisor|\btv\b|oled|qled|auricular|cascos|airpods|'
         r'wh-?1000|bose\s*q|kindle|c[aá]mara\b|gopro|smartwatch|consola\b|ps5|playstation|'
-        r'xbox|nintendo|switch\b|\bssd\b|disco duro|\bram\b|gpu|rtx|impresora|'
+        r'xbox|nintendo|switch\b|\bps[345]\b|\bssd\b|disco duro|\bram\b|gpu|rtx|impresora|'
+        r'microcadena|thrustmaster|simulador de vuelo|tarjeta gr[aá]fica|graphics card|'
         # "procesador" SOLO de CPU (antes cazaba "procesador de alimentos")
         r'procesador\s+(?:intel|amd|ryzen|core)|intel\s+core\b|\bryzen\b|\bcpu\b|'
         r'router|logitech|razer|corsair|steelseries|hyperx|teclado\b|rat[oó]n\b|'
@@ -2277,7 +2278,7 @@ _CAT_RE = {
         re.I),
     "deportes":     re.compile(
         r'bicicleta\b|\bbici\b|ciclismo|mountain bike|\bmtb\b|gravel\b|\btrek\b|'
-        r'\bski\b|s-?lab|trail\b|trekking|monta[ñn]a\b|outdoor\b|'
+        r'\bski\b|s-?lab|trail\b|trekking|monta[ñn]a\b|outdoor\b|running\b|runner\b|'
         r'senderismo|escalada|alpinismo|mancuerna|kettlebell|\bpesas\b|'
         r'nataci[oó]n|swim\b|fitness\b|gym\b|bal[oó]n|raqueta|p[aá]del|'
         r'esqu[ií]|snowboard|surf\b|alpinestars|\bgiro\b|casco\b.*bici|shimano|'
@@ -2294,6 +2295,7 @@ _CAT_RE = {
         r'batidora|thermomix|olla.*presi[oó]n|robot.*cocina|procesador de alimentos|'
         r'amasadora|exprimidor|licuadora|tostadora|hervidor|sandwichera|gofrera|molinillo|'
         r'\bolla\b|crock.?pot|cocci[oó]n lenta|slow cooker|freidora|'
+        r'escoba.*vapor|mopa.*vapor|espumador|recipiente herm[eé]tic|fiambrera|'
         r'tefal|rowenta|shark\b|hoover\b|dyson|cecotec|bissell\b|kenwood\b|magimix\b|'
         r'calefactor|radiador.*el[eé]ctrico|aire.*acondicionado|\bsplit\b|ventilador\b|'
         r'purificador.*aire|humidificador|deshumidificador|'
@@ -2311,7 +2313,7 @@ _CAT_RE = {
         r'oral.?b|remington\b|wahl\b|babyliss|ghd\b|'
         # NOTA: "plancha de pelo" va a HOGAR (no aquí). Marcas de lujo sueltas (dior/armani/
         # calvin klein…) van a MODA — aquí solo cosmética/grooming.
-        r'rizador|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo|cortabarba',
+        r'rizador|moldeador|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo|cortabarba',
         re.I),
     "juguetes":     re.compile(
         r'playmobil|\blego\b|hasbro|mattel|hot wheels|barbie|funko\b|'
