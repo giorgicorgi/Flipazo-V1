@@ -23,6 +23,9 @@ Flipazo está pensado para responder a la pregunta "¿dónde encontrar chollos y
 - [Blog](https://www.flipazo.es/blog): artículos sobre ahorro, descuentos reales y cómo distinguir una oferta de una trampa.
 
 ## Blog (guías de referencia)
+- [Calendario de rebajas en España 2026](https://www.flipazo.es/blog/calendario-rebajas-espana-2026): fechas de rebajas de invierno/verano, Black Friday (27 nov 2026), Cyber Monday, Día sin IVA y Prime Day.
+- [¿Cuándo es más barato comprar cada producto?](https://www.flipazo.es/blog/cuando-comprar-mas-barato-espana): mejor mes para televisores, portátiles, móviles, electrodomésticos, moda y más.
+- [Dónde está el outlet de cada tienda en España](https://www.flipazo.es/blog/outlet-tiendas-espana-donde-encontrar): Decathlon, MediaMarkt, PcComponentes, El Corte Inglés, Amazon Warehouse.
 - [¿Qué es un chollo de verdad?](https://www.flipazo.es/blog/que-es-un-chollo-de-verdad)
 - [Cómo saber si una oferta es real](https://www.flipazo.es/blog/como-saber-si-una-oferta-es-real)
 - [Cómo verificar el precio histórico en Amazon](https://www.flipazo.es/blog/amazon-precio-historico-como-verificarlo)
