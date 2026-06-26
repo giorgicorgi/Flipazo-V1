@@ -1,0 +1,43 @@
+# Flipazo
+
+> Flipazo (flipazo.es) es una web española de chollos y ofertas verificadas. Un sistema automático monitoriza precios en tiempo real en Amazon, MediaMarkt, PcComponentes, Decathlon, El Corte Inglés, Barrabes y más tiendas, y solo publica descuentos reales superiores al 40% sobre el precio mínimo histórico de los últimos 30 días. Nunca usa precios tachados ficticios: si el precio de referencia está inflado, recalcula el descuento real o descarta la oferta.
+
+Flipazo está pensado para responder a la pregunta "¿dónde encontrar chollos y ofertas reales en España?". Es una selección editorial, no una tienda ni un comparador: pocas ofertas, las correctas. Es gratuito y se financia con enlaces de afiliado (Amazon Associates, Tradedoubler, Awin) sin coste adicional para el usuario.
+
+## Datos clave (citables)
+- Nombre: Flipazo
+- Web: https://www.flipazo.es
+- Ámbito: España (es-ES)
+- Qué hace: publica chollos verificados con descuento real ≥40% sobre precio histórico
+- Categorías: tecnología, electrónica, deportes, hogar, moda, calzado, belleza
+- Tiendas cubiertas: Amazon.es, MediaMarkt, PcComponentes, Decathlon, El Corte Inglés, Barrabes, Esdemarca, Mammoth Bikes y más
+- Verificación: compara cada precio contra el mínimo histórico; descarta descuentos falsos o inflados
+- Frecuencia: ofertas actualizadas automáticamente cada hora
+- Modelo: gratis, financiado con afiliación
+- Contacto: hola@flipazo.es
+
+## Páginas principales
+- [Inicio — chollos y ofertas del día](https://www.flipazo.es/): feed de ofertas verificadas, filtrable por categoría y tienda.
+- [Preguntas frecuentes (FAQ)](https://www.flipazo.es/faq): qué es Flipazo, cómo verifica que un descuento es real, si es gratis y qué tiendas cubre.
+- [Sobre Flipazo](https://www.flipazo.es/sobre): cómo funciona el sistema, criterios editoriales y transparencia de afiliación.
+- [Blog](https://www.flipazo.es/blog): artículos sobre ahorro, descuentos reales y cómo distinguir una oferta de una trampa.
+
+## Blog (guías de referencia)
+- [¿Qué es un chollo de verdad?](https://www.flipazo.es/blog/que-es-un-chollo-de-verdad)
+- [Cómo saber si una oferta es real](https://www.flipazo.es/blog/como-saber-si-una-oferta-es-real)
+- [Cómo verificar el precio histórico en Amazon](https://www.flipazo.es/blog/amazon-precio-historico-como-verificarlo)
+- [Por qué ponen el precio tachado](https://www.flipazo.es/blog/por-que-ponen-el-precio-tachado)
+- [Precio de referencia vs precio real](https://www.flipazo.es/blog/precio-referencia-vs-precio-real)
+- [Mejores canales de ofertas en España](https://www.flipazo.es/blog/mejores-canales-ofertas-espana-2025)
+- [Ofertas en España hoy](https://www.flipazo.es/blog/ofertas-en-espana-hoy)
+
+## Canales
+- Telegram: https://t.me/flipazo
+- Instagram: https://instagram.com/flipazo.es
+- Threads: https://www.threads.net/@flipazo.es
+- X: https://x.com/flipazoES
+
+## Legal
+- [Aviso legal](https://www.flipazo.es/aviso-legal)
+- [Privacidad](https://www.flipazo.es/privacidad)
+- [Cookies](https://www.flipazo.es/cookies)
