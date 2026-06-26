@@ -68,52 +68,6 @@
           "https://www.instagram.com/flipazo.es",
           "https://x.com/flipazoES"
         ]
-      },
-      {
-        "@type": "FAQPage",
-        "@id": "https://www.flipazo.es/#faq",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "¿Dónde puedo encontrar chollos y ofertas reales en España?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Flipazo (flipazo.es) reúne los mejores chollos verificados de España: ofertas con descuento real superior al 40% sobre el precio histórico, en tiendas como Amazon, MediaMarkt, PcComponentes, Decathlon, El Corte Inglés, Barrabes y más. Cada oferta se comprueba automáticamente contra el histórico de precios para descartar descuentos falsos."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "¿Qué es Flipazo?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Flipazo es una web española de chollos y ofertas verificadas. Un sistema automático monitoriza precios en tiempo real y solo publica descuentos reales (≥40%) de marcas y tiendas de confianza, filtrados con criterio editorial, para que solo veas lo que de verdad merece la pena."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "¿Cómo sabe Flipazo si un descuento es real?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Comparamos el precio actual con el precio mínimo histórico de cada producto. Si el precio de referencia está inflado, recalculamos el descuento real o descartamos la oferta. Nunca usamos precios tachados ficticios."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "¿Flipazo es gratis?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Sí, Flipazo es totalmente gratuito. Nos financiamos con enlaces de afiliado: si compras a través de ellos, la tienda nos paga una pequeña comisión y a ti te cuesta exactamente lo mismo. Nunca publicamos una oferta por su comisión, solo por su valor real."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "¿Qué tiendas y categorías cubre Flipazo?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Tecnología, electrónica, deportes, hogar, moda, calzado y más, de tiendas como Amazon, MediaMarkt, PcComponentes, Decathlon, El Corte Inglés, Barrabes y Esdemarca. Las ofertas se actualizan automáticamente cada hora."
-            }
-          }
-        ]
       }
     ]
   }
@@ -2536,45 +2490,13 @@
   <div id="js-load-indicator" style="display:none">Cargando más ofertas…</div>
   <div id="js-sentinel" style="height:1px;"></div>
 
-  <!-- ── FAQ (contenido rastreable + emparejado con FAQPage JSON-LD) ── -->
-  <style>
-    .faq { max-width: 820px; margin: 48px auto 8px; padding: 0 20px; }
-    .faq__title { font-family: var(--sans); font-size: 22px; font-weight: 800; color: var(--ink, #1a1a1a); margin-bottom: 20px; }
-    .faq__item { padding: 16px 0; border-top: 1px solid var(--border-faint, #eee); }
-    .faq__item h3 { font-family: var(--sans); font-size: 16px; font-weight: 700; color: var(--ink, #1a1a1a); margin-bottom: 6px; }
-    .faq__item p { font-family: var(--sans); font-size: 15px; line-height: 1.65; color: var(--text-mid, #555); }
-    .faq__item a { color: #0581FC; }
-  </style>
-  <section class="faq" aria-label="Preguntas frecuentes">
-    <h2 class="faq__title">Preguntas frecuentes sobre chollos y ofertas en España</h2>
-    <div class="faq__item">
-      <h3>¿Dónde puedo encontrar chollos y ofertas reales en España?</h3>
-      <p>En <strong>Flipazo</strong> (flipazo.es) reunimos los mejores chollos verificados de España: ofertas con descuento real superior al 40% sobre el precio histórico, en tiendas como Amazon, MediaMarkt, PcComponentes, Decathlon, El Corte Inglés y Barrabes. Cada oferta se comprueba automáticamente contra el histórico de precios para descartar descuentos falsos.</p>
-    </div>
-    <div class="faq__item">
-      <h3>¿Qué es Flipazo?</h3>
-      <p>Flipazo es una web española de chollos y ofertas verificadas. Un sistema automático monitoriza precios en tiempo real y solo publica descuentos reales (≥40%) de marcas y tiendas de confianza, filtrados con criterio editorial, para que solo veas lo que de verdad merece la pena.</p>
-    </div>
-    <div class="faq__item">
-      <h3>¿Cómo sabe Flipazo si un descuento es real?</h3>
-      <p>Comparamos el precio actual con el precio mínimo histórico de cada producto. Si el precio de referencia está inflado, recalculamos el descuento real o descartamos la oferta. Nunca usamos precios tachados ficticios.</p>
-    </div>
-    <div class="faq__item">
-      <h3>¿Flipazo es gratis?</h3>
-      <p>Sí, es totalmente gratuito. Nos financiamos con <a href="/sobre">enlaces de afiliado</a>: si compras a través de ellos, la tienda nos paga una pequeña comisión y a ti te cuesta exactamente lo mismo. Nunca publicamos una oferta por su comisión, solo por su valor real.</p>
-    </div>
-    <div class="faq__item">
-      <h3>¿Qué tiendas y categorías cubre Flipazo?</h3>
-      <p>Tecnología, electrónica, deportes, hogar, moda, calzado y más, de tiendas como Amazon, MediaMarkt, PcComponentes, Decathlon, El Corte Inglés, Barrabes y Esdemarca. Las ofertas se actualizan automáticamente cada hora.</p>
-    </div>
-  </section>
-
   <!-- ── FOOTER ────────────────────────────────────────────────── -->
   <footer class="footer" id="js-footer">
     <div class="footer__bottom">
       <div class="footer__top">
         <nav class="footer__links" aria-label="Legal">
           <a href="/sobre">Sobre</a>
+          <a href="/faq">FAQ</a>
           <a href="/privacidad">Privacidad</a>
           <a href="/cookies">Cookies</a>
           <a href="/aviso-legal">Aviso Legal</a>
