@@ -2248,21 +2248,26 @@ def _copy_template(p: "Producto") -> str:
 _CAT_RE = {
     # IMPORTANTE: el orden determina prioridad — la primera regex que matchea gana.
     # calzado va ANTES que deportes para que zapatillas (incluidas las deportivas/ciclismo) vayan a calzado.
+    # Calzado: SOLO términos de calzado + modelos icónicos de zapatilla. NO marcas sueltas
+    # (nike/adidas/salomon… también hacen ropa y material deportivo → contaminaban calzado).
     "calzado":      re.compile(
-        r'\bnike\b|\badidas\b|\bjordan\b|new balance|asics|puma\b|reebok|converse\b|\bvans\b|'
-        r'saucony\b|brooks\b|on running|mizuno\b|skechers\b|'
-        r'zapatilla|sneaker|deportiva\b|\bbota\b|sandalia\b|mocas[ií]n|calzado\b|'
-        # marcas outdoor/trail (solo si aparece con términos de zapato/bota)
-        r'salomon\b|hoka\b|merrell\b',
+        r'zapatilla|zapato|deportiva[s]?\b|\bbota[s]?\b|bot[ií]n|botines|sandalia|chancla|'
+        r'mocas[ií]n|sneaker|calzado\b|alpargata|espadrille|zueco|bailarina|merceditas|n[aá]utico|playera\b|'
+        r'air\s*max|air\s*force|ultraboost|speedcross|gel-?(?:kayano|nimbus|cumulus|pulse)|'
+        r'\bgazelle\b|\bsamba\b|stan\s*smith|superstar\b|\bdunk\b|\bpegasus\b|vapormax|\bcortez\b',
         re.I),
     "tecnologia":   re.compile(
         r'smartphone|m[oó]vil|iphone|galaxy\b|tablet|ipad|port[aá]til|laptop|macbook|'
         r'pc gaming|monitor\b|televisor|\btv\b|oled|qled|auricular|cascos|airpods|'
         r'wh-?1000|bose\s*q|kindle|c[aá]mara\b|gopro|smartwatch|consola\b|ps5|playstation|'
-        r'xbox|nintendo|switch\b|ssd|disco duro|\bram\b|gpu|rtx|procesador|impresora|'
+        r'xbox|nintendo|switch\b|\bssd\b|disco duro|\bram\b|gpu|rtx|impresora|'
+        # "procesador" SOLO de CPU (antes cazaba "procesador de alimentos")
+        r'procesador\s+(?:intel|amd|ryzen|core)|intel\s+core\b|\bryzen\b|\bcpu\b|'
         r'router|logitech|razer|corsair|steelseries|hyperx|teclado\b|rat[oó]n\b|'
-        r'altavoz.*bluetooth|echo dot|google home|chromecast|fire\s*tv|'
-        r'power\s*bank|bater[ií]a.*externa|usb\s*hub|hub\s*usb',
+        r'altavoz\b|barra de sonido|soundbar|subwoofer|echo dot|google home|chromecast|fire\s*tv|'
+        r'proyector|projector|patinete el[eé]ctrico|scooter el[eé]ctrico|'
+        r'bombilla|tira led|enchufe intelig|webcam|pendrive|microsd|tarjeta de memoria|'
+        r'gamepad|joystick|repetidor wifi|power\s*bank|bater[ií]a.*externa|usb\s*hub|hub\s*usb',
         re.I),
     "herramientas": re.compile(
         r'dewalt|makita|milwaukee|k[aä]rcher|stanley\b|ryobi\b|bahco\b|knipex\b|'
@@ -2272,6 +2277,7 @@ _CAT_RE = {
         re.I),
     "deportes":     re.compile(
         r'bicicleta\b|\bbici\b|ciclismo|mountain bike|\bmtb\b|gravel\b|\btrek\b|'
+        r'\bski\b|s-?lab|trail\b|trekking|monta[ñn]a\b|outdoor\b|'
         r'senderismo|escalada|alpinismo|mancuerna|kettlebell|\bpesas\b|'
         r'nataci[oó]n|swim\b|fitness\b|gym\b|bal[oó]n|raqueta|p[aá]del|'
         r'esqu[ií]|snowboard|surf\b|alpinestars|\bgiro\b|casco\b.*bici|shimano|'
@@ -2285,7 +2291,9 @@ _CAT_RE = {
         r'frigor[ií]fico|nevera|secadora\b|'
         r'plancha\b|plancha.*vapor|vaporeta|vaporizador|cepillo.*vapor|vapor.*cepillo|'
         r'campana\b|campana.*extract|extractor.*humos|extractor.*cocina|\bteka\b|'
-        r'batidora|thermomix|olla.*presi[oó]n|robot.*cocina|'
+        r'batidora|thermomix|olla.*presi[oó]n|robot.*cocina|procesador de alimentos|'
+        r'amasadora|exprimidor|licuadora|tostadora|hervidor|sandwichera|gofrera|molinillo|'
+        r'\bolla\b|crock.?pot|cocci[oó]n lenta|slow cooker|freidora|'
         r'tefal|rowenta|shark\b|hoover\b|dyson|cecotec|bissell\b|kenwood\b|magimix\b|'
         r'calefactor|radiador.*el[eé]ctrico|aire.*acondicionado|\bsplit\b|ventilador\b|'
         r'purificador.*aire|humidificador|deshumidificador|'
@@ -2297,12 +2305,13 @@ _CAT_RE = {
         r'protector solar|fotoprotector|anthelios|la roche.?posay|isdin|cerave|'
         r'av[eè]ne|vichy|eucerin|bioderma|sesderma|filorga|caudalie|heliocare|'
         r'crema.*facial|crema.*corporal|crema.*hidratante|s[eé]rum.*facial|'
-        r'\bdior\b|\bchanel\b|\barmani\b|ysl\b|calvin klein|hugo boss|'
         r'lanc[oô]me|loreal|l\'or[eé]al|nivea|olay\b|est[eé]e lauder|'
-        r'afeitadora|maquinilla.*afeit|rasuradora|cepillo.*dental|irrigador.*bucal|'
+        r'afeitadora|maquinilla.*afeit|rasuradora|oneblade|cepillo.*dental|sonicare|irrigador.*bucal|'
         r'depilador|epilador|'
         r'oral.?b|remington\b|wahl\b|babyliss|ghd\b|'
-        r'plancha.*pelo|rizador|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo',
+        # NOTA: "plancha de pelo" va a HOGAR (no aquí). Marcas de lujo sueltas (dior/armani/
+        # calvin klein…) van a MODA — aquí solo cosmética/grooming.
+        r'rizador|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo|cortabarba',
         re.I),
     "juguetes":     re.compile(
         r'playmobil|\blego\b|hasbro|mattel|hot wheels|barbie|funko\b|'
@@ -2311,8 +2320,15 @@ _CAT_RE = {
         r'\bdron\b|\bdrone\b',
         re.I),
     "moda":         re.compile(
-        r'mochila|bolso\b|cartera\b|maleta\b|lacoste\b|ralph lauren|tommy hilfiger|'
-        r'gafas.*sol|gafas.*graduada|cintur[oó]n\b',
+        r'mochila|bolso\b|cartera\b|monedero|maleta\b|neceser|'
+        r'camiseta|\bcamisa\b|pantal[oó]n|pantalones|\bshort\b|bermuda|sudadera|\bpolo\b|jersey|jers[eé]y|'
+        r'abrigo|chaqueta|chaquet[oó]n|cazadora|b[oó]mber|parka|anorak|chubasquero|'
+        r'vestido|falda|blusa|americana|blazer|gabardina|plum[ií]fero|c[aá]rdigan|'
+        r'\btop\b|\bmono\b|chaleco|sobrecamisa|\bpeto\b|\bbody\b|leggins?|\bmallas?\b|ba[ñn]ador|bikini|biquini|'
+        r'lacoste\b|ralph lauren|tommy hilfiger|tommy jeans|pepe jeans|\bguess\b|\bgant\b|g-star|massimo dutti|'
+        r'\barmani\b|calvin klein|hugo boss|\bboss\b|\bdior\b|\bchanel\b|ysl\b|saint laurent|'
+        r'michael kors|barbour|hackett|fred perry|levi\'?s|\blevis\b|wrangler|replay\b|superdry|stone island|'
+        r'gafas.*sol|gafas.*graduada|cintur[oó]n\b|corbata|bufanda|gorra',
         re.I),
 }
 _TIENDA_CAT = {
@@ -2324,7 +2340,12 @@ _TIENDA_CAT = {
     "ToysRus":        "juguetes",
     "Deporte Outlet": "deportes",
     "Zalando":        "moda",
+    "Esdemarca":      "moda",   # tienda de moda de marca (lo que no es calzado → moda)
+    "Desigual":       "moda",
 }
+# Tiendas 100% deporte: todo su material va a deportes (o calzado), nunca a moda.
+_TIENDAS_DEPORTE = {"Decathlon", "Barrabes", "Mammoth Bikes", "PrivateSportShop",
+                    "Deporte Outlet", "Padel Market"}
 
 
 def _inferir_categoria(p: "Producto") -> str:
@@ -2333,10 +2354,11 @@ def _inferir_categoria(p: "Producto") -> str:
     if PRECIO_MINIMO_LC <= p.precio_actual < PRECIO_MINIMO and p.descuento_pct >= DESCUENTO_LC_MINIMO:
         return "low_cost"
 
-    # Padel Market vende solo material de pádel → deportes (evita que un pala Adidas/Head
-    # caiga en "calzado" por la marca antes que en deportes).
-    if p.tienda == "Padel Market":
-        return "deportes"
+    # Tiendas 100% deporte: su material (incl. ropa deportiva) va a DEPORTES, no a moda;
+    # el calzado (más específico) sí va a calzado. Evita que una camiseta/pala de Decathlon,
+    # Barrabes, Padel Market… acabe en Moda por la regex de ropa.
+    if p.tienda in _TIENDAS_DEPORTE:
+        return "calzado" if _CAT_RE["calzado"].search(p.titulo) else "deportes"
 
     if p.tienda in _TIENDA_CAT:
         # Aun así verificar si el título sugiere otra categoría más específica
