@@ -353,6 +353,49 @@
       flex-shrink: 0;
     }
 
+    /* "Ordenar por" — desplegable (sorting separado de los filtros) */
+    .sort-select-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      margin-right: 10px;
+      font-family: var(--sans);
+    }
+    .sort-select-wrap__label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--text-mid);
+      white-space: nowrap;
+    }
+    .sort-select-box { position: relative; display: inline-flex; align-items: center; }
+    .sort-select-box::after {
+      content: "▾";
+      position: absolute;
+      right: 10px;
+      pointer-events: none;
+      font-size: 10px;
+      color: var(--text-mid);
+    }
+    .sort-select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 28px 7px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .sort-select:hover { border-color: var(--brand); }
+    .sort-select:focus { outline: none; border-color: var(--brand); }
+
     .sort-tab {
       font-family: var(--sans);
       font-size: 12px;
@@ -2373,10 +2416,17 @@
           <span class="filter-toggle__arrow">▾</span>
         </button>
       </div>
-      <button class="sort-tab sort-tab--lowcost" data-sort="low_cost">💸 Por menos de 25€</button>
-      <button class="sort-tab sort-tab--active" data-sort="recientes">Recientes</button>
-      <button class="sort-tab" data-sort="descuento">Mayor Descuento</button>
-      <button class="sort-tab" data-sort="votados">Más Votados</button>
+      <label class="sort-select-wrap" for="js-sort-select">
+        <span class="sort-select-wrap__label">Ordenar por</span>
+        <span class="sort-select-box">
+          <select id="js-sort-select" class="sort-select" aria-label="Ordenar por">
+            <option value="recientes">Más recientes</option>
+            <option value="descuento">Mayor descuento</option>
+            <option value="votados">Más votados</option>
+          </select>
+        </span>
+      </label>
+      <button class="sort-tab sort-tab--lowcost" id="js-lowcost-chip" type="button" aria-pressed="false">💸 Menos de 25€</button>
       <!-- "Para Revender" oculto: sin productos por ahora. Lógica intacta para reactivar (premium). -->
     </nav>
 
@@ -2854,17 +2904,42 @@
   ];
   let activeModaSubcat = "todas";
 
-  function dealMatchesCategory(deal, catId) {
+  // ── Deportes sub-categories ──────────────────────────────────
+  const DEPORTE_SUBCATS = [
+    { id: "todas",    label: "Todo Deporte" },
+    { id: "padel",    label: "Pádel",    test: d => d.tienda === "Padel Market" || /p[aá]del|bullpadel|starvie|star\s*vie|\bsiux\b|\bnox\b|babolat/i.test(d.titulo) },
+    { id: "ciclismo", label: "Ciclismo", test: d => d.tienda === "Mammoth Bikes" || /ciclismo|bicicleta|\bbici\b|\bmtb\b|mountain\s*bike|gravel\b|sill[ií]n|maillot|culotte|shimano|\bbielas?\b|cuadro.*carbono|\bpedales?\b|zapatillas?\s+ciclismo/i.test(d.titulo) },
+    { id: "montana",  label: "Montaña",  test: d => d.tienda === "Barrabes" || /monta[ñn]a|monta[ñn]ismo|senderismo|trekking|escalada|alpinismo|esqu[ií]\b|esqu[ií]s\b|snowboard|crampones|piolet|\barn[eé]s\b|\bvivac\b|saco de dormir|tienda de campa[ñn]a|gore-?tex|softshell|\bfrontal\b|mochila.*(?:monta|trekking|senderis)/i.test(d.titulo) },
+    { id: "running",  label: "Running",  test: d => /running\b|\btrail\b|marat[oó]n\b|\brunner\b|trail\s*running/i.test(d.titulo) },
+    { id: "fitness",  label: "Fitness",  test: d => /fitness|gimnasio|\bgym\b|mancuerna[s]?|kettlebell|\bpesas?\b|barra\s+ol[ií]mpica|disco.*peso|banco.*muscul|m[aá]quina.*remo|el[ií]ptica|cinta de correr|\byoga\b|pilates|fitball|\bcomba\b|abdominal/i.test(d.titulo) },
+    { id: "futbol",   label: "Fútbol",   test: d => /f[uú]tbol|bal[oó]n.*f[uú]tbol|botas?\s+(?:de\s+)?f[uú]tbol|espinillera|guante.*portero|camiseta.*(?:f[uú]tbol|selecci[oó]n|real\s+madrid|barcelona|atl[eé]tico)/i.test(d.titulo) },
+    { id: "natacion", label: "Natación", test: d => /nataci[oó]n|\bswim\b|gafas.*(?:nataci|piscina)|gorro.*(?:nataci|piscina)|neopreno|\bbuceo\b|snorkel|aletas\b|ba[ñn]ador/i.test(d.titulo) },
+  ];
+  let activeDeporteSubcat = "todas";
+
+  // Filtro "menos de 25€" — desacoplado del sorting (es un filtro, no un orden)
+  let activeLowCost = false;
+
+  // Config de subcategorías por categoría (fuente única)
+  const _SUBCAT_DEFS = {
+    tecnologia: { list: TECH_SUBCATS,    get: () => activeTechSubcat,    set: v => { activeTechSubcat = v; } },
+    moda:       { list: MODA_SUBCATS,    get: () => activeModaSubcat,    set: v => { activeModaSubcat = v; } },
+    deportes:   { list: DEPORTE_SUBCATS, get: () => activeDeporteSubcat, set: v => { activeDeporteSubcat = v; } },
+  };
+  function _resetSubcats() { activeTechSubcat = "todas"; activeModaSubcat = "todas"; activeDeporteSubcat = "todas"; }
+
+  // Solo la categoría (sin tener en cuenta la subcategoría activa)
+  function dealInCategory(deal, catId) {
     if (catId === "todas") return true;
     const cat = CATEGORIAS.find(c => c.id === catId);
-    const inCat = cat ? cat.test(deal) : false;
-    if (!inCat) return false;
-    if (catId === "tecnologia" && activeTechSubcat !== "todas") {
-      const sc = TECH_SUBCATS.find(s => s.id === activeTechSubcat);
-      return sc ? sc.test(deal) : true;
-    }
-    if (catId === "moda" && activeModaSubcat !== "todas") {
-      const sc = MODA_SUBCATS.find(s => s.id === activeModaSubcat);
+    return cat ? cat.test(deal) : false;
+  }
+
+  function dealMatchesCategory(deal, catId) {
+    if (!dealInCategory(deal, catId)) return false;
+    const sd = _SUBCAT_DEFS[catId];
+    if (sd && sd.get() !== "todas") {
+      const sc = sd.list.find(s => s.id === sd.get());
       return sc ? sc.test(deal) : true;
     }
     return true;
@@ -2873,7 +2948,7 @@
   function dealMatchesStore(deal) { return !activeStore || deal.tienda === activeStore; }
 
   function dealMatchesFilters(deal) {
-    if (activeSort === "low_cost" && (deal.precio_actual || 0) >= 25) return false;
+    if (activeLowCost && (deal.precio_actual || 0) >= 25) return false;
     return dealMatchesCategory(deal, activeCategory) && dealMatchesStore(deal);
   }
 
@@ -2959,12 +3034,12 @@
     if (dd) dd.hidden = true;
 
     activeSort = "recientes";
-    document.querySelectorAll('.sort-tab').forEach(b =>
-      b.classList.toggle('sort-tab--active', b.dataset.sort === 'recientes'));
+    activeLowCost = false;
+    const _selR = document.getElementById('js-sort-select'); if (_selR) _selR.value = "recientes";
+    const _chipR = document.getElementById('js-lowcost-chip'); if (_chipR) { _chipR.classList.remove('sort-tab--active'); _chipR.setAttribute('aria-pressed', 'false'); }
 
     activeCategory   = "todas";
-    activeTechSubcat = "todas";
-    activeModaSubcat = "todas";
+    _resetSubcats();
     document.querySelectorAll('.cat-pill').forEach(b =>
       b.classList.toggle('cat-pill--active', b.dataset.cat === 'todas'));
 
@@ -3254,12 +3329,11 @@
       });
     }
     if (activeSort === "reventa") return deals.filter(d => d.tipo === "REVENTA" || d.tipo === "ARBITRAJE");
-    if (activeSort === "low_cost") return deals.filter(d => (d.precio_actual || 0) < 25);
     return deals;
   }
 
   function shouldShowHero() {
-    return activeSort === "recientes" && activeCategory === "todas" && !searchQuery && !activeStore;
+    return activeSort === "recientes" && activeCategory === "todas" && !searchQuery && !activeStore && !activeLowCost;
   }
 
   function getDealOfDay(deals) {
@@ -3769,7 +3843,7 @@
     showLoading(true);
 
     try {
-      const isCatFilter = activeCategory !== "todas" || !!activeStore || activeSort === "low_cost";
+      const isCatFilter = activeCategory !== "todas" || !!activeStore || activeLowCost;
       const limit = isCatFilter ? 200 : PAGE_SIZE;
       const batch = await fetchDeals(limit, currentOffset);
       if (batch.length < limit) hasMore = false;
@@ -3816,7 +3890,7 @@
 
       // Con filtro activo (categoría/tienda/sort) cargamos TODAS las páginas para
       // mostrar absolutamente todo lo que cae en esa categoría, no solo la 1ª página.
-      const _wantAll = activeCategory !== "todas" || !!activeStore || activeSort === "low_cost";
+      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost;
       if (hasMore && (_wantAll || grid.querySelectorAll(".deal").length < 8)) {
         showLoading(false); isLoading = false; loadMore(); return;
       }
@@ -3858,10 +3932,37 @@
 
   // ── Subcat bar ────────────────────────────────────────────────
   // Config de subcategorías según la categoría activa (Tech o Moda)
-  function _subcatConfig() {
-    if (activeCategory === "tecnologia") return { list: TECH_SUBCATS, get: () => activeTechSubcat, set: v => { activeTechSubcat = v; } };
-    if (activeCategory === "moda")       return { list: MODA_SUBCATS, get: () => activeModaSubcat, set: v => { activeModaSubcat = v; } };
-    return null;
+  function _subcatConfig() { return _SUBCAT_DEFS[activeCategory] || null; }
+
+  // ── Muestra para filtros contextuales ────────────────────────
+  // Combina la muestra precargada (hasta 500) con lo ya cargado para saber qué
+  // tiendas y subcategorías tienen deals reales en cada categoría.
+  let _filterPool = [];
+  function _poolDeals() {
+    const seen = new Set(), out = [];
+    const add = arr => { if (arr) for (const d of arr) { if (d && d.id != null && !seen.has(d.id)) { seen.add(d.id); out.push(d); } } };
+    add(_filterPool);
+    add(typeof allDeals !== "undefined" ? allDeals : null);
+    add(typeof _mhomeDeals !== "undefined" ? _mhomeDeals : null);
+    return out;
+  }
+  function _storesForCategory(catId) {
+    if (catId === "todas") return null;                 // null = sin restricción
+    const set = new Set();
+    for (const d of _poolDeals()) if (d.tienda && dealInCategory(d, catId)) set.add(d.tienda);
+    return set;
+  }
+  function _availableSubcats(catId, store) {
+    const sd = _SUBCAT_DEFS[catId];
+    if (!sd) return null;
+    const pool = _poolDeals().filter(d => dealInCategory(d, catId) && (!store || d.tienda === store));
+    if (!pool.length) return null;                      // sin datos → no restringir
+    const ids = new Set(["todas"]);
+    for (const sc of sd.list) {
+      if (sc.id === "todas") continue;
+      if (pool.some(d => sc.test(d))) ids.add(sc.id);
+    }
+    return ids;
   }
 
   function buildSubcatBar() {
@@ -3869,11 +3970,14 @@
     const bar = document.getElementById("js-subcat-bar");
     if (!bar || !row) return;
     const cfg = _subcatConfig();
-    if (!cfg) {
-      row.style.display = "none"; activeTechSubcat = "todas"; activeModaSubcat = "todas"; return;
-    }
+    if (!cfg) { row.style.display = "none"; _resetSubcats(); return; }
+    // Solo subcategorías con deals en la categoría (y tienda) activa — filtros inteligentes
+    const avail = _availableSubcats(activeCategory, activeStore);
+    if (avail && !avail.has(cfg.get())) cfg.set("todas");   // la activa ya no aplica → reset
+    const list = cfg.list.filter(sc => sc.id === "todas" || !avail || avail.has(sc.id));
+    if (list.length <= 1) { row.style.display = "none"; return; }   // solo "Todo X" → ocultar fila
     const active = cfg.get();
-    bar.innerHTML = cfg.list.map(sc =>
+    bar.innerHTML = list.map(sc =>
       `<button class="subcat-pill${sc.id === active ? " subcat-pill--active" : ""}" data-subcat="${sc.id}">${sc.label}</button>`
     ).join("");
     row.style.display = "flex";
@@ -3897,17 +4001,17 @@
     bar.querySelectorAll(".cat-pill").forEach(btn => {
       btn.addEventListener("click", () => {
         if (activeCategory === btn.dataset.cat) return;
-        activeCategory   = btn.dataset.cat;
-        activeTechSubcat = "todas";
-        activeModaSubcat = "todas";
+        activeCategory = btn.dataset.cat;
+        _resetSubcats();
         bar.querySelectorAll(".cat-pill").forEach(b => b.classList.remove("cat-pill--active"));
         btn.classList.add("cat-pill--active");
+        buildStoreBar();   // tiendas contextuales (puede resetear una tienda incompatible)
         buildSubcatBar();
         const titleEl = document.getElementById("js-section-title");
         titleEl.textContent = activeCategory === "todas"
           ? "Clasificados"
           : (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Clasificados");
-        if (btn.dataset.cat === "todas" && activeSort === "recientes" && !searchQuery && _isMobileViewport()) {
+        if (btn.dataset.cat === "todas" && activeSort === "recientes" && !activeLowCost && !searchQuery && _isMobileViewport()) {
           if (_mhomeDeals.length) { _showMobileHome(); renderMobileHome(_mhomeDeals); }
           else { _mhomeLoading = false; loadMobileHome(); }
         } else {
@@ -3921,69 +4025,93 @@
   }
 
   // ── Sort tabs ─────────────────────────────────────────────────
+  function _updateSectionTitle() {
+    const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Oportunidades de Reventa" };
+    let t = activeCategory !== "todas"
+      ? (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Clasificados")
+      : (titles[activeSort] || "Clasificados");
+    if (activeLowCost) t = (activeCategory !== "todas") ? (t + " · −25€") : "Menos de 25€";
+    const el = document.getElementById("js-section-title");
+    if (el) el.textContent = t;
+  }
+
+  function _reloadAfterFilterChange() {
+    if (allDeals.length > 0) { renderGrid(); }
+    else {
+      allDeals = []; currentOffset = 0; hasMore = true;
+      document.getElementById("js-grid").innerHTML = "";
+      loadMore();
+    }
+  }
+
+  // Sorting: Recientes / Mayor descuento / Más votados (desplegable "Ordenar por")
+  function _applySort(sort) {
+    if (!sort || activeSort === sort) return;
+    activeSort = sort;
+    const sel = document.getElementById("js-sort-select");
+    if (sel && sel.value !== sort) sel.value = sort;
+    _showRegularGrid();
+    _updateSectionTitle();
+    _reloadAfterFilterChange();
+  }
+
+  // "Menos de 25€": filtro independiente del orden (no es un sorting)
+  function _toggleLowCost(force) {
+    const v = (typeof force === "boolean") ? force : !activeLowCost;
+    if (v === activeLowCost) return;
+    activeLowCost = v;
+    const chip = document.getElementById("js-lowcost-chip");
+    if (chip) { chip.classList.toggle("sort-tab--active", activeLowCost); chip.setAttribute("aria-pressed", activeLowCost ? "true" : "false"); }
+    _showRegularGrid();
+    _updateSectionTitle();
+    _reloadAfterFilterChange();
+  }
+
   function buildSortTabs() {
-    document.querySelectorAll(".sort-tab").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        if (activeSort === btn.dataset.sort) return;
-        activeSort = btn.dataset.sort;
-        _showRegularGrid();
-        document.querySelectorAll(".sort-tab").forEach(b => b.classList.remove("sort-tab--active"));
-        btn.classList.add("sort-tab--active");
-        const titles = { recientes: "Clasificados", descuento: "Mayor Descuento", votados: "Más Votados", reventa: "Oportunidades de Reventa", low_cost: "Low Cost · Menos de 25€" };
-        document.getElementById("js-section-title").textContent = titles[activeSort] || "Clasificados";
-
-        // Si allDeals está vacío (ej: venimos del mobile home) hacemos fetch fresco
-        // para no filtrar sobre los ~20 deals del home de descubrimiento (_mhomeDeals),
-        // lo que causaba resultados distintos entre móvil y escritorio.
-        if (allDeals.length > 0) {
-          renderGrid();
-        } else {
-          allDeals = []; currentOffset = 0; hasMore = true;
-          document.getElementById("js-grid").innerHTML = "";
-          loadMore();
-        }
-
-        if (activeSort === "reventa" && !_reventaLoaded) {
-          _reventaLoaded = true;
-          try {
-            const batch = await fetchDeals(200, 0, "ARBITRAJE");
-            if (batch.length) {
-              const existingIds = new Set(allDeals.map(d => d.id));
-              const fresh = batch.filter(d => !existingIds.has(d.id));
-              if (fresh.length) { allDeals = allDeals.concat(fresh); if (activeSort === "reventa") renderGrid(); }
-            }
-          } catch { _reventaLoaded = false; }
-        }
-      });
-    });
+    const sel = document.getElementById("js-sort-select");
+    if (sel) {
+      sel.value = (activeSort === "low_cost" || activeSort === "reventa") ? "recientes" : activeSort;
+      sel.addEventListener("change", () => _applySort(sel.value));
+    }
+    const chip = document.getElementById("js-lowcost-chip");
+    if (chip) chip.addEventListener("click", () => _toggleLowCost());
   }
 
   // ── Store bar ─────────────────────────────────────────────────
   // Pre-poblamos con las tiendas activas para que aparezcan en el filtro aunque no tengan deals en el primer lote.
   const _KNOWN_STORES = [
-    "Amazon", "MediaMarkt", "PCBox", "Decathlon",
-    "Mammoth Bikes", "Esdemarca", "Desigual", "Beep"
+    "Amazon", "MediaMarkt", "PCBox", "Decathlon", "Mammoth Bikes",
+    "Barrabes", "Padel Market", "Esdemarca", "Desigual"
   ];
-  let _allKnownStores = new Set(_KNOWN_STORES);
+  function _allStores() {
+    const s = new Set(_KNOWN_STORES);
+    _poolDeals().forEach(d => d.tienda && s.add(d.tienda));
+    return s;
+  }
 
-  function buildStoreBar(extraStores) {
+  // Si hay una categoría activa, solo muestra tiendas que tienen deals en esa
+  // categoría (filtros inteligentes); en "Todas" muestra todas las conocidas.
+  function buildStoreBar() {
     const bar = document.getElementById("js-store-bar");
     const row = document.getElementById("js-store-row");
     if (!bar) return;
-    allDeals.forEach(d => d.tienda && _allKnownStores.add(d.tienda));
-    if (extraStores) extraStores.forEach(s => s && _allKnownStores.add(s));
-    const stores   = [..._allKnownStores].filter(Boolean).sort();
+    let stores = [..._allStores()].filter(Boolean);
+    if (activeCategory !== "todas") {
+      const allowed = _storesForCategory(activeCategory);
+      if (allowed && allowed.size) stores = stores.filter(s => allowed.has(s));
+    }
+    stores = stores.sort();
+    if (activeStore && !stores.includes(activeStore)) activeStore = "";   // tienda incompatible → reset
     if (stores.length === 0) { if (row) row.style.display = "none"; return; }
-    const existing = [...bar.querySelectorAll(".store-pill[data-store]:not([data-store=''])")].map(b => b.dataset.store);
-    if (existing.join(",") === stores.join(",")) return;
-
+    const _sig = activeStore + "||" + stores.join(",");
+    if (bar.dataset.sig === _sig) { if (row) row.style.display = "flex"; return; }  // sin cambios → no re-render
+    bar.dataset.sig = _sig;
     bar.innerHTML =
       `<button class="store-pill${!activeStore ? " store-pill--active" : ""}" data-store="">Todas</button>` +
       stores.map(s =>
         `<button class="store-pill${activeStore === s ? " store-pill--active" : ""}" data-store="${s}">${s}</button>`
       ).join("");
     if (row) row.style.display = "flex";
-
     bar.querySelectorAll(".store-pill").forEach(btn => {
       btn.addEventListener("click", () => {
         const store = btn.dataset.store;
@@ -3991,6 +4119,7 @@
         activeStore = store;
         bar.querySelectorAll(".store-pill").forEach(b => b.classList.remove("store-pill--active"));
         btn.classList.add("store-pill--active");
+        buildSubcatBar();   // al cambiar de tienda, recalcular subcategorías disponibles
         renderGrid();
       });
     });
@@ -3998,8 +4127,10 @@
 
   async function preloadStoresForBar() {
     try {
-      const batch = await fetchDeals(400, 0);
-      buildStoreBar(batch.map(d => d.tienda));
+      const batch = await fetchDeals(500, 0);
+      if (batch && batch.length) _filterPool = batch;
+      buildStoreBar();
+      buildSubcatBar();
     } catch {}
   }
 
@@ -4237,7 +4368,7 @@
 
   function _isMobileViewport() { return window.innerWidth <= 767; }
   function _isMobileDiscovery() {
-    return _isMobileViewport() && activeCategory === "todas" && activeSort === "recientes" && !searchQuery;
+    return _isMobileViewport() && activeCategory === "todas" && activeSort === "recientes" && !activeLowCost && !searchQuery;
   }
 
   function _showMobileHome() {
@@ -4281,15 +4412,15 @@
     _showMobileHome();
     // Reset estado de navegación al inicial — clave para que el home funcione correctamente
     activeCategory   = "todas";
-    activeTechSubcat = "todas";
-    activeModaSubcat = "todas";
+    _resetSubcats();
     activeSort       = "recientes";
+    activeLowCost    = false;
     if (_mhomeDeals.length) renderMobileHome(_mhomeDeals);
     // Sync UI bars
     const cb = document.getElementById("js-cat-bar");
     if (cb) cb.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "todas"));
-    document.querySelectorAll(".sort-tab").forEach(b =>
-      b.classList.toggle("sort-tab--active", b.dataset.sort === "recientes"));
+    const _selA = document.getElementById("js-sort-select"); if (_selA) _selA.value = "recientes";
+    const _chipA = document.getElementById("js-lowcost-chip"); if (_chipA) { _chipA.classList.remove("sort-tab--active"); _chipA.setAttribute("aria-pressed", "false"); }
     const sb = document.getElementById("js-subcat-row");
     if (sb) sb.style.display = "none";
     requestAnimationFrame(() => {
@@ -4755,18 +4886,21 @@
     const back = document.getElementById("js-mhome-back");
     if (back && _isMobileViewport()) back.style.display = "inline-flex";
     activeCategory = catId;
-    if (catId === "tecnologia") { activeTechSubcat = subcatId; activeModaSubcat = "todas"; }
-    else if (catId === "moda")  { activeModaSubcat = subcatId; activeTechSubcat = "todas"; }
+    _resetSubcats();
+    const sd = _SUBCAT_DEFS[catId];
+    if (sd) sd.set(subcatId);
     activeSort = "recientes";
-    document.querySelectorAll(".sort-tab").forEach(b => b.classList.toggle("sort-tab--active", b.dataset.sort === "recientes"));
+    activeLowCost = false;
+    const selEl = document.getElementById("js-sort-select"); if (selEl) selEl.value = "recientes";
+    const chipEl = document.getElementById("js-lowcost-chip"); if (chipEl) { chipEl.classList.remove("sort-tab--active"); chipEl.setAttribute("aria-pressed", "false"); }
     const bar = document.getElementById("js-cat-bar");
     if (bar) bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === catId));
+    buildStoreBar();
     buildSubcatBar();
     const sb = document.getElementById("js-subcat-bar");
     if (sb) sb.querySelectorAll(".subcat-pill").forEach(b => b.classList.toggle("subcat-pill--active", b.dataset.subcat === subcatId));
-    const list = catId === "moda" ? MODA_SUBCATS : TECH_SUBCATS;
-    const catLabel = catId === "moda" ? "Moda" : "Tecnología";
-    const scLabel = (list.find(s => s.id === subcatId) || {}).label || "";
+    const catLabel = (CATEGORIAS.find(c => c.id === catId) || {}).label || "";
+    const scLabel = sd ? ((sd.list.find(s => s.id === subcatId) || {}).label || "") : "";
     const titleEl = document.getElementById("js-section-title");
     if (titleEl) titleEl.textContent = (scLabel && subcatId !== "todas") ? `${catLabel} — ${scLabel}` : catLabel;
     allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
@@ -4811,7 +4945,6 @@
       { id: "recientes",  label: "Más recientes" },
       { id: "descuento",  label: "Mayor descuento" },
       { id: "votados",    label: "Más votados" },
-      { id: "low_cost",   label: "Menos de 25€" },
       // "Para revender" oculto: sin productos por ahora (reactivable para premium)
     ];
     const catEl  = document.getElementById("js-fpanel-cats");
@@ -4823,20 +4956,25 @@
                onclick="fpanelSelectCat('${c.id}')">${c.label}</button>`
     ).join("");
 
-    // Subcategorías (Tecnología y Moda) — acceso directo desde el filtro móvil
+    // Subcategorías por categoría — acceso directo desde el filtro móvil
     const subPills = (list, catId, active) => list.filter(s => s.id !== "todas").map(s =>
       `<button class="fpanel__pill${(activeCategory === catId && active === s.id) ? ' fpanel__pill--active' : ''}"
                onclick="fpanelSelectSubcat('${catId}','${s.id}')">${s.label}</button>`
     ).join("");
     const techEl = document.getElementById("js-fpanel-tech");
     const modaEl = document.getElementById("js-fpanel-moda");
+    const depEl  = document.getElementById("js-fpanel-deportes");
     if (techEl) techEl.innerHTML = subPills(TECH_SUBCATS, "tecnologia", activeTechSubcat);
     if (modaEl) modaEl.innerHTML = subPills(MODA_SUBCATS, "moda", activeModaSubcat);
+    if (depEl)  depEl.innerHTML  = subPills(DEPORTE_SUBCATS, "deportes", activeDeporteSubcat);
 
-    sortEl.innerHTML = SORT_OPTS.map(s =>
-      `<button class="fpanel__pill${s.id === activeSort ? ' fpanel__pill--active' : ''}"
-               onclick="fpanelSelectSort('${s.id}')">${s.label}</button>`
-    ).join("");
+    sortEl.innerHTML =
+      SORT_OPTS.map(s =>
+        `<button class="fpanel__pill${s.id === activeSort ? ' fpanel__pill--active' : ''}"
+                 onclick="fpanelSelectSort('${s.id}')">${s.label}</button>`
+      ).join("") +
+      `<button class="fpanel__pill${activeLowCost ? ' fpanel__pill--active' : ''}"
+               onclick="fpanelToggleLowCost()">💸 Menos de 25€</button>`;
   }
 
   function _positionFab() {
@@ -4882,7 +5020,7 @@
 
   function fpanelSelectCat(catId) {
     closeFilterPanel();
-    if (catId === "todas" && activeSort === "recientes" && !searchQuery && _isMobileViewport()) {
+    if (catId === "todas" && activeSort === "recientes" && !activeLowCost && !searchQuery && _isMobileViewport()) {
       if (_mhomeDeals.length) { _showMobileHome(); renderMobileHome(_mhomeDeals); }
       else { _mhomeLoading = false; loadMobileHome(); }
       return;
@@ -4890,8 +5028,9 @@
     // Sync con la cat-bar real para que el estado sea consistente
     const bar = document.getElementById("js-cat-bar");
     if (bar) {
-      activeCategory = catId; activeTechSubcat = "todas"; activeModaSubcat = "todas";
+      activeCategory = catId; _resetSubcats();
       bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === catId));
+      buildStoreBar();
       buildSubcatBar();
     }
     const titleEl = document.getElementById("js-section-title");
@@ -4905,8 +5044,11 @@
 
   function fpanelSelectSort(sortId) {
     closeFilterPanel();
-    const btn = document.querySelector(`.sort-tab[data-sort="${sortId}"]`);
-    if (btn) btn.click();
+    _applySort(sortId);
+  }
+  function fpanelToggleLowCost() {
+    closeFilterPanel();
+    _toggleLowCost();
   }
 
   // ── Likes en el mobile home ───────────────────────────────────
@@ -5290,7 +5432,9 @@
     <div class="fpanel__scroll" id="js-fpanel-tech"></div>
     <span class="fpanel__label" id="js-fpanel-moda-label" style="margin-top:4px">Moda</span>
     <div class="fpanel__scroll" id="js-fpanel-moda"></div>
-    <span class="fpanel__label" style="margin-top:4px">Ordenar</span>
+    <span class="fpanel__label" id="js-fpanel-deportes-label" style="margin-top:4px">Deportes</span>
+    <div class="fpanel__scroll" id="js-fpanel-deportes"></div>
+    <span class="fpanel__label" style="margin-top:4px">Ordenar por</span>
     <div class="fpanel__scroll" id="js-fpanel-sorts"></div>
   </div>
   <button id="js-filter-fab" onclick="toggleFilterPanel()" aria-label="Filtros y categorías">
