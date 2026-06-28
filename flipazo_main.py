@@ -1768,9 +1768,15 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
     # ── Decathlon feed (historial de precios propio, caché 23h) ───────────────
     try:
         dec_raw = await asyncio.to_thread(fetch_decathlon_productos)
+        # Rotación: el feed trae miles de deals ≥40%. Si cogemos siempre los 6 de
+        # mayor descuento, se publican una vez y el dedup (TTL 96h) los bloquea →
+        # Decathlon se queda "atascado" en esos 6 y nunca surfacea el resto del
+        # catálogo. Barajando, cada ciclo entran productos distintos y rota todo.
+        dec_pool = list(dec_raw)
+        random.shuffle(dec_pool)
         dec_añadidos = 0
-        for d in sorted(dec_raw, key=lambda x: -x.get("descuento_pct", 0)):
-            if dec_añadidos >= 6:
+        for d in dec_pool:
+            if dec_añadidos >= 8:
                 break
             _registrar_observacion_precio(d)
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda="Decathlon", precio=d.get("precio_actual", 0)):
