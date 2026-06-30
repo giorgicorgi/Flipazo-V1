@@ -2852,6 +2852,8 @@
       test: d => (/\blaptop\b|\bmacbook\b|chromebook|galaxy\s+book|surface\s+(?:laptop|book|pro)|thinkpad|zenbook|vivobook|matebook|lenovo\s+legion|asus\s+(?:tuf|rog|expertbook)|ordenador\s+port[aá]til|pc\s+port[aá]til|notebook\b/i.test(d.titulo)
                 || (/\bport[aá]til\b/i.test(d.titulo) && !/altavoz|speaker|disco|ssd|cargador|funda|earbuds|auricular|cascos|aspirador|impresora|estufa|ventilador|nevera|calentador|patinete|silla|mesa|cafetera|micr[oó]fono|webcam|powerbank|power\s*bank|bater[ií]a|consola|nintendo|switch\b|monitor|proyector|projector|telefon|tel[eé]fono|m[oó]vil/i.test(d.titulo)))
               && !/altavoz|speaker.*port|earbuds|auricular.*port|cascos.*port/i.test(d.titulo) },
+    { id: "informatica", label: "Informática",
+      test: d => /\brat[oó]n\b|\bmouse\b|teclado|torre\s+(?:pc|gaming|de\s+ordenador|ordenador)|pc\s+(?:de\s+)?sobremesa|ordenador\s+(?:de\s+)?sobremesa|sobremesa\s+gaming|placa\s+base|motherboard|tarjeta\s+gr[aá]fica|graphics\s+card|\brtx\b|\bgtx\b|tarjeta\s+de\s+v[ií]deo|procesador\s+(?:intel|amd|ryzen|core)|\bryzen\b|intel\s+core|memoria\s+ram|\bram\s+ddr|\bddr[45]\b|\bssd\b|\bnvme\b|disco\s+duro|\bhdd\b|fuente\s+de\s+alimentaci|disipador|refrigeraci[oó]n\s+l[ií]quida|caja\s+(?:pc|semitorre|torre|gaming)|\bmonitor\b|webcam|impresora|router\b|\bnas\b|disco\s+(?:duro\s+)?externo|pendrive|hub\s+usb|docking|alfombrilla|\bsai\b/i.test(d.titulo) },
     { id: "tv",         label: "TV",
       test: d => /televisor\b|smart.?tv\b|\bqled\b|\boled\s+tv\b|\btv\s+(?:4k|uhd|hd|led|lcd|qled|oled|smart|\d{2,3})|(?:lg|samsung|sony|hisense|tcl|philips|panasonic)\s+(?:tv\b|televisor\b|\bqled\b|smart\s*tv)|\btv\b/i.test(d.titulo)
               && !/smartphone|m[oó]vil|iphone|galaxy\s+(?:s\d+|a\d+|note|z\s*flip|z\s*fold|m\d+)|redmi\s+(?:note\s*)?\d+|pixel\s+\d|oneplus|poco\s+[a-z]?\d|huawei\s+(?:p\d|mate)|honor\s+\d|motorola\s+(?:edge|moto)/i.test(d.titulo) },
@@ -2881,7 +2883,7 @@
   const _RX_PERFUME = /perfume\b|eau de parfum|eau de toilette|\bcolonia\b|fragancia\b|maquillaje|s[eé]rum|crema.*(facial|hidratante|corporal)/i;
   const _scat = (d, id) => d.categoria === id;
   // Tiendas 100% deporte: todo lo suyo (incl. ropa deportiva) va a Deportes, NUNCA a Moda
-  const _DEPORTE_STORES = new Set(["Barrabes", "Decathlon", "Mammoth Bikes", "PrivateSportShop"]);
+  const _DEPORTE_STORES = new Set(["Barrabes", "Decathlon", "Mammoth Bikes", "PrivateSportShop", "Padel Market"]);
 
   const CATEGORIAS = [
     { id: "todas",        label: "Todas" },
@@ -2891,7 +2893,7 @@
     { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
     { id: "belleza",      label: "Cuidado Personal", test: d => !_RX_APPAREL.test(d.titulo) && !_RX_KITCHEN.test(d.titulo) && !_RX_FOOTWEAR.test(d.titulo) && (_scat(d,"belleza") || _RX.belleza.test(d.titulo)) },
     { id: "juguetes",     label: "Juguetes",      test: d => !_RX_CONSOLE.test(d.titulo) && (_scat(d,"juguetes") || _RX.juguetes.test(d.titulo)) },
-    { id: "moda",         label: "Moda",          test: d => !_DEPORTE_STORES.has(d.tienda) && !_RX_FOOTWEAR.test(d.titulo) && !_RX_PERFUME.test(d.titulo) && (_scat(d,"moda") || _RX.moda.test(d.titulo) || _RX_APPAREL.test(d.titulo) || d.tienda === "Desigual") },
+    { id: "moda",         label: "Moda",          test: d => !_DEPORTE_STORES.has(d.tienda) && !_RX_FOOTWEAR.test(d.titulo) && !_RX_PERFUME.test(d.titulo) && !_RX.deportes.test(d.titulo) && (_scat(d,"moda") || _RX.moda.test(d.titulo) || _RX_APPAREL.test(d.titulo) || d.tienda === "Desigual") },
     { id: "calzado",      label: "Calzado",       test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"calzado") || _RX.calzado.test(d.titulo)) },
   ];
 
@@ -3808,16 +3810,8 @@
     }
   }
 
-  const _STALE_MS = 7 * 24 * 60 * 60 * 1000;
-  const _STALE_HTML = `<div class="stale-divider" role="separator">Ofertas de más de 7 días · Puede que ya no estén disponibles</div>`;
-
   function _renderWithDivider(deals) {
-    const now = Date.now();
-    const fresh = deals.filter(d => (now - new Date(d.timestamp || 0).getTime()) <= _STALE_MS);
-    const stale = deals.filter(d => (now - new Date(d.timestamp || 0).getTime()) > _STALE_MS);
-    let html = fresh.map(renderDeal).join("");
-    if (stale.length) html += _STALE_HTML + stale.map(renderDeal).join("");
-    return html;
+    return deals.map(renderDeal).join("");
   }
 
   function renderGrid() {
@@ -3873,17 +3867,7 @@
         grid.innerHTML = _renderWithDivider(gridDeals);
         updateSchemaMarkup();
       } else if (gridDeals.length > 0) {
-        const now = Date.now();
-        const hasDivider = !!grid.querySelector(".stale-divider");
-        const stale = gridDeals.filter(d => (now - new Date(d.timestamp || 0).getTime()) > _STALE_MS);
-        const fresh = gridDeals.filter(d => (now - new Date(d.timestamp || 0).getTime()) <= _STALE_MS);
-        let appendHtml = "";
-        if (!hasDivider && stale.length) {
-          appendHtml += fresh.map(renderDeal).join("") + _STALE_HTML + stale.map(renderDeal).join("");
-        } else {
-          appendHtml = gridDeals.map(renderDeal).join("");
-        }
-        grid.insertAdjacentHTML("beforeend", appendHtml);
+        grid.insertAdjacentHTML("beforeend", gridDeals.map(renderDeal).join(""));
       }
       updateCount();
       buildStoreBar();
@@ -4699,6 +4683,27 @@
     </section>`;
   }
 
+  // Una fila por cada subcategoría de las categorías que las tienen
+  // (Tecnología, Deportes, Moda): "Tecnología — Audio", "Deporte — Pádel", etc.
+  function _mhSubcatSections(deals) {
+    const order = ["tecnologia", "deportes", "moda"];
+    let html = "";
+    for (const catId of order) {
+      const sd = _SUBCAT_DEFS[catId];
+      if (!sd) continue;
+      const catLabel = (CATEGORIAS.find(c => c.id === catId) || {}).label || catId;
+      for (const sc of sd.list) {
+        if (sc.id === "todas") continue;
+        const rowDeals = deals.filter(d => dealInCategory(d, catId) && sc.test(d)).slice(0, 40);
+        if (!rowDeals.length) continue;
+        html += _mhSection(`${catLabel} — ${sc.label}`,
+                           rowDeals.map(renderHCard).join(""),
+                           `mhomeSubcat('${catId}','${sc.id}')`);
+      }
+    }
+    return html;
+  }
+
   // ── Render completo del home ──────────────────────────────────
 
   function renderMobileHome(deals) {
@@ -4710,13 +4715,7 @@
     const HERO_BLACKLIST = new Set(["Esdemarca", "Desigual"]);
     const heroEligible = deals.filter(d => (d.precio_actual || 0) >= 25 && !HERO_BLACKLIST.has(d.tienda));
     const featured = getDealOfDay(heroEligible.length ? heroEligible : deals);
-    const techDeals    = deals.filter(d => dealMatchesCategory(d, "tecnologia")).slice(0, 40);
-    const _tvSubcat    = TECH_SUBCATS.find(s => s.id === "tv");
-    const _audioSubcat = TECH_SUBCATS.find(s => s.id === "audio");
-    const tvDeals      = deals.filter(d => _tvSubcat?.test(d)).slice(0, 40);
-    const audioDeals   = deals.filter(d => _audioSubcat?.test(d)).slice(0, 40);
     const lcDeals      = deals.filter(d => (d.precio_actual || 0) > 0 && (d.precio_actual || 0) < 25).slice(0, 40);
-    const modaDeals    = deals.filter(d => dealMatchesCategory(d, "moda")).slice(0, 40);
     // Mayores descuentos: solo deals recientes (máx 3 días) para no mostrar chollos viejos
     const _maxAntiguedadMs = 3 * 24 * 3600 * 1000;
     const _ahora = Date.now();
@@ -4724,11 +4723,10 @@
       .filter(d => (_ahora - new Date(d.timestamp || 0).getTime()) <= _maxAntiguedadMs)
       .sort((a,b) => (b.descuento_pct||0)-(a.descuento_pct||0))
       .slice(0, 40);
-    const depDeals     = deals.filter(d => dealMatchesCategory(d, "deportes")).slice(0, 40);
-    const hogarDeals   = deals.filter(d => dealMatchesCategory(d, "hogar")).slice(0, 40);
-    const calzadoDeals = deals.filter(d => dealMatchesCategory(d, "calzado")).slice(0, 40);
-    const bellezaDeals  = deals.filter(d => dealMatchesCategory(d, "belleza")).slice(0, 40);
-    const juguetesDeals = deals.filter(d => dealMatchesCategory(d, "juguetes")).slice(0, 40);
+    const hogarDeals    = deals.filter(d => dealInCategory(d, "hogar")).slice(0, 40);
+    const calzadoDeals  = deals.filter(d => dealInCategory(d, "calzado")).slice(0, 40);
+    const bellezaDeals  = deals.filter(d => dealInCategory(d, "belleza")).slice(0, 40);
+    const juguetesDeals = deals.filter(d => dealInCategory(d, "juguetes")).slice(0, 40);
 
     const lowcostSection = lcDeals.length ? `<section class="mhome__section">
       <div class="mhome__section-head">
@@ -4754,20 +4752,16 @@
 
     mh.innerHTML =
       (featured ? renderWhero(featured) : "") +
-      _mhSection("Tecnología — Todo Tech", techDeals.map(renderHCard).join(""),      "mhomeCat('tecnologia')") +
-      lowcostSection +
-      _mhSection("Para el hogar",          hogarDeals.map(renderHCard).join(""),     "mhomeCat('hogar')") +
-      catSection +
-      _mhSection("Moda",                   modaDeals.map(renderHCard).join(""),      "mhomeCat('moda')") +
       _mhSection("Mayores descuentos",     topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro") +
-      _mhSection("Deportes",               depDeals.map(renderHCard).join(""),       "mhomeCat('deportes')") +
+      lowcostSection +
+      catSection +
+      _mhSubcatSections(deals) +
+      _mhSection("Hogar",                  hogarDeals.map(renderHCard).join(""),     "mhomeCat('hogar')") +
       _mhSection("Cuidado Personal",       bellezaDeals.map(renderHCard).join(""),   "mhomeCat('belleza')") +
-      _mhSection("Tecnología — TV",        tvDeals.map(renderHCard).join(""),        "mhomeTechSubcat('tv')") +
       _mhSection("Juguetes",               juguetesDeals.map(renderHCard).join(""),  "mhomeCat('juguetes')") +
       _mhSection("Calzado",                calzadoDeals.map(renderHCard).join(""),   "mhomeCat('calzado')") +
       promosSection +
-      storeSection +
-      _mhSection("Tecnología — Audio",     audioDeals.map(renderHCard).join(""),     "mhomeTechSubcat('audio')");
+      storeSection;
   }
 
   // ── Carga asíncrona ───────────────────────────────────────────
