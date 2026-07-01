@@ -1946,6 +1946,31 @@ def threads_auth_callback(code: str = "", error: str = ""):
     return HTMLResponse(html)
 
 
+@app.api_route("/auth/threads/deauthorize", methods=["GET", "POST"])
+def threads_deauthorize():
+    """Callback de desautorización que Meta exige para guardar la config de Threads.
+    No almacenamos datos de usuarios de Threads, así que solo acusamos recibo (200)."""
+    return JSONResponse(content={"ok": True})
+
+
+@app.api_route("/auth/threads/delete", methods=["GET", "POST"])
+def threads_data_deletion():
+    """Callback de solicitud de borrado de datos (obligatorio para la config de Threads).
+    Responde en el formato que Meta exige (url de estado + código). No guardamos datos
+    personales de Threads, así que no hay nada que borrar."""
+    code = secrets.token_hex(8)
+    return JSONResponse(content={
+        "url": f"https://api.flipazo.es/auth/threads/deletion-status?code={code}",
+        "confirmation_code": code,
+    })
+
+
+@app.get("/auth/threads/deletion-status")
+def threads_deletion_status(code: str = ""):
+    """Estado de una solicitud de borrado. Sin datos personales almacenados → completada."""
+    return JSONResponse(content={"code": code, "status": "completed"})
+
+
 @app.get("/auth/verify-email")
 def auth_verify_email(token: str = ""):
     """Verifica el email con el token. Redirige a /cuenta con JWT."""
