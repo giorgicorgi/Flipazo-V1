@@ -1174,7 +1174,7 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", p
     # Ropa de moda/deporte: solo si marca conocida + descuento real ≥50%
     # Excepción: Barrabés (outdoor técnico), Decathlon (deporte), Esdemarca y Desigual
     # (tiendas de moda de marca con descuentos reales de outlet — su catálogo ES ropa).
-    if tienda not in ("Barrabes", "Decathlon", "Esdemarca", "Desigual", "Zalando", "Deporte Outlet") and any(r in t for r in _PALABRAS_ROPA):
+    if tienda not in ("Barrabes", "Decathlon", "Esdemarca", "Desigual", "Zalando", "Deporte Outlet", "Adidas", "Bikila") and any(r in t for r in _PALABRAS_ROPA):
         if descuento_pct < 50 or not any(m in t for m in _MARCAS_ROPA):
             return False
     # Cecotec: marca de gama baja con precios de referencia inflados — solo descuentos fuertes
@@ -1816,8 +1816,16 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             fetch_awin_productos, DESCUENTO_MINIMO, PRECIO_MINIMO_LC, PRECIO_MAXIMO,
             DB_PATH, _descuento_minimo_para,
         )
+        # Barajar + tope por tienda: las publicables (Padel, Adidas) pueden traer
+        # miles de deals; sin rotación se publicarían siempre los mismos y podrían
+        # inundar el canal. Con shuffle + cap entran variados y acotados por ciclo.
+        random.shuffle(awin_raw)
+        _awin_por_tienda: dict[str, int] = {}
+        _AWIN_CAP = 12
         for d in awin_raw:
             _registrar_observacion_precio(d)
+            if _awin_por_tienda.get(d["tienda"], 0) >= _AWIN_CAP:
+                continue
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda=d["tienda"], precio=d.get("precio_actual", 0)):
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda=d["tienda"], titulo=d["titulo"]):
@@ -1827,6 +1835,7 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             if clave not in vistos:
                 vistos.add(clave)
                 todos.append(p)
+                _awin_por_tienda[d["tienda"]] = _awin_por_tienda.get(d["tienda"], 0) + 1
     except Exception as e:
         print(f"   ❌ Error en AWIN feed: {e}")
         alertar_admin("Error en AWIN feed", str(e))
@@ -2177,9 +2186,9 @@ _MARCAS_ARBITRAJE = {
 # valida contra su propio histórico de 30 días, así que no exigimos marca reconocida
 # en la zona gris (sus marcas propias —Kiprun, Quechua…— no están en _MARCAS_CONOCIDAS).
 _TIENDAS_FEED_CONFIABLE = {
-    "Decathlon", "Padel Market",
+    "Decathlon", "Padel Market", "Adidas",
     # Tiendas AWIN con descuento detectado por NUESTRO histórico (price_drop) → ya verificado
-    "ElCorteIngles", "Zalando", "Deporte Outlet", "Brico Depot",
+    "ElCorteIngles", "Zalando", "Deporte Outlet", "Brico Depot", "Paco Perfumerias", "Bikila",
 }
 
 # ── Marca al frente del título ────────────────────────────────────
@@ -2351,10 +2360,11 @@ _TIENDA_CAT = {
     "Zalando":        "moda",
     "Esdemarca":      "moda",   # tienda de moda de marca (lo que no es calzado → moda)
     "Desigual":       "moda",
+    "Paco Perfumerias": "belleza",   # perfumería
 }
 # Tiendas 100% deporte: todo su material va a deportes (o calzado), nunca a moda.
 _TIENDAS_DEPORTE = {"Decathlon", "Barrabes", "Mammoth Bikes", "PrivateSportShop",
-                    "Deporte Outlet", "Padel Market"}
+                    "Deporte Outlet", "Padel Market", "Adidas", "Bikila"}
 
 
 def _inferir_categoria(p: "Producto") -> str:
@@ -3768,9 +3778,8 @@ async def run_pipeline(modo: str = "completo"):
                 if ok:
                     dedup.marcar_publicado(p)
                     publicados += 1
-                    # Threads: canal curado — solo ≥50% descuento y sin ropa
-                    if _threads_elegible(p):
-                        publicar_en_threads(p)
+                    # Threads queda reservado SOLO para tuiteratura (hilos narrativos).
+                    # Los deals ya NO se publican en Threads (desactivado a propósito).
                     broadcast_whatsapp(p)
                 await asyncio.sleep(1.5)
 
