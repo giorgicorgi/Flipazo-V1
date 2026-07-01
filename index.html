@@ -4778,20 +4778,45 @@
     </section>`;
 
     try {
-      let batch;
+      const _renderIfHome = deals => {
+        history.replaceState({ flipazo_view: 'home', desktop: _desktopDiscovery }, '');
+        if (_isMobileDiscovery() || _desktopDiscovery) {
+          const y = window.scrollY;
+          renderMobileHome(deals);
+          if (y > 0) window.scrollTo({ top: y, behavior: 'instant' });   // sin salto al recompletar
+        }
+      };
+
       if (USE_MOCK) {
-        batch = MOCK_DEALS;
-      } else {
-        const r = await fetch(`${API_URL}?limit=400&offset=0`);
-        if (!r.ok) throw new Error(r.status);
-        batch = await r.json();
+        _mhomeDeals = MOCK_DEALS;
+        if (!allDeals.length) { allDeals = MOCK_DEALS; currentOffset = MOCK_DEALS.length; hasMore = false; }
+        _renderIfHome(MOCK_DEALS);
+        return;
       }
-      _mhomeDeals = batch;
-      if (!allDeals.length) {
-        allDeals = batch; currentOffset = batch.length; hasMore = false;
+
+      // 1ª página (500): pinta rápido.
+      const first = await fetch(`${API_URL}?limit=500&offset=0`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+      _mhomeDeals = first;
+      if (!allDeals.length) { allDeals = first; currentOffset = first.length; hasMore = false; }
+      _renderIfHome(first);
+
+      // Resto en segundo plano → las ~20 filas de subcategoría se llenan.
+      // La API sirve máx. 500 por petición, así que paginamos por offset.
+      const _PAGE = 500, _MAX = 2000;
+      if (first.length === _PAGE) {
+        let acc = first.slice(), offset = first.length;
+        while (acc.length < _MAX) {
+          let page;
+          try { page = await fetch(`${API_URL}?limit=${_PAGE}&offset=${offset}`).then(r => r.ok ? r.json() : []); }
+          catch { break; }
+          if (!page.length) break;
+          const seen = new Set(acc.map(d => d.id));
+          acc = acc.concat(page.filter(d => !seen.has(d.id)));
+          offset += page.length;
+          if (page.length < _PAGE) break;
+        }
+        if (acc.length > first.length) { _mhomeDeals = acc; _renderIfHome(acc); }
       }
-      history.replaceState({ flipazo_view: 'home', desktop: _desktopDiscovery }, '');
-      if (_isMobileDiscovery() || _desktopDiscovery) renderMobileHome(batch);
     } catch {
       if (mh) mh.innerHTML = `<p style="padding:24px 16px;color:var(--text-mid);font-size:14px">Error cargando las ofertas. Recarga la página.</p>`;
     } finally {
