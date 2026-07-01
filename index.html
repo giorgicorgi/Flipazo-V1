@@ -2841,6 +2841,17 @@
   }
 
   // ── Tech sub-categories ──────────────────────────────────────
+  // Detector de portátil (laptop) robusto: distingue "portátil" = ordenador de
+  // "portátil" = adjetivo (compacta portátil, altavoz portátil, disco portátil…).
+  function _esPortatil(t) {
+    t = t || "";
+    if (/\blaptop\b|\bmacbook\b|chromebook|galaxy\s+book|surface\s+(?:laptop|book|pro)|thinkpad|zenbook|vivobook|matebook|ideapad|lenovo\s+legion|\bomen\b|\bvictus\b|\bnitro\b|asus\s+(?:tuf|rog|expertbook)|ordenador\s+port[aá]til|pc\s+port[aá]til|notebook\b/i.test(t)) return true;
+    // "portátil" + señal inequívoca de ordenador (CPU/GPU/OS/RAM) → laptop, aunque mencione SSD/pantalla
+    if (/\bport[aá]til\b/i.test(t) && /ryzen|intel|core\s*i[3579]|celeron|pentium|geforce|radeon|windows\s*11|freedos|\d+\s*gb\s*(?:ram|ddr)|\bram\b|\d{2}["'′]?\s*pulgadas/i.test(t)) return true;
+    // "portátil" a secas, salvo que sea un accesorio u otro aparato distinto
+    return /\bport[aá]til\b/i.test(t)
+      && !/altavoz|speaker|disco|ssd|cargador|funda|earbuds|auricular|cascos|aspirador|impresora|estufa|ventilador|nevera|calentador|patinete|silla|mesa|cafetera|micr[oó]fono|webcam|powerbank|power\s*bank|bater[ií]a|consola|nintendo|switch\b|monitor|proyector|projector|telefon|tel[eé]fono|m[oó]vil|rasuradora|depiladora|afeitad|epilad|cortapelos|recortadora|secador|espejo|maquillaje|plancha|batidora|exprimidor/i.test(t);
+  }
   const TECH_SUBCATS = [
     { id: "todas",      label: "Todo Tech" },
     { id: "audio",      label: "Audio",        test: d => /auricular|cascos|airpods|wh-?1000|bose\b|jabra|sennheiser|hyperx|altavoz|speaker|earbuds|soundbar|barra de sonido|sonos\b|jbl\b/i.test(d.titulo) },
@@ -2848,12 +2859,9 @@
     { id: "moviles",    label: "Móviles",
       test: d => /smartphone|m[oó]vil(?!\s+(?:port[aá]til|de\s+ducha))|iphone\s+\d|galaxy\s+(?:s\d+|note|z\s*flip|z\s*fold|a\d+|m\d+)|redmi\s+(?:note\s*)?\d+|pixel\s+\d|oneplus\s+\d|poco\s+[a-z]?\d|motorola\s+(?:edge|moto\s*g|moto\s*e|razr)|oppo\s+(?:reno|find|a\s*\d+)|honor\s+(?:\d|magic)|huawei\s+(?:mate|p\d+|nova)/i.test(d.titulo)
               && !/auricular|earbuds|\bbuds\b|cascos|\bwatch\b|smartwatch|reloj.*intelig|cepillo|toothbrush|proyector|projector|patinete|scooter|aspirador|robot.*aspir|bombilla|c[aá]mara\s+seguridad|sensor|cargador|funda|protector|carcasa|hub\s+usb|cable\s+|adaptador|altavoz|speaker|\btablet\b|\bipad\b|trackpad|teclado|rat[oó]n|mouse\b|smart.?tv|televisor|monitor|impresora|router/i.test(d.titulo) },
-    { id: "portatiles", label: "Portátiles",
-      test: d => (/\blaptop\b|\bmacbook\b|chromebook|galaxy\s+book|surface\s+(?:laptop|book|pro)|thinkpad|zenbook|vivobook|matebook|lenovo\s+legion|asus\s+(?:tuf|rog|expertbook)|ordenador\s+port[aá]til|pc\s+port[aá]til|notebook\b/i.test(d.titulo)
-                || (/\bport[aá]til\b/i.test(d.titulo) && !/altavoz|speaker|disco|ssd|cargador|funda|earbuds|auricular|cascos|aspirador|impresora|estufa|ventilador|nevera|calentador|patinete|silla|mesa|cafetera|micr[oó]fono|webcam|powerbank|power\s*bank|bater[ií]a|consola|nintendo|switch\b|monitor|proyector|projector|telefon|tel[eé]fono|m[oó]vil/i.test(d.titulo)))
-              && !/altavoz|speaker.*port|earbuds|auricular.*port|cascos.*port/i.test(d.titulo) },
+    { id: "portatiles", label: "Portátiles", test: d => _esPortatil(d.titulo) },
     { id: "informatica", label: "Informática",
-      test: d => /\brat[oó]n\b|\bmouse\b|teclado|torre\s+(?:pc|gaming|de\s+ordenador|ordenador)|pc\s+(?:de\s+)?sobremesa|ordenador\s+(?:de\s+)?sobremesa|sobremesa\s+gaming|placa\s+base|motherboard|tarjeta\s+gr[aá]fica|graphics\s+card|\brtx\b|\bgtx\b|tarjeta\s+de\s+v[ií]deo|procesador\s+(?:intel|amd|ryzen|core)|\bryzen\b|intel\s+core|memoria\s+ram|\bram\s+ddr|\bddr[45]\b|\bssd\b|\bnvme\b|disco\s+duro|\bhdd\b|fuente\s+de\s+alimentaci|disipador|refrigeraci[oó]n\s+l[ií]quida|caja\s+(?:pc|semitorre|torre|gaming)|\bmonitor\b|webcam|impresora|router\b|\bnas\b|disco\s+(?:duro\s+)?externo|pendrive|hub\s+usb|docking|alfombrilla|\bsai\b/i.test(d.titulo) },
+      test: d => !_esPortatil(d.titulo) && /\brat[oó]n\b|\bmouse\b|teclado|torre\s+(?:pc|gaming|de\s+ordenador|ordenador)|pc\s+(?:de\s+)?sobremesa|ordenador\s+(?:de\s+)?sobremesa|sobremesa\s+gaming|placa\s+base|motherboard|tarjeta\s+gr[aá]fica|graphics\s+card|\brtx\b|\bgtx\b|tarjeta\s+de\s+v[ií]deo|procesador\s+(?:intel|amd|ryzen|core)|\bryzen\b|intel\s+core|memoria\s+ram|\bram\s+ddr|\bddr[45]\b|\bssd\b|\bnvme\b|disco\s+duro|\bhdd\b|fuente\s+de\s+alimentaci|disipador|refrigeraci[oó]n\s+l[ií]quida|caja\s+(?:pc|semitorre|torre|gaming)|\bmonitor\b|webcam|impresora|router\b|\bnas\b|disco\s+(?:duro\s+)?externo|pendrive|hub\s+usb|docking|alfombrilla|\bsai\b/i.test(d.titulo) },
     { id: "tv",         label: "TV",
       test: d => /televisor\b|smart.?tv\b|\bqled\b|\boled\s+tv\b|\btv\s+(?:4k|uhd|hd|led|lcd|qled|oled|smart|\d{2,3})|(?:lg|samsung|sony|hisense|tcl|philips|panasonic)\s+(?:tv\b|televisor\b|\bqled\b|smart\s*tv)|\btv\b/i.test(d.titulo)
               && !/smartphone|m[oó]vil|iphone|galaxy\s+(?:s\d+|a\d+|note|z\s*flip|z\s*fold|m\d+)|redmi\s+(?:note\s*)?\d+|pixel\s+\d|oneplus|poco\s+[a-z]?\d|huawei\s+(?:p\d|mate)|honor\s+\d|motorola\s+(?:edge|moto)/i.test(d.titulo) },
@@ -2887,7 +2895,7 @@
 
   const CATEGORIAS = [
     { id: "todas",        label: "Todas" },
-    { id: "tecnologia",   label: "Tecnología",    test: d => _scat(d,"tecnologia") || _RX.tecnologia.test(d.titulo) || d.tienda === "PcComponentes" },
+    { id: "tecnologia",   label: "Tecnología",    test: d => !_RX.belleza.test(d.titulo) && (_scat(d,"tecnologia") || _RX.tecnologia.test(d.titulo) || d.tienda === "PcComponentes") },
     { id: "herramientas", label: "Herramientas",  hidden: true, test: d => _scat(d,"herramientas") || _RX.herramientas.test(d.titulo) },
     { id: "deportes",     label: "Deportes",      test: d => _scat(d,"deportes") || _RX.deportes.test(d.titulo) || _DEPORTE_STORES.has(d.tienda) },
     { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
