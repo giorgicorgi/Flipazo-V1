@@ -41,7 +41,7 @@ _last_fetch: datetime | None = None
 # merchant_name (tal cual viene en el feed) → nombre de tienda interno de Flipazo
 _MERCHANT_MAP = {
     "Padel Market":         "Padel Market",
-    "adidas ES":            "Adidas",            # feed 92152 trae product_price_old
+    "adidas ES":            "Adidas",            # product_price_old == precio (no es "antes") → histórico
     "El Corte Ingles ES":   "ElCorteIngles",
     "BRICO DEPÔT_ES":       "Brico Depot",
     "Privé by Zalando ES":  "Zalando",
@@ -50,11 +50,12 @@ _MERCHANT_MAP = {
     "BIKILA ES":            "Bikila",            # running/trail, sin "precio antes"
 }
 # Tiendas con product_price_old fiable → se publican como deals
-_PUBLICABLE = {"Padel Market", "Adidas"}
-# Tiendas sin precio de referencia → solo histórico (registro diario de precio actual)
-# para detectar bajadas ≥40% por histórico propio (los feeds no traen "precio antes").
+_PUBLICABLE = {"Padel Market"}
+# Tiendas sin precio de referencia usable → solo histórico (registro diario de precio actual)
+# para detectar bajadas ≥40% por histórico propio (los feeds no traen "precio antes" real;
+# adidas trae product_price_old pero == precio actual, así que tampoco sirve).
 _SOLO_HISTORICO = {"ElCorteIngles", "Brico Depot", "Zalando", "Deporte Outlet",
-                   "Paco Perfumerias", "Bikila"}
+                   "Paco Perfumerias", "Bikila", "Adidas"}
 # Suelo de precio para registrar histórico (evita inflar la BD: ECI son ~967k productos).
 # A 100€ son ~246k obs/día; subir el suelo (env AWIN_HIST_PRECIO_MIN) reduce volumen.
 _HIST_PRECIO_MIN = float(os.getenv("AWIN_HIST_PRECIO_MIN", "100"))
