@@ -159,6 +159,8 @@ AMAZON_SEARCH_URLS = [
     # Altavoces Bluetooth portátiles — Sony SRS, JBL Charge/Flip, Bose SoundLink, Marshall, Anker Soundcore
     # Keyword corto (tipo producto + marcas) para evitar que Amazon lo trate como AND estricto
     "https://www.amazon.es/s?i=electronics&k=altavoz+bluetooth+sony+jbl+bose+marshall+anker&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # Equipaje y maletas de marca — Samsonite, American Tourister, Eastpak, Delsey (alta liquidez)
+    "https://www.amazon.es/s?k=samsonite+american+tourister+eastpak+delsey+maleta+equipaje&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # ── Low Cost: p_36 (price-range) + p_n_pct-off combinado no funciona en Amazon ES ──────
     # Los items LC (8-24€) se capturan orgánicamente desde las búsquedas por marca anteriores.
     # URLs con p_36=800-2499 eliminadas: devuelven 0 resultados (confirmado 2026-05-28).
@@ -2160,6 +2162,8 @@ _MARCAS_CONOCIDAS = {
     # Pádel (Padel Market)
     "bullpadel", "babolat", "nox", "siux", "starvie", "varlion", "black crown",
     "drop shot", "vibor-a", "vibora", "joma", "wilson", "dunlop",
+    # Equipaje / maletas de marca
+    "samsonite", "american tourister", "eastpak", "delsey", "rimowa", "roncato", "gabol",
 } | _MARCAS_DERMO  # dermocosmética premium cuenta como marca reconocida (scoring + zona gris)
 
 # Marcas con mercado real de segunda mano en Wallapop/eBay.es → candidatas a ARBITRAJE
@@ -2220,6 +2224,8 @@ _MARCAS_TITULO = sorted([
     "Endocare","Rilastil","A-Derma","Anthelios",
     # Pádel
     "Bullpadel","Babolat","StarVie","Varlion","Black Crown","Drop Shot","Vibor-A","Nox","Siux","Joma","Wilson","Dunlop",
+    # Equipaje / maletas
+    "Samsonite","American Tourister","Eastpak","Delsey","Rimowa","Roncato","Gabol",
 ], key=len, reverse=True)  # multi-palabra primero
 
 def _brand_pat(b: str) -> str:
