@@ -6,9 +6,13 @@ Campos:       Sku, Product_ID, Name, Brand, Product_Nature, Images, Url,
               InitialPrice (precio de referencia), Discount_Price (precio actual),
               Avaibility_Model / AvaibilitySku (stock), Size.
 
-A diferencia del feed antiguo (id=107, sin precio de referencia), este feed trae
-el descuento DIRECTO del retailer: (InitialPrice − Discount_Price) / InitialPrice.
-No necesita acumular 7 días de historial propio para detectar bajadas.
+⚠️ OJO con InitialPrice: en el feed id=98 es el **PVP/RRP del fabricante**, NO un
+precio anterior real. Decathlon vende muchas marcas 3ª (Regatta, Wilson, Siux…) por
+debajo del PVP como precio NORMAL, así que (InitialPrice − Discount_Price) daba
+descuentos FALSOS (verificado: los productos nunca costaron el InitialPrice). Por eso
+detectamos bajadas con NUESTRO histórico propio (decathlon_precios), como ECI/ToysRus:
+referencia = precio máximo sostenido ≥3 días en los últimos 30; deal solo si el precio
+de hoy cae ≥40% respecto a esa referencia REAL.
 
 El feed pesa ~170 MB, así que se descarga en streaming a un fichero temporal y se
 parsea con ET.iterparse (memoria acotada), liberando cada nodo al procesarlo.
@@ -30,15 +34,21 @@ from datetime import datetime
 import requests
 from dotenv import load_dotenv
 
+from datetime import timedelta
+
 load_dotenv()
 
 DECATHLON_FEED_URL = os.getenv("DECATHLON_FEED_URL", "")
 DB_PATH            = os.getenv("DB_PATH", "flipazo_deals.db")
 
 _DESCUENTO_MIN = 40     # % mínimo — mismo que el pipeline general
-_DESCUENTO_MAX = 70     # % máximo — por encima suele ser MSRP inflado de Marketplace (3os)
+_DESCUENTO_CAP = 85     # % máximo de una bajada real (por encima = error de dato)
 _PRECIO_MIN    = 25.0   # € mínimo para deals
 _PRECIO_MAX    = 800.0  # € máximo para deals
+# Detección por histórico propio (decathlon_precios), no por el PVP del feed:
+_DIAS_HISTORIAL  = 30   # ventana de histórico considerada
+_MIN_DIAS_DATOS  = 7    # días distintos de datos exigidos (fiabilidad)
+_MIN_DIAS_EN_MAX = 3    # el precio de referencia debe haberse sostenido ≥N días
 
 # Descarta variantes cuya única diferencia sea una talla de letra (S/M/L/XL…),
 # para preferir una URL/representación de talla numérica o única por modelo.
@@ -191,25 +201,63 @@ def _parsear(path: str) -> tuple[dict[str, dict], int]:
     return modelos, total
 
 
+def _cargar_referencias_historico() -> dict[str, float]:
+    """Referencia REAL por modelo desde decathlon_precios: el precio máximo que ha estado
+    vigente de forma SOSTENIDA (≥_MIN_DIAS_EN_MAX días distintos) en los últimos
+    _DIAS_HISTORIAL días, excluyendo hoy. Solo modelos con ≥_MIN_DIAS_DATOS días de datos
+    (robusto frente a precios puntuales/erróneos). NO usa el InitialPrice (PVP) del feed."""
+    hoy      = datetime.utcnow().strftime("%Y-%m-%d")
+    hace_30d = (datetime.utcnow() - timedelta(days=_DIAS_HISTORIAL)).strftime("%Y-%m-%d")
+    ref: dict[str, float] = {}
+    try:
+        with sqlite3.connect(DB_PATH) as con:
+            _init_tablas(con)
+            rows = con.execute("""
+                WITH base AS (
+                    SELECT model_id, MAX(precio) AS pmax, COUNT(fecha) AS n_dias
+                    FROM   decathlon_precios
+                    WHERE  fecha >= ? AND fecha < ? AND precio > 0
+                    GROUP  BY model_id
+                    HAVING COUNT(fecha) >= ?
+                )
+                SELECT b.model_id, b.pmax
+                FROM   base b
+                JOIN   decathlon_precios p
+                       ON  p.model_id = b.model_id
+                       AND p.fecha >= ? AND p.fecha < ?
+                       AND p.precio >= b.pmax * 0.98
+                GROUP  BY b.model_id
+                HAVING COUNT(p.fecha) >= ?
+            """, (hace_30d, hoy, _MIN_DIAS_DATOS,
+                  hace_30d, hoy, _MIN_DIAS_EN_MAX)).fetchall()
+        ref = {mid: pmax for mid, pmax in rows}
+    except Exception as e:
+        print(f"   ⚠️  Decathlon referencias histórico: {e}")
+    return ref
+
+
 def _detectar_deals(modelos: dict[str, dict]) -> list[dict]:
-    """Descuento directo InitialPrice vs Discount_Price; filtra rango, stock y umbral."""
+    """Bajada REAL: precio de hoy vs máximo sostenido de NUESTRO histórico propio
+    (no el PVP del feed, que es RRP inflado). Solo descuentos verificados por nosotros."""
+    ref = _cargar_referencias_historico()
     deals = []
     for m in modelos.values():
-        pa, pr = m["precio_actual"], m["precio_ref"]
-        if pr <= pa:
-            continue                                   # sin bajada
+        pa   = m["precio_actual"]
+        pmax = ref.get(m["model_id"])
+        if not pmax or pmax <= pa:
+            continue                                   # sin bajada real vs nuestro histórico
         if not (_PRECIO_MIN <= pa <= _PRECIO_MAX):
             continue
         if m["disp"] <= 0:
             continue                                   # sin stock
-        descuento_pct = int((1 - pa / pr) * 100)
-        if not (_DESCUENTO_MIN <= descuento_pct <= _DESCUENTO_MAX):
+        descuento_pct = int((1 - pa / pmax) * 100)
+        if not (_DESCUENTO_MIN <= descuento_pct <= _DESCUENTO_CAP):
             continue
         deals.append({
             "titulo":          m["nombre"],
             "asin":            m["url"],                # deep link afiliado ya incluido
             "precio_actual":   pa,
-            "precio_original": round(pr, 2),
+            "precio_original": round(pmax, 2),         # precio real anterior (histórico propio)
             "descuento_pct":   descuento_pct,
             "tienda":          "Decathlon",
             "imagen_url":      m["imagen_url"] or "",
