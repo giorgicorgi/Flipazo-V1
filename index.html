@@ -4718,6 +4718,31 @@
     return html;
   }
 
+  // ── Entrada animada de las filas horizontales de Explorar (GSAP + ScrollTrigger) ──
+  // Al entrar cada fila en el viewport, sus primeras tarjetas aparecen en cascada
+  // (fade + slide desde la derecha). No toca el scroll nativo. Se anima una vez por
+  // carga del home (se resetea en loadMobileHome) para no re-animar al recompletar.
+  let _explorarAnimated = false;
+  function _animarFilasExplorar() {
+    if (_explorarAnimated) return;
+    if (typeof gsap === "undefined" || typeof ScrollTrigger === "undefined") return;
+    const mh = document.getElementById("js-mobile-home");
+    if (!mh || mh.style.display === "none") return;
+    _explorarAnimated = true;
+    // Limpia triggers de filas previos (por si quedó alguno sin disparar)
+    ScrollTrigger.getAll().forEach(t => { if (t.vars && String(t.vars.id || "").startsWith("mhrow-")) t.kill(); });
+    mh.querySelectorAll(".mhome__scroll").forEach((row, i) => {
+      const cards = Array.from(row.children).filter(el => el.nodeType === 1).slice(0, 8);
+      if (!cards.length) return;
+      gsap.fromTo(cards,
+        { opacity: 0, x: 24 },
+        { opacity: 1, x: 0, duration: 0.4, ease: "power2.out",
+          stagger: 0.05, clearProps: "transform,opacity",
+          scrollTrigger: { id: "mhrow-" + i, trigger: row, start: "top 92%", once: true } }
+      );
+    });
+  }
+
   // ── Render completo del home ──────────────────────────────────
 
   function renderMobileHome(deals) {
@@ -4776,6 +4801,8 @@
       _mhSection("Cuidado Personal",       bellezaDeals.map(renderHCard).join(""),   "mhomeCat('belleza')") +
       _mhSection("Juguetes",               juguetesDeals.map(renderHCard).join(""),  "mhomeCat('juguetes')") +
       _mhSection("Calzado",                calzadoDeals.map(renderHCard).join(""),   "mhomeCat('calzado')");
+
+    requestAnimationFrame(_animarFilasExplorar);
   }
 
   // ── Carga asíncrona ───────────────────────────────────────────
@@ -4783,6 +4810,7 @@
   async function loadMobileHome() {
     if (_mhomeLoading) return;
     _mhomeLoading = true;
+    _explorarAnimated = false;   // re-animar la entrada de filas en cada carga fresca
     _showMobileHome();
 
     const mh = document.getElementById("js-mobile-home");
