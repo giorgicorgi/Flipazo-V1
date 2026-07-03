@@ -2045,7 +2045,9 @@
       font-size: 11px; font-weight: 600; color: var(--ink); line-height: 1.3;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0;
     }
-    .dcard__now { font-size: 13px; font-weight: 800; color: var(--brand); margin-top: 4px; }
+    .dcard__prices { display: flex; align-items: baseline; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
+    .dcard__orig { font-size: 11px; color: var(--text-dim); text-decoration: line-through; }
+    .dcard__now { font-size: 13px; font-weight: 800; color: var(--brand); }
 
     /* ── Category grid: 3 filas × scroll horizontal ── */
     .cgrid {
@@ -4585,7 +4587,10 @@
         <div class="dcard__body">
           <span class="dcard__store">${d.tienda || ""}</span>
           <p class="dcard__title">${_mhT(d.titulo, 50)}</p>
-          <span class="dcard__now">${fmtPrice(d.precio_actual || 0)}</span>
+          <span class="dcard__prices">
+            ${(d.precio_original || 0) > (d.precio_actual || 0) ? `<span class="dcard__orig">${fmtPrice(d.precio_original)}</span>` : ""}
+            <span class="dcard__now">${fmtPrice(d.precio_actual || 0)}</span>
+          </span>
           ${_rebajadoTag(d)}
           ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
         </div>
@@ -4761,16 +4766,16 @@
 
     mh.innerHTML =
       (featured ? renderWhero(featured) : "") +
-      _mhSection("Mayores descuentos",     topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro") +
-      lowcostSection +
-      catSection +
+      _mhSection("Mayores descuentos",     topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro") +   // 1ª
+      lowcostSection +                                                                                                            // 2ª (Por debajo de 25€)
+      promosSection +                                                                                                            // 3ª (Promos y cupones)
+      catSection +                                                                                                               // 4ª (Explorar)
+      storeSection +                                                                                                             // 5ª (Tiendas)
       _mhSubcatSections(deals) +
       _mhSection("Hogar",                  hogarDeals.map(renderHCard).join(""),     "mhomeCat('hogar')") +
       _mhSection("Cuidado Personal",       bellezaDeals.map(renderHCard).join(""),   "mhomeCat('belleza')") +
       _mhSection("Juguetes",               juguetesDeals.map(renderHCard).join(""),  "mhomeCat('juguetes')") +
-      _mhSection("Calzado",                calzadoDeals.map(renderHCard).join(""),   "mhomeCat('calzado')") +
-      promosSection +
-      storeSection;
+      _mhSection("Calzado",                calzadoDeals.map(renderHCard).join(""),   "mhomeCat('calzado')");
   }
 
   // ── Carga asíncrona ───────────────────────────────────────────
