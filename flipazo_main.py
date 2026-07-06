@@ -28,6 +28,7 @@ from scrapers.pss_email import get_pss_productos
 from scrapers.tradedoubler_feed import fetch_tradedoubler_productos
 from scrapers.awin_feed         import fetch_awin_productos
 from scrapers.awin_promotions   import fetch_awin_promociones
+from scrapers.tradedoubler_vouchers import fetch_td_vouchers
 from scrapers.decathlon_feed   import fetch_decathlon_productos
 from scrapers.toysrus_feed     import fetch_toysrus_productos
 from discovery import calcular_deal_score, asignar_tags, generar_hooks_batch
@@ -3238,8 +3239,18 @@ def actualizar_promociones():
 
 
 def await_safe_fetch_promos():
-    """Wrapper para llamar al fetcher de promos (red) de forma aislada."""
-    return fetch_awin_promociones()
+    """Promos/cupones combinados: AWIN Promotions + Tradedoubler Vouchers. Cada fetcher
+    es resiliente (si falla devuelve []); se combinan para la tabla `promociones`."""
+    promos: list[dict] = []
+    try:
+        promos += fetch_awin_promociones()
+    except Exception as e:
+        print(f"   ⚠️  AWIN promos fetch: {e}")
+    try:
+        promos += fetch_td_vouchers()
+    except Exception as e:
+        print(f"   ⚠️  TD vouchers fetch: {e}")
+    return promos
 
 
 # Tiendas de moda pura: títulos poco fiables (marca+código), ~todo ropa → fuera de Threads.

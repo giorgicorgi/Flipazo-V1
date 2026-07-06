@@ -33,6 +33,7 @@ _MOCKS = [
     "scrapers.tradedoubler_feed",
     "scrapers.awin_feed",
     "scrapers.awin_promotions",
+    "scrapers.tradedoubler_vouchers",
     "scrapers.decathlon_feed",
     "scrapers.toysrus_feed",
     "scrapers.beep_feed",
