@@ -281,6 +281,13 @@
       transition: color 0.15s;
     }
     .header-nav__link:hover { color: var(--ink); }
+    .header-nav__link--cupones {
+      color: var(--brand); font-weight: 800; white-space: nowrap;
+      border: 1.5px solid var(--brand); border-radius: 999px; padding: 5px 12px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .header-nav__link--cupones:hover { background: var(--brand); color: #fff; }
+    @media (max-width: 640px) { .header-nav__link--cupones { padding: 4px 9px; font-size: 12px; } }
 
     .header-nav__live {
       display: flex;
@@ -2422,6 +2429,7 @@
 
       <!-- Nav -->
       <nav class="header-nav" aria-label="Navegación principal">
+        <a href="/cupones" class="header-nav__link header-nav__link--cupones">🎟️&nbsp;Cupones</a>
         <a href="/sobre" class="header-nav__link">Sobre</a>
         <a href="/blog" class="header-nav__link">Blog</a>
         <a href="/cuenta" id="js-cuenta-link" class="header-nav__link">Mi&nbsp;Cuenta</a>
@@ -4827,7 +4835,7 @@
 
     const lowcostSection = lcDeals.length ? `<section class="mhome__section">
       <div class="mhome__section-head">
-        <h2 class="mhome__section-title">Por debajo de 25€</h2>
+        <h2 class="mhome__section-title">Ofertas por debajo de 25€</h2>
         <a class="mhome__see-all" href="#" onclick="event.preventDefault();mhomeSort('low_cost')">Ver todo</a>
       </div>
       <div class="mhome__scroll" style="align-items:flex-start;gap:14px">${lcDeals.map(renderCircleCard).join("")}</div>
@@ -4843,17 +4851,14 @@
       <div class="mhome__scroll">${_renderStoreRow()}</div>
     </section>`;
 
-    const promosSection = (_promos && _promos.length)
-      ? _mhSection("🎟️ Promos y cupones", _promos.map(renderPromoCard).join(""))
-      : "";
-
+    // Promos/cupones ya NO van como fila aquí → tienen su propia página /cupones
+    // (botón "Cupones" en la barra superior).
     mh.innerHTML =
       (featured ? renderWhero(featured) : "") +
       _mhSection("Mayores descuentos",     topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro") +   // 1ª
-      lowcostSection +                                                                                                            // 2ª (Por debajo de 25€)
-      promosSection +                                                                                                            // 3ª (Promos y cupones)
-      catSection +                                                                                                               // 4ª (Explorar)
-      storeSection +                                                                                                             // 5ª (Tiendas)
+      lowcostSection +                                                                                                            // 2ª (Ofertas por debajo de 25€)
+      catSection +                                                                                                               // 3ª (Explorar)
+      storeSection +                                                                                                             // 4ª (Tiendas)
       _mhSubcatSections(deals) +
       _mhSection("Hogar",                  hogarDeals.map(renderHCard).join(""),     "mhomeCat('hogar')") +
       _mhSection("Cuidado Personal",       bellezaDeals.map(renderHCard).join(""),   "mhomeCat('belleza')") +

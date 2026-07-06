@@ -146,8 +146,10 @@ AMAZON_SEARCH_URLS = [
     "https://www.amazon.es/s?i=kitchen&k=nespresso+delonghi+kenwood+kitchenaid+krups&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Hogar y electrodomésticos grandes (Dyson, Samsung, LG, Bosch)
     "https://www.amazon.es/s?i=appliances&k=dyson+samsung+lg+bosch+siemens+whirlpool&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Juguetes (Playmobil, Hasbro, Mattel)
-    "https://www.amazon.es/s?i=toys&k=playmobil+hasbro+mattel+hot+wheels&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # Juguetes (marcas conocidas — Amazon sí tiene juguetes a ≥40%)
+    "https://www.amazon.es/s?i=toys&k=playmobil+hasbro+mattel+hot+wheels+funko+nerf+barbie&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
+    # Juguetes 2 — más marcas para ampliar cobertura de la categoría
+    "https://www.amazon.es/s?i=toys&k=fisher-price+bandai+ravensburger+schleich+vtech+clementoni+spin+master+bruder&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Cámaras y fotografía — Canon, Nikon, Sony, GoPro
     "https://www.amazon.es/s?i=photo&k=canon+nikon+sony+gopro+fujifilm+olympus&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
     # Deporte y fitness — Garmin, Fitbit, Polar, relojes deportivos
@@ -2133,6 +2135,8 @@ _MARCAS_CONOCIDAS = {
     "apple", "samsung", "sony", "lg", "philips", "bosch", "dyson",
     "nike", "adidas", "new balance", "jordan", "asics", "puma", "reebok",
     "lego", "nintendo", "playstation", "xbox", "switch",
+    "playmobil", "hasbro", "mattel", "funko", "nerf", "barbie", "fisher-price",
+    "bandai", "ravensburger", "schleich", "vtech", "clementoni", "spin master",
     "bose", "airpods", "jabra", "sennheiser", "hyperx", "jbl",
     "nespresso", "delonghi", "tefal", "rowenta", "braun", "siemens", "breville", "sage",
     "dior", "chanel", "armani", "calvin klein", "lacoste", "north face",
