@@ -594,6 +594,33 @@
       color: var(--brand);
     }
 
+    /* ── Low-cost active banner ("Menos de 25€") ─────────────────── */
+    .lowcost-banner {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin: 10px 40px 0; padding: 14px 20px;
+      background: linear-gradient(135deg, #FFF3DE 0%, #FFE7C7 100%);
+      border: 1.5px solid #F0C88A; border-left: 5px solid #C2410C;
+      border-radius: 12px;
+    }
+    [data-theme="dark"] .lowcost-banner { background: linear-gradient(135deg, #3a2a12, #2a1e0c); border-color: #7a4a1a; border-left-color: #C2410C; }
+    .lowcost-banner__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .lowcost-banner__title { font-family: var(--sans); font-size: 17px; font-weight: 800; color: #9A3412; letter-spacing: -0.01em; }
+    [data-theme="dark"] .lowcost-banner__title { color: #FDBA74; }
+    .lowcost-banner__sub { font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: #B45309; opacity: 0.92; }
+    [data-theme="dark"] .lowcost-banner__sub { color: #E8A366; }
+    .lowcost-banner__clear {
+      flex-shrink: 0; cursor: pointer; white-space: nowrap;
+      font-family: var(--sans); font-size: 12px; font-weight: 800; color: #fff;
+      background: #C2410C; border: none; border-radius: 8px; padding: 8px 14px;
+      transition: background 0.15s;
+    }
+    .lowcost-banner__clear:hover { background: #9A3412; }
+    @media (max-width: 640px) {
+      .lowcost-banner { margin: 8px 18px 0; padding: 12px 14px; }
+      .lowcost-banner__title { font-size: 15px; }
+      .lowcost-banner__sub { font-size: 11.5px; }
+    }
+
     /* ── Filter block ────────────────────────────────────────────── */
     .filter-block {
       background: var(--bg);
@@ -2461,6 +2488,15 @@
     <button onclick="clearSearch()">Limpiar búsqueda ×</button>
   </div>
 
+  <!-- ── LOW-COST ACTIVE BANNER (filtro "Menos de 25€") ──────────── -->
+  <div class="lowcost-banner" id="js-lowcost-banner" style="display:none" role="status">
+    <div class="lowcost-banner__text">
+      <span class="lowcost-banner__title">💸 Ofertas por menos de 25€</span>
+      <span class="lowcost-banner__sub">Chollos pequeños para caprichos y regalos · filtro activo</span>
+    </div>
+    <button class="lowcost-banner__clear" onclick="_toggleLowCost(false)" aria-label="Quitar el filtro de menos de 25€">Ver todo ×</button>
+  </div>
+
 
   <!-- SEO H1 oculto para crawlers ────────────────────────────── -->
   <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">Chollos y ofertas reales en España verificados actualizados cada hora</h1>
@@ -3827,6 +3863,7 @@
 
   function renderGrid() {
     updateHero();
+    _updateLowCostBanner();
     const grid     = document.getElementById("js-grid");
     const matching = allDeals.filter(d => dealMatchesFilters(d));
     const sorted   = sortDeals(matching);
@@ -4028,6 +4065,13 @@
     if (activeLowCost) t = (activeCategory !== "todas") ? (t + " · −25€") : "Menos de 25€";
     const el = document.getElementById("js-section-title");
     if (el) el.textContent = t;
+  }
+
+  // Banner prominente cuando el filtro "Menos de 25€" está activo (deja claro que es
+  // una vista filtrada, por eso hay menos ofertas). Se refleja siempre que se pinta el grid.
+  function _updateLowCostBanner() {
+    const b = document.getElementById("js-lowcost-banner");
+    if (b) b.style.display = activeLowCost ? "flex" : "none";
   }
 
   function _reloadAfterFilterChange() {
@@ -4368,6 +4412,7 @@
 
   function _showMobileHome() {
     _mhomeActive = true;
+    const lcb = document.getElementById("js-lowcost-banner"); if (lcb) lcb.style.display = "none";
     const mh   = document.getElementById("js-mobile-home");
     const gw   = document.getElementById("js-grid-wrap");
     const sh   = document.querySelector(".section-header");
