@@ -594,30 +594,27 @@
       color: var(--brand);
     }
 
-    /* ── Low-cost active banner ("Menos de 25€") ─────────────────── */
+    /* ── Low-cost active note ("Menos de 25€") — sutil, tipo nota ─── */
     .lowcost-banner {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      margin: 10px 40px 0; padding: 14px 20px;
-      background: linear-gradient(135deg, #FFF3DE 0%, #FFE7C7 100%);
-      border: 1.5px solid #F0C88A; border-left: 5px solid #C2410C;
-      border-radius: 12px;
+      margin: 8px 40px 0; padding: 7px 15px;
+      background: var(--surface, #F6F6F4);
+      border: 1px solid var(--border-faint, #ececec);
+      border-radius: 999px;
     }
-    [data-theme="dark"] .lowcost-banner { background: linear-gradient(135deg, #3a2a12, #2a1e0c); border-color: #7a4a1a; border-left-color: #C2410C; }
-    .lowcost-banner__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .lowcost-banner__title { font-family: var(--sans); font-size: 17px; font-weight: 800; color: #9A3412; letter-spacing: -0.01em; }
-    [data-theme="dark"] .lowcost-banner__title { color: #FDBA74; }
-    .lowcost-banner__sub { font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: #B45309; opacity: 0.92; }
-    [data-theme="dark"] .lowcost-banner__sub { color: #E8A366; }
+    [data-theme="dark"] .lowcost-banner { background: rgba(255,255,255,0.04); border-color: var(--border, #333); }
+    .lowcost-banner__text { display: flex; align-items: baseline; gap: 7px; min-width: 0; flex-wrap: wrap; }
+    .lowcost-banner__title { font-family: var(--sans); font-size: 13px; font-weight: 700; color: var(--ink, #222); }
+    .lowcost-banner__sub { font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text-mid, #888); }
     .lowcost-banner__clear {
       flex-shrink: 0; cursor: pointer; white-space: nowrap;
-      font-family: var(--sans); font-size: 12px; font-weight: 800; color: #fff;
-      background: #C2410C; border: none; border-radius: 8px; padding: 8px 14px;
-      transition: background 0.15s;
+      font-family: var(--sans); font-size: 12px; font-weight: 700; color: var(--brand);
+      background: none; border: none; padding: 4px 6px;
     }
-    .lowcost-banner__clear:hover { background: #9A3412; }
+    .lowcost-banner__clear:hover { text-decoration: underline; }
     @media (max-width: 640px) {
-      .lowcost-banner { margin: 8px 18px 0; padding: 12px 14px; }
-      .lowcost-banner__title { font-size: 15px; }
+      .lowcost-banner { margin: 8px 18px 0; padding: 7px 13px; }
+      .lowcost-banner__title { font-size: 12.5px; }
       .lowcost-banner__sub { font-size: 11.5px; }
     }
 
@@ -2492,7 +2489,7 @@
   <div class="lowcost-banner" id="js-lowcost-banner" style="display:none" role="status">
     <div class="lowcost-banner__text">
       <span class="lowcost-banner__title">💸 Ofertas por menos de 25€</span>
-      <span class="lowcost-banner__sub">Chollos pequeños para caprichos y regalos · filtro activo</span>
+      <span class="lowcost-banner__sub">· vista filtrada</span>
     </div>
     <button class="lowcost-banner__clear" onclick="_toggleLowCost(false)" aria-label="Quitar el filtro de menos de 25€">Ver todo ×</button>
   </div>
@@ -4035,6 +4032,7 @@
         if (activeCategory === btn.dataset.cat) return;
         activeCategory = btn.dataset.cat;
         _resetSubcats();
+        _lowCostOff();   // elegir categoría te saca del filtro "Menos de 25€"
         bar.querySelectorAll(".cat-pill").forEach(b => b.classList.remove("cat-pill--active"));
         btn.classList.add("cat-pill--active");
         buildStoreBar();   // tiendas contextuales (puede resetear una tienda incompatible)
@@ -4075,12 +4073,27 @@
   }
 
   function _reloadAfterFilterChange() {
-    if (allDeals.length > 0) { renderGrid(); }
-    else {
+    if (allDeals.length > 0) {
+      renderGrid();
+      // Con un filtro que exige TODAS las páginas (low-cost/categoría/tienda), seguir
+      // cargando el resto en vez de quedarse con lo ya cargado en memoria.
+      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost;
+      if (_wantAll && hasMore && !isLoading) loadMore();
+    } else {
       allDeals = []; currentOffset = 0; hasMore = true;
       document.getElementById("js-grid").innerHTML = "";
       loadMore();
     }
+  }
+
+  // Apaga el filtro "Menos de 25€" (chip + banner). Se llama al elegir otra categoría,
+  // para que usar otro filtro te saque del modo low-cost.
+  function _lowCostOff() {
+    if (!activeLowCost) return;
+    activeLowCost = false;
+    const c = document.getElementById("js-lowcost-chip");
+    if (c) { c.classList.remove("sort-tab--active"); c.setAttribute("aria-pressed", "false"); }
+    _updateLowCostBanner();
   }
 
   // Sorting: Recientes / Mayor descuento / Más votados (desplegable "Ordenar por")
@@ -5134,7 +5147,7 @@
     // Sync con la cat-bar real para que el estado sea consistente
     const bar = document.getElementById("js-cat-bar");
     if (bar) {
-      activeCategory = catId; _resetSubcats();
+      activeCategory = catId; _resetSubcats(); _lowCostOff();
       bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === catId));
       buildStoreBar();
       buildSubcatBar();
