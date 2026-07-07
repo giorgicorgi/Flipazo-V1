@@ -1165,9 +1165,10 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", p
         if tienda not in {"Barrabes", "Decathlon"}
         else [p for p in PALABRAS_PROHIBIDAS if p not in _OUTDOOR_EXEMPT]
     )
-    # Dermocosmética de marca premium (La Roche-Posay, ISDIN, CeraVe…): se exime de los
-    # bloqueos de cosmética genérica (crema hidratante, sérum…) — la marca ya valida calidad.
-    if any(m in t for m in _MARCAS_DERMO):
+    # Dermocosmética de marca premium (La Roche-Posay, ISDIN, CeraVe…) o tienda de cosmética
+    # con descuentos reales verificados (OneBioShop): se eximen de los bloqueos de cosmética
+    # genérica (crema hidratante, sérum…) — marca/tienda ya validan la calidad.
+    if tienda == "OneBioShop" or any(m in t for m in _MARCAS_DERMO):
         _prohibidas = [p for p in _prohibidas if p not in _PALABRAS_COSMETICA]
     if any(p in t for p in _prohibidas):
         return False
@@ -2198,6 +2199,7 @@ _TIENDAS_FEED_CONFIABLE = {
     "Decathlon", "Padel Market", "Adidas",
     # Tiendas AWIN con descuento detectado por NUESTRO histórico (price_drop) → ya verificado
     "ElCorteIngles", "Zalando", "Deporte Outlet", "Brico Depot", "Paco Perfumerias", "Bikila",
+    "OneBioShop", "Tiendanimal",
 }
 
 # ── Marca al frente del título ────────────────────────────────────
@@ -2328,6 +2330,13 @@ _CAT_RE = {
         r'placa.*inducci[oó]n|inducci[oó]n\b|vitrocer[aá]mic|\bhorno\b|'
         r'colch[oó]n|l[aá]mpara|sill[oó]n|sof[aá]|escritorio|estanter[ií]a',
         re.I),
+    "mascotas":     re.compile(
+        r'\bpienso\b|comida.*(?:perro|gato|mascota)|snack.*(?:perro|gato)|premios.*(?:perro|gato)|'
+        r'arena.*(?:gato|sanitaria)|rascador|comedero|bebedero|transport[ií]n|'
+        r'antiparasit|pipeta.*(?:perro|gato)|collar.*(?:antiparasit|perro|gato)|correa.*perro|'
+        r'\bacuario\b|pecera|terrario|royal canin|purina|whiskas|friskies|pedigree|'
+        r'\bfelix\b|dentastix|acana|orijen',
+        re.I),
     "belleza":      re.compile(
         r'perfume|colonia|eau de|fragancia|m[aá]quillaje|labial|'
         r'protector solar|fotoprotector|anthelios|la roche.?posay|isdin|cerave|'
@@ -2372,6 +2381,8 @@ _TIENDA_CAT = {
     "Esdemarca":      "moda",   # tienda de moda de marca (lo que no es calzado → moda)
     "Desigual":       "moda",
     "Paco Perfumerias": "belleza",   # perfumería
+    "OneBioShop":     "belleza",     # cosmética natural/bio
+    "Tiendanimal":    "mascotas",    # productos para mascotas
 }
 # Tiendas 100% deporte: todo su material va a deportes (o calzado), nunca a moda.
 _TIENDAS_DEPORTE = {"Decathlon", "Barrabes", "Mammoth Bikes", "PrivateSportShop",

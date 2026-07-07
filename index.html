@@ -2923,6 +2923,7 @@
     hogar:        /cafetera|nespresso|delonghi|dolce.?gusto|sage\b|breville\b|krups\b|jura\b|aspirador|robot.?aspirador|roomba|irobot|roborock|lefant|dreame|ecovacs|eufy\b|freidora|airfryer|air.?fryer|microondas|lavadora|lavavajillas|frigor[ií]fico|nevera|secadora\b|\bhorno\b|plancha\b(?!.*(?:pelo|cabello|alisad))|plancha.*vapor|centro.*planchado|vaporeta|vaporizador|cepillo.*vapor|vapor.*cepillo|campana\b|campana.*extract|extractor.*humos|\bteka\b|batidora|thermomix|olla.*presi[oó]n|robot.*cocina|dyson|rowenta|tefal|cecotec|shark\b|bissell\b|kenwood\b|magimix\b|calefactor|aire.*acondicionado|ventilador\b|purificador|humidificador|deshumidificador|inducci[oó]n\b|vitrocer[aá]mic|colch[oó]n|l[aá]mpara\b|sill[oó]n\b|sof[aá]\b|escritorio\b|estanter[ií]a|molinillo|licuadora|exprimidor|tostadora|hervidor|sandwichera|gofrera|escoba de vapor|regleta|bombilla|tira led|enchufe intelig|\btermo\b|botella|fiambrera|cesto de secado/i,
     belleza:      /perfume\b|eau de parfum|eau de toilette|\bcolonia\b|fragancia\b|maquillaje|labial\b|crema.*facial|crema.*corporal|crema.*hidratante|s[eé]rum.*facial|fotoprotector|protector solar|anthelios|la roche.?posay|isdin|cerave|av[eè]ne|vichy|eucerin|bioderma|lanc[oô]me|l'?oreal|nivea|olay\b|estee lauder|afeitadora|maquinilla.*afeit|rasuradora\b|oneblade|depiladora|epiladora|oral.?b|cepillo.*dental|cepillo el[eé]ctrico|sonicare|irrigador\b|cortabarba|\bsecador\b|remington\b|wahl\b|babyliss|ghd\b|rizador|moldeador|alisador|plancha.*(?:pelo|cabello)|plancha alisadora|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo/i,
     juguetes:     /\blego\b|playmobil|hasbro|mattel|hot wheels|barbie|juguete|mu[ñn]eca\b|\bfunko\b|\bnerf\b|juego de mesa|puzzle\b|puzle\b|scalextric|rc\b.*coche|coche.*teledirigido|\bteledirigido\b/i,
+    mascotas:     /\bpienso\b|comida.*(?:perro|gato|mascota)|snack.*(?:perro|gato)|arena.*(?:gato|sanitaria)|rascador|comedero|bebedero|transport[ií]n|antiparasit|pipeta.*(?:perro|gato)|collar.*(?:antiparasit|perro|gato)|correa.*perro|\bacuario\b|pecera|royal canin|purina|whiskas|friskies|pedigree|\bfelix\b|dentastix|acana|orijen/i,
     moda:         /\bbolso[s]?\b|carteras?\b|monedero[s]?\b|mochila[s]?\b|maleta[s]?\b|lacoste|ralph lauren|\bdior\b|\bchanel\b|\barmani\b|calvin klein|tommy hilfiger|tommy jeans|pepe jeans|guess\b|gant\b|emporio armani|hugo boss|\bboss\b|barbour|hackett|fred perry|ba[&+]sh|levis?|levi['']?s|wrangler|replay\b|scotch.?soda|massimo dutti|gafas.*sol|gafas.*graduada|\bcintur[oó]n[s]?\b|\bcorbata[s]?\b|\bbufanda[s]?\b|\bgorra[s]?\b|\bpendiente[s]?\b(?!.*audio)|\breloj\b/i,
   };
 
@@ -2946,6 +2947,7 @@
     { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
     { id: "belleza",      label: "Cuidado Personal", test: d => !_RX_APPAREL.test(d.titulo) && !_RX_KITCHEN.test(d.titulo) && !_RX_FOOTWEAR.test(d.titulo) && (_scat(d,"belleza") || _RX.belleza.test(d.titulo)) },
     { id: "juguetes",     label: "Juguetes",      test: d => !_RX_CONSOLE.test(d.titulo) && (_scat(d,"juguetes") || _RX.juguetes.test(d.titulo)) },
+    { id: "mascotas",     label: "Mascotas",      test: d => _scat(d,"mascotas") || _RX.mascotas.test(d.titulo) || d.tienda === "Tiendanimal" },
     { id: "moda",         label: "Moda",          test: d => !_DEPORTE_STORES.has(d.tienda) && !_RX_FOOTWEAR.test(d.titulo) && !_RX_PERFUME.test(d.titulo) && !_RX.deportes.test(d.titulo) && (_scat(d,"moda") || _RX.moda.test(d.titulo) || _RX_APPAREL.test(d.titulo) || d.tienda === "Desigual") },
     { id: "calzado",      label: "Calzado",       test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"calzado") || _RX.calzado.test(d.titulo)) },
   ];
@@ -2972,6 +2974,16 @@
   ];
   let activeDeporteSubcat = "todas";
 
+  // ── Cuidado Personal sub-categories ──────────────────────────
+  const BELLEZA_SUBCATS = [
+    { id: "todas",      label: "Todo Cuidado" },
+    { id: "cosmetica",  label: "Cosmética",   test: d => d.tienda === "OneBioShop" || /maquillaje|labial|m[aá]scara de pesta|colorete|base de maquillaje|corrector|sombra de ojos|eyeliner|crema.*(?:facial|hidratante|corporal|anti|manos)|s[eé]rum|mascarilla facial|contorno|t[oó]nico facial|exfoliante|limpiador facial|protector solar|fotoprotector|cerave|la roche|isdin|av[eè]ne|bioderma|eucerin|vichy|sesderma|filorga|caudalie|\btinte\b|colorante/i.test(d.titulo) },
+    { id: "perfumeria", label: "Perfumería",  test: d => /perfume\b|eau de parfum|eau de toilette|\bcolonia\b|fragancia/i.test(d.titulo) },
+    { id: "cabello",    label: "Cabello",     test: d => /secador|plancha.*(?:pelo|cabello)|rizador|moldeador|alisador|champ[uú]|acondicionador|mascarilla.*(?:pelo|cabello)|cortapelos/i.test(d.titulo) },
+    { id: "afeitado",   label: "Afeitado",    test: d => /afeitadora|maquinilla.*afeit|rasuradora|oneblade|depilad|epilad|recortadora|cortabarba/i.test(d.titulo) },
+  ];
+  let activeBellezaSubcat = "todas";
+
   // Filtro "menos de 25€" — desacoplado del sorting (es un filtro, no un orden)
   let activeLowCost = false;
 
@@ -2980,8 +2992,9 @@
     tecnologia: { list: TECH_SUBCATS,    get: () => activeTechSubcat,    set: v => { activeTechSubcat = v; } },
     moda:       { list: MODA_SUBCATS,    get: () => activeModaSubcat,    set: v => { activeModaSubcat = v; } },
     deportes:   { list: DEPORTE_SUBCATS, get: () => activeDeporteSubcat, set: v => { activeDeporteSubcat = v; } },
+    belleza:    { list: BELLEZA_SUBCATS, get: () => activeBellezaSubcat, set: v => { activeBellezaSubcat = v; } },
   };
-  function _resetSubcats() { activeTechSubcat = "todas"; activeModaSubcat = "todas"; activeDeporteSubcat = "todas"; }
+  function _resetSubcats() { activeTechSubcat = "todas"; activeModaSubcat = "todas"; activeDeporteSubcat = "todas"; activeBellezaSubcat = "todas"; }
 
   // Solo la categoría (sin tener en cuenta la subcategoría activa)
   function dealInCategory(deal, catId) {
@@ -4708,6 +4721,7 @@
     { id: "calzado",      label: "Calzado",          light: "#F2EDFF", dark: "#6D28D9" },
     { id: "belleza",      label: "Cuidado Personal", light: "#FFEDED", dark: "#B91C1C" },
     { id: "juguetes",     label: "Juguetes",         light: "#FFFADF", dark: "#A16207" },
+    { id: "mascotas",     label: "Mascotas",         light: "#EAF7F5", dark: "#0F766E" },
     { id: "herramientas", label: "Herramientas",     light: "#F0F0F0", dark: "#4B5563" },
   ];
 
@@ -4768,7 +4782,7 @@
   // Una fila por cada subcategoría de las categorías que las tienen
   // (Tecnología, Deportes, Moda): "Tecnología — Audio", "Deporte — Pádel", etc.
   function _mhSubcatSections(deals) {
-    const order = ["tecnologia", "deportes", "moda"];
+    const order = ["tecnologia", "deportes", "moda", "belleza"];
     let html = "";
     for (const catId of order) {
       const sd = _SUBCAT_DEFS[catId];

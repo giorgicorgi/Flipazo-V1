@@ -542,6 +542,57 @@ def _filtrar_desigual(raw: list[dict], precio_minimo: float, precio_maximo: floa
     return resultado
 
 
+def _filtrar_sale_price(raw, precio_minimo, precio_maximo, tienda, campo, desc_min=40):
+    """Filtro genérico para feeds con estructura INVERTIDA (formato Google Shopping):
+    priceHistory[0] = precio regular/original, fields[campo] = precio rebajado (sale).
+    Publica solo si el rebajado es realmente < original y el descuento ≥ desc_min."""
+    out: list[dict] = []
+    for item in raw:
+        try:
+            titulo = (item.get("name") or "").strip()
+            if not titulo or len(titulo) < 8:
+                continue
+            offers = item.get("offers") or []
+            if not offers:
+                continue
+            offer = offers[0]
+            ph = offer.get("priceHistory") or []
+            precio_original = _parse_precio((ph[0].get("price") or {}).get("value") if ph else None)
+            precio_actual   = _parse_precio(_get_field(item.get("fields", {}), campo))
+            if not precio_actual or not precio_original or precio_original <= precio_actual:
+                continue
+            if not (precio_minimo <= precio_actual <= precio_maximo):
+                continue
+            descuento_pct = int((1 - precio_actual / precio_original) * 100)
+            if descuento_pct < desc_min:
+                continue
+            disp = (offer.get("availability") or "").lower()
+            if disp and disp not in ("in stock", "available", "en stock"):
+                continue
+            out.append({
+                "titulo":          titulo,
+                "asin":            offer.get("productUrl", ""),
+                "precio_actual":   precio_actual,
+                "precio_original": precio_original,
+                "descuento_pct":   descuento_pct,
+                "tienda":          tienda,
+                "imagen_url":      ((item.get("productImage") or {}).get("url") or ""),
+            })
+        except Exception:
+            continue
+    return out
+
+
+def _filtrar_onebioshop(raw, precio_minimo, precio_maximo):
+    # Cosmética natural/bio — feed Google Shopping con sale_price real (≥40%).
+    return _filtrar_sale_price(raw, precio_minimo, precio_maximo, "OneBioShop", "sale_price", 40)
+
+
+def _filtrar_tiendanimal(raw, precio_minimo, precio_maximo):
+    # Mascotas — sale_price (pocas rebajas; solo publica bajadas reales ≥40%).
+    return _filtrar_sale_price(raw, precio_minimo, precio_maximo, "Tiendanimal", "sale_price", 40)
+
+
 # Cada feed puede tener filtrar_fn propio. None → _filtrar estándar.
 _FEEDS = [
     {"tienda": "MediaMarkt", "fid": "24915",  "filtrar_fn": None},
@@ -549,6 +600,8 @@ _FEEDS = [
     {"tienda": "Esdemarca",  "fid": "116972", "filtrar_fn": _filtrar_esdemarca},
     {"tienda": "Toni Pons",  "fid": "118025", "filtrar_fn": _filtrar_toni_pons},
     {"tienda": "Desigual",   "fid": "256429", "filtrar_fn": _filtrar_desigual},
+    {"tienda": "OneBioShop",  "fid": "117666", "filtrar_fn": _filtrar_onebioshop},
+    {"tienda": "Tiendanimal", "fid": "50625",  "filtrar_fn": _filtrar_tiendanimal},
     # Beep: PreviousPrice es MSRP fabricante, no precio 30d → falsos descuentos sistemáticos.
     # {"tienda": "Beep", "fid": "51903", "filtrar_fn": None},
     # ToysRus: feed sin precio original → descuento incalculable.
