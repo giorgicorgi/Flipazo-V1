@@ -319,6 +319,29 @@ _MARCAS_DROGUERIA = frozenset([
     "rexona",
 ])
 
+# Marcas cosméticas relevantes para OneBioShop (cosmética natural/bio + K-beauty + premium).
+# OneBioShop tiene 112k productos; sin filtro de marca colaban marcas básicas/sin relevancia
+# (y hasta calzado). Solo se publican marcas cosméticas reconocidas. Formas seguras como subcadena.
+_MARCAS_KBEAUTY_BIO = frozenset([
+    # Cosmética natural / bio
+    "cocunat", "freshly cosmetics", "purobio", "so bio etic", "sobio etic", "weleda",
+    "cattier", "logona", "lavera", "dr. hauschka", "hauschka", "melvita", "florame",
+    "natura siberica", "alma secret",
+    # Skincare / maquillaje premium
+    "clarins", "shiseido", "estée lauder", "estee lauder", "lancôme", "lancome", "biotherm",
+    "kiehl's", "kiehls", "sisley", "l'occitane", "loccitane", "rituals", "elizabeth arden",
+    "urban decay", "charlotte tilbury", "fenty", "the ordinary", "paula's choice",
+    "paulas choice", "drunk elephant", "typology",
+    # K-beauty
+    "skin 1004", "purito", "some by mi", "cos de baha", "cosrx", "beauty of joseon",
+    "isntree", "numbuzin", "round lab", "torriden", "mixsoon", "haruharu", "axis-y",
+    "klairs", "benton", "missha", "innisfree", "laneige", "dr. jart", "dr jart", "medicube",
+    "tirtir", "sioris", "pyunkang yul", "heimish", "abib", "mediheal", "skinfood",
+    "holika holika", "banila co", "etude house", "iunik", "by wishtrend",
+])
+# Marcas cosméticas aceptables en OneBioShop = dermo + droguería + natural/K-beauty.
+_MARCAS_COSMETICA_OK = _MARCAS_DERMO | _MARCAS_DROGUERIA | _MARCAS_KBEAUTY_BIO
+
 # Recambios y componentes de bicicleta — bloqueados solo para Mammoth Bikes
 # (términos demasiado especializados; no aplica globalmente porque en otros contextos
 # "cassette" puede ser electrónica, "freno" puede ser pieza de coche, etc.)
@@ -1813,6 +1836,10 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             _p_ori = d.get("precio_original", 0)
             _tienda = d.get("tienda", "")
             if _tienda in ("MediaMarkt", "PCBox") and _p_act > 0 and _p_ori > _p_act * 2.5:
+                continue
+            # OneBioShop (112k productos): solo marcas cosméticas reconocidas — bloquea
+            # marcas básicas/sin relevancia y productos de otras categorías (p.ej. calzado).
+            if _tienda == "OneBioShop" and not any(m in d["titulo"].lower() for m in _MARCAS_COSMETICA_OK):
                 continue
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda=_tienda, precio=_p_act):
                 continue
