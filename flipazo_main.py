@@ -1047,6 +1047,11 @@ _MARCAS_ROPA = frozenset([
     "boss", "barbour", "hackett", "fred perry", "ba&sh", "ba & sh",
     "rotate", "max mara", "weekend max mara", "michael kors",
     "c.p. company", "cp company", "guess", "hoff",
+    # Outerwear / moda premium (ECI, Esdemarca) y ropa surf/skate
+    "moncler", "canada goose", "napapijri", "belstaff", "parajumpers", "woolrich",
+    "jack wolfskin", "k-way", "superdry", "g-star", "pepe jeans", "scalpers",
+    "bimba y lola", "purificacion garcia", "adolfo dominguez", "hugo boss",
+    "quiksilver", "dc shoes", "billabong", "rip curl", "o'neill", "oneill", "volcom", "hurley",
 ])
 
 
@@ -2170,6 +2175,28 @@ _MARCAS_CONOCIDAS = {
     "drop shot", "vibor-a", "vibora", "joma", "wilson", "dunlop",
     # Equipaje / maletas de marca
     "samsonite", "american tourister", "eastpak", "delsey", "rimowa", "roncato", "gabol",
+    # ── Perfumería / fragancia de lujo (Paco Perfumerias, Beauty Corner, Esdemarca) ──
+    "paco rabanne", "jean paul gaultier", "carolina herrera", "hugo boss", "versace",
+    "givenchy", "yves saint laurent", "ysl", "guerlain", "tom ford", "dolce & gabbana",
+    "dolce gabbana", "azzaro", "montblanc", "issey miyake", "bvlgari", "bulgari",
+    "gucci", "valentino", "lancôme", "lancome", "viktor & rolf", "narciso rodriguez",
+    "mugler", "kenzo", "cacharel", "loewe", "jimmy choo", "marc jacobs", "adolfo dominguez",
+    # ── Maquillaje / skincare premium (Beauty Corner, OneBioShop, ECI) ──
+    "clinique", "estee lauder", "estée lauder", "shiseido", "clarins", "biotherm",
+    "kiehl's", "kiehls", "sisley", "elizabeth arden", "urban decay", "charlotte tilbury",
+    "fenty", "l'occitane", "loccitane", "rituals", "cocunat", "freshly cosmetics",
+    # ── Calzado premium (Toni Pons, Cole Haan, Esdemarca) ──
+    "cole haan", "pikolinos", "geox", "clarks", "dr martens", "dr. martens",
+    "birkenstock", "hoka", "merrell", "toni pons",
+    # ── Cocina / hogar premium (WMF y feeds de electrodomésticos) ──
+    "wmf", "moulinex", "russell hobbs", "ninja", "cuisinart", "le creuset",
+    "zwilling", "victorinox", "lékué", "lekue",
+    # ── Surf / skate / acción (Billabong, DC Shoes, Quiksilver…) ──
+    "quiksilver", "dc shoes", "billabong", "rip curl", "o'neill", "oneill", "volcom", "hurley",
+    # ── Outerwear / moda premium (ECI, Esdemarca) ──
+    "moncler", "canada goose", "napapijri", "belstaff", "parajumpers", "woolrich",
+    "jack wolfskin", "k-way", "superdry", "g-star", "pepe jeans", "scalpers",
+    "bimba y lola", "purificacion garcia",
 } | _MARCAS_DERMO  # dermocosmética premium cuenta como marca reconocida (scoring + zona gris)
 
 # Marcas con mercado real de segunda mano en Wallapop/eBay.es → candidatas a ARBITRAJE
@@ -2233,6 +2260,23 @@ _MARCAS_TITULO = sorted([
     "Bullpadel","Babolat","StarVie","Varlion","Black Crown","Drop Shot","Vibor-A","Nox","Siux","Joma","Wilson","Dunlop",
     # Equipaje / maletas
     "Samsonite","American Tourister","Eastpak","Delsey","Rimowa","Roncato","Gabol",
+    # Perfumería / fragancia de lujo
+    "Paco Rabanne","Jean Paul Gaultier","Carolina Herrera","Hugo Boss","Versace","Givenchy",
+    "Yves Saint Laurent","Guerlain","Tom Ford","Dolce & Gabbana","Azzaro","Montblanc",
+    "Issey Miyake","Bvlgari","Prada","Gucci","Valentino","Lancôme","Viktor & Rolf",
+    "Narciso Rodriguez","Mugler","Kenzo","Cacharel","Loewe","Jimmy Choo","Marc Jacobs","Tous","Adolfo Domínguez",
+    # Maquillaje / skincare premium
+    "Clinique","Estée Lauder","Shiseido","Clarins","Biotherm","Kiehl's","Sisley","Elizabeth Arden",
+    "Urban Decay","Charlotte Tilbury","Fenty Beauty","L'Occitane","Rituals","Cocunat","Freshly Cosmetics","Benefit",
+    # Calzado premium
+    "Cole Haan","Pikolinos","Camper","Geox","Clarks","Dr. Martens","Birkenstock","UGG","Hoka","Merrell","Toni Pons",
+    # Cocina / hogar premium
+    "WMF","Moulinex","Russell Hobbs","Ninja","Cuisinart","Le Creuset","Zwilling","Victorinox","Lékué",
+    # Surf / skate / acción
+    "Quiksilver","Roxy","DC Shoes","Billabong","Element","Vans","Rip Curl","O'Neill","Volcom","Hurley",
+    # Outerwear / moda premium
+    "Moncler","Canada Goose","Napapijri","Belstaff","Parajumpers","Woolrich","Jack Wolfskin","K-Way",
+    "Superdry","G-Star","Pepe Jeans","Scalpers","Bimba y Lola","Purificación García",
 ], key=len, reverse=True)  # multi-palabra primero
 
 def _brand_pat(b: str) -> str:
