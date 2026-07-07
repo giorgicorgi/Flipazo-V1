@@ -25,7 +25,7 @@ from playwright_stealth import Stealth
 
 from affiliate.link_builder import build_affiliate_url
 from scrapers.pss_email import get_pss_productos
-from scrapers.tradedoubler_feed import fetch_tradedoubler_productos
+from scrapers.tradedoubler_feed import fetch_tradedoubler_productos, fetch_tradedoubler_historial
 from scrapers.awin_feed         import fetch_awin_productos
 from scrapers.awin_promotions   import fetch_awin_promociones
 from scrapers.tradedoubler_vouchers import fetch_td_vouchers
@@ -293,6 +293,30 @@ _MARCAS_DERMO = frozenset([
 _PALABRAS_COSMETICA = frozenset([
     "crema hidratante", "sérum", "mascarilla facial", "champú",
     "acondicionador", "gel de ducha", "esmalte de uñas",
+])
+# Droguería / gama media: marcas de gran consumo que la gente busca en chollo
+# (maquillaje, capilar, solar, higiene, afeitado). Se reconocen como marca y se
+# eximen del bloqueo de cosmética genérica (champú de marca ≠ champú sin marca).
+# Solo formas SEGURAS como subcadena (las ambiguas —dove, essence, axe, lacer,
+# astor— van únicamente en las listas con límite de palabra \b).
+_MARCAS_DROGUERIA = frozenset([
+    # Maquillaje
+    "maybelline", "l'oréal", "l'oreal", "loreal", "rimmel", "revlon", "max factor",
+    "catrice", "nyx", "bourjois", "kiko milano", "deborah milano",
+    # Capilar
+    "pantene", "garnier", "elvive", "fructis", "tresemmé", "tresemme", "syoss",
+    "schwarzkopf", "gliss", "wella", "herbal essences", "john frieda", "ogx",
+    "aussie", "batiste",
+    # Facial / corporal
+    "nivea", "sanex", "johnson's", "johnsons", "denenes", "natural honey",
+    # Solar
+    "piz buin", "ambre solaire", "delial",
+    # Higiene bucal
+    "colgate", "sensodyne", "parodontax", "listerine",
+    # Afeitado / depilación
+    "gillette", "wilkinson", "schick", "veet",
+    # Desodorante
+    "rexona",
 ])
 
 # Recambios y componentes de bicicleta — bloqueados solo para Mammoth Bikes
@@ -1155,6 +1179,33 @@ def _registrar_observacion_precio(d: dict) -> None:
         pass
 
 
+def _registrar_observaciones_batch(items: list[dict]) -> None:
+    """Registra muchas observaciones de precio en UNA sola conexión (feeds grandes de
+    solo-historial: apparel puede traer decenas de miles). Una fila por producto/tienda/día."""
+    if not items:
+        return
+    fecha_hoy = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    filas = []
+    for d in items:
+        precio_act = d.get("precio_actual", 0)
+        if not precio_act:
+            continue
+        asin_key = d.get("asin") or (d.get("titulo", "")[:40].lower())
+        filas.append((asin_key, d.get("tienda", ""), precio_act, d.get("precio_original", 0), fecha_hoy))
+    if not filas:
+        return
+    try:
+        with sqlite3.connect(DB_PATH) as con:
+            con.executemany(
+                """INSERT OR IGNORE INTO price_history
+                       (asin, tienda, precio, precio_original, fecha)
+                   VALUES (?, ?, ?, ?, ?)""",
+                filas,
+            )
+    except Exception as e:
+        print(f"   ⚠️  batch price_history error: {e}")
+
+
 def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", precio: float = 0.0) -> bool:
     titulo = (titulo or "").strip()
     # Filtro de longitud: títulos demasiado cortos suelen ser sólo marca o imagen rota
@@ -1170,10 +1221,10 @@ def _es_producto_valido(titulo: str, descuento_pct: int = 0, tienda: str = "", p
         if tienda not in {"Barrabes", "Decathlon"}
         else [p for p in PALABRAS_PROHIBIDAS if p not in _OUTDOOR_EXEMPT]
     )
-    # Dermocosmética de marca premium (La Roche-Posay, ISDIN, CeraVe…) o tienda de cosmética
-    # con descuentos reales verificados (OneBioShop): se eximen de los bloqueos de cosmética
-    # genérica (crema hidratante, sérum…) — marca/tienda ya validan la calidad.
-    if tienda == "OneBioShop" or any(m in t for m in _MARCAS_DERMO):
+    # Dermocosmética premium (La Roche-Posay, ISDIN…), droguería de marca (Pantene,
+    # Garnier, Nivea…) o tienda de cosmética verificada (OneBioShop): se eximen del bloqueo
+    # de cosmética genérica (champú de marca sí, champú sin marca no) — la marca valida calidad.
+    if tienda == "OneBioShop" or any(m in t for m in _MARCAS_DERMO) or any(m in t for m in _MARCAS_DROGUERIA):
         _prohibidas = [p for p in _prohibidas if p not in _PALABRAS_COSMETICA]
     if any(p in t for p in _prohibidas):
         return False
@@ -1776,6 +1827,20 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         print(f"   ❌ Error en Tradedoubler feeds: {e}")
         alertar_admin("Error en Tradedoubler feeds", str(e))
 
+    # ── TD feeds SIN precio de referencia — SOLO HISTORIAL (revisar en ~2 semanas) ──
+    # Braun, De'Longhi, Tefal, Suunto, L'Occitane, Beauty Corner, Eureka, DC Shoes,
+    # Quiksilver, Roxy, Element: no traen precio "antes" fiable → NO se publican; se
+    # ingieren para acumular price_history y detectar bajadas reales dentro de ~2 semanas.
+    try:
+        hist_raw = await asyncio.to_thread(
+            fetch_tradedoubler_historial, PRECIO_MINIMO_LC, PRECIO_MAXIMO,
+        )
+        _registrar_observaciones_batch(hist_raw)
+        if hist_raw:
+            print(f"   🗂️  TD historial (sin publicar): {len(hist_raw)} observaciones registradas")
+    except Exception as e:
+        print(f"   ❌ Error en TD historial: {e}")
+
     # ── Decathlon feed (historial de precios propio, caché 23h) ───────────────
     try:
         dec_raw = await asyncio.to_thread(fetch_decathlon_productos)
@@ -2197,7 +2262,9 @@ _MARCAS_CONOCIDAS = {
     "moncler", "canada goose", "napapijri", "belstaff", "parajumpers", "woolrich",
     "jack wolfskin", "k-way", "superdry", "g-star", "pepe jeans", "scalpers",
     "bimba y lola", "purificacion garcia",
-} | _MARCAS_DERMO  # dermocosmética premium cuenta como marca reconocida (scoring + zona gris)
+    # ── Electrodomésticos gama media (chollos que la gente busca) ──
+    "taurus", "orbegozo", "ufesa", "fagor", "tristar", "palson",
+} | _MARCAS_DERMO | _MARCAS_DROGUERIA  # dermo premium + droguería gama media cuentan como marca reconocida
 
 # Marcas con mercado real de segunda mano en Wallapop/eBay.es → candidatas a ARBITRAJE
 _MARCAS_ARBITRAJE = {
@@ -2277,6 +2344,13 @@ _MARCAS_TITULO = sorted([
     # Outerwear / moda premium
     "Moncler","Canada Goose","Napapijri","Belstaff","Parajumpers","Woolrich","Jack Wolfskin","K-Way",
     "Superdry","G-Star","Pepe Jeans","Scalpers","Bimba y Lola","Purificación García",
+    # Droguería / gama media (maquillaje, capilar, solar, higiene, afeitado)
+    "Maybelline","L'Oréal","Rimmel","Revlon","Max Factor","Catrice","NYX","Bourjois","Kiko Milano",
+    "Deborah Milano","Essence","Astor","Pantene","Garnier","Elvive","Garnier Fructis","TRESemmé","Syoss",
+    "Schwarzkopf","Gliss","Wella","Herbal Essences","John Frieda","OGX","Aussie","Batiste","Nivea","Sanex",
+    "Johnson's","Natural Honey","Dove","Piz Buin","Ambre Solaire","Delial","Colgate","Sensodyne","Parodontax",
+    "Listerine","Lacer","Gillette","Wilkinson","Schick","Veet","Rexona","Axe",
+    "Taurus","Orbegozo","Ufesa","Fagor","Tristar","Palson",
 ], key=len, reverse=True)  # multi-palabra primero
 
 def _brand_pat(b: str) -> str:

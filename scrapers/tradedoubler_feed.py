@@ -608,6 +608,90 @@ _FEEDS = [
     # {"tienda": "ToysRus", "fid": "21529", "filtrar_fn": None},
 ]
 
+# ── Feeds SIN precio de referencia usable — modo SOLO HISTORIAL ────────────────
+# Estos feeds no traen un precio "antes" fiable (ni strike_price/PreviousPrice ni un
+# sale_price con descuento real), así que NO se pueden publicar todavía. Se ingieren
+# solo para acumular historial de precios propio (price_history); en ~2 semanas habrá
+# suficiente histórico para detectar bajadas reales (igual que hacemos con ECI/Decathlon).
+_FEEDS_HISTORIAL = [
+    {"tienda": "Braun",                    "fid": "39258"},   # braunhousehold.com
+    {"tienda": "De'Longhi",                "fid": "37728"},   # delonghi.com
+    {"tienda": "Tefal",                    "fid": "51766"},   # tefal.es
+    {"tienda": "Suunto",                   "fid": "108428"},  # suunto.com
+    {"tienda": "L'Occitane",               "fid": "19327"},   # loccitane.com
+    {"tienda": "The Beauty Corner",        "fid": "49574"},   # thebeautycorner.eu
+    {"tienda": "Eureka Electrodomésticos", "fid": "38346"},   # eurekaelectrodomesticos.es
+    {"tienda": "DC Shoes",                 "fid": "42613"},   # dcshoes.es
+    {"tienda": "Quiksilver",               "fid": "42467"},   # quiksilver.es
+    {"tienda": "Roxy",                     "fid": "43218"},   # roxy.es
+    {"tienda": "Element",                  "fid": "258062"},  # elementbrand.es
+]
+
+_cache_hist: list[dict] = []
+_last_fetch_hist: "datetime | None" = None
+_feed_cache_hist: dict[str, list[dict]] = {}
+
+
+def _observacion_historial(item: dict, tienda: str, precio_minimo: float, precio_maximo: float):
+    """Extrae una observación de precio (sin descuento) para price_history.
+    Precio actual = priceHistory[0] (o price.value). id estable = product(fid-CODE) de la URL."""
+    offers = item.get("offers") or []
+    if not offers:
+        return None
+    off = offers[0]
+    disp = (off.get("availability") or "").lower()
+    if disp and disp not in ("in stock", "available", "en stock"):
+        return None
+    ph = off.get("priceHistory") or []
+    val = (ph[0].get("price") or {}).get("value") if ph else (off.get("price") or {}).get("value")
+    precio = _parse_precio(val)
+    if not precio or not (precio_minimo <= precio <= precio_maximo):
+        return None
+    titulo = (item.get("name") or "").strip()
+    if len(titulo) < 8:
+        return None
+    url = off.get("productUrl", "")
+    m = re.search(r"product\(([^)]+)\)", url)
+    pid = m.group(1) if m else (url[:60] or titulo[:40].lower())
+    return {"titulo": titulo, "precio_actual": precio, "precio_original": 0,
+            "tienda": tienda, "asin": pid}
+
+
+def fetch_tradedoubler_historial(precio_minimo: float = 8.0, precio_maximo: float = 800.0) -> list[dict]:
+    """Observaciones de precio de los feeds SIN precio de referencia (NO publicables aún).
+    Devuelve list[dict] {titulo, precio_actual, precio_original:0, tienda, asin} para
+    registrar en price_history. Caché 23h propia (separada de la de deals publicables)."""
+    global _cache_hist, _last_fetch_hist
+    if not TRADEDOUBLER_TOKEN:
+        return []
+    ahora = datetime.now()
+    if _last_fetch_hist and (ahora - _last_fetch_hist) < timedelta(hours=_CACHE_TTL_H):
+        return _cache_hist
+
+    obs: list[dict] = []
+    total_raw = 0
+    fallos = 0
+    for feed in _FEEDS_HISTORIAL:
+        tienda, fid = feed["tienda"], feed["fid"]
+        raw = _fetch_unlimited(fid)
+        total_raw += len(raw)
+        if not raw:
+            prev = _feed_cache_hist.get(fid, [])
+            fallos += 1
+            obs.extend(prev)
+            continue
+        feed_obs = [o for o in (_observacion_historial(x, tienda, precio_minimo, precio_maximo) for x in raw) if o]
+        _feed_cache_hist[fid] = feed_obs
+        print(f"   🗂️  TD historial: {tienda} (fid={fid}) → {len(raw)} prod, {len(feed_obs)} observaciones")
+        obs.extend(feed_obs)
+
+    if total_raw == 0:
+        return _cache_hist
+    _cache_hist = obs
+    if fallos == 0:
+        _last_fetch_hist = ahora
+    return obs
+
 
 def fetch_tradedoubler_productos(
     descuento_minimo: int = 40,
