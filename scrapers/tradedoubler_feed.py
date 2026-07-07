@@ -645,6 +645,14 @@ def _observacion_historial(item: dict, tienda: str, precio_minimo: float, precio
     ph = off.get("priceHistory") or []
     val = (ph[0].get("price") or {}).get("value") if ph else (off.get("price") or {}).get("value")
     precio = _parse_precio(val)
+    if not precio:
+        # Algunos feeds (Suunto, Tefal, Roxy, Element…) traen el precio en un campo,
+        # no en priceHistory: probar sale_price / discount_price / price.
+        fields = item.get("fields", {})
+        for campo in ("sale_price", "Sale price", "discount_price", "price", "Price"):
+            precio = _parse_precio(_get_field(fields, campo))
+            if precio:
+                break
     if not precio or not (precio_minimo <= precio <= precio_maximo):
         return None
     titulo = (item.get("name") or "").strip()
