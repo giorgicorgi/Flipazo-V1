@@ -67,6 +67,7 @@ SCORE_ARBITRAJE_MINIMO  = 60    # Score reventa mínimo para ir a Wallapop
 BENEFICIO_NETO_MINIMO   = 20.0  # € margen neto real mínimo para publicar
 RATIO_HISTORICO_MAX     = 1.20  # Precio actual <= 120% del mínimo histórico CCC (era 1.15)
 RATIO_PRECIO_REF_INFLADO = 1.25 # Si precio_original > 125% del promedio histórico → referencia inflada artificialmente
+_DESC_MAX_SIN_VERIFICAR = 70    # Amazon SIN historial ni CCC: un descuento ≥70% es inverificable → descartar (evita refs infladas tipo SSD 1249€→340€)
 
 # ── Umbrales Track B: OFERTA PURA (sin reventa) ──────────────────
 SCORE_OFERTA_MINIMO     = 58    # Score calidad/valor mínimo
@@ -2058,11 +2059,11 @@ async def verificar_con_keepa(productos: list[Producto]) -> list[Producto]:
         else:
             # Sin historial Keepa — aplicar check de ratio extremo
             if (p.precio_original > 0 and p.precio_actual > 0
-                    and p.precio_original / p.precio_actual > 8
-                    and p.descuento_pct > 75):
+                    and (p.descuento_pct >= _DESC_MAX_SIN_VERIFICAR
+                         or p.precio_original / p.precio_actual > 8)):
                 print(
-                    f"   ❌ Sin Keepa + ratio extremo "
-                    f"{p.precio_original/p.precio_actual:.1f}x: {p.titulo[:40]}"
+                    f"   ❌ Sin Keepa + descuento inverificable "
+                    f"({p.descuento_pct}%, {p.precio_original/p.precio_actual:.1f}x): {p.titulo[:40]}"
                 )
                 await asyncio.sleep(0.3)
                 continue
@@ -2125,11 +2126,11 @@ async def verificar_con_ccc(
                 print(f"   ❌ [{fuente}] {ratio:.2f}x del mínimo ({min_h}€): {p.titulo[:40]}")
         else:
             if (p.precio_original > 0 and p.precio_actual > 0
-                    and p.precio_original / p.precio_actual > 8
-                    and p.descuento_pct > 75):
+                    and (p.descuento_pct >= _DESC_MAX_SIN_VERIFICAR
+                         or p.precio_original / p.precio_actual > 8)):
                 print(
-                    f"   ❌ Sin CCC + ratio extremo "
-                    f"{p.precio_original/p.precio_actual:.1f}x: {p.titulo[:40]}"
+                    f"   ❌ Sin CCC + descuento inverificable "
+                    f"({p.descuento_pct}%, {p.precio_original/p.precio_actual:.1f}x): {p.titulo[:40]}"
                 )
                 await asyncio.sleep(1.5)
                 continue
