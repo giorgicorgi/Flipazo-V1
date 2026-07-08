@@ -2508,6 +2508,107 @@
   <!-- SEO H1 oculto para crawlers ────────────────────────────── -->
   <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">Chollos y ofertas reales en España verificados actualizados cada hora</h1>
 
+  <!-- ── INTRO HERO / BANNER DE BIENVENIDA ─────────────────────── -->
+  <style>
+    .intro-hero {
+      --ih-accent: #E8622A; --ih-accent-2: #F0763C;
+      --ih-card: #17130E; --ih-card-2: #241A11;
+      --ih-ink: #F7F3EC; --ih-dim: #A79E92; --ih-line: rgba(255,255,255,.09);
+      max-width: 1240px; margin: 20px auto 8px; padding: 0 20px;
+    }
+    [data-theme="dark"] .intro-hero { --ih-card:#13100C; --ih-card-2:#1D1710; --ih-line: rgba(255,255,255,.10); }
+    .intro-hero__card {
+      position: relative; overflow: hidden; border-radius: 24px;
+      background: radial-gradient(130% 150% at 84% 26%, var(--ih-card-2) 0%, var(--ih-card) 56%);
+      border: 1px solid var(--ih-line);
+      box-shadow: 0 24px 60px -26px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);
+      padding: 48px 54px;
+      display: grid; grid-template-columns: 1.06fr .94fr; gap: 34px; align-items: center; min-height: 350px;
+    }
+    [data-theme="dark"] .intro-hero__card {
+      box-shadow: 0 24px 60px -28px rgba(0,0,0,.72), 0 0 0 1px rgba(232,98,42,.07), inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    .intro-hero__bg { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+    .intro-hero__bg span {
+      position:absolute; font-family:var(--serif); font-weight:900; line-height:1;
+      color: rgba(232,98,42,.06); white-space:nowrap; user-select:none; letter-spacing:-.02em;
+    }
+    .intro-hero__left { position:relative; z-index:2; }
+    .intro-hero__eyebrow { display:flex; align-items:center; gap:9px; font-size:12.5px; font-weight:800; letter-spacing:.16em; color:var(--ih-accent); text-transform:uppercase; }
+    .intro-hero__eyebrow .dot { width:7px; height:7px; border-radius:50%; background:var(--ih-accent); box-shadow:0 0 0 4px rgba(232,98,42,.16); animation: ihPulse 2.4s ease-in-out infinite; }
+    @keyframes ihPulse { 0%,100%{box-shadow:0 0 0 4px rgba(232,98,42,.16);} 50%{box-shadow:0 0 0 7px rgba(232,98,42,.05);} }
+    .intro-hero__title { font-family:var(--serif); font-weight:900; color:var(--ih-ink); font-size:clamp(34px,4.1vw,52px); line-height:1.03; letter-spacing:-.01em; margin:18px 0 0; }
+    .intro-hero__title em { font-style:italic; color:var(--ih-accent); }
+    .intro-hero__lede { color:var(--ih-dim); font-size:16px; line-height:1.6; max-width:35ch; margin:16px 0 0; }
+    .intro-hero__search { display:flex; gap:10px; margin-top:26px; max-width:520px; }
+    .intro-hero__search input { flex:1; min-width:0; background:rgba(255,255,255,.05); border:1px solid var(--ih-line); border-radius:13px; padding:0 16px; height:54px; color:var(--ih-ink); font-family:var(--sans); font-size:15px; outline:none; transition:border-color .15s, box-shadow .15s; }
+    .intro-hero__search input::placeholder { color:#8b8378; }
+    .intro-hero__search input:focus { border-color:rgba(232,98,42,.5); box-shadow:0 0 0 3px rgba(232,98,42,.14); }
+    .intro-hero__search button { background:var(--ih-accent); color:#fff; border:none; border-radius:13px; padding:0 26px; height:54px; font-family:var(--sans); font-weight:800; font-size:15px; cursor:pointer; transition:background .15s, transform .08s; white-space:nowrap; }
+    .intro-hero__search button:hover { background:var(--ih-accent-2); }
+    .intro-hero__search button:active { transform:translateY(1px); }
+    .intro-hero__pills { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
+    .ihpill { display:inline-flex; align-items:center; gap:7px; background:rgba(255,255,255,.05); border:1px solid var(--ih-line); color:#cfc7ba; border-radius:999px; padding:9px 15px; font-size:13px; font-weight:600; }
+    .ihpill b { color:var(--ih-accent); font-weight:800; }
+    .intro-hero__right { position:relative; z-index:2; text-align:right; align-self:center; }
+    .ih-show__label { font-size:12px; font-weight:800; letter-spacing:.22em; color:var(--ih-dim); text-transform:uppercase; }
+    .ih-show__deal { display:block; text-decoration:none; }
+    .ih-show__pct { font-family:var(--serif); font-weight:900; color:var(--ih-accent); line-height:.9; font-size:clamp(74px,11.5vw,152px); letter-spacing:-.02em; display:flex; align-items:flex-start; justify-content:flex-end; margin-top:6px; text-shadow:0 0 64px rgba(232,98,42,.3); }
+    .ih-show__pct .ih-minus { font-size:.5em; margin-top:.3em; margin-right:.03em; font-weight:800; }
+    .ih-show__pct .ih-sym { font-size:.62em; margin-top:.07em; }
+    .ih-show__name { color:var(--ih-ink); font-weight:700; font-size:19px; margin-top:2px; letter-spacing:-.01em; }
+    .ih-show__price { margin-top:7px; display:flex; align-items:center; justify-content:flex-end; gap:10px; color:var(--ih-ink); flex-wrap:wrap; }
+    .ih-show__price b { font-size:22px; font-weight:800; }
+    .ih-show__price s { color:var(--ih-dim); font-size:15px; }
+    .ih-show__store { display:inline-flex; align-items:center; gap:6px; color:var(--ih-dim); font-size:13px; font-weight:600; }
+    .ih-show__store i { width:7px; height:7px; border-radius:50%; background:var(--ih-accent); display:inline-block; }
+    .ih-anim-in { animation: ihIn .5s cubic-bezier(.22,1,.36,1); }
+    @keyframes ihIn { from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
+    @media (max-width: 900px) {
+      .intro-hero { padding:0 14px; margin:14px auto 4px; }
+      .intro-hero__card { grid-template-columns:1fr; padding:62px 24px 30px; gap:24px; min-height:0; }
+      .intro-hero__right { text-align:left; }
+      .ih-show__pct, .ih-show__price { justify-content:flex-start; }
+      .intro-hero__lede { max-width:none; }
+    }
+    @media (prefers-reduced-motion: reduce) { .ih-anim-in, .intro-hero__eyebrow .dot { animation:none; } }
+  </style>
+  <section class="intro-hero" id="js-intro-hero" style="display:none" aria-label="Bienvenido a Flipazo">
+    <div class="intro-hero__card">
+      <div class="intro-hero__bg" aria-hidden="true">
+        <span style="top:-6%; left:34%; font-size:190px;">−49%</span>
+        <span style="top:24%; right:-2%; font-size:150px;">82%</span>
+        <span style="bottom:-10%; left:2%; font-size:170px;">−58%</span>
+      </div>
+      <div class="intro-hero__left">
+        <div class="intro-hero__eyebrow"><span class="dot"></span>COMPARA · AHORRA · FLIPA</div>
+        <h2 class="intro-hero__title">Ofertas que<br><em>sí</em> son ofertas.</h2>
+        <p class="intro-hero__lede">Flipazo analiza millones de precios cada día en todas las grandes tiendas y te enseña solo las rebajas de verdad. Gratis y sin registro.</p>
+        <form class="intro-hero__search" onsubmit="return _ihSearch(event)" role="search">
+          <input id="js-ih-input" type="search" placeholder="Busca lo que quieras comprar…" autocomplete="off" aria-label="Buscar ofertas" />
+          <button type="submit">Buscar</button>
+        </form>
+        <div class="intro-hero__pills">
+          <span class="ihpill"><b id="js-ih-avg">−52%</b> descuento medio</span>
+          <span class="ihpill">Actualizado cada 5 min</span>
+          <span class="ihpill">Gratis · sin registro</span>
+        </div>
+      </div>
+      <div class="intro-hero__right">
+        <div class="ih-show__label">Ahora mismo</div>
+        <a class="ih-show__deal" id="js-ih-deal" href="#" target="_blank" rel="noopener sponsored" aria-live="polite">
+          <div class="ih-show__pct" id="js-ih-show"><span class="ih-minus">−</span><span id="js-ih-pct">49</span><span class="ih-sym">%</span></div>
+          <div class="ih-show__name" id="js-ih-name">Zapatillas Nike Air Max 270</div>
+          <div class="ih-show__price">
+            <b id="js-ih-price">72 €</b>
+            <s id="js-ih-orig">140 €</s>
+            <span class="ih-show__store"><i></i><span id="js-ih-store">eBay</span></span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
   <!-- ── HERO SECTION ──────────────────────────────────────────── -->
   <section class="hero" id="js-hero" style="display:none" aria-label="Oferta destacada">
     <div id="js-hero-main">
@@ -3612,6 +3713,8 @@
 
   function updateHero() {
     const hero = document.getElementById("js-hero");
+    // El banner de bienvenida (intro-hero) hace de destacado en la landing → suprime el hero antiguo.
+    if (_shouldShowIntro()) { hero.style.display = "none"; heroMode = false; _heroId = null; return; }
     if (!shouldShowHero() || allDeals.length === 0) {
       hero.style.display = "none"; heroMode = false; _heroId = null; return;
     }
@@ -3630,6 +3733,116 @@
     _heroId = dealOfDay.id;
     document.getElementById("js-hero-main").innerHTML = buildHeroMain(dealOfDay);
     hero.style.display = "";
+  }
+
+  // ── Intro hero / banner de bienvenida (showcase animado en tiempo real) ──
+  let _ihTimer = null, _ihIdx = 0, _ihPool = [], _introShown = false;
+
+  function _shouldShowIntro() {
+    return activeCategory === "todas" && !searchQuery && !activeStore && !activeLowCost;
+  }
+
+  // Mejores + más recientes: precio decente, descuento fuerte, con imagen y no expirado.
+  function _ihEligible() {
+    const src = (allDeals && allDeals.length) ? allDeals : _mhomeDeals;
+    const now = Date.now();
+    const pool = (src || []).filter(d =>
+      d && d.titulo && !d.expirado &&
+      (d.precio_actual || 0) >= 25 && (d.descuento_pct || 0) >= 40
+    );
+    pool.sort((a, b) => {
+      const recA = (now - new Date(a.timestamp || 0).getTime()) < 6 * 3600 * 1000 ? 1 : 0;
+      const recB = (now - new Date(b.timestamp || 0).getTime()) < 6 * 3600 * 1000 ? 1 : 0;
+      if (recA !== recB) return recB - recA;
+      return (b.descuento_pct || 0) - (a.descuento_pct || 0);
+    });
+    return pool.slice(0, 14);
+  }
+
+  function _ihTitle(t) {
+    let s = (typeof marcaPrimero === "function" ? marcaPrimero(t || "") : (t || "")).trim();
+    if (s.length > 44) s = s.slice(0, 42).trim() + "…";
+    return s;
+  }
+
+  function _ihAnimatePct(to) {
+    const el = document.getElementById("js-ih-pct");
+    if (!el) return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) { el.textContent = to; return; }
+    const dur = 560, t0 = performance.now();
+    function step(t) {
+      const p = Math.min(1, (t - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(to * eased);
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function _ihShow(d, animate) {
+    if (!d) return;
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    set("js-ih-name", _ihTitle(d.titulo));
+    set("js-ih-price", fmtPrice(d.precio_actual || 0));
+    const orig = document.getElementById("js-ih-orig");
+    if (orig) { const has = (d.precio_original || 0) > 0; orig.textContent = has ? fmtPrice(d.precio_original) : ""; orig.style.display = has ? "" : "none"; }
+    set("js-ih-store", d.tienda || "");
+    const link = document.getElementById("js-ih-deal");
+    if (link) link.href = d.url_affiliate || "#";
+    const wrap = document.getElementById("js-ih-show");
+    if (animate && wrap) { wrap.classList.remove("ih-anim-in"); void wrap.offsetWidth; wrap.classList.add("ih-anim-in"); _ihAnimatePct(d.descuento_pct || 0); }
+    else { set("js-ih-pct", d.descuento_pct || 0); }
+  }
+
+  function _ihUpdateAvg() {
+    const el = document.getElementById("js-ih-avg");
+    if (!el) return;
+    const all = (allDeals || []).filter(d => (d.descuento_pct || 0) > 0);
+    if (!all.length) return;
+    const avg = Math.round(all.reduce((s, d) => s + (d.descuento_pct || 0), 0) / all.length);
+    if (avg > 0) el.textContent = "−" + avg + "%";
+  }
+
+  function _ihTick() {
+    const pool = _ihEligible();
+    if (!pool.length) return;
+    _ihPool = pool;
+    _ihIdx = (_ihIdx + 1) % pool.length;
+    _ihShow(pool[_ihIdx], true);
+  }
+  function _ihStart() { if (!_ihTimer) _ihTimer = setInterval(_ihTick, 3800); }
+  function _ihStop()  { if (_ihTimer) { clearInterval(_ihTimer); _ihTimer = null; } }
+
+  function updateIntroHero() {
+    const el = document.getElementById("js-intro-hero");
+    if (!el) return;
+    if (_shouldShowIntro()) {
+      el.style.display = "";
+      _ihUpdateAvg();
+      const pool = _ihEligible();
+      if (pool.length) {
+        _ihPool = pool;
+        if (!_introShown) { _ihIdx = 0; _ihShow(pool[0], true); }
+      }
+      _introShown = true;
+      _ihStart();
+    } else {
+      el.style.display = "none";
+      _introShown = false;
+      _ihStop();
+    }
+  }
+
+  function _ihSearch(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const inp = document.getElementById("js-ih-input");
+    const q = (inp && inp.value || "").trim();
+    if (!q) return false;
+    const hi = document.getElementById("js-search-input"); if (hi) hi.value = q;
+    const clr = document.getElementById("js-search-clear"); if (clr) clr.style.display = "";
+    applySearch(q);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return false;
   }
 
   // ── Votes ─────────────────────────────────────────────────────
@@ -3808,6 +4021,7 @@
     dd.hidden = true;
     searchQuery = query;
     updateHero();
+    updateIntroHero();
     const results = searchDeals(query).filter(d => dealMatchesStore(d));
 
     const banner     = document.getElementById("js-search-banner");
@@ -3900,6 +4114,7 @@
 
   function renderGrid() {
     updateHero();
+    updateIntroHero();
     _updateLowCostBanner();
     const grid     = document.getElementById("js-grid");
     const matching = allDeals.filter(d => dealMatchesFilters(d));
@@ -3938,6 +4153,7 @@
       currentOffset    += batch.length;
 
       updateHero();
+      updateIntroHero();
 
       const grid    = document.getElementById("js-grid");
       const emptyEl = grid.querySelector(".empty");
@@ -4477,6 +4693,7 @@
     if (hero) hero.style.display = "none";
     if (back) back.style.display = "none";
     _cameFromMhome = false;
+    updateIntroHero();
   }
 
   function _showRegularGrid() {
@@ -4560,6 +4777,7 @@
       }
     }
     try { localStorage.setItem("flipazo_desktop_view", view); } catch {}
+    updateIntroHero();
   }
 
   // ── Card renderers ────────────────────────────────────────────
@@ -5249,7 +5467,9 @@
     const savedView = (() => { try { return localStorage.getItem("flipazo_view") || "mosaic"; } catch { return "mosaic"; } })();
     setMobileView(savedView);
   } else {
-    const savedDesktopView = (() => { try { return localStorage.getItem("flipazo_desktop_view") || "explorar"; } catch { return "explorar"; } })();
+    // Vista por defecto = "Todos" (all deals con el banner de bienvenida encima).
+    // Los usuarios que eligieron "Explorar" mantienen su preferencia guardada.
+    const savedDesktopView = (() => { try { return localStorage.getItem("flipazo_desktop_view") || "todos"; } catch { return "todos"; } })();
     if (savedDesktopView === "explorar") {
       setDesktopView("explorar");
     } else {
