@@ -881,6 +881,27 @@
       flex-wrap: wrap;
     }
 
+    /* ── Hero: 'Oferta del día' + carrusel de cupones a la derecha ── */
+    .hero__grid { display: grid; grid-template-columns: 1fr; gap: 26px; }
+    @media (min-width: 900px) { .hero__grid { grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); align-items: stretch; } }
+    .hero-coupons { min-width: 0; position: relative; display: flex; flex-direction: column; border-left: 1px solid var(--border); padding-left: 28px; }
+    @media (max-width: 899px) { .hero-coupons { border-left: none; border-top: 1px solid var(--border); padding-left: 0; padding-top: 20px; } }
+    .hero-coupons__head { display: flex; align-items: center; gap: 7px; font-family: var(--sans); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); margin-bottom: 14px; }
+    .hero-coupons__head i { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+    .hero-coupons__viewport { position: relative; overflow: hidden; flex: 1; display: flex; align-items: center;
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 92%, transparent);
+              mask-image: linear-gradient(90deg, transparent, #000 5%, #000 92%, transparent); }
+    .hero-coupons__track { display: flex; gap: 12px; width: max-content; animation: heroCouponsScroll 34s linear infinite; }
+    .hero-coupons:hover .hero-coupons__track { animation-play-state: paused; }
+    @keyframes heroCouponsScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .hcoupon { flex: 0 0 auto; width: 188px; box-sizing: border-box; min-height: 118px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 15px; text-decoration: none; display: flex; flex-direction: column; gap: 6px; transition: border-color .15s, transform .15s, box-shadow .15s; }
+    .hcoupon:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: var(--card-shadow); }
+    .hcoupon__store { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hcoupon__title { font-family: var(--sans); font-size: 13px; font-weight: 800; color: var(--ink); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .hcoupon__code { font-family: var(--sans); font-size: 11px; font-weight: 800; color: var(--brand); background: rgba(245,40,52,0.07); border: 1px dashed var(--brand); border-radius: 6px; padding: 3px 8px; align-self: flex-start; letter-spacing: .03em; }
+    .hcoupon__cta { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text-dim); margin-top: auto; }
+    @media (prefers-reduced-motion: reduce) { .hero-coupons__track { animation: none; } .hero-coupons__viewport { overflow-x: auto; } }
+
     /* ── Sidebar deal (in hero) ──────────────────────────────────── */
     .sidebar-deal {
       display: flex;
@@ -2584,10 +2605,11 @@
         <div class="wb__eyebrow"><i></i>Compara · Ahorra · Flipa</div>
         <h2 class="wb__title">Ofertas que <em>sí</em> son ofertas.</h2>
         <p class="wb__lede">Flipazo analiza millones de precios cada día en todas las grandes tiendas y te enseña solo las rebajas de verdad. Gratis y sin registro.</p>
-        <form class="wb__search" onsubmit="return _ihSearch(event)" role="search">
+        <form class="wb__search" id="js-ih-search-form" onsubmit="return _ihSearch(event)" role="search">
           <span class="wb__search-field">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input id="js-ih-input" type="search" placeholder="Busca lo que quieras comprar…" autocomplete="off" aria-label="Buscar ofertas" />
+            <input id="js-ih-input" type="search" placeholder="Busca lo que quieras comprar…" autocomplete="off" aria-label="Buscar ofertas" aria-controls="js-ih-dropdown" aria-autocomplete="list" />
+            <div class="search-dropdown" id="js-ih-dropdown" role="listbox" hidden></div>
           </span>
           <button type="submit">Buscar</button>
         </form>
@@ -2615,8 +2637,13 @@
 
   <!-- ── HERO SECTION ──────────────────────────────────────────── -->
   <section class="hero" id="js-hero" style="display:none" aria-label="Oferta destacada">
-    <div id="js-hero-main">
-      <!-- Populated by JS -->
+    <div class="hero__grid">
+      <div id="js-hero-main">
+        <!-- Populated by JS -->
+      </div>
+      <aside class="hero-coupons" id="js-hero-coupons" style="display:none" aria-label="Cupones y códigos de descuento">
+        <!-- Populated by JS -->
+      </aside>
     </div>
   </section>
 
@@ -3292,6 +3319,8 @@
       if (_promos.length && _mhomeDeals.length && document.getElementById("js-mobile-home")?.style.display !== "none") {
         renderMobileHome(_mhomeDeals);
       }
+      // Si la 'Oferta del día' ya está visible, poblar su carrusel de cupones.
+      if (typeof renderHeroCoupons === "function") renderHeroCoupons();
     } catch { _promos = []; }
   }
 
@@ -3737,18 +3766,47 @@
     _heroId = dealOfDay.id;
     document.getElementById("js-hero-main").innerHTML = buildHeroMain(dealOfDay);
     hero.style.display = "";
+    renderHeroCoupons();
+  }
+
+  // ── Carrusel de cupones (a la derecha de la 'Oferta del día') ──
+  function _heroCouponCard(p) {
+    const code = p.codigo ? `<span class="hcoupon__code">Código: ${esc(p.codigo)}</span>` : "";
+    return `<a class="hcoupon" href="${p.url || '#'}" target="_blank" rel="noopener sponsored">
+        <span class="hcoupon__store">${esc(p.tienda || "")}</span>
+        <span class="hcoupon__title">${esc(p.titulo || "")}</span>
+        ${code}
+        <span class="hcoupon__cta">Ver cupón →</span>
+      </a>`;
+  }
+  function renderHeroCoupons() {
+    const wrap = document.getElementById("js-hero-coupons");
+    if (!wrap) return;
+    const promos = (_promos || []).filter(p => p && (p.titulo || p.tienda));
+    if (!promos.length) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
+    // Repetir hasta tener suficientes tarjetas para llenar el carril, luego duplicar
+    // el conjunto (el marquee anima translateX(-50%) → un ciclo = un conjunto).
+    let base = promos.slice();
+    while (base.length < 6) base = base.concat(promos);
+    const cards = base.map(_heroCouponCard).join("");
+    wrap.innerHTML =
+      `<div class="hero-coupons__head"><i></i>Cupones y códigos</div>
+       <div class="hero-coupons__viewport">
+         <div class="hero-coupons__track">${cards}${cards}</div>
+       </div>`;
+    wrap.style.display = "";
   }
 
   // ── Intro hero / banner de bienvenida (showcase animado en tiempo real) ──
   let _ihTimer = null, _ihIdx = 0, _ihPool = [], _introShown = false;
-  let _introDismissed = (() => { try { return localStorage.getItem("flipazo_intro_closed") === "1"; } catch { return false; } })();
+  let _introDismissed = (() => { try { return sessionStorage.getItem("flipazo_intro_closed") === "1"; } catch { return false; } })();
 
   function _shouldShowIntro() {
     return !_introDismissed && activeCategory === "todas" && !searchQuery && !activeStore && !activeLowCost;
   }
 
   function dismissIntroHero() {
-    try { localStorage.setItem("flipazo_intro_closed", "1"); } catch {}
+    try { sessionStorage.setItem("flipazo_intro_closed", "1"); } catch {}
     _introDismissed = true;
     const el = document.getElementById("js-intro-hero");
     if (el) el.style.display = "none";
@@ -3858,6 +3916,7 @@
     const inp = document.getElementById("js-ih-input");
     const q = (inp && inp.value || "").trim();
     if (!q) return false;
+    const bdd = document.getElementById("js-ih-dropdown"); if (bdd) bdd.hidden = true;
     const hi = document.getElementById("js-search-input"); if (hi) hi.value = q;
     const clr = document.getElementById("js-search-clear"); if (clr) clr.style.display = "";
     applySearch(q);
@@ -4010,17 +4069,20 @@
     return _searchLoadPromise;
   }
 
-  function renderSearchDropdown(results, query) {
-    const dd = document.getElementById("js-search-dropdown");
+  function renderSearchDropdown(results, query, ddId, inputId) {
+    ddId = ddId || "js-search-dropdown";
+    inputId = inputId || "js-search-input";
+    const dd = document.getElementById(ddId);
+    if (!dd) return;
     if (!results.length) {
       dd.innerHTML = `<div class="search-empty">Sin resultados para "${esc(query)}"</div>`;
       dd.hidden = false; return;
     }
-    const seeAll = `<div class="search-see-all" role="option" onclick="applySearch(document.getElementById('js-search-input').value.trim(),null)">Ver todo "${esc(query)}" — ${results.length} resultado${results.length !== 1 ? "s" : ""} →</div>`;
+    const seeAll = `<div class="search-see-all" role="option" onclick="applySearch(document.getElementById('${inputId}').value.trim(),null)">Ver todo "${esc(query)}" — ${results.length} resultado${results.length !== 1 ? "s" : ""} →</div>`;
     dd.innerHTML = results.slice(0, 6).map(d => `
       <a class="search-result" role="option"
          href="${d.url_affiliate || "#"}" target="_blank" rel="noopener sponsored"
-         onclick="document.getElementById('js-search-dropdown').hidden=true">
+         onclick="document.getElementById('${ddId}').hidden=true">
         ${d.imagen_url
           ? `<img class="search-result__img" src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">`
           : `<div class="search-result__img"></div>`}
@@ -4390,9 +4452,13 @@
     activeLowCost = v;
     const chip = document.getElementById("js-lowcost-chip");
     if (chip) { chip.classList.toggle("sort-tab--active", activeLowCost); chip.setAttribute("aria-pressed", activeLowCost ? "true" : "false"); }
+    _updateLowCostBanner();   // feedback inmediato: el banner aparece/desaparece al instante
     _showRegularGrid();
     _updateSectionTitle();
-    _reloadAfterFilterChange();
+    // El re-render puede ser pesado (low-cost carga muchas páginas → renderizar todo el
+    // grid de golpe bloquea ~200ms). Lo diferimos un tick para que el clic se sienta
+    // instantáneo (chip + banner ya pintados) y el grid se actualice justo después.
+    setTimeout(_reloadAfterFilterChange, 0);
   }
 
   function buildSortTabs() {
@@ -4576,6 +4642,32 @@
 
     document.addEventListener("click", e => {
       if (!document.getElementById("js-search-bar").contains(e.target)) dd.hidden = true;
+    });
+  })();
+
+  // Buscador del banner de bienvenida = clon del de arriba (sugerencias + "Ver todo")
+  let _ihSearchTimeout;
+  (function initIhSearch() {
+    const input = document.getElementById("js-ih-input");
+    const dd    = document.getElementById("js-ih-dropdown");
+    const form  = document.getElementById("js-ih-search-form");
+    if (!input || !dd) return;
+    input.addEventListener("input", () => {
+      const q = input.value.trim();
+      clearTimeout(_ihSearchTimeout);
+      if (!q || q.length < 2) { dd.hidden = true; return; }
+      _ihSearchTimeout = setTimeout(async () => {
+        if (!_searchAllLoaded) { dd.innerHTML = `<div class="search-empty">Buscando…</div>`; dd.hidden = false; }
+        await ensureSearchData();
+        if (input.value.trim() !== q) return;
+        renderSearchDropdown(searchDeals(q), q, "js-ih-dropdown", "js-ih-input");
+      }, 180);
+    });
+    input.addEventListener("keydown", e => {
+      if (e.key === "Escape") { dd.hidden = true; input.blur(); }
+    });
+    document.addEventListener("click", e => {
+      if (form && !form.contains(e.target)) dd.hidden = true;
     });
   })();
 
