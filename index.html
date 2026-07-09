@@ -900,7 +900,9 @@
     .hcoupon:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: var(--card-shadow); }
     .hcoupon__store { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .hcoupon__title { font-family: var(--sans); font-size: 13px; font-weight: 800; color: var(--ink); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .hcoupon__code { font-family: var(--sans); font-size: 11px; font-weight: 800; color: var(--brand); background: rgba(245,40,52,0.07); border: 1px dashed var(--brand); border-radius: 6px; padding: 3px 8px; align-self: flex-start; letter-spacing: .03em; }
+    .hcoupon__code { font-family: var(--sans); font-size: 11px; font-weight: 800; color: var(--brand); background: rgba(245,40,52,0.07); border: 1px dashed var(--brand); border-radius: 6px; padding: 3px 8px; align-self: flex-start; letter-spacing: .03em; cursor: pointer; user-select: none; transition: background .15s, color .15s, border-color .15s; }
+    .hcoupon__code:hover { background: var(--brand); color: #fff; border-style: solid; }
+    .hcoupon__code--copied, .hcoupon__code--copied:hover { background: var(--teal-light); color: #0D7A6F; border: 1px solid #0D7A6F; }
     .hcoupon__cta { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text-dim); margin-top: auto; }
 
     /* ── Sidebar deal (in hero) ──────────────────────────────────── */
@@ -3772,13 +3774,43 @@
 
   // ── Carrusel de cupones (a la derecha de la 'Oferta del día') ──
   function _heroCouponCard(p) {
-    const code = p.codigo ? `<span class="hcoupon__code">Código: ${esc(p.codigo)}</span>` : "";
+    const code = p.codigo
+      ? `<span class="hcoupon__code" role="button" tabindex="0" data-code="${esc(p.codigo)}" title="Copiar código"
+             onclick="_copyHeroCode(event, this)" onkeydown="if(event.key==='Enter'||event.key===' ')_copyHeroCode(event,this)">Código: ${esc(p.codigo)}</span>`
+      : "";
     return `<a class="hcoupon" href="${p.url || '#'}" target="_blank" rel="noopener sponsored">
         <span class="hcoupon__store">${esc(p.tienda || "")}</span>
         <span class="hcoupon__title">${esc(p.titulo || "")}</span>
         ${code}
         <span class="hcoupon__cta">Ver cupón →</span>
       </a>`;
+  }
+
+  // Click en el código → copia al portapapeles (sin navegar). Resto de la card → sitio.
+  function _fallbackCopyText(text) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; ta.style.pointerEvents = "none";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand("copy"); document.body.removeChild(ta);
+    } catch (e) {}
+  }
+  function _copyHeroCode(e, el) {
+    e.preventDefault(); e.stopPropagation();
+    const code = el.getAttribute("data-code") || "";
+    if (!code) return;
+    const done = () => {
+      if (el._orig == null) el._orig = el.textContent;
+      el.textContent = "¡Copiado! ✓";
+      el.classList.add("hcoupon__code--copied");
+      clearTimeout(el._t);
+      el._t = setTimeout(() => { el.textContent = el._orig; el._orig = null; el.classList.remove("hcoupon__code--copied"); }, 1500);
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(done).catch(() => { _fallbackCopyText(code); done(); });
+      } else { _fallbackCopyText(code); done(); }
+    } catch (err) { _fallbackCopyText(code); done(); }
   }
   function renderHeroCoupons() {
     const wrap = document.getElementById("js-hero-coupons");
