@@ -886,21 +886,22 @@
     @media (min-width: 900px) { .hero__grid { grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); align-items: stretch; } }
     .hero-coupons { min-width: 0; position: relative; display: flex; flex-direction: column; border-left: 1px solid var(--border); padding-left: 28px; }
     @media (max-width: 899px) { .hero-coupons { border-left: none; border-top: 1px solid var(--border); padding-left: 0; padding-top: 20px; } }
-    .hero-coupons__head { display: flex; align-items: center; gap: 7px; font-family: var(--sans); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); margin-bottom: 14px; }
-    .hero-coupons__head i { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
-    .hero-coupons__viewport { position: relative; overflow: hidden; flex: 1; display: flex; align-items: center;
-      -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 92%, transparent);
-              mask-image: linear-gradient(90deg, transparent, #000 5%, #000 92%, transparent); }
-    .hero-coupons__track { display: flex; gap: 12px; width: max-content; animation: heroCouponsScroll 34s linear infinite; }
-    .hero-coupons:hover .hero-coupons__track { animation-play-state: paused; }
-    @keyframes heroCouponsScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-    .hcoupon { flex: 0 0 auto; width: 188px; box-sizing: border-box; min-height: 118px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 15px; text-decoration: none; display: flex; flex-direction: column; gap: 6px; transition: border-color .15s, transform .15s, box-shadow .15s; }
+    .hero-coupons__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .hero-coupons__label { display: flex; align-items: center; gap: 7px; font-family: var(--sans); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); }
+    .hero-coupons__label i { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+    .hero-coupons__nav { display: flex; gap: 6px; flex-shrink: 0; }
+    .hc-nav { width: 28px; height: 28px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--text-mid); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s, color .15s, border-color .15s, opacity .15s; }
+    .hc-nav:hover:not(:disabled) { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .hc-nav:disabled { opacity: .35; cursor: default; }
+    .hero-coupons__viewport { position: relative; flex: 1; display: flex; align-items: center; overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain; }
+    .hero-coupons__viewport::-webkit-scrollbar { display: none; }
+    .hero-coupons__track { display: flex; gap: 12px; width: max-content; padding: 2px 0; }
+    .hcoupon { flex: 0 0 auto; width: 188px; box-sizing: border-box; min-height: 118px; scroll-snap-align: start; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 15px; text-decoration: none; display: flex; flex-direction: column; gap: 6px; transition: border-color .15s, transform .15s, box-shadow .15s; }
     .hcoupon:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: var(--card-shadow); }
     .hcoupon__store { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .hcoupon__title { font-family: var(--sans); font-size: 13px; font-weight: 800; color: var(--ink); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .hcoupon__code { font-family: var(--sans); font-size: 11px; font-weight: 800; color: var(--brand); background: rgba(245,40,52,0.07); border: 1px dashed var(--brand); border-radius: 6px; padding: 3px 8px; align-self: flex-start; letter-spacing: .03em; }
     .hcoupon__cta { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text-dim); margin-top: auto; }
-    @media (prefers-reduced-motion: reduce) { .hero-coupons__track { animation: none; } .hero-coupons__viewport { overflow-x: auto; } }
 
     /* ── Sidebar deal (in hero) ──────────────────────────────────── */
     .sidebar-deal {
@@ -3784,18 +3785,43 @@
     if (!wrap) return;
     const promos = (_promos || []).filter(p => p && (p.titulo || p.tienda));
     if (!promos.length) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
-    // Repetir hasta tener suficientes tarjetas para llenar el carril, luego duplicar
-    // el conjunto (el marquee anima translateX(-50%) → un ciclo = un conjunto).
-    let base = promos.slice();
-    while (base.length < 6) base = base.concat(promos);
-    const cards = base.map(_heroCouponCard).join("");
+    const cards = promos.map(_heroCouponCard).join("");
     wrap.innerHTML =
-      `<div class="hero-coupons__head"><i></i>Cupones y códigos</div>
-       <div class="hero-coupons__viewport">
-         <div class="hero-coupons__track">${cards}${cards}</div>
+      `<div class="hero-coupons__head">
+         <span class="hero-coupons__label"><i></i>Cupones y códigos</span>
+         <div class="hero-coupons__nav">
+           <button type="button" class="hc-nav" id="js-hc-prev" aria-label="Cupones anteriores" onclick="_hcScroll(-1)">
+             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+           </button>
+           <button type="button" class="hc-nav" id="js-hc-next" aria-label="Cupones siguientes" onclick="_hcScroll(1)">
+             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+           </button>
+         </div>
+       </div>
+       <div class="hero-coupons__viewport" id="js-hc-vp">
+         <div class="hero-coupons__track">${cards}</div>
        </div>`;
     wrap.style.display = "";
+    const vp = document.getElementById("js-hc-vp");
+    if (vp) { vp.addEventListener("scroll", _hcUpdateNav, { passive: true }); requestAnimationFrame(_hcUpdateNav); }
   }
+
+  // Carrusel controlado por el usuario: dedo/trackpad (scroll nativo) + botones ‹ ›
+  function _hcScroll(dir) {
+    const vp = document.getElementById("js-hc-vp");
+    if (!vp) return;
+    vp.scrollBy({ left: dir * Math.max(220, vp.clientWidth * 0.85), behavior: "smooth" });
+  }
+  function _hcUpdateNav() {
+    const vp = document.getElementById("js-hc-vp");
+    if (!vp) return;
+    const prev = document.getElementById("js-hc-prev");
+    const next = document.getElementById("js-hc-next");
+    const max = vp.scrollWidth - vp.clientWidth - 2;
+    if (prev) prev.disabled = vp.scrollLeft <= 2;
+    if (next) next.disabled = vp.scrollLeft >= max;
+  }
+  window.addEventListener("resize", _hcUpdateNav, { passive: true });
 
   // ── Intro hero / banner de bienvenida (showcase animado en tiempo real) ──
   let _ihTimer = null, _ihIdx = 0, _ihPool = [], _introShown = false;
