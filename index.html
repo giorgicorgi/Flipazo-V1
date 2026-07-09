@@ -2594,6 +2594,8 @@
       .wb { padding: 0 14px; }
       .wb__card { grid-template-columns: 1fr; padding: 30px 22px 26px; gap: 26px; }
       .wb__lede { max-width: none; }
+      .wb__search { flex-direction: column; max-width: none; }
+      .wb__search button { width: 100%; padding: 12px 22px; }
       .wb__feat { gap: 16px; }
       .wb__feat-img { width: 108px; height: 108px; }
     }
@@ -3749,6 +3751,9 @@
 
   function updateHero() {
     const hero = document.getElementById("js-hero");
+    // En móvil el 'Deal del momento' lo pinta la home móvil (renderWhero), no el hero
+    // de desktop → aquí nunca se muestra el hero grande.
+    if (_isMobileViewport()) { hero.style.display = "none"; heroMode = false; _heroId = null; return; }
     // El banner de bienvenida (intro-hero) hace de destacado en la landing → suprime el hero antiguo.
     if (_shouldShowIntro()) { hero.style.display = "none"; heroMode = false; _heroId = null; return; }
     if (!shouldShowHero() || allDeals.length === 0) {
@@ -3870,7 +3875,10 @@
     if (el) el.style.display = "none";
     _introShown = false;
     _ihStop();
-    updateHero();  // restaura el destacado nativo del sitio si aplica
+    // Reaparecen el 'Deal del momento' + cupones que estaban detrás del banner.
+    const mh = document.getElementById("js-mobile-home");
+    if (mh && mh.style.display !== "none" && _mhomeDeals.length) renderMobileHome(_mhomeDeals);
+    else updateHero();  // desktop 'Todos': restaura el hero nativo
   }
 
   // Mejores + más recientes: precio decente, descuento fuerte, con imagen y no expirado.
@@ -5143,17 +5151,22 @@
   }
 
   const _MH_STORES = [
-    { name: "Amazon",        abbr: "AMZ",  color: "#FF9900" },
-    { name: "MediaMarkt",    abbr: "MM",   color: "#CC0000" },
-    { name: "Desigual",      abbr: "DSG",  color: "#E8652A" },
-    { name: "Esdemarca",     abbr: "ESD",  color: "#1A3C6E" },
-    { name: "PCBox",         abbr: "PCB",  color: "#F7941D" },
-    { name: "Decathlon",     abbr: "DEC",  color: "#0082C3" },
-    { name: "Mammoth Bikes", abbr: "MBI",  color: "#2E7D32" },
+    { name: "Amazon",         abbr: "AMZ", color: "#FF9900" },
+    { name: "MediaMarkt",     abbr: "MM",  color: "#DF0000" },
+    { name: "Esdemarca",      abbr: "ESD", color: "#1A3C6E" },
+    { name: "Desigual",       abbr: "DSG", color: "#E8652A" },
+    { name: "Barrabes",       abbr: "BAR", color: "#D2232A" },
+    { name: "Padel Market",   abbr: "PAD", color: "#7CB342" },
+    { name: "ElCorteIngles",  abbr: "ECI", color: "#0A8A3F", label: "El Corte Inglés" },
+    { name: "PCBox",          abbr: "PCB", color: "#F7941D" },
+    { name: "Mammoth Bikes",  abbr: "MAM", color: "#2E7D32", label: "Mammoth" },
+    { name: "Deporte Outlet", abbr: "DPT", color: "#EF4444", label: "Deporte Outlet" },
+    { name: "OneBioShop",     abbr: "BIO", color: "#5B9A3E" },
+    { name: "Decathlon",      abbr: "DEC", color: "#0082C3" },
   ];
 
   function _renderStoreRow() {
-    const storeLabel = s => s.name === "Mammoth Bikes" ? "Mammoth" : s.name;
+    const storeLabel = s => s.label || s.name;
     return _MH_STORES.map(s =>
       `<a class="scard" href="#" onclick="event.preventDefault();mhomeStore('${s.name}')">
         <div class="scard__logo" style="background:${s.color}18;border-color:${s.color}30">
@@ -5188,7 +5201,7 @@
   // (Tecnología, Deportes, Moda): "Tecnología — Audio", "Deporte — Pádel", etc.
   function _mhSubcatSections(deals) {
     const order = ["tecnologia", "deportes", "moda", "belleza"];
-    let html = "";
+    const out = [];
     for (const catId of order) {
       const sd = _SUBCAT_DEFS[catId];
       if (!sd) continue;
@@ -5197,12 +5210,12 @@
         if (sc.id === "todas") continue;
         const rowDeals = deals.filter(d => dealInCategory(d, catId) && sc.test(d)).slice(0, 40);
         if (!rowDeals.length) continue;
-        html += _mhSection(`${catLabel} — ${sc.label}`,
-                           rowDeals.map(renderHCard).join(""),
-                           `mhomeSubcat('${catId}','${sc.id}')`);
+        out.push(_mhSection(`${catLabel} — ${sc.label}`,
+                            rowDeals.map(renderHCard).join(""),
+                            `mhomeSubcat('${catId}','${sc.id}')`));
       }
     }
-    return html;
+    return out;
   }
 
   // ── Entrada animada de las filas horizontales de Explorar (GSAP + ScrollTrigger) ──
@@ -5272,19 +5285,32 @@
       <div class="mhome__scroll">${_renderStoreRow()}</div>
     </section>`;
 
-    // Promos/cupones ya NO van como fila aquí → tienen su propia página /cupones
-    // (botón "Cupones" en la barra superior).
-    mh.innerHTML =
-      (featured ? renderWhero(featured) : "") +
-      _mhSection("Mayores descuentos",     topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro") +   // 1ª
-      lowcostSection +                                                                                                            // 2ª (Ofertas por debajo de 25€)
-      catSection +                                                                                                               // 3ª (Explorar)
-      storeSection +                                                                                                             // 4ª (Tiendas)
-      _mhSubcatSections(deals) +
-      _mhSection("Hogar",                  hogarDeals.map(renderHCard).join(""),     "mhomeCat('hogar')") +
-      _mhSection("Cuidado Personal",       bellezaDeals.map(renderHCard).join(""),   "mhomeCat('belleza')") +
-      _mhSection("Juguetes",               juguetesDeals.map(renderHCard).join(""),  "mhomeCat('juguetes')") +
-      _mhSection("Calzado",                calzadoDeals.map(renderHCard).join(""),   "mhomeCat('calzado')");
+    // Cupones y códigos: carrusel con las mismas tarjetas (copiar código al pulsarlo).
+    const _cupones = (_promos || []).filter(p => p && (p.titulo || p.tienda));
+    const couponsSection = _cupones.length
+      ? _mhSection("Cupones y códigos", _cupones.map(_heroCouponCard).join(""), "location.href='/cupones'")
+      : "";
+
+    // El 'Deal del momento' y los cupones van DETRÁS del banner de bienvenida: solo
+    // aparecen cuando el usuario cierra el banner (igual que el hero en desktop).
+    const behindBanner = _introDismissed
+      ? ((featured ? renderWhero(featured) : "") + couponsSection)
+      : "";
+
+    // Filas del feed. "Explorar" (tags de categorías) se coloca en el 8º lugar.
+    const rows = [
+      _mhSection("Mayores descuentos", topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro"),
+      lowcostSection,
+      storeSection,
+      ..._mhSubcatSections(deals),
+      _mhSection("Hogar",            hogarDeals.map(renderHCard).join(""),    "mhomeCat('hogar')"),
+      _mhSection("Cuidado Personal", bellezaDeals.map(renderHCard).join(""),  "mhomeCat('belleza')"),
+      _mhSection("Juguetes",         juguetesDeals.map(renderHCard).join(""), "mhomeCat('juguetes')"),
+      _mhSection("Calzado",          calzadoDeals.map(renderHCard).join(""),  "mhomeCat('calzado')"),
+    ].filter(s => s && s.trim());
+    rows.splice(7, 0, catSection);   // Explorar → 8º lugar del feed
+
+    mh.innerHTML = behindBanner + rows.join("");
 
     requestAnimationFrame(_animarFilasExplorar);
   }
