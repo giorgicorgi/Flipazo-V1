@@ -2508,104 +2508,108 @@
   <!-- SEO H1 oculto para crawlers ────────────────────────────── -->
   <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">Chollos y ofertas reales en España verificados actualizados cada hora</h1>
 
-  <!-- ── INTRO HERO / BANNER DE BIENVENIDA ─────────────────────── -->
+  <!-- ── BANNER DE BIENVENIDA (estilo nativo Flipazo) ──────────── -->
   <style>
-    .intro-hero {
-      --ih-accent: #E8622A; --ih-accent-2: #F0763C;
-      --ih-card: #17130E; --ih-card-2: #241A11;
-      --ih-ink: #F7F3EC; --ih-dim: #A79E92; --ih-line: rgba(255,255,255,.09);
-      max-width: 1240px; margin: 20px auto 8px; padding: 0 20px;
+    .wb { max-width: 1160px; margin: 22px auto 6px; padding: 0 20px; }
+    .wb__card {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--card-shadow);
+      padding: 40px 44px;
+      display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center;
     }
-    [data-theme="dark"] .intro-hero { --ih-card:#13100C; --ih-card-2:#1D1710; --ih-line: rgba(255,255,255,.10); }
-    .intro-hero__card {
-      position: relative; overflow: hidden; border-radius: 24px;
-      background: radial-gradient(130% 150% at 84% 26%, var(--ih-card-2) 0%, var(--ih-card) 56%);
-      border: 1px solid var(--ih-line);
-      box-shadow: 0 24px 60px -26px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);
-      padding: 48px 54px;
-      display: grid; grid-template-columns: 1.06fr .94fr; gap: 34px; align-items: center; min-height: 350px;
+    .wb__close {
+      position: absolute; top: 14px; right: 14px; width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--surface); border: 1px solid var(--border); color: var(--text-mid);
+      border-radius: 9999px; cursor: pointer; transition: background .15s, color .15s, border-color .15s; z-index: 3;
     }
-    [data-theme="dark"] .intro-hero__card {
-      box-shadow: 0 24px 60px -28px rgba(0,0,0,.72), 0 0 0 1px rgba(232,98,42,.07), inset 0 1px 0 rgba(255,255,255,.03);
+    .wb__close:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .wb__eyebrow {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-family: var(--sans); font-size: 10px; font-weight: 800; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--brand);
+      background: rgba(245,40,52,0.07); border-radius: 9999px; padding: 5px 12px;
     }
-    .intro-hero__bg { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
-    .intro-hero__bg span {
-      position:absolute; font-family:var(--serif); font-weight:900; line-height:1;
-      color: rgba(232,98,42,.06); white-space:nowrap; user-select:none; letter-spacing:-.02em;
+    .wb__eyebrow i { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+    .wb__title { font-family: var(--serif); font-weight: 900; color: var(--ink); font-size: clamp(28px,3.4vw,42px); line-height: 1.1; letter-spacing: -.01em; margin: 16px 0 0; }
+    .wb__title em { font-style: italic; color: var(--brand); }
+    .wb__lede { font-family: var(--sans); color: var(--text-mid); font-size: 15px; line-height: 1.6; max-width: 42ch; margin: 12px 0 0; }
+    .wb__search { display: flex; gap: 10px; margin-top: 22px; max-width: 480px; }
+    .wb__search-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; transition: border-color .2s, box-shadow .2s; }
+    .wb__search-field:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(245,40,52,0.08); }
+    .wb__search-field svg { position: absolute; left: 14px; width: 17px; height: 17px; color: var(--text-dim); pointer-events: none; }
+    .wb__search input { width: 100%; padding: 12px 14px 12px 40px; background: none; border: none; font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--ink); outline: none; }
+    .wb__search input::placeholder { color: var(--text-dim); }
+    .wb__search button { background: var(--brand); color: #fff; border: none; border-radius: 12px; padding: 0 22px; font-family: var(--sans); font-weight: 700; font-size: 14px; cursor: pointer; transition: background .15s, transform .1s; white-space: nowrap; }
+    .wb__search button:hover { background: var(--brand-hover); }
+    .wb__search button:active { transform: translateY(1px); }
+    .wb__pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .wb__pill { display: inline-flex; align-items: center; gap: 6px; font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--text-body); background: var(--surface); border: 1px solid var(--border); border-radius: 9999px; padding: 7px 13px; }
+    .wb__pill b { color: var(--brand); font-weight: 800; }
+    /* Derecha: oferta destacada en vivo */
+    .wb__feat { display: flex; gap: 20px; align-items: center; text-decoration: none; }
+    .wb__feat-img { flex-shrink: 0; width: 132px; height: 132px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .wb__feat-img img { width: 100%; height: 100%; object-fit: contain; padding: 12px; mix-blend-mode: multiply; }
+    [data-theme="dark"] .wb__feat-img { background: #fff; }
+    [data-theme="dark"] .wb__feat-img img { mix-blend-mode: normal; }
+    .wb__feat-body { min-width: 0; }
+    .wb__feat-label { display: block; font-family: var(--sans); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim); }
+    .wb__feat-pct { font-family: var(--sans); font-weight: 900; color: var(--brand); font-size: clamp(40px,5vw,58px); line-height: 1; letter-spacing: -.02em; margin-top: 4px; }
+    .wb__feat-name { font-family: var(--sans); font-weight: 700; color: var(--ink); font-size: 15px; line-height: 1.3; margin-top: 8px; }
+    .wb__feat-price { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; margin-top: 6px; }
+    .wb__feat-price b { font-family: var(--sans); font-weight: 900; font-size: 24px; color: #0581FC; line-height: 1; }
+    [data-theme="dark"] .wb__feat-price b { color: #4FA8FF; }
+    .wb__feat-price s { font-family: var(--sans); font-size: 14px; color: var(--text-mid); text-decoration-color: var(--brand); text-decoration-thickness: 2px; }
+    .wb__feat-store { font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--text-dim); }
+    .wb-in { animation: wbIn .45s cubic-bezier(.22,1,.36,1); }
+    @keyframes wbIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    @media (max-width: 880px) {
+      .wb { padding: 0 14px; }
+      .wb__card { grid-template-columns: 1fr; padding: 30px 22px 26px; gap: 26px; }
+      .wb__lede { max-width: none; }
+      .wb__feat { gap: 16px; }
+      .wb__feat-img { width: 108px; height: 108px; }
     }
-    .intro-hero__left { position:relative; z-index:2; }
-    .intro-hero__eyebrow { display:flex; align-items:center; gap:9px; font-size:12.5px; font-weight:800; letter-spacing:.16em; color:var(--ih-accent); text-transform:uppercase; }
-    .intro-hero__eyebrow .dot { width:7px; height:7px; border-radius:50%; background:var(--ih-accent); box-shadow:0 0 0 4px rgba(232,98,42,.16); animation: ihPulse 2.4s ease-in-out infinite; }
-    @keyframes ihPulse { 0%,100%{box-shadow:0 0 0 4px rgba(232,98,42,.16);} 50%{box-shadow:0 0 0 7px rgba(232,98,42,.05);} }
-    .intro-hero__title { font-family:var(--serif); font-weight:900; color:var(--ih-ink); font-size:clamp(34px,4.1vw,52px); line-height:1.03; letter-spacing:-.01em; margin:18px 0 0; }
-    .intro-hero__title em { font-style:italic; color:var(--ih-accent); }
-    .intro-hero__lede { color:var(--ih-dim); font-size:16px; line-height:1.6; max-width:35ch; margin:16px 0 0; }
-    .intro-hero__search { display:flex; gap:10px; margin-top:26px; max-width:520px; }
-    .intro-hero__search input { flex:1; min-width:0; background:rgba(255,255,255,.05); border:1px solid var(--ih-line); border-radius:13px; padding:0 16px; height:54px; color:var(--ih-ink); font-family:var(--sans); font-size:15px; outline:none; transition:border-color .15s, box-shadow .15s; }
-    .intro-hero__search input::placeholder { color:#8b8378; }
-    .intro-hero__search input:focus { border-color:rgba(232,98,42,.5); box-shadow:0 0 0 3px rgba(232,98,42,.14); }
-    .intro-hero__search button { background:var(--ih-accent); color:#fff; border:none; border-radius:13px; padding:0 26px; height:54px; font-family:var(--sans); font-weight:800; font-size:15px; cursor:pointer; transition:background .15s, transform .08s; white-space:nowrap; }
-    .intro-hero__search button:hover { background:var(--ih-accent-2); }
-    .intro-hero__search button:active { transform:translateY(1px); }
-    .intro-hero__pills { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
-    .ihpill { display:inline-flex; align-items:center; gap:7px; background:rgba(255,255,255,.05); border:1px solid var(--ih-line); color:#cfc7ba; border-radius:999px; padding:9px 15px; font-size:13px; font-weight:600; }
-    .ihpill b { color:var(--ih-accent); font-weight:800; }
-    .intro-hero__right { position:relative; z-index:2; text-align:right; align-self:center; }
-    .ih-show__label { font-size:12px; font-weight:800; letter-spacing:.22em; color:var(--ih-dim); text-transform:uppercase; }
-    .ih-show__deal { display:block; text-decoration:none; }
-    .ih-show__pct { font-family:var(--serif); font-weight:900; color:var(--ih-accent); line-height:.9; font-size:clamp(74px,11.5vw,152px); letter-spacing:-.02em; display:flex; align-items:flex-start; justify-content:flex-end; margin-top:6px; text-shadow:0 0 64px rgba(232,98,42,.3); }
-    .ih-show__pct .ih-minus { font-size:.5em; margin-top:.3em; margin-right:.03em; font-weight:800; }
-    .ih-show__pct .ih-sym { font-size:.62em; margin-top:.07em; }
-    .ih-show__name { color:var(--ih-ink); font-weight:700; font-size:19px; margin-top:2px; letter-spacing:-.01em; }
-    .ih-show__price { margin-top:7px; display:flex; align-items:center; justify-content:flex-end; gap:10px; color:var(--ih-ink); flex-wrap:wrap; }
-    .ih-show__price b { font-size:22px; font-weight:800; }
-    .ih-show__price s { color:var(--ih-dim); font-size:15px; }
-    .ih-show__store { display:inline-flex; align-items:center; gap:6px; color:var(--ih-dim); font-size:13px; font-weight:600; }
-    .ih-show__store i { width:7px; height:7px; border-radius:50%; background:var(--ih-accent); display:inline-block; }
-    .ih-anim-in { animation: ihIn .5s cubic-bezier(.22,1,.36,1); }
-    @keyframes ihIn { from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
-    @media (max-width: 900px) {
-      .intro-hero { padding:0 14px; margin:14px auto 4px; }
-      .intro-hero__card { grid-template-columns:1fr; padding:62px 24px 30px; gap:24px; min-height:0; }
-      .intro-hero__right { text-align:left; }
-      .ih-show__pct, .ih-show__price { justify-content:flex-start; }
-      .intro-hero__lede { max-width:none; }
-    }
-    @media (prefers-reduced-motion: reduce) { .ih-anim-in, .intro-hero__eyebrow .dot { animation:none; } }
+    @media (prefers-reduced-motion: reduce) { .wb-in { animation: none; } }
   </style>
-  <section class="intro-hero" id="js-intro-hero" style="display:none" aria-label="Bienvenido a Flipazo">
-    <div class="intro-hero__card">
-      <div class="intro-hero__bg" aria-hidden="true">
-        <span style="top:-6%; left:34%; font-size:190px;">−49%</span>
-        <span style="top:24%; right:-2%; font-size:150px;">82%</span>
-        <span style="bottom:-10%; left:2%; font-size:170px;">−58%</span>
-      </div>
-      <div class="intro-hero__left">
-        <div class="intro-hero__eyebrow"><span class="dot"></span>COMPARA · AHORRA · FLIPA</div>
-        <h2 class="intro-hero__title">Ofertas que<br><em>sí</em> son ofertas.</h2>
-        <p class="intro-hero__lede">Flipazo analiza millones de precios cada día en todas las grandes tiendas y te enseña solo las rebajas de verdad. Gratis y sin registro.</p>
-        <form class="intro-hero__search" onsubmit="return _ihSearch(event)" role="search">
-          <input id="js-ih-input" type="search" placeholder="Busca lo que quieras comprar…" autocomplete="off" aria-label="Buscar ofertas" />
+  <section class="wb" id="js-intro-hero" style="display:none" aria-label="Bienvenido a Flipazo">
+    <div class="wb__card">
+      <button class="wb__close" id="js-ih-close" onclick="dismissIntroHero()" aria-label="Cerrar banner de bienvenida" title="Cerrar">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="wb__left">
+        <div class="wb__eyebrow"><i></i>Compara · Ahorra · Flipa</div>
+        <h2 class="wb__title">Ofertas que <em>sí</em> son ofertas.</h2>
+        <p class="wb__lede">Flipazo analiza millones de precios cada día en todas las grandes tiendas y te enseña solo las rebajas de verdad. Gratis y sin registro.</p>
+        <form class="wb__search" onsubmit="return _ihSearch(event)" role="search">
+          <span class="wb__search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="js-ih-input" type="search" placeholder="Busca lo que quieras comprar…" autocomplete="off" aria-label="Buscar ofertas" />
+          </span>
           <button type="submit">Buscar</button>
         </form>
-        <div class="intro-hero__pills">
-          <span class="ihpill"><b id="js-ih-avg">−52%</b> descuento medio</span>
-          <span class="ihpill">Actualizado cada 5 min</span>
-          <span class="ihpill">Gratis · sin registro</span>
+        <div class="wb__pills">
+          <span class="wb__pill"><b id="js-ih-avg">−52%</b> descuento medio</span>
+          <span class="wb__pill">Actualizado cada 5 min</span>
+          <span class="wb__pill">Gratis · sin registro</span>
         </div>
       </div>
-      <div class="intro-hero__right">
-        <div class="ih-show__label">Ahora mismo</div>
-        <a class="ih-show__deal" id="js-ih-deal" href="#" target="_blank" rel="noopener sponsored" aria-live="polite">
-          <div class="ih-show__pct" id="js-ih-show"><span class="ih-minus">−</span><span id="js-ih-pct">49</span><span class="ih-sym">%</span></div>
-          <div class="ih-show__name" id="js-ih-name">Zapatillas Nike Air Max 270</div>
-          <div class="ih-show__price">
+      <a class="wb__feat" id="js-ih-deal" href="#" target="_blank" rel="noopener sponsored" aria-live="polite">
+        <span class="wb__feat-img" id="js-ih-imgwrap"><img id="js-ih-img" src="" alt="" loading="lazy" onerror="this.style.display='none'" /></span>
+        <span class="wb__feat-body">
+          <span class="wb__feat-label">Ahora mismo</span>
+          <div class="wb__feat-pct">−<span id="js-ih-pct">49</span>%</div>
+          <div class="wb__feat-name" id="js-ih-name">Zapatillas Nike Air Max 270</div>
+          <div class="wb__feat-price">
             <b id="js-ih-price">72 €</b>
             <s id="js-ih-orig">140 €</s>
-            <span class="ih-show__store"><i></i><span id="js-ih-store">eBay</span></span>
+            <span class="wb__feat-store" id="js-ih-store">eBay</span>
           </div>
-        </a>
-      </div>
+        </span>
+      </a>
     </div>
   </section>
 
@@ -3737,9 +3741,20 @@
 
   // ── Intro hero / banner de bienvenida (showcase animado en tiempo real) ──
   let _ihTimer = null, _ihIdx = 0, _ihPool = [], _introShown = false;
+  let _introDismissed = (() => { try { return localStorage.getItem("flipazo_intro_closed") === "1"; } catch { return false; } })();
 
   function _shouldShowIntro() {
-    return activeCategory === "todas" && !searchQuery && !activeStore && !activeLowCost;
+    return !_introDismissed && activeCategory === "todas" && !searchQuery && !activeStore && !activeLowCost;
+  }
+
+  function dismissIntroHero() {
+    try { localStorage.setItem("flipazo_intro_closed", "1"); } catch {}
+    _introDismissed = true;
+    const el = document.getElementById("js-intro-hero");
+    if (el) el.style.display = "none";
+    _introShown = false;
+    _ihStop();
+    updateHero();  // restaura el destacado nativo del sitio si aplica
   }
 
   // Mejores + más recientes: precio decente, descuento fuerte, con imagen y no expirado.
@@ -3747,7 +3762,7 @@
     const src = (allDeals && allDeals.length) ? allDeals : _mhomeDeals;
     const now = Date.now();
     const pool = (src || []).filter(d =>
-      d && d.titulo && !d.expirado &&
+      d && d.titulo && d.imagen_url && !d.expirado &&
       (d.precio_actual || 0) >= 25 && (d.descuento_pct || 0) >= 40
     );
     pool.sort((a, b) => {
@@ -3787,10 +3802,15 @@
     const orig = document.getElementById("js-ih-orig");
     if (orig) { const has = (d.precio_original || 0) > 0; orig.textContent = has ? fmtPrice(d.precio_original) : ""; orig.style.display = has ? "" : "none"; }
     set("js-ih-store", d.tienda || "");
+    const img = document.getElementById("js-ih-img");
+    const imgwrap = document.getElementById("js-ih-imgwrap");
+    if (img) {
+      if (d.imagen_url) { img.src = d.imagen_url; img.style.display = ""; if (imgwrap) imgwrap.style.display = ""; }
+      else { img.removeAttribute("src"); if (imgwrap) imgwrap.style.display = "none"; }
+    }
     const link = document.getElementById("js-ih-deal");
     if (link) link.href = d.url_affiliate || "#";
-    const wrap = document.getElementById("js-ih-show");
-    if (animate && wrap) { wrap.classList.remove("ih-anim-in"); void wrap.offsetWidth; wrap.classList.add("ih-anim-in"); _ihAnimatePct(d.descuento_pct || 0); }
+    if (animate && link) { link.classList.remove("wb-in"); void link.offsetWidth; link.classList.add("wb-in"); _ihAnimatePct(d.descuento_pct || 0); }
     else { set("js-ih-pct", d.descuento_pct || 0); }
   }
 
