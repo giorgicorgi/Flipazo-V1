@@ -3083,23 +3083,42 @@
   // Tiendas 100% deporte: todo lo suyo (incl. ropa deportiva) va a Deportes, NUNCA a Moda
   const _DEPORTE_STORES = new Set(["Barrabes", "Decathlon", "Mammoth Bikes", "PrivateSportShop", "Padel Market", "Adidas", "Bikila"]);
 
+  // ── Calzado: moda (casual / marca de moda) vs deportivo (uso deportivo) ──
+  // Marcas de moda cuyo calzado es "de moda" aunque sean zapatillas (no van a Deportes).
+  const _RX_MARCA_MODA = /\barmani\b|emporio armani|giorgio armani|\btommy\b|tommy hilfiger|hugo boss|\bboss\b|\bguess\b|calvin klein|lacoste|michael kors|ralph lauren|polo ralph|hackett|barbour|fred perry|\bgant\b|\bdesigual\b|scalpers|pepe jeans|\blevi'?s?\b|\bgeox\b|\bcamper\b|pikolinos|\bclarks\b|\bugg\b|cole haan|dr\.?\s*martens|birkenstock|\btimberland\b|\bmustang\b|gioseppo|\bhoff\b|casta[ñn]er|jimmy choo|\bfluchos\b|callaghan|martinelli|panama jack/i;
+  // Uso claramente deportivo (actividad concreta).
+  const _RX_DEPORTE_USO = /running\b|\btrail\b|f[uú]tbol\b|\bfootball\b|\btraining\b|\btrekking\b|senderismo|monta[ñn]a|monta[ñn]ismo|baloncesto|b[aá]squet|balonmano|voleibol|\btenis\b|p[aá]del\b|ciclismo|\bciclista\b|fitness\b|\bgym\b|gimnasio|nataci[oó]n|crossfit|halterofilia|atletismo|marat[oó]n|spikes?\b|tacos?\b.*f[uú]tbol/i;
+  function _esCalzadoDeportivo(d) {
+    const t = d.titulo || "";
+    if (!_RX.calzado.test(t)) return false;
+    if (_RX_MARCA_MODA.test(t)) return false;            // marca de moda → nunca "deportivo"
+    return _RX_DEPORTE_USO.test(t) || _DEPORTE_STORES.has(d.tienda);
+  }
+  function _esCalzadoModa(d) {
+    return _RX.calzado.test(d.titulo || "") && !_esCalzadoDeportivo(d);
+  }
+
   const CATEGORIAS = [
     { id: "todas",        label: "Todas" },
     { id: "tecnologia",   label: "Tecnología",    test: d => !_RX.belleza.test(d.titulo) && (_scat(d,"tecnologia") || _RX.tecnologia.test(d.titulo) || d.tienda === "PcComponentes") },
     { id: "herramientas", label: "Herramientas",  hidden: true, test: d => _scat(d,"herramientas") || _RX.herramientas.test(d.titulo) },
-    { id: "deportes",     label: "Deportes",      test: d => _scat(d,"deportes") || _RX.deportes.test(d.titulo) || _DEPORTE_STORES.has(d.tienda) },
+    { id: "deportes",     label: "Deportes",      test: d => !_esCalzadoModa(d) && (_esCalzadoDeportivo(d) || _scat(d,"deportes") || _RX.deportes.test(d.titulo) || _DEPORTE_STORES.has(d.tienda)) },
     { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
     { id: "belleza",      label: "Cuidado Personal", test: d => !_RX_APPAREL.test(d.titulo) && !_RX_KITCHEN.test(d.titulo) && !_RX_FOOTWEAR.test(d.titulo) && (_scat(d,"belleza") || _RX.belleza.test(d.titulo)) },
     { id: "juguetes",     label: "Juguetes",      test: d => !_RX_CONSOLE.test(d.titulo) && (_scat(d,"juguetes") || _RX.juguetes.test(d.titulo)) },
     { id: "mascotas",     label: "Mascotas",      test: d => _scat(d,"mascotas") || _RX.mascotas.test(d.titulo) || d.tienda === "Tiendanimal" },
-    { id: "moda",         label: "Moda",          test: d => !_DEPORTE_STORES.has(d.tienda) && !_RX_FOOTWEAR.test(d.titulo) && !_RX_PERFUME.test(d.titulo) && !_RX.deportes.test(d.titulo) && (_scat(d,"moda") || _RX.moda.test(d.titulo) || _RX_APPAREL.test(d.titulo) || d.tienda === "Desigual") },
-    { id: "calzado",      label: "Calzado",       test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"calzado") || _RX.calzado.test(d.titulo)) },
+    { id: "moda",         label: "Moda",          test: d => {
+        if (_esCalzadoDeportivo(d)) return false;          // calzado deportivo → Deportes
+        if (_esCalzadoModa(d)) return true;                // calzado de moda → Moda
+        return !_DEPORTE_STORES.has(d.tienda) && !_RX_PERFUME.test(d.titulo) && !_RX.tecnologia.test(d.titulo) && !_RX.deportes.test(d.titulo) && (_scat(d,"moda") || _RX.moda.test(d.titulo) || _RX_APPAREL.test(d.titulo) || d.tienda === "Desigual");
+      } },
   ];
 
   // ── Moda sub-categories (contenedor; se divide más adelante) ──
   const MODA_SUBCATS = [
     { id: "todas",      label: "Todo Moda" },
-    { id: "ropa",       label: "Ropa",       test: d => _RX_APPAREL.test(d.titulo) },
+    { id: "ropa",       label: "Ropa",       test: d => _RX_APPAREL.test(d.titulo) && !_RX.calzado.test(d.titulo) },
+    { id: "calzado",    label: "Calzado",    test: d => _esCalzadoModa(d) },
     { id: "accesorios", label: "Accesorios", test: d => /\bbolso[s]?\b|carteras?\b|monedero[s]?\b|mochila[s]?\b|maleta[s]?\b|neceser|\bcintur[oó]n|\bcorbata|\bbufanda|\bpa[ñn]uelo|\bgorra|\bgafas\b|\bguantes?\b/i.test(d.titulo) },
     { id: "relojes",    label: "Relojes",    test: d => /\breloj\b/i.test(d.titulo) },
   ];
@@ -3115,6 +3134,7 @@
     { id: "fitness",  label: "Fitness",  test: d => /fitness|gimnasio|\bgym\b|mancuerna[s]?|kettlebell|\bpesas?\b|barra\s+ol[ií]mpica|disco.*peso|banco.*muscul|m[aá]quina.*remo|el[ií]ptica|cinta de correr|\byoga\b|pilates|fitball|\bcomba\b|abdominal/i.test(d.titulo) },
     { id: "futbol",   label: "Fútbol",   test: d => /f[uú]tbol|bal[oó]n.*f[uú]tbol|botas?\s+(?:de\s+)?f[uú]tbol|espinillera|guante.*portero|camiseta.*(?:f[uú]tbol|selecci[oó]n|real\s+madrid|barcelona|atl[eé]tico)/i.test(d.titulo) },
     { id: "natacion", label: "Natación", test: d => /nataci[oó]n|\bswim\b|gafas.*(?:nataci|piscina)|gorro.*(?:nataci|piscina)|neopreno|\bbuceo\b|snorkel|aletas\b|ba[ñn]ador/i.test(d.titulo) },
+    { id: "calzado",  label: "Calzado",  test: d => _esCalzadoDeportivo(d) },
   ];
   let activeDeporteSubcat = "todas";
 
@@ -3387,12 +3407,9 @@
     const isChollazo = !isExpired && (_desc >= 60 || _score >= 88);
     const isHot      = !isExpired && (_desc > 50 || _score >= 80);
     const hotClass   = isChollazo ? " deal--hot deal--chollazo" : (isHot ? " deal--hot" : "");
-    // En destacados, el badge de imagen muestra el sello en vez del nombre de tienda
-    const overlayBadge = isChollazo
-      ? `<span class="deal__badge deal__badge--hot deal__badge--chollazo">🔥 CHOLLAZO</span>`
-      : isHot
-        ? `<span class="deal__badge deal__badge--hot">⭐ DESTACADO</span>`
-        : `<span class="deal__badge ${badgeClass}">${badgeLabel}</span>`;
+    // El badge de la esquina siempre muestra el nombre de la tienda (los sellos
+    // "CHOLLAZO/DESTACADO" tapaban de dónde venía el deal).
+    const overlayBadge = `<span class="deal__badge ${badgeClass}">${badgeLabel}</span>`;
 
     const imgHtml = `<div class="deal__image-wrap">
            ${overlayBadge}
@@ -3742,6 +3759,7 @@
             ${d.descuento_pct > 0 ? `<span class="hero__pct">−${d.descuento_pct}%</span>` : ""}
           </div>
           ${savingsHtml}
+          ${_tallasHtml(d, false)}
           <div class="hero__cta">
             <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver en ${d.tienda || "tienda"} →</a>
             ${isReventa && d.precio_wallapop > 0
@@ -5155,7 +5173,6 @@
     { id: "deportes",     label: "Deportes",         light: "#EDFAEF", dark: "#15803D" },
     { id: "moda",         label: "Moda",             light: "#FFF0F6", dark: "#BE185D" },
     { id: "hogar",        label: "Hogar",            light: "#FFF8EE", dark: "#B45309" },
-    { id: "calzado",      label: "Calzado",          light: "#F2EDFF", dark: "#6D28D9" },
     { id: "belleza",      label: "Cuidado Personal", light: "#FFEDED", dark: "#B91C1C" },
     { id: "juguetes",     label: "Juguetes",         light: "#FFFADF", dark: "#A16207" },
     { id: "mascotas",     label: "Mascotas",         light: "#EAF7F5", dark: "#0F766E" },
@@ -5287,7 +5304,6 @@
       .sort((a,b) => (b.descuento_pct||0)-(a.descuento_pct||0))
       .slice(0, 40);
     const hogarDeals    = deals.filter(d => dealInCategory(d, "hogar")).slice(0, 40);
-    const calzadoDeals  = deals.filter(d => dealInCategory(d, "calzado")).slice(0, 40);
     const bellezaDeals  = deals.filter(d => dealInCategory(d, "belleza")).slice(0, 40);
     const juguetesDeals = deals.filter(d => dealInCategory(d, "juguetes")).slice(0, 40);
 
@@ -5330,7 +5346,6 @@
       _mhSection("Hogar",            hogarDeals.map(renderHCard).join(""),    "mhomeCat('hogar')"),
       _mhSection("Cuidado Personal", bellezaDeals.map(renderHCard).join(""),  "mhomeCat('belleza')"),
       _mhSection("Juguetes",         juguetesDeals.map(renderHCard).join(""), "mhomeCat('juguetes')"),
-      _mhSection("Calzado",          calzadoDeals.map(renderHCard).join(""),  "mhomeCat('calzado')"),
     ].filter(s => s && s.trim());
     rows.splice(7, 0, catSection);   // Explorar → 8º lugar del feed
 
