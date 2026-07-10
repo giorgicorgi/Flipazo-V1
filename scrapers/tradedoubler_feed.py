@@ -233,6 +233,49 @@ def _filtrar(
     return resultado
 
 
+# ── Tallas disponibles ────────────────────────────────────────────────────
+# En Esdemarca/Desigual cada talla es un item separado del feed; agrupamos por
+# modelo y recogemos las tallas para mostrarlas en la card (además del tag).
+_ORDEN_TALLAS = {"XXS": 0, "XS": 1, "S": 2, "M": 3, "L": 4, "XL": 5, "XXL": 6, "XXXL": 7}
+_TALLA_VALIDA = re.compile(r'^(?:XXS|XS|S|M|L|XL|XXL|XXXL|\d{1,3}(?:[.,]\d)?)$', re.I)
+
+
+def _talla_esdemarca(titulo: str) -> str:
+    """Talla de Esdemarca: primer paréntesis del título, ej. 'Camisa (M), slim' → 'M'."""
+    m = re.search(r'\(([^)]{1,6})\)', titulo)
+    if not m:
+        return ""
+    t = m.group(1).strip().upper()
+    return t if _TALLA_VALIDA.match(t) else ""
+
+
+# Desigual pone la talla como último campo separado por coma: letra (XS/S/M/L/XL),
+# número de calzado (39) o "U" (talla única). Se usa para agrupar variantes y listar tallas.
+_DESIGUAL_TALLA_RE = re.compile(r',\s*(XXS|XS|S|M|L|XL|XXL|XXXL|U|\d{1,3})\s*$', re.I)
+
+
+def _talla_desigual(titulo: str) -> str:
+    """Talla de Desigual (último campo). 'U' (única) no se lista como talla."""
+    m = _DESIGUAL_TALLA_RE.search(titulo)
+    if not m:
+        return ""
+    t = m.group(1).upper()
+    return "" if t == "U" else t
+
+
+def _ordenar_tallas(tallas) -> list:
+    """Únicas y ordenadas: letras por talla (XS<S<M<L<XL…), números ascendentes."""
+    def _key(t):
+        tu = t.upper()
+        if tu in _ORDEN_TALLAS:
+            return (0, _ORDEN_TALLAS[tu])
+        try:
+            return (1, float(t.replace(",", ".")))
+        except ValueError:
+            return (2, tu)
+    return sorted({t.upper() for t in tallas if t}, key=_key)
+
+
 def _clave_dedup_esdemarca(brand: str, titulo: str) -> str:
     """Clave de deduplicación para Esdemarca: elimina talla y atributos finales.
 
@@ -322,7 +365,7 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
                 f"{brand} {titulo}" if brand.lower() not in titulo_lower else titulo
             )
 
-            candidatos.append((clave, {
+            candidatos.append((clave, _talla_esdemarca(titulo), {
                 "titulo":          titulo_out,
                 "asin":            product_url,
                 "precio_actual":   precio_actual,
@@ -334,16 +377,21 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
         except Exception:
             continue
 
-    # Paso 2: contar variantes por modelo y deduplicar
-    conteo = Counter(c for c, _ in candidatos)
+    # Paso 2: agrupar por modelo → contar variantes + recoger tallas, y deduplicar
+    conteo = Counter(c for c, _, _ in candidatos)
+    tallas_por_clave: dict[str, list] = {}
+    for clave, talla, _ in candidatos:
+        if talla:
+            tallas_por_clave.setdefault(clave, []).append(talla)
     vistos: set[str] = set()
     resultado: list[dict] = []
-    for clave, d in candidatos:
+    for clave, _talla, d in candidatos:
         if clave in vistos:
             continue
         vistos.add(clave)
         n = conteo[clave]
         d["pocas_unidades"] = "Últimas unidades" if n == 1 else ("Pocas tallas" if n <= 3 else "")
+        d["tallas"] = ", ".join(_ordenar_tallas(tallas_por_clave.get(clave, [])))
         resultado.append(d)
 
     return resultado
@@ -459,8 +507,8 @@ _DESIGUAL_EXCLUIR = [
 
 
 def _clave_dedup_desigual(titulo: str) -> str:
-    """Agrupa tallas del mismo modelo: elimina tamaño numérico final (ej. ', 39')."""
-    return re.sub(r',\s*\d{2}\s*$', '', titulo)[:70].lower()
+    """Agrupa variantes del mismo modelo eliminando la talla final (letra, número o 'U')."""
+    return _DESIGUAL_TALLA_RE.sub('', titulo)[:70].lower()
 
 
 def _filtrar_desigual(raw: list[dict], precio_minimo: float, precio_maximo: float) -> list[dict]:
@@ -515,7 +563,7 @@ def _filtrar_desigual(raw: list[dict], precio_minimo: float, precio_maximo: floa
                 continue
 
             clave = _clave_dedup_desigual(titulo)
-            candidatos.append((clave, {
+            candidatos.append((clave, _talla_desigual(titulo), {
                 "titulo":          titulo,
                 "asin":            offer.get("productUrl", ""),
                 "precio_actual":   precio_actual,
@@ -527,16 +575,21 @@ def _filtrar_desigual(raw: list[dict], precio_minimo: float, precio_maximo: floa
         except Exception:
             continue
 
-    # Paso 2: contar variantes por modelo y deduplicar
-    conteo = Counter(c for c, _ in candidatos)
+    # Paso 2: agrupar por modelo → contar variantes + recoger tallas, y deduplicar
+    conteo = Counter(c for c, _, _ in candidatos)
+    tallas_por_clave: dict[str, list] = {}
+    for clave, talla, _ in candidatos:
+        if talla:
+            tallas_por_clave.setdefault(clave, []).append(talla)
     vistos: set[str] = set()
     resultado: list[dict] = []
-    for clave, d in candidatos:
+    for clave, _talla, d in candidatos:
         if clave in vistos:
             continue
         vistos.add(clave)
         n = conteo[clave]
         d["pocas_unidades"] = "Últimas unidades" if n == 1 else ("Pocas tallas" if n <= 3 else "")
+        d["tallas"] = ", ".join(_ordenar_tallas(tallas_por_clave.get(clave, [])))
         resultado.append(d)
 
     return resultado

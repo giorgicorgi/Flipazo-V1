@@ -698,6 +698,8 @@ def _ensure_schema():
             "mas_rebajado         INTEGER DEFAULT 0",
             "verif_3d             INTEGER DEFAULT 0",
             "verif_7d             INTEGER DEFAULT 0",
+            "pocas_unidades  TEXT DEFAULT ''",
+            "tallas          TEXT DEFAULT ''",
         ]:
             try:
                 con.execute(f"ALTER TABLE deals_publicados ADD COLUMN {col_def}")
@@ -985,6 +987,7 @@ def get_deals(
             COALESCE(emotional_tags,'[]') AS emotional_tags,
             COALESCE(stock_qty,      0) AS stock_qty,
             COALESCE(pocas_unidades,'') AS pocas_unidades,
+            COALESCE(tallas,        '') AS tallas,
             precio_actualizado_en,
             precio_publicado,
             precio_verificado,
@@ -1035,6 +1038,7 @@ def _normalize_deal_row(r) -> dict:
     except: d["emotional_tags"] = []
     d["stock_qty"]            = int(d.get("stock_qty", 0) or 0)
     d["pocas_unidades"]       = d.get("pocas_unidades") or ""
+    d["tallas"]               = d.get("tallas") or ""
     d["precio_actualizado_en"] = d.get("precio_actualizado_en") or None
     # Verificación 3/7d: precio del 1er descuento, último precio verificado, flag rebajado
     d["precio_publicado"]      = d.get("precio_publicado")  or 0.0

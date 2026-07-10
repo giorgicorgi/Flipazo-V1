@@ -188,6 +188,13 @@
     [data-theme="dark"] .deal__stock-tag {
       color: #9CA3AF; background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.10);
     }
+    /* Tallas disponibles (Esdemarca/Desigual) */
+    .deal__sizes { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .deal__sizes-label { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text-mid); margin-right: 3px; }
+    .deal__size { font-family: var(--sans); font-size: 11px; font-weight: 800; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; min-width: 22px; text-align: center; line-height: 1.4; }
+    .deal__sizes--compact { margin-top: 6px; gap: 4px; }
+    .deal__sizes--compact .deal__sizes-label { display: none; }
+    .deal__sizes--compact .deal__size { font-size: 10px; padding: 1px 6px; min-width: 18px; }
     [data-theme="dark"] .deal__current { color: #4FA8FF; }
     [data-theme="dark"] .deal__savings {
       background: rgba(20,193,174,0.15); color: var(--teal);
@@ -3339,6 +3346,17 @@
       && _GRAN_ELECTRO_RE.test(d.titulo || "");
   }
 
+  // Tallas disponibles (Esdemarca/Desigual). `compact` para cards pequeñas.
+  function _tallasHtml(d, isExpired, compact) {
+    if (!d || !d.tallas || isExpired) return "";
+    const tallas = String(d.tallas).split(",").map(t => t.trim()).filter(Boolean).slice(0, 12);
+    if (!tallas.length) return "";
+    return `<div class="deal__sizes${compact ? " deal__sizes--compact" : ""}">`
+      + `<span class="deal__sizes-label">Tallas</span>`
+      + tallas.map(t => `<span class="deal__size">${esc(t)}</span>`).join("")
+      + `</div>`;
+  }
+
   // ── Render card ───────────────────────────────────────────────
   function renderDeal(d) {
     const isReventa  = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
@@ -3437,6 +3455,8 @@
     const stockBadge = (d.pocas_unidades && !isExpired)
       ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : "";
 
+    const tallasHtml = _tallasHtml(d, isExpired);
+
     const hook         = (d.hook || "").trim();
     const showHook     = hook.length > 0 && !isExpired;
     const cleanedTitle = esc(marcaPrimero(d.titulo || ""));
@@ -3513,6 +3533,7 @@
         ${ahorroHtml}
         ${applianceNoteHtml}
         ${stockBadge}
+        ${tallasHtml}
         ${razonHtml}
         <div class="deal__cta">
           <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver deal →</a>
@@ -5039,6 +5060,7 @@
           </div>
           ${_rebajadoTag(d)}
           ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
+          ${_tallasHtml(d, d.expirado, true)}
         </div>
       </a>
       <div class="card-actions">
@@ -5087,6 +5109,7 @@
           </span>
           ${_rebajadoTag(d)}
           ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
+          ${_tallasHtml(d, d.expirado, true)}
         </div>
       </a>
       <div class="card-actions">
@@ -5115,6 +5138,7 @@
           </div>
           ${_rebajadoTag(d)}
           ${d.pocas_unidades ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : ""}
+          ${_tallasHtml(d, d.expirado, true)}
         </div>
         <svg style="flex-shrink:0;align-self:center;margin-right:12px;color:var(--text-dim)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </a>

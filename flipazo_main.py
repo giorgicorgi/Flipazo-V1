@@ -423,6 +423,7 @@ class Producto:
     # ── Stock (solo feeds TD con datos de inventario) ──────────────────────
     stock_qty: int = 0       # unidades en stock; 0 = desconocido
     pocas_unidades: str = "" # "Pocas tallas" | "Últimas unidades" | ""
+    tallas: str = ""         # tallas disponibles (Esdemarca/Desigual), ej. "S, M, L"
     # ── Capa de discovery (poblada en Fase 4.5) ────────────────────────────
     deal_score:     int  = 0                          # 0-100 ranking discovery
     hook:           str  = ""                         # Titular emocional Haiku
@@ -3026,6 +3027,7 @@ class DeduplicacionDB:
                 "ALTER TABLE deals_publicados ADD COLUMN mas_rebajado         INTEGER DEFAULT 0",
                 "ALTER TABLE deals_publicados ADD COLUMN verif_3d             INTEGER DEFAULT 0",
                 "ALTER TABLE deals_publicados ADD COLUMN verif_7d             INTEGER DEFAULT 0",
+                "ALTER TABLE deals_publicados ADD COLUMN tallas               TEXT    DEFAULT ''",  # tallas disponibles (Esdemarca/Desigual)
             ]:
                 try:
                     con.execute(col_sql)
@@ -3194,8 +3196,8 @@ class DeduplicacionDB:
                         precio_wallapop, beneficio_neto, razonamiento,
                         categoria, pros, contras,
                         deal_score, hook, social_context, emotional_tags,
-                        stock_qty, pocas_unidades, familia_key, precio_publicado)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                        stock_qty, pocas_unidades, tallas, familia_key, precio_publicado)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                         COALESCE((SELECT precio_publicado FROM deals_publicados WHERE deal_id = ?), ?))""",
                 (
                     _deal_hash(p), p.titulo, p.tienda, p.precio_actual, p.tipo,
@@ -3211,6 +3213,7 @@ class DeduplicacionDB:
                     json.dumps(p.emotional_tags or [], ensure_ascii=False),
                     int(p.stock_qty or 0),
                     p.pocas_unidades or "",
+                    p.tallas or "",
                     _clave_familia(p.titulo),
                     # precio_publicado: preserva el 1er descuento si el deal ya existía,
                     # si no usa el precio actual de esta publicación.
