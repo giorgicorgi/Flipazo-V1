@@ -111,8 +111,18 @@ def fetch_awin_productos(
         obs: list[tuple] = []  # (asin, tienda, precio, precio_ref, fecha) para price_history
         fecha_hoy = datetime.now().strftime("%Y-%m-%d")
         n = 0
-        for row in rdr:
-            n += 1
+        def _rows_seguras(reader):
+            # El feed AWIN (enorme, chunked) a veces se corta cerca del final
+            # (IncompleteRead/EOFError). Con este envoltorio procesamos las filas leídas
+            # hasta el corte en vez de descartar TODO el feed y quedarnos en 0.
+            nonlocal n
+            try:
+                for _r in reader:
+                    n += 1
+                    yield _r
+            except Exception as _e:
+                print(f"   ⚠️  AWIN feed truncado a {n:,} filas ({type(_e).__name__}) — se procesan las leídas")
+        for row in _rows_seguras(rdr):
             tienda = _MERCHANT_MAP.get((row.get("merchant_name") or "").strip())
             if not tienda:
                 continue

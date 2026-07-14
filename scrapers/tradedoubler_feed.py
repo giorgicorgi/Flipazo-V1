@@ -692,8 +692,13 @@ def _observacion_historial(item: dict, tienda: str, precio_minimo: float, precio
     if not offers:
         return None
     off = offers[0]
-    disp = (off.get("availability") or "").lower()
-    if disp and disp not in ("in stock", "available", "en stock"):
+    # Para el historial recogemos casi todo: solo descartamos si está claramente agotado.
+    # Formatos vistos entre feeds: "in stock", "in_stock", "In_Stock", "available",
+    # "en stock", códigos numéricos ("3") o vacío → todos válidos.
+    disp = (off.get("availability") or "").lower().replace("_", " ").strip()
+    _AGOTADO = ("out of stock", "outofstock", "sold out", "unavailable", "not available",
+                "no disponible", "sin stock", "agotado")
+    if disp and (disp in ("0", "false", "no") or any(x in disp for x in _AGOTADO)):
         return None
     ph = off.get("priceHistory") or []
     val = (ph[0].get("price") or {}).get("value") if ph else (off.get("price") or {}).get("value")
