@@ -396,6 +396,13 @@ def _check_price_expired(url_afiliado: str, precio_stored: float = 0, timeout: i
             # TD white-label (tdvisit.esdemarca.com, etc.) — JS redirect, no verificable via web
             return None
 
+        elif "awin1.com" in url_afiliado or "awin.com/cread" in url_afiliado:
+            # Enlaces AWIN (Padel Market): la disponibilidad real está en el feed AWIN
+            # (campo in_stock), no en el HTML. La ficha tiene "agotado" en variantes de
+            # talla / relacionados y falseaba la expiración de TODO el catálogo → None.
+            # La frescura de Padel la da el pipeline (solo republica productos in_stock).
+            return None
+
         resp = _http.get(url, headers=headers, timeout=timeout, allow_redirects=True)
 
         if resp.status_code in (404, 410):
