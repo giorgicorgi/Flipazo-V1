@@ -2631,16 +2631,16 @@
           <span class="wb__pill">Gratis · sin registro</span>
         </div>
       </div>
-      <a class="wb__feat" id="js-ih-deal" href="#" target="_blank" rel="noopener sponsored" aria-live="polite">
+      <a class="wb__feat" id="js-ih-deal" href="#" target="_blank" rel="noopener sponsored" aria-live="polite" style="visibility:hidden">
         <span class="wb__feat-img" id="js-ih-imgwrap"><img id="js-ih-img" src="" alt="" loading="lazy" onerror="this.style.display='none'" /></span>
         <span class="wb__feat-body">
           <span class="wb__feat-label">Ahora mismo</span>
-          <div class="wb__feat-pct">−<span id="js-ih-pct">49</span>%</div>
-          <div class="wb__feat-name" id="js-ih-name">Zapatillas Nike Air Max 270</div>
+          <div class="wb__feat-pct">−<span id="js-ih-pct">0</span>%</div>
+          <div class="wb__feat-name" id="js-ih-name"></div>
           <div class="wb__feat-price">
-            <b id="js-ih-price">72 €</b>
-            <s id="js-ih-orig">140 €</s>
-            <span class="wb__feat-store" id="js-ih-store">eBay</span>
+            <b id="js-ih-price"></b>
+            <s id="js-ih-orig" style="display:none"></s>
+            <span class="wb__feat-store" id="js-ih-store"></span>
           </div>
         </span>
       </a>
@@ -3900,7 +3900,7 @@
   window.addEventListener("resize", _hcUpdateNav, { passive: true });
 
   // ── Intro hero / banner de bienvenida (showcase animado en tiempo real) ──
-  let _ihTimer = null, _ihIdx = 0, _ihPool = [], _introShown = false;
+  let _ihTimer = null, _ihIdx = 0, _ihPool = [], _introShown = false, _ihHasReal = false;
   let _introDismissed = (() => { try { return sessionStorage.getItem("flipazo_intro_closed") === "1"; } catch { return false; } })();
 
   function _shouldShowIntro() {
@@ -3959,6 +3959,9 @@
 
   function _ihShow(d, animate) {
     if (!d) return;
+    _ihHasReal = true;
+    const feat = document.getElementById("js-ih-deal");
+    if (feat) feat.style.visibility = "";   // revelar el showcase al tener un deal real
     const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
     set("js-ih-name", _ihTitle(d.titulo));
     set("js-ih-price", fmtPrice(d.precio_actual || 0));
@@ -4005,10 +4008,13 @@
       const pool = _ihEligible();
       if (pool.length) {
         _ihPool = pool;
-        if (!_introShown) { _ihIdx = 0; _ihShow(pool[0], true); }
+        // Muestra un deal real en cuanto haya (nunca el placeholder). En móvil se re-llama
+        // al cargar los deals → el primero entra al instante. Sin pool, el showcase queda
+        // oculto (visibility:hidden) hasta que llegue un deal real.
+        if (!_ihHasReal) { _ihIdx = 0; _ihShow(pool[0], true); }
+        _ihStart();
       }
       _introShown = true;
-      _ihStart();
     } else {
       el.style.display = "none";
       _introShown = false;
@@ -5376,6 +5382,7 @@
           renderMobileHome(deals);
           if (y > 0) window.scrollTo({ top: y, behavior: 'instant' });   // sin salto al recompletar
         }
+        updateIntroHero();  // deals ya cargados → mostrar un deal real en el banner (no el placeholder)
       };
 
       if (USE_MOCK) {
