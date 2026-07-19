@@ -1399,6 +1399,117 @@ def go_bio_stats(slug: str):
     }
 
 
+def _geolocalizar_ips(ips: list) -> dict:
+    """País/ciudad de una lista de IPs. Cachea en la tabla ip_geo y consulta las
+    nuevas en ip-api.com (batch, gratis). Devuelve {ip: {country, code, city}}."""
+    import ipaddress
+    out: dict = {}
+    ips = [ip for ip in dict.fromkeys(ips) if ip]  # únicas, orden estable
+    if not ips:
+        return out
+    with _get_db() as con:
+        con.execute("CREATE TABLE IF NOT EXISTS ip_geo "
+                    "(ip TEXT PRIMARY KEY, country TEXT, country_code TEXT, city TEXT, ts TEXT)")
+        con.commit()
+        ph = ",".join("?" * len(ips))
+        for r in con.execute(f"SELECT ip, country, country_code, city FROM ip_geo WHERE ip IN ({ph})", ips):
+            out[r["ip"]] = {"country": r["country"], "code": r["country_code"], "city": r["city"]}
+    faltan = []
+    for ip in ips:
+        if ip in out:
+            continue
+        try:
+            if ipaddress.ip_address(ip).is_global:
+                faltan.append(ip)
+        except Exception:
+            pass
+    nuevos = []
+    for i in range(0, len(faltan), 100):
+        chunk = faltan[i:i + 100]
+        try:
+            resp = _http.post("http://ip-api.com/batch?fields=status,country,countryCode,city,query",
+                              json=chunk, timeout=8)
+            for it in (resp.json() if resp.ok else []):
+                if it.get("status") == "success":
+                    ip = it.get("query")
+                    g = {"country": it.get("country"), "code": it.get("countryCode"), "city": it.get("city")}
+                    out[ip] = g
+                    nuevos.append((ip, g["country"], g["code"], g["city"],
+                                   datetime.now(timezone.utc).isoformat()))
+        except Exception:
+            break
+    if nuevos:
+        try:
+            with _get_db() as con:
+                con.executemany("INSERT OR REPLACE INTO ip_geo (ip,country,country_code,city,ts) "
+                                "VALUES (?,?,?,?,?)", nuevos)
+                con.commit()
+        except Exception:
+            pass
+    return out
+
+
+@app.get("/go-detail/{slug}")
+def go_bio_detail(slug: str):
+    """Detalle de un enlace de bio: ubicaciones (país/ciudad), heatmap día×hora
+    (hora de Madrid), distribución horaria/semanal y conversión aproximada."""
+    from collections import Counter
+    slug = "".join(c for c in (slug or "").lower() if c.isalnum() or c in "-_")[:32]
+    key = "bio:" + slug
+    with _get_db() as con:
+        rows = con.execute("SELECT ip, ts FROM clicks WHERE deal_id = ?", (key,)).fetchall()
+        conv = con.execute(
+            "SELECT COUNT(DISTINCT b.ip) FROM clicks b "
+            "JOIN clicks d ON d.ip = b.ip AND d.deal_id NOT LIKE 'bio:%' AND d.ts >= b.ts "
+            "WHERE b.deal_id = ?", (key,)).fetchone()[0]
+    total = len(rows)
+    ips = [r["ip"] for r in rows if r["ip"]]
+    geo_map = _geolocalizar_ips(ips)
+    paises, ciudades = Counter(), Counter()
+    for ip in ips:
+        g = geo_map.get(ip)
+        if g and g.get("country"):
+            paises[(g["country"], g.get("code") or "")] += 1
+            if g.get("city"):
+                ciudades[(g["city"], g.get("code") or "")] += 1
+    try:
+        from zoneinfo import ZoneInfo
+        TZ = ZoneInfo("Europe/Madrid")
+    except Exception:
+        TZ = None
+    heat = [[0] * 24 for _ in range(7)]
+    por_hora, por_dow = [0] * 24, [0] * 7
+    for r in rows:
+        try:
+            dt = datetime.fromisoformat(r["ts"])
+            if TZ:
+                dt = dt.astimezone(TZ)
+            heat[dt.weekday()][dt.hour] += 1
+            por_hora[dt.hour] += 1
+            por_dow[dt.weekday()] += 1
+        except Exception:
+            pass
+    visitantes = len({ip for ip in ips})
+    return {
+        "slug": slug,
+        "clicks_total": total,
+        "clicks_unicos_ip": visitantes,
+        "geo": {
+            "paises":   [{"pais": k[0], "code": k[1], "clicks": v} for k, v in paises.most_common(12)],
+            "ciudades": [{"ciudad": k[0], "code": k[1], "clicks": v} for k, v in ciudades.most_common(12)],
+            "sin_geo":  total - sum(paises.values()),
+        },
+        "heatmap": heat,
+        "por_hora": por_hora,
+        "por_dow": por_dow,
+        "conversion": {
+            "visitantes": visitantes,
+            "con_clic_deal": conv,
+            "tasa": round(100 * conv / visitantes) if visitantes else 0,
+        },
+    }
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # ADMIN ENDPOINTS
 # ══════════════════════════════════════════════════════════════════════════════
