@@ -140,7 +140,7 @@
       el.innerHTML = `<div class="section"><p class="empty">Cargando ${slug}…</p></div>`;
       let d; try { d = await (await fetch(`${API}/go-detail/${slug}`,{cache:"no-store"})).json(); } catch { d=null; }
       if(!d){ el.innerHTML = `<div class="section"><p class="empty">No se pudo cargar.</p></div>`; return; }
-      const link = `www.flipazo.es/go/${slug}`;
+      const link = `www.flipazo.es/${slug}`;
       const c = d.conversion||{};
       const totalGeo = (d.geo.paises||[]).reduce((s,p)=>s+p.clicks,0);
       el.innerHTML = `

@@ -13,6 +13,10 @@
     }
   ],
   "rewrites": [
+    { "source": "/threads",   "destination": "https://api.flipazo.es/go/threads" },
+    { "source": "/instagram", "destination": "https://api.flipazo.es/go/instagram" },
+    { "source": "/tiktok",    "destination": "https://api.flipazo.es/go/tiktok" },
+    { "source": "/youtube",   "destination": "https://api.flipazo.es/go/youtube" },
     { "source": "/go/:slug",       "destination": "https://api.flipazo.es/go/:slug" },
     { "source": "/go-stats/:slug", "destination": "https://api.flipazo.es/go-stats/:slug" },
     { "source": "/blog/(.*)",   "destination": "/blog.html" },
