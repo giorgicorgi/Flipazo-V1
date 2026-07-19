@@ -1350,10 +1350,10 @@ def redirect_afiliado(deal_id: str, request: Request, canal: str = "web"):
 # de cookies ni Google Analytics) y redirige a flipazo.es con UTM (para que GA
 # también atribuya a quienes consienten). Ver clicks en /go-stats/{slug}.
 _BIO_LINKS = {
-    "threads":   "https://flipazo.es/?utm_source=threads&utm_medium=bio&utm_campaign=perfil",
-    "instagram": "https://flipazo.es/?utm_source=instagram&utm_medium=bio&utm_campaign=perfil",
-    "tiktok":    "https://flipazo.es/?utm_source=tiktok&utm_medium=bio&utm_campaign=perfil",
-    "youtube":   "https://flipazo.es/?utm_source=youtube&utm_medium=bio&utm_campaign=perfil",
+    "threads":   "https://www.flipazo.es/?utm_source=threads&utm_medium=bio&utm_campaign=perfil",
+    "instagram": "https://www.flipazo.es/?utm_source=instagram&utm_medium=bio&utm_campaign=perfil",
+    "tiktok":    "https://www.flipazo.es/?utm_source=tiktok&utm_medium=bio&utm_campaign=perfil",
+    "youtube":   "https://www.flipazo.es/?utm_source=youtube&utm_medium=bio&utm_campaign=perfil",
 }
 
 
@@ -1362,7 +1362,7 @@ def go_bio(slug: str, request: Request):
     """Enlace de bio contable: registra el click y redirige a flipazo.es con UTM."""
     slug = "".join(c for c in (slug or "").lower() if c.isalnum() or c in "-_")[:32]
     destino = _BIO_LINKS.get(slug) or (
-        f"https://flipazo.es/?utm_source={slug or 'bio'}&utm_medium=bio&utm_campaign=perfil"
+        f"https://www.flipazo.es/?utm_source={slug or 'bio'}&utm_medium=bio&utm_campaign=perfil"
     )
     ip = request.headers.get("X-Forwarded-For", "")
     ip = (ip.split(",")[0].strip() if ip else (request.client.host if request.client else "unknown"))
