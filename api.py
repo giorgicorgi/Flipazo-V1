@@ -1345,6 +1345,60 @@ def redirect_afiliado(deal_id: str, request: Request, canal: str = "web"):
     return RedirectResponse(url=row["url_afiliado"], status_code=302)
 
 
+# ── Enlaces de bio contables (Threads, Instagram…) ───────────────────────────
+# Redirect propio que cuenta cada click en el servidor (100% fiable, sin depender
+# de cookies ni Google Analytics) y redirige a flipazo.es con UTM (para que GA
+# también atribuya a quienes consienten). Ver clicks en /go-stats/{slug}.
+_BIO_LINKS = {
+    "threads":   "https://flipazo.es/?utm_source=threads&utm_medium=bio&utm_campaign=perfil",
+    "instagram": "https://flipazo.es/?utm_source=instagram&utm_medium=bio&utm_campaign=perfil",
+    "tiktok":    "https://flipazo.es/?utm_source=tiktok&utm_medium=bio&utm_campaign=perfil",
+    "youtube":   "https://flipazo.es/?utm_source=youtube&utm_medium=bio&utm_campaign=perfil",
+}
+
+
+@app.get("/go/{slug}")
+def go_bio(slug: str, request: Request):
+    """Enlace de bio contable: registra el click y redirige a flipazo.es con UTM."""
+    slug = "".join(c for c in (slug or "").lower() if c.isalnum() or c in "-_")[:32]
+    destino = _BIO_LINKS.get(slug) or (
+        f"https://flipazo.es/?utm_source={slug or 'bio'}&utm_medium=bio&utm_campaign=perfil"
+    )
+    ip = request.headers.get("X-Forwarded-For", "")
+    ip = (ip.split(",")[0].strip() if ip else (request.client.host if request.client else "unknown"))
+    try:
+        with _get_db() as con:
+            con.execute(
+                "INSERT INTO clicks (deal_id, canal, ip, ts) VALUES (?, ?, ?, ?)",
+                ("bio:" + slug, "bio:" + slug, ip[:64], datetime.now(timezone.utc).isoformat()),
+            )
+            con.commit()
+    except Exception:
+        pass  # nunca bloquear la redirección por un fallo de logging
+    return RedirectResponse(url=destino, status_code=302)
+
+
+@app.get("/go-stats/{slug}")
+def go_bio_stats(slug: str):
+    """Clicks de un enlace de bio: total, IPs únicas y desglose por día."""
+    slug = "".join(c for c in (slug or "").lower() if c.isalnum() or c in "-_")[:32]
+    key = "bio:" + slug
+    with _get_db() as con:
+        total  = con.execute("SELECT COUNT(*) FROM clicks WHERE deal_id = ?", (key,)).fetchone()[0]
+        unicos = con.execute("SELECT COUNT(DISTINCT ip) FROM clicks WHERE deal_id = ?", (key,)).fetchone()[0]
+        dias   = con.execute(
+            "SELECT substr(ts,1,10) d, COUNT(*) n FROM clicks WHERE deal_id = ? GROUP BY d ORDER BY d DESC LIMIT 60",
+            (key,),
+        ).fetchall()
+    return {
+        "slug": slug,
+        "destino": _BIO_LINKS.get(slug),
+        "clicks_total": total,
+        "clicks_unicos_ip": unicos,
+        "por_dia": {d: n for d, n in dias},
+    }
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # ADMIN ENDPOINTS
 # ══════════════════════════════════════════════════════════════════════════════
