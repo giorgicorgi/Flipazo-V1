@@ -3080,7 +3080,7 @@
   // Calzado: para excluir zapatos de moda/belleza (un zapato solo va a Calzado)
   const _RX_FOOTWEAR = /zapatilla[s]?|zapato[s]?|deportiva[s]?\b|\bbotas?\b|\bbot[ií]n\b|\bbotines?\b|sandalia[s]?|chancla[s]?|mocas[ií]n|sneaker[s]?|alpargata[s]?|espadrille[s]?|zuecos?\b|bailarina[s]?|merceditas|n[aá]uticos?\b/i;
   // Perfumería/cosmética: para excluir de Moda (un perfume solo va a Cuidado Personal)
-  const _RX_PERFUME = /perfume\b|eau de parfum|eau de toilette|\bcolonia\b|fragancia\b|maquillaje|s[eé]rum|crema.*(facial|hidratante|corporal)/i;
+  const _RX_PERFUME = /perfume\b|parfum\b|eau de parfum|eau de toilette|\beau de\b|\bedp\b|\bedt\b|\bedc\b|\bcolonia\b|fragancia\b|maquillaje|s[eé]rum|crema.*(facial|hidratante|corporal)/i;
   const _scat = (d, id) => d.categoria === id;
   // Tiendas 100% deporte: todo lo suyo (incl. ropa deportiva) va a Deportes, NUNCA a Moda
   const _DEPORTE_STORES = new Set(["Barrabes", "Decathlon", "Mammoth Bikes", "PrivateSportShop", "Padel Market", "Adidas", "Bikila"]);
@@ -3106,13 +3106,13 @@
     { id: "herramientas", label: "Herramientas",  hidden: true, test: d => _scat(d,"herramientas") || _RX.herramientas.test(d.titulo) },
     { id: "deportes",     label: "Deportes",      test: d => !_esCalzadoModa(d) && (_esCalzadoDeportivo(d) || _scat(d,"deportes") || _RX.deportes.test(d.titulo) || _DEPORTE_STORES.has(d.tienda)) },
     { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
-    { id: "belleza",      label: "Cuidado Personal", test: d => !_RX_APPAREL.test(d.titulo) && !_RX_KITCHEN.test(d.titulo) && !_RX_FOOTWEAR.test(d.titulo) && (_scat(d,"belleza") || _RX.belleza.test(d.titulo)) },
+    { id: "belleza",      label: "Cuidado Personal", test: d => !_RX_APPAREL.test(d.titulo) && !_RX_KITCHEN.test(d.titulo) && !_RX_FOOTWEAR.test(d.titulo) && (d.tienda === "Paco Perfumerias" || _scat(d,"belleza") || _RX.belleza.test(d.titulo)) },
     { id: "juguetes",     label: "Juguetes",      test: d => !_RX_CONSOLE.test(d.titulo) && (_scat(d,"juguetes") || _RX.juguetes.test(d.titulo)) },
     { id: "mascotas",     label: "Mascotas",      test: d => _scat(d,"mascotas") || _RX.mascotas.test(d.titulo) || d.tienda === "Tiendanimal" },
     { id: "moda",         label: "Moda",          test: d => {
         if (_esCalzadoDeportivo(d)) return false;          // calzado deportivo → Deportes
         if (_esCalzadoModa(d)) return true;                // calzado de moda → Moda
-        return !_DEPORTE_STORES.has(d.tienda) && !_RX_PERFUME.test(d.titulo) && !_RX.tecnologia.test(d.titulo) && !_RX.deportes.test(d.titulo) && (_scat(d,"moda") || _RX.moda.test(d.titulo) || _RX_APPAREL.test(d.titulo) || d.tienda === "Desigual");
+        return d.tienda !== "Paco Perfumerias" && !_DEPORTE_STORES.has(d.tienda) && !_RX_PERFUME.test(d.titulo) && !_RX.tecnologia.test(d.titulo) && !_RX.deportes.test(d.titulo) && (_scat(d,"moda") || _RX.moda.test(d.titulo) || _RX_APPAREL.test(d.titulo) || d.tienda === "Desigual");
       } },
   ];
 
@@ -3144,7 +3144,7 @@
   const BELLEZA_SUBCATS = [
     { id: "todas",      label: "Todo Cuidado" },
     { id: "cosmetica",  label: "Cosmética",   test: d => d.tienda === "OneBioShop" || /maquillaje|labial|m[aá]scara de pesta|colorete|base de maquillaje|corrector|sombra de ojos|eyeliner|crema.*(?:facial|hidratante|corporal|anti|manos)|s[eé]rum|mascarilla facial|contorno|t[oó]nico facial|exfoliante|limpiador facial|protector solar|fotoprotector|cerave|la roche|isdin|av[eè]ne|bioderma|eucerin|vichy|sesderma|filorga|caudalie|\btinte\b|colorante/i.test(d.titulo) },
-    { id: "perfumeria", label: "Perfumería",  test: d => /perfume\b|eau de parfum|eau de toilette|\bcolonia\b|fragancia/i.test(d.titulo) },
+    { id: "perfumeria", label: "Perfumería",  test: d => d.tienda === "Paco Perfumerias" || /perfume\b|parfum\b|\beau de\b|\bcolonia\b|cologne\b|fragancia|\bedp\b|\bedt\b|\bedc\b|guerlain|sisley|cacharel|paco rabanne|carolina herrera|jean paul gaultier|\bdior\b|chanel|lanc[oô]me|hugo boss|versace|givenchy|azzaro|montblanc|bvlgari|bulgari|\bkenzo\b|\bloewe\b|mugler|issey miyake|jimmy choo|calvin klein/i.test(d.titulo) },
     { id: "cabello",    label: "Cabello",     test: d => /secador|plancha.*(?:pelo|cabello)|rizador|moldeador|alisador|champ[uú]|acondicionador|mascarilla.*(?:pelo|cabello)|cortapelos/i.test(d.titulo) },
     { id: "afeitado",   label: "Afeitado",    test: d => /afeitadora|maquinilla.*afeit|rasuradora|oneblade|depilad|epilad|recortadora|cortabarba/i.test(d.titulo) },
   ];
