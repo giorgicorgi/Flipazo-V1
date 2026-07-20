@@ -20,6 +20,7 @@ import csv
 import gzip
 import io
 import os
+import re
 import sqlite3
 from datetime import datetime, timedelta
 
@@ -48,6 +49,7 @@ _MERCHANT_MAP = {
     "Deporte Outlet ES":    "Deporte Outlet",
     "Paco Perfumerias ES":  "Paco Perfumerias",  # perfumería, sin "precio antes"
     "BIKILA ES":            "Bikila",            # running/trail, sin "precio antes"
+    "Carrefour Supermercado Online":  "Carrefour",  # marketplace ruidoso, product_price_old = PVP inflado → histórico + blocklist
 }
 # Tiendas con product_price_old fiable → se publican como deals
 _PUBLICABLE = {"Padel Market"}
@@ -55,7 +57,38 @@ _PUBLICABLE = {"Padel Market"}
 # para detectar bajadas ≥40% por histórico propio (los feeds no traen "precio antes" real;
 # adidas trae product_price_old pero == precio actual, así que tampoco sirve).
 _SOLO_HISTORICO = {"ElCorteIngles", "Brico Depot", "Zalando", "Deporte Outlet",
-                   "Paco Perfumerias", "Bikila", "Adidas"}
+                   "Paco Perfumerias", "Bikila", "Adidas", "Carrefour"}
+# Carrefour "Supermercado Online" es en realidad un marketplace mayormente B2B/pro (tóner,
+# hardware de servidor, AV de integración tipo Crestron/CTouch, reacondicionados). NO nos vale
+# un blocklist (el 58% del catálogo ≥100€ es material profesional). Usamos ALLOWLIST de marcas
+# de consumo deseables (solo esas se trackean) + un blocklist que quita consumibles que se cuelan
+# por marca (p.ej. "Canon Tambor de impresora"). Solo histórico: publicamos bajadas reales propias.
+_CARREFOUR_KEEP = re.compile(
+    r"\bbose\b|\bsony\b|\bjbl\b|marshall|\bsonos\b|bang\s*&\s*olufsen|"
+    r"\bcanon\b|\bnikon\b|fujifilm|gopro|\bdji\b|insta360|"
+    r"garmin|fitbit|\bpolar\b|\bsuunto\b|amazfit|"
+    r"philips|\bbraun\b|oral-?b|dyson|rowenta|cecotec|tefal|de'?longhi|delonghi|nespresso|krups|moulinex|\bsmeg\b|kitchenaid|"
+    r"roomba|irobot|roborock|\bconga\b|"
+    r"samsung|\blg\b|xiaomi|\btcl\b|hisense|"
+    r"\bapple\b|\bipad\b|macbook|airpods|"
+    r"nintendo|playstation|\bps5\b|\bxbox\b|"
+    r"\blego\b|playmobil|\bnerf\b|"
+    r"logitech|razer|corsair|steelseries|hyperx|"
+    r"huawei|motorola|\bnothing\b|realme|"
+    r"kindle|echo dot|fire tv|"
+    r"whirlpool|\bbosch\b|siemens|\bbalay\b|\bteka\b|\bhaier\b|\bbeko\b|"
+    r"\bnike\b|\badidas\b|\bpuma\b|new balance|reebok|"
+    r"\bcasio\b|g-?shock|fossil|"
+    r"sandisk|kingston|crucial|western digital|seagate|\bwd\b",
+    re.I,
+)
+_CARREFOUR_SKIP = re.compile(
+    r"t[oó]ner|tinta|cartucho|\bdrum\b|t[aá]mbor|fusor|\bpapel\b|\bdvd\b|dvd[+\-]?r|\bcd-?r\b|"
+    r"\bhpe\b|servidor|\bserver\b|ethernet|base-?t|\bsfp\b|\brack\b|\bswitch\b|patch panel|"
+    r"licencia|\blicense\b|warranty|garant[ií]a ext|reacondicionad|refurbish|renewed|open box|"
+    r"segunda mano|recambio|repuesto|consumible|resma|etiquetas|precinto|embalaje",
+    re.I,
+)
 # Suelo de precio para registrar histórico (evita inflar la BD: ECI son ~967k productos).
 # A 100€ son ~246k obs/día; subir el suelo (env AWIN_HIST_PRECIO_MIN) reduce volumen.
 _HIST_PRECIO_MIN = float(os.getenv("AWIN_HIST_PRECIO_MIN", "100"))
@@ -133,6 +166,11 @@ def fetch_awin_productos(
             # ── Tiendas solo-histórico (ECI/Zalando/Deporte/Brico) ───────────────
             # Registrar precio actual + detectar bajada ≥X% vs su propio máximo histórico.
             if tienda in _SOLO_HISTORICO:
+                # Carrefour: solo marcas de consumo deseables (allowlist), sin consumibles (blocklist).
+                if tienda == "Carrefour":
+                    _nm = row.get("product_name") or ""
+                    if not _CARREFOUR_KEEP.search(_nm) or _CARREFOUR_SKIP.search(_nm):
+                        continue
                 if cur >= _HIST_PRECIO_MIN:
                     pid = ((row.get("merchant_product_id") or row.get("aw_product_id") or "")).strip()[:60]
                     if pid:

@@ -2333,7 +2333,7 @@ _TIENDAS_FEED_CONFIABLE = {
     "Decathlon", "Padel Market", "Adidas",
     # Tiendas AWIN con descuento detectado por NUESTRO histórico (price_drop) → ya verificado
     "ElCorteIngles", "Zalando", "Deporte Outlet", "Brico Depot", "Paco Perfumerias", "Bikila",
-    "OneBioShop", "Tiendanimal",
+    "OneBioShop", "Tiendanimal", "Carrefour",
     # Feeds TD solo-historial: bajada detectada por NUESTRO histórico (price_drop) → verificada
     "Braun", "De'Longhi", "Tefal", "Suunto", "L'Occitane", "The Beauty Corner",
     "Eureka Electrodomésticos", "DC Shoes", "Quiksilver", "Roxy", "Element",
