@@ -1856,17 +1856,28 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         print(f"   ❌ Error en Tradedoubler feeds: {e}")
         alertar_admin("Error en Tradedoubler feeds", str(e))
 
-    # ── TD feeds SIN precio de referencia — SOLO HISTORIAL (revisar en ~2 semanas) ──
+    # ── TD feeds SIN precio de referencia en el feed — HISTORIAL PROPIO ──────────
     # Braun, De'Longhi, Tefal, Suunto, L'Occitane, Beauty Corner, Eureka, DC Shoes,
-    # Quiksilver, Roxy, Element: no traen precio "antes" fiable → NO se publican; se
-    # ingieren para acumular price_history y detectar bajadas reales dentro de ~2 semanas.
+    # Quiksilver, Roxy, Element: no traen precio "antes". Acumulamos price_history y, con
+    # ≥7 días, detectamos BAJADAS REALES (≥40% bajo su máx sostenido) → se publican.
     try:
-        hist_raw = await asyncio.to_thread(
-            fetch_tradedoubler_historial, PRECIO_MINIMO_LC, PRECIO_MAXIMO,
+        hist_obs, hist_pub = await asyncio.to_thread(
+            fetch_tradedoubler_historial, PRECIO_MINIMO_LC, PRECIO_MAXIMO, DB_PATH,
         )
-        _registrar_observaciones_batch(hist_raw)
-        if hist_raw:
-            print(f"   🗂️  TD historial (sin publicar): {len(hist_raw)} observaciones registradas")
+        _registrar_observaciones_batch(hist_obs)
+        for d in hist_pub:
+            _tienda = d.get("tienda", "")
+            if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda=_tienda, precio=d.get("precio_actual", 0)):
+                continue
+            if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda=_tienda, titulo=d["titulo"]):
+                continue
+            p = Producto(**d)
+            clave = f"{p.tienda}:{p.titulo[:40].lower()}"
+            if clave not in vistos:
+                vistos.add(clave)
+                todos.append(p)
+        if hist_obs:
+            print(f"   🗂️  TD historial: {len(hist_obs)} obs · {len(hist_pub)} bajadas reales detectadas")
     except Exception as e:
         print(f"   ❌ Error en TD historial: {e}")
 
@@ -2323,6 +2334,9 @@ _TIENDAS_FEED_CONFIABLE = {
     # Tiendas AWIN con descuento detectado por NUESTRO histórico (price_drop) → ya verificado
     "ElCorteIngles", "Zalando", "Deporte Outlet", "Brico Depot", "Paco Perfumerias", "Bikila",
     "OneBioShop", "Tiendanimal",
+    # Feeds TD solo-historial: bajada detectada por NUESTRO histórico (price_drop) → verificada
+    "Braun", "De'Longhi", "Tefal", "Suunto", "L'Occitane", "The Beauty Corner",
+    "Eureka Electrodomésticos", "DC Shoes", "Quiksilver", "Roxy", "Element",
 }
 
 # ── Marca al frente del título ────────────────────────────────────

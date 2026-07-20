@@ -25,6 +25,8 @@ from datetime import datetime, timedelta
 import requests
 from dotenv import load_dotenv
 
+from scrapers.price_drop import cargar_referencias, evaluar_bajada
+
 load_dotenv()
 
 TRADEDOUBLER_TOKEN = os.getenv("TRADEDOUBLER_TOKEN", "")
@@ -681,6 +683,7 @@ _FEEDS_HISTORIAL = [
 ]
 
 _cache_hist: list[dict] = []
+_cache_hist_pub: list[dict] = []   # bajadas reales detectadas por histórico propio → publicables
 _last_fetch_hist: "datetime | None" = None
 _feed_cache_hist: dict[str, list[dict]] = {}
 
@@ -723,18 +726,26 @@ def _observacion_historial(item: dict, tienda: str, precio_minimo: float, precio
             "tienda": tienda, "asin": pid}
 
 
-def fetch_tradedoubler_historial(precio_minimo: float = 8.0, precio_maximo: float = 800.0) -> list[dict]:
-    """Observaciones de precio de los feeds SIN precio de referencia (NO publicables aún).
-    Devuelve list[dict] {titulo, precio_actual, precio_original:0, tienda, asin} para
-    registrar en price_history. Caché 23h propia (separada de la de deals publicables)."""
-    global _cache_hist, _last_fetch_hist
+def fetch_tradedoubler_historial(precio_minimo: float = 8.0, precio_maximo: float = 800.0,
+                                 db_path: str = None):
+    """Feeds SIN precio de referencia en el feed. Registra observaciones en price_history y,
+    cuando hay suficiente histórico propio, detecta BAJADAS REALES (precio actual ≥40% por
+    debajo de su precio máximo sostenido) → deals publicables verificados por nosotros.
+
+    Devuelve (observaciones, publicables). Caché 23h propia."""
+    global _cache_hist, _cache_hist_pub, _last_fetch_hist
     if not TRADEDOUBLER_TOKEN:
-        return []
+        return [], []
     ahora = datetime.now()
     if _last_fetch_hist and (ahora - _last_fetch_hist) < timedelta(hours=_CACHE_TTL_H):
-        return _cache_hist
+        return _cache_hist, _cache_hist_pub
+
+    # Referencias de histórico propio (precio máx sostenido por producto) → detectar bajadas.
+    tiendas_hist = [f["tienda"] for f in _FEEDS_HISTORIAL]
+    refs = cargar_referencias(db_path, tiendas_hist) if db_path else {}
 
     obs: list[dict] = []
+    pub: list[dict] = []
     total_raw = 0
     fallos = 0
     for feed in _FEEDS_HISTORIAL:
@@ -746,17 +757,39 @@ def fetch_tradedoubler_historial(precio_minimo: float = 8.0, precio_maximo: floa
             fallos += 1
             obs.extend(prev)
             continue
-        feed_obs = [o for o in (_observacion_historial(x, tienda, precio_minimo, precio_maximo) for x in raw) if o]
+        feed_obs = []
+        feed_pub = 0
+        for item in raw:
+            o = _observacion_historial(item, tienda, precio_minimo, precio_maximo)
+            if not o:
+                continue
+            feed_obs.append(o)
+            # Bajada real vs histórico propio (o["asin"] = pid = clave del price_history).
+            res = evaluar_bajada(refs.get((o["asin"], tienda)), o["precio_actual"])
+            if res:
+                precio_ref, desc = res
+                off = (item.get("offers") or [{}])[0]
+                pub.append({
+                    "titulo":          o["titulo"],
+                    "asin":            off.get("productUrl", ""),      # deep link TD (ya afiliado)
+                    "precio_actual":   o["precio_actual"],
+                    "precio_original": precio_ref,
+                    "descuento_pct":   desc,
+                    "tienda":          tienda,
+                    "imagen_url":      ((item.get("productImage") or {}).get("url") or ""),
+                })
+                feed_pub += 1
         _feed_cache_hist[fid] = feed_obs
-        print(f"   🗂️  TD historial: {tienda} (fid={fid}) → {len(raw)} prod, {len(feed_obs)} observaciones")
+        print(f"   🗂️  TD historial: {tienda} (fid={fid}) → {len(raw)} prod, {len(feed_obs)} obs, {feed_pub} bajadas")
         obs.extend(feed_obs)
 
     if total_raw == 0:
-        return _cache_hist
+        return _cache_hist, _cache_hist_pub
     _cache_hist = obs
+    _cache_hist_pub = pub
     if fallos == 0:
         _last_fetch_hist = ahora
-    return obs
+    return obs, pub
 
 
 def fetch_tradedoubler_productos(
