@@ -81,6 +81,8 @@
     })();
   </script>
 
+  <!-- Adelanta la conexión (DNS+TLS) a la API para que los deals lleguen antes -->
+  <link rel="preconnect" href="https://api.flipazo.es" crossorigin />
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -5392,8 +5394,10 @@
         return;
       }
 
-      // 1ª página (500): pinta rápido.
-      const first = await fetch(`${API_URL}?limit=500&offset=0`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+      // 1ª página PEQUEÑA (120): pinta rápido en móvil (antes 500 = ~540KB → lento
+      // en el navegador in-app de Threads). El resto se trae en segundo plano.
+      const FIRST = 120;
+      const first = await fetch(`${API_URL}?limit=${FIRST}&offset=0`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
       _mhomeDeals = first;
       if (!allDeals.length) { allDeals = first; currentOffset = first.length; hasMore = false; }
       _renderIfHome(first);
@@ -5401,7 +5405,7 @@
       // Resto en segundo plano → las ~20 filas de subcategoría se llenan.
       // La API sirve máx. 500 por petición, así que paginamos por offset.
       const _PAGE = 500, _MAX = 2000;
-      if (first.length === _PAGE) {
+      if (first.length === FIRST) {
         let acc = first.slice(), offset = first.length;
         while (acc.length < _MAX) {
           let page;
