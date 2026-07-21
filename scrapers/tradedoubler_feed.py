@@ -680,6 +680,8 @@ _FEEDS_HISTORIAL = [
     {"tienda": "Quiksilver",               "fid": "42467"},   # quiksilver.es
     {"tienda": "Roxy",                     "fid": "43218"},   # roxy.es
     {"tienda": "Element",                  "fid": "258062"},  # elementbrand.es
+    {"tienda": "ToysRus",                  "fid": "21529"},   # toysrus.es — juguetería, sin "precio antes" → histórico
+    {"tienda": "Tiendanimal",              "fid": "50625"},   # tiendanimal.es — mascotas; refuerza el feed directo con detección de bajadas reales
 ]
 
 _cache_hist: list[dict] = []
