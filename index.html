@@ -3081,6 +3081,9 @@
   const _RX_FOOTWEAR = /zapatilla[s]?|zapato[s]?|deportiva[s]?\b|\bbotas?\b|\bbot[ií]n\b|\bbotines?\b|sandalia[s]?|chancla[s]?|mocas[ií]n|sneaker[s]?|alpargata[s]?|espadrille[s]?|zuecos?\b|bailarina[s]?|merceditas|n[aá]uticos?\b/i;
   // Perfumería/cosmética: para excluir de Moda (un perfume solo va a Cuidado Personal)
   const _RX_PERFUME = /perfume\b|parfum\b|eau de parfum|eau de toilette|\beau de\b|\bedp\b|\bedt\b|\bedc\b|\bcolonia\b|fragancia\b|maquillaje|s[eé]rum|crema.*(facial|hidratante|corporal)/i;
+  // Útiles de pelo (secador, cepillo alisador, moldeador…): son Cuidado Personal, NO Hogar
+  // (marcas como Rowenta/Cecotec los colaban en Hogar). "secadora" (ropa) NO se ve afectada.
+  const _RX_PELO = /\bsecador\b|cepillo.*(?:alisad|secador|cabello|pelo|reparador|therapist|ionicare)|alisador|moldeador\b|rizador|plancha.*(?:pelo|cabello)|cortapelos|rasuradora|afeitadora|\bhair\b/i;
   const _scat = (d, id) => d.categoria === id;
   // Tiendas 100% deporte: todo lo suyo (incl. ropa deportiva) va a Deportes, NUNCA a Moda
   const _DEPORTE_STORES = new Set(["Barrabes", "Decathlon", "Mammoth Bikes", "PrivateSportShop", "Padel Market", "Adidas", "Bikila"]);
@@ -3105,7 +3108,7 @@
     { id: "tecnologia",   label: "Tecnología",    test: d => !_RX.belleza.test(d.titulo) && (_scat(d,"tecnologia") || _RX.tecnologia.test(d.titulo) || d.tienda === "PcComponentes") },
     { id: "herramientas", label: "Herramientas",  hidden: true, test: d => _scat(d,"herramientas") || _RX.herramientas.test(d.titulo) },
     { id: "deportes",     label: "Deportes",      test: d => !_esCalzadoModa(d) && (_esCalzadoDeportivo(d) || _scat(d,"deportes") || _RX.deportes.test(d.titulo) || _DEPORTE_STORES.has(d.tienda)) },
-    { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
+    { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && !_RX_PELO.test(d.titulo) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
     { id: "belleza",      label: "Cuidado Personal", test: d => !_RX_APPAREL.test(d.titulo) && !_RX_KITCHEN.test(d.titulo) && !_RX_FOOTWEAR.test(d.titulo) && (d.tienda === "Paco Perfumerias" || _scat(d,"belleza") || _RX.belleza.test(d.titulo)) },
     { id: "juguetes",     label: "Juguetes",      test: d => !_RX_CONSOLE.test(d.titulo) && (_scat(d,"juguetes") || _RX.juguetes.test(d.titulo)) },
     { id: "mascotas",     label: "Mascotas",      test: d => _scat(d,"mascotas") || _RX.mascotas.test(d.titulo) || d.tienda === "Tiendanimal" },
@@ -3150,6 +3153,17 @@
   ];
   let activeBellezaSubcat = "todas";
 
+  // ── Hogar sub-categories ─────────────────────────────────────
+  const HOGAR_SUBCATS = [
+    { id: "todas",    label: "Todo Hogar" },
+    { id: "cocina",   label: "Cocina",            test: d => /cafetera|nespresso|dolce.?gusto|c[aá]psulas?|espresso|delonghi|krups|freidora|air.?fryer|airfryer|batidora|licuadora|exprimidor|tostadora|hervidor|sandwichera|gofrera|molinillo|thermomix|robot.*cocina|kenwood|magimix|\bolla\b|microondas|picadora|amasadora|yogurtera|heladera|vaporera|arrocera/i.test(d.titulo) },
+    { id: "electro",  label: "Electrodomésticos", test: d => /lavadora|lavavajillas|secadora\b|lavasecadora|\bhorno\b|vitrocer|inducci[oó]n|frigor|nevera|congelador|campana|encimera/i.test(d.titulo) },
+    { id: "limpieza", label: "Limpieza",          test: d => /aspirador|roomba|irobot|roborock|dreame|ecovacs|eufy|lefant|dyson|shark|bissell|\bmopa\b|friegasuelos|limpiacristales|vaporeta|escoba.*vapor|mopa.*vapor|plancha\b(?!.*(?:pelo|cabello|alisad))|centro.*planchado/i.test(d.titulo) },
+    { id: "clima",    label: "Clima",             test: d => /calefactor|aire.*acondicionado|climatiz|ventilador|purificador|humidificador|deshumidificador|estufa|radiador|braser|termoventilador|calienta|caldera/i.test(d.titulo) },
+    { id: "menaje",   label: "Menaje y hogar",    test: d => /sart[eé]n|cacerola|cazuela|\bwok\b|bater[ií]a de cocina|cuchillo|vajilla|\bcopa|cubiert|fiambrera|\btermo\b|botella|tabla de cortar|\bmolde\b|l[aá]mpara|bombilla|tira led|\bfoco\b|plaf[oó]n|aplique|regleta|enchufe|colch[oó]n|sof[aá]|sill[oó]n|\bsilla\b|\bmesa\b|escritorio|estanter|mueble|c[oó]moda|cabecero|somier|canap[eé]|toalla|s[aá]bana|edred[oó]n|almohada|n[oó]rdico|\bmanta\b|cortina|alfombra|recipiente herm/i.test(d.titulo) },
+  ];
+  let activeHogarSubcat = "todas";
+
   // Filtro "menos de 25€" — desacoplado del sorting (es un filtro, no un orden)
   let activeLowCost = false;
 
@@ -3159,8 +3173,9 @@
     moda:       { list: MODA_SUBCATS,    get: () => activeModaSubcat,    set: v => { activeModaSubcat = v; } },
     deportes:   { list: DEPORTE_SUBCATS, get: () => activeDeporteSubcat, set: v => { activeDeporteSubcat = v; } },
     belleza:    { list: BELLEZA_SUBCATS, get: () => activeBellezaSubcat, set: v => { activeBellezaSubcat = v; } },
+    hogar:      { list: HOGAR_SUBCATS,   get: () => activeHogarSubcat,   set: v => { activeHogarSubcat = v; } },
   };
-  function _resetSubcats() { activeTechSubcat = "todas"; activeModaSubcat = "todas"; activeDeporteSubcat = "todas"; activeBellezaSubcat = "todas"; }
+  function _resetSubcats() { activeTechSubcat = "todas"; activeModaSubcat = "todas"; activeDeporteSubcat = "todas"; activeBellezaSubcat = "todas"; activeHogarSubcat = "todas"; }
 
   // Solo la categoría (sin tener en cuenta la subcategoría activa)
   function dealInCategory(deal, catId) {
