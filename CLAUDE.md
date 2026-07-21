@@ -101,7 +101,9 @@ discovery/               ← scoring.py + emotional_layer.py (hooks con Haiku)
 | Mammoth Bikes | 10 outlet pages (precios ES: `1.234,56 €`) | ✅ |
 | Private Sport Shop | Gmail IMAP + Playwright | ⚠️ Cloudflare, circuit breaker |
 | Beep | Feed TD (fid=51903) | ❌ PreviousPrice = MSRP → falsos descuentos |
-| ToysRus | Feed TD (fid=21529) | ❌ Sin campo precio original |
+| ToysRus | Feed TD (fid=21529) + histórico propio (`scrapers/toysrus_feed.py`, tablas `toysrus_precios`/`toysrus_productos`, clave EAN) | ✅ Armado; publica solo bajadas reales ≥40% → 0 ahora (juguetes bajan máx ~20%; saldrá en liquidaciones Reyes/BF). NO añadir a `_FEEDS_HISTORIAL` (duplicado) |
+| Tiendanimal | Feed TD (fid=50625, `sale_price`) → Mascotas | ✅ Directo; 0 ≥40% ahora (falta oferta) |
+| Carrefour | Feed AWIN (fid 76395,98228 = "Carrefour Supermercado Online") | ⚠️ Marketplace B2B ruidoso → **modo histórico** (`_SOLO_HISTORICO`) + allowlist de consumo (`_CARREFOUR_KEEP`) − blocklist (`_CARREFOUR_SKIP`) en `awin_feed.py`. Publica bajadas reales propias (~2 sem) |
 
 **TD feeds:** Caché 23h en memoria. `offer["priceHistory"][0]["price"]["value"]` = precio actual. `TD_PUBLISHER_ID` debe ser el SITE ID (3481714), NO el publisher ID (2468812).
 
