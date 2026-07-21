@@ -3108,7 +3108,7 @@
     { id: "tecnologia",   label: "Tecnología",    test: d => !_RX.belleza.test(d.titulo) && (_scat(d,"tecnologia") || _RX.tecnologia.test(d.titulo) || d.tienda === "PcComponentes") },
     { id: "herramientas", label: "Herramientas",  hidden: true, test: d => _scat(d,"herramientas") || _RX.herramientas.test(d.titulo) },
     { id: "deportes",     label: "Deportes",      test: d => !_esCalzadoModa(d) && (_esCalzadoDeportivo(d) || _scat(d,"deportes") || _RX.deportes.test(d.titulo) || _DEPORTE_STORES.has(d.tienda)) },
-    { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && !_RX_PELO.test(d.titulo) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
+    { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && !_RX_PELO.test(d.titulo) && !_DEPORTE_STORES.has(d.tienda) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
     { id: "belleza",      label: "Cuidado Personal", test: d => !_RX_APPAREL.test(d.titulo) && !_RX_KITCHEN.test(d.titulo) && !_RX_FOOTWEAR.test(d.titulo) && (d.tienda === "Paco Perfumerias" || _scat(d,"belleza") || _RX.belleza.test(d.titulo)) },
     { id: "juguetes",     label: "Juguetes",      test: d => !_RX_CONSOLE.test(d.titulo) && (_scat(d,"juguetes") || _RX.juguetes.test(d.titulo)) },
     { id: "mascotas",     label: "Mascotas",      test: d => _scat(d,"mascotas") || _RX.mascotas.test(d.titulo) || d.tienda === "Tiendanimal" },
