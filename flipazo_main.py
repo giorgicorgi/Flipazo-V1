@@ -122,61 +122,77 @@ MAX_PUBLICAR_POR_TIPO   = 99    # Sin límite efectivo — publicar todos los de
 WALLAPOP_EMBALAJE       = 2.0   # € materiales embalaje
 WALLAPOP_COSTES_FIJOS   = WALLAPOP_ENVIO + WALLAPOP_EMBALAJE  # 7€
 
-# ── URLs de categorías con mayor potencial de reventa ────────────
-AMAZON_SEARCH_URLS = [
-    # Electrónica general — Samsung, LG, Sony, Xiaomi (keyword requerido para ≥40% filter)
-    "https://www.amazon.es/s?i=electronics&k=samsung+lg+sony+xiaomi+philips+panasonic&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Informática — portátiles y accesorios de marca
-    "https://www.amazon.es/s?i=computers&k=lenovo+hp+dell+asus+acer+microsoft+surface&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Videojuegos y consolas
-    "https://www.amazon.es/s?i=videogames&k=nintendo+switch+playstation+xbox+ps5+juego&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Zapatillas de marca — alta reventa (Nike, Adidas, New Balance, Jordan)
-    "https://www.amazon.es/s?i=shoes&k=jordan+nike+air+max+adidas+ultraboost+new+balance+990+550+asics+gel&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Perfumes — alta reventa y liquidez
-    "https://www.amazon.es/s?i=beauty&k=perfume+eau+de+parfum+eau+de+toilette&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Dermocosmética premium — protector solar y cuidado facial de marca (whitelist _MARCAS_DERMO)
-    "https://www.amazon.es/s?i=beauty&k=la+roche+posay+isdin+cerave+avene+vichy+eucerin+bioderma+sesderma&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # LEGO — sube de precio tras descatalogación
-    "https://www.amazon.es/s?k=LEGO&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Herramientas de marca premium (Bosch, DeWalt, Makita, Milwaukee)
-    "https://www.amazon.es/s?i=diy&k=bosch+dewalt+makita+milwaukee+karcher+stanley&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Auriculares premium y gaming (AirPods, Sony, Bose, HyperX, JBL, Jabra)
-    "https://www.amazon.es/s?i=electronics&k=airpods+sony+wh-1000+bose+quietcomfort+hyperx+jbl+jabra+sennheiser&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Relojes de marca — Casio, Seiko, G-Shock, Citizen, Fossil
-    "https://www.amazon.es/s?i=watches&k=casio+seiko+g-shock+citizen+fossil+garmin+polar&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Electrodomésticos de cocina (Nespresso, DeLonghi, Tefal, Kenwood)
-    "https://www.amazon.es/s?i=kitchen&k=nespresso+delonghi+kenwood+kitchenaid+krups&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Hogar y electrodomésticos grandes (Dyson, Samsung, LG, Bosch)
-    "https://www.amazon.es/s?i=appliances&k=dyson+samsung+lg+bosch+siemens+whirlpool&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Juguetes (marcas conocidas — Amazon sí tiene juguetes a ≥40%)
-    "https://www.amazon.es/s?i=toys&k=playmobil+hasbro+mattel+hot+wheels+funko+nerf+barbie&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Juguetes 2 — más marcas para ampliar cobertura de la categoría
-    "https://www.amazon.es/s?i=toys&k=fisher-price+bandai+ravensburger+schleich+vtech+clementoni+spin+master+bruder&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Cámaras y fotografía — Canon, Nikon, Sony, GoPro
-    "https://www.amazon.es/s?i=photo&k=canon+nikon+sony+gopro+fujifilm+olympus&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Deporte y fitness — Garmin, Fitbit, Polar, relojes deportivos
-    "https://www.amazon.es/s?i=sports&k=garmin+fitbit+polar+xiaomi+amazfit+suunto&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Salud y cuidado personal — afeitadoras Braun/Philips, cepillos Oral-B, depiladores
-    "https://www.amazon.es/s?i=hpc&k=braun+philips+oral-b+remington+wahl+panasonic&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Pequeño electrodoméstico — aspiradoras, planchas, freidoras
-    "https://www.amazon.es/s?i=kitchen&k=rowenta+shark+bissell+tefal+delonghi+cecotec&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Altavoces Bluetooth portátiles — Sony SRS, JBL Charge/Flip, Bose SoundLink, Marshall, Anker Soundcore
-    # Keyword corto (tipo producto + marcas) para evitar que Amazon lo trate como AND estricto
-    "https://www.amazon.es/s?i=electronics&k=altavoz+bluetooth+sony+jbl+bose+marshall+anker&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # Equipaje y maletas de marca — Samsonite, American Tourister, Eastpak, Delsey (alta liquidez)
-    "https://www.amazon.es/s?k=samsonite+american+tourister+eastpak+delsey+maleta+equipaje&rh=p_n_pct-off-with-tax%3A2388626011&s=exact-aware-popularity-rank",
-    # ── Low Cost: p_36 (price-range) + p_n_pct-off combinado no funciona en Amazon ES ──────
-    # Los items LC (8-24€) se capturan orgánicamente desde las búsquedas por marca anteriores.
-    # URLs con p_36=800-2499 eliminadas: devuelven 0 resultados (confirmado 2026-05-28).
-]
+# ── Cobertura del catálogo Amazon: matriz (categoría × marca) ────────────────────
+# CLAVE: Amazon topa cada búsqueda en ~400 resultados. Una query multi-marca
+# (`k=samsung+lg+sony+...`) colapsa todas esas marcas en 400 resultados totales; UNA query
+# por marca da a CADA marca su propio universo de ~400 → separar marcas multiplica la
+# cobertura del catálogo. El descuento se filtra en la URL (`_AMAZON_DISCOUNT_NODE`).
+_AMAZON_DISCOUNT_NODE = "p_n_pct-off-with-tax%3A2388626011"
+_AMAZON_SORT          = "exact-aware-popularity-rank"
+
+# categoría i= de Amazon → marcas (cada par es una búsqueda propia)
+_AMAZON_MARCAS = {
+    "electronics": ["samsung", "lg", "sony", "xiaomi", "philips", "panasonic", "tcl", "hisense",
+                    "jbl", "bose", "marshall", "anker", "sonos", "tp-link", "logitech", "sandisk",
+                    "kingston", "seagate", "western digital", "crucial", "huawei", "echo dot",
+                    "fire tv", "airpods", "quietcomfort", "sennheiser", "jabra", "hyperx"],
+    "computers":   ["lenovo", "hp", "dell", "asus", "acer", "msi", "gigabyte", "corsair", "razer",
+                    "logitech", "steelseries", "netgear", "microsoft surface", "aoc", "benq"],
+    "videogames":  ["nintendo switch", "playstation 5", "xbox", "ps5", "ps4", "juego switch",
+                    "mando gaming", "turtle beach"],
+    "shoes":       ["nike", "adidas", "new balance", "asics", "puma", "reebok", "vans", "converse",
+                    "skechers", "timberland", "salomon", "brooks", "saucony", "hoka"],
+    "beauty":      ["perfume", "eau de parfum", "colonia", "la roche posay", "isdin", "cerave",
+                    "avene", "vichy", "eucerin", "bioderma", "sesderma", "l'oreal", "garnier",
+                    "nivea", "maybelline", "rituals", "dyson airwrap"],
+    "kitchen":     ["nespresso", "delonghi", "cecotec", "tefal", "kenwood", "kitchenaid", "krups",
+                    "moulinex", "russell hobbs", "taurus", "braun", "instant pot", "sage", "oster"],
+    "appliances":  ["dyson", "samsung", "lg", "bosch", "siemens", "balay", "whirlpool", "haier",
+                    "beko", "candy", "aeg", "hisense", "teka", "rowenta", "shark", "irobot roomba"],
+    "hpc":         ["braun", "philips", "oral-b", "remington", "wahl", "cecotec", "gillette",
+                    "babyliss", "xiaomi", "ghd"],
+    "toys":        ["playmobil", "hasbro", "mattel", "hot wheels", "funko", "nerf", "barbie", "lego",
+                    "fisher-price", "ravensburger", "schleich", "vtech", "clementoni", "spin master",
+                    "bandai", "bruder", "famosa", "play-doh", "monopoly"],
+    "watches":     ["casio", "seiko", "g-shock", "citizen", "fossil", "garmin", "polar", "suunto",
+                    "amazfit", "festina", "tissot", "michael kors"],
+    "photo":       ["canon", "nikon", "sony", "gopro", "fujifilm", "dji", "insta360"],
+    "sports":      ["garmin", "fitbit", "polar", "amazfit", "under armour", "salomon",
+                    "the north face", "columbia", "wilson", "head"],
+    "diy":         ["bosch", "dewalt", "makita", "milwaukee", "karcher", "stanley", "black decker",
+                    "einhell", "worx", "ryobi", "gardena", "bahco"],
+    "luggage":     ["samsonite", "american tourister", "eastpak", "delsey", "roncato", "gabol"],
+    "baby":        ["chicco", "maxi-cosi", "cybex", "jane", "philips avent", "nuk", "suavinex"],
+    "automotive":  ["michelin", "bosch coche", "castrol", "osram", "xiaomi patinete", "garmin gps"],
+}
+# Categorías sin i= fiable → búsqueda de marca en todo el catálogo (igual de válida)
+_AMAZON_MARCAS_GLOBAL = ["yamaha", "fender", "roland teclado", "hp impresora", "epson impresora",
+                         "brother impresora", "royal canin", "purina"]
+
+def _build_amazon_urls() -> list[str]:
+    base = "https://www.amazon.es/s?{cat}k={k}&rh=" + _AMAZON_DISCOUNT_NODE + "&s=" + _AMAZON_SORT
+    urls = []
+    for cat, marcas in _AMAZON_MARCAS.items():
+        for m in marcas:
+            urls.append(base.format(cat=f"i={cat}&", k=urllib.parse.quote_plus(m)))
+    for m in _AMAZON_MARCAS_GLOBAL:
+        urls.append(base.format(cat="", k=urllib.parse.quote_plus(m)))
+    return urls
+
+AMAZON_SEARCH_URLS = _build_amazon_urls()   # ~230 búsquedas (categoría × marca)
+
+# Nº de búsquedas por ciclo (rotación) — barre todo el catálogo en varios ciclos sin
+# martillear Amazon de golpe (limita CAPTCHA y tiempo de ciclo). Env-ajustable.
+_AMAZON_QUERIES_POR_CICLO = int(os.getenv("AMAZON_QUERIES_POR_CICLO", "45"))
 
 # Página principal de deals (fuente extra, JS-heavy)
 AMAZON_DEALS_URL = "https://www.amazon.es/deals"
 
-# Nº de páginas a leer por búsqueda de categoría. Amazon ordena por popularidad y los deals
-# ≥40% están repartidos entre varias páginas → leer solo la 1ª deja fuera la mayoría. Se para
-# en cuanto una página venga vacía/bloqueada (limita la exposición a CAPTCHA). Env-ajustable.
-_AMAZON_PAGINAS = int(os.getenv("AMAZON_PAGINAS", "2"))
+# Nº de páginas por búsqueda. Con la matriz marca×categoría (~230 búsquedas) la cobertura
+# la da la AMPLITUD (muchas marcas distintas), no la profundidad, así que por defecto 1 página
+# por búsqueda (más marcas por ciclo, menos riesgo de CAPTCHA). Subir a 2+ si interesa. La
+# paginación se corta si una página viene vacía/bloqueada. Env-ajustable.
+_AMAZON_PAGINAS = int(os.getenv("AMAZON_PAGINAS", "1"))
 
 # ── PcComponentes — ofertas especiales ordenadas por % descuento ──
 # La página usa React (SPA): esperar networkidle antes de evaluar el DOM
@@ -472,7 +488,15 @@ async def scrape_amazon_deals(context: BrowserContext) -> list[Producto]:
     page = await context.new_page()
 
     # ── A) Búsqueda por categoría (fuente principal, selectores estables) ──
-    for i, url in enumerate(AMAZON_SEARCH_URLS):
+    # Rotación: escaneamos un tramo distinto del catálogo en cada ciclo (avanza ~1 tramo por
+    # hora) → barremos las ~230 búsquedas en varios ciclos sin saturar Amazon en uno solo.
+    if len(AMAZON_SEARCH_URLS) > _AMAZON_QUERIES_POR_CICLO:
+        _off = (int(time.time() // 3600) * _AMAZON_QUERIES_POR_CICLO) % len(AMAZON_SEARCH_URLS)
+        urls_ciclo = (AMAZON_SEARCH_URLS + AMAZON_SEARCH_URLS)[_off:_off + _AMAZON_QUERIES_POR_CICLO]
+    else:
+        urls_ciclo = AMAZON_SEARCH_URLS
+    print(f"🔎 Amazon: {len(urls_ciclo)}/{len(AMAZON_SEARCH_URLS)} búsquedas este ciclo (rotación)")
+    for i, url in enumerate(urls_ciclo):
         es_deals = "/deals" in url
         parsed = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
         categoria = "deals" if es_deals else parsed.get("i", parsed.get("k", [f"cat{i}"]))[0]
