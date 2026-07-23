@@ -173,6 +173,11 @@ AMAZON_SEARCH_URLS = [
 # Página principal de deals (fuente extra, JS-heavy)
 AMAZON_DEALS_URL = "https://www.amazon.es/deals"
 
+# Nº de páginas a leer por búsqueda de categoría. Amazon ordena por popularidad y los deals
+# ≥40% están repartidos entre varias páginas → leer solo la 1ª deja fuera la mayoría. Se para
+# en cuanto una página venga vacía/bloqueada (limita la exposición a CAPTCHA). Env-ajustable.
+_AMAZON_PAGINAS = int(os.getenv("AMAZON_PAGINAS", "2"))
+
 # ── PcComponentes — ofertas especiales ordenadas por % descuento ──
 # La página usa React (SPA): esperar networkidle antes de evaluar el DOM
 PCCOMPONENTES_URLS = [
@@ -472,30 +477,37 @@ async def scrape_amazon_deals(context: BrowserContext) -> list[Producto]:
         parsed = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
         categoria = "deals" if es_deals else parsed.get("i", parsed.get("k", [f"cat{i}"]))[0]
         print(f"\n📡 Categoría: {categoria} ...")
-        try:
-            ok = await _cargar_con_reintento(page, url, f"Amazon/{categoria}")
-            if not ok:
-                continue
+        # Paginación: los deals ≥40% están repartidos por varias páginas (orden por
+        # popularidad). Leemos hasta _AMAZON_PAGINAS, parando si una viene vacía/bloqueada.
+        paginas = 1 if es_deals else _AMAZON_PAGINAS
+        for pg in range(1, paginas + 1):
+            page_url = url if pg == 1 else f"{url}&page={pg}"
+            try:
+                ok = await _cargar_con_reintento(page, page_url, f"Amazon/{categoria} p{pg}")
+                if not ok:
+                    break
 
-            if es_deals:
-                await asyncio.sleep(6)
-                await _scroll_pagina(page, veces=5)
-                await asyncio.sleep(3)
-                nuevos = await _extraer_de_deals(page, vistos)
-            else:
-                await _scroll_pagina(page, veces=5)
-                nuevos = await _extraer_de_busqueda(page, vistos)
+                if es_deals:
+                    await asyncio.sleep(6)
+                    await _scroll_pagina(page, veces=5)
+                    await asyncio.sleep(3)
+                    nuevos = await _extraer_de_deals(page, vistos)
+                else:
+                    await _scroll_pagina(page, veces=5)
+                    nuevos = await _extraer_de_busqueda(page, vistos)
 
-            if DEBUG_SCREENSHOTS and i == 0:
-                await page.screenshot(path=f"debug_{categoria}.png")
-                print(f"   📸 Screenshot: debug_{categoria}.png")
+                if DEBUG_SCREENSHOTS and i == 0 and pg == 1:
+                    await page.screenshot(path=f"debug_{categoria}.png")
 
-            productos.extend(nuevos)
-            print(f"   ✅ {len(nuevos)} productos nuevos | Total: {len(productos)}")
+                productos.extend(nuevos)
+                print(f"   ✅ p{pg}: {len(nuevos)} nuevos | Total: {len(productos)}")
+                if len(nuevos) == 0:
+                    break  # categoría agotada / todo duplicado → no seguir paginando
 
-        except Exception as e:
-            print(f"   ❌ Error en {categoria}: {e}")
-        await asyncio.sleep(2)
+            except Exception as e:
+                print(f"   ❌ Error en {categoria} p{pg}: {e}")
+                break
+            await asyncio.sleep(2)
 
     # ── B) Página /deals (fuente extra, requiere más espera) ──────────────
     print(f"\n📡 Página /deals ...")
