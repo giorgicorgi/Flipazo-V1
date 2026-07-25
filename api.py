@@ -1326,22 +1326,28 @@ def flag_expired(deal_id: str, request: Request):
 
 
 @app.get("/r/{deal_id}")
-def redirect_afiliado(deal_id: str, request: Request, canal: str = "web"):
-    """Redirect afiliado con tracking de click."""
+def redirect_afiliado(deal_id: str, request: Request, canal: str = "web", beacon: int = 0):
+    """Redirect afiliado con tracking de click. `beacon=1` → solo registra el click y
+    devuelve 204 (sin redirigir): lo usa el beacon no bloqueante del frontend, que ya
+    navega directo a la tienda con el <a>. IP real vía X-Forwarded-For (tras nginx)."""
     with _get_db() as con:
         row = con.execute(
             "SELECT url_afiliado FROM deals_publicados WHERE deal_id = ?",
             (deal_id,)
         ).fetchone()
         if not row or not row["url_afiliado"]:
+            if beacon:
+                return Response(status_code=204)
             return JSONResponse(status_code=404, content={"error": "deal no encontrado"})
+        ip = request.headers.get("X-Forwarded-For", "")
+        ip = (ip.split(",")[0].strip() if ip else (request.client.host if request.client else "unknown"))
         con.execute(
             "INSERT INTO clicks (deal_id, canal, ip, ts) VALUES (?, ?, ?, ?)",
-            (deal_id, canal,
-             request.client.host if request.client else "unknown",
-             datetime.now(timezone.utc).isoformat()),
+            (deal_id, canal, ip[:64], datetime.now(timezone.utc).isoformat()),
         )
         con.commit()
+    if beacon:
+        return Response(status_code=204)
     return RedirectResponse(url=row["url_afiliado"], status_code=302)
 
 

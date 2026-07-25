@@ -2933,6 +2933,21 @@
   // ── Config ──────────────────────────────────────────────────
   const API_BASE  = "https://api.flipazo.es";
   const API_URL   = API_BASE + "/api/deals";
+
+  // ── Tracking no bloqueante de clicks a deals ──────────────────────────────
+  // El <a> navega directo a la tienda (rápido, sin salto extra); en paralelo un beacon
+  // a /r/{id}?beacon=1 registra el click en el servidor (IP real vía X-Forwarded-For).
+  // Delegado en document → cubre TODAS las cards (desktop + móvil) con un solo listener.
+  document.addEventListener("click", function (e) {
+    const a = e.target.closest && e.target.closest("a[data-track]");
+    if (!a) return;
+    const id = a.getAttribute("data-track");
+    if (!id) return;
+    try {
+      fetch(API_BASE + "/r/" + encodeURIComponent(id) + "?canal=web&beacon=1",
+            { keepalive: true, mode: "no-cors" });
+    } catch (_) {}
+  }, true);
   // Preview local: file:// activa mocks automáticamente (no afecta a prod).
   // En prod (https://www.flipazo.es) USE_MOCK siempre es false → API real.
   const USE_MOCK  = (
@@ -3433,7 +3448,7 @@
            ${d.descuento_pct > 0 && !isExpired ? `<span class="deal__discount-badge">−${d.descuento_pct}%</span>` : ""}
            ${revBadge}
            ${d.imagen_url
-             ? `<a href="${buyUrl}" target="_blank" rel="noopener sponsored">
+             ? `<a href="${buyUrl}" data-track="${d.id || ''}" target="_blank" rel="noopener sponsored">
                   <img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'" />
                 </a>`
              : `<span class="deal__image-placeholder">sin imagen</span>`}
@@ -3570,7 +3585,7 @@
         ${tallasHtml}
         ${razonHtml}
         <div class="deal__cta">
-          <a href="${buyUrl}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver deal →</a>
+          <a href="${buyUrl}" data-track="${dealId}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver deal →</a>
         </div>
         ${votesHtml}
         <div class="deal__bottom">
@@ -5086,7 +5101,7 @@
   function renderHCard(d) {
     const url = d.url_affiliate || "#";
     return `<div class="hcard-wrap${d.expirado ? ' mh-expirado' : ''}">
-      <a class="hcard" href="${url}" target="_blank" rel="noopener sponsored">
+      <a class="hcard" href="${url}" data-track="${d.id || ''}" target="_blank" rel="noopener sponsored">
         <div class="hcard__img">
           ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
           ${d.descuento_pct > 0 ? `<span class="hcard__pct">-${d.descuento_pct}%</span>` : ""}
@@ -5114,7 +5129,7 @@
     const url = d.url_affiliate || "#";
     return `<div class="${d.expirado ? 'mh-expirado' : ''}" style="display:inline-flex;flex-direction:column;flex-shrink:0;position:relative">
       ${_heartBtn(d, "mhlike--overlay")}
-      <a class="ccard" href="${url}" target="_blank" rel="noopener sponsored">
+      <a class="ccard" href="${url}" data-track="${d.id || ''}" target="_blank" rel="noopener sponsored">
         <div class="ccard__img-wrap">
           <div class="ccard__circle">
             ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
@@ -5135,7 +5150,7 @@
   function renderDiscountCard(d) {
     const url = d.url_affiliate || "#";
     return `<div class="dcard-wrap${d.expirado ? ' mh-expirado' : ''}">
-      <a class="dcard" href="${url}" target="_blank" rel="noopener sponsored">
+      <a class="dcard" href="${url}" data-track="${d.id || ''}" target="_blank" rel="noopener sponsored">
         <div class="dcard__img">
           ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
           ${d.descuento_pct > 0 ? `<span class="dcard__pct-big">-${d.descuento_pct}%</span>` : ""}
@@ -5164,7 +5179,7 @@
     const url = d.url_affiliate || "#";
     const hookOrTitle = (d.hook && d.hook.trim()) ? d.hook.trim() : marcaPrimero(d.titulo || "");
     return `<div class="whero-wrap${d.expirado ? ' mh-expirado' : ''}">
-      <a class="whero" href="${url}" target="_blank" rel="noopener sponsored">
+      <a class="whero" href="${url}" data-track="${d.id || ''}" target="_blank" rel="noopener sponsored">
         <div class="whero__img">
           ${d.imagen_url ? `<img src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
           ${d.descuento_pct > 0 ? `<span class="whero__pct">-${d.descuento_pct}%</span>` : ""}
