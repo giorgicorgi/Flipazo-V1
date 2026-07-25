@@ -859,16 +859,21 @@ async def _extraer_precios_busqueda(card) -> tuple[float, float]:
             precio_original = 0.0
 
         # Sanity check 2: verificar que precio_original no coincide con un precio-por-unidad
-        # en el texto de la card (ej. "52,33€/100 ml" para una loción de 30 ml a 15€).
+        # en el texto de la card. Amazon lo muestra como "X€ / l", "X€ / kg", "X€/100 ml",
+        # "X€ / unidad"… — la CANTIDAD es opcional ("/ l" sin número), por eso la regex la hace
+        # opcional (antes exigía dígito y dejaba pasar "101,88€ / l" → descuento falso del 75%).
+        # Tolerancia RELATIVA (1%) para absorber el redondeo (101,88 vs 101,96).
         if precio_original > 0:
             try:
                 card_text = await card.inner_text()
                 _upm = re.compile(
-                    r'(\d+[.,]\d+)\s*€\s*/\s*\d+\s*(?:ml|cl|l\b|g\b|kg\b)',
+                    r'(\d+[.,]\d+)\s*€\s*/\s*(?:\d+(?:[.,]\d+)?\s*)?'
+                    r'(?:ml|cl|l|g|kg|mg|und?|unidad|metro|m|pieza|lavado|c[aá]psulas?|caps?)\b',
                     re.IGNORECASE,
                 )
                 for m in _upm.finditer(card_text):
-                    if abs(float(m.group(1).replace(',', '.')) - precio_original) < 0.02:
+                    uval = float(m.group(1).replace(',', '.'))
+                    if uval > 0 and abs(uval - precio_original) / precio_original < 0.01:
                         precio_original = 0.0
                         break
             except Exception:
@@ -998,7 +1003,8 @@ async def _extraer_de_deals(page: Page, vistos: set) -> list[Producto]:
             # antes de extraer precios — Amazon los muestra junto al precio real en el card text
             # y el regex los recogería como precio_original generando descuentos falsos.
             _UPM_RE = re.compile(
-                r'\d+[.,]\d+\s*€\s*/\s*\d+\s*(?:ml|cl|l\b|g\b|kg\b)',
+                r'\d+[.,]\d+\s*€\s*/\s*(?:\d+(?:[.,]\d+)?\s*)?'
+                r'(?:ml|cl|l|g|kg|mg|und?|unidad|metro|m|pieza|lavado|c[aá]psulas?|caps?)\b',
                 re.IGNORECASE,
             )
             texto_p = _UPM_RE.sub('', texto)
