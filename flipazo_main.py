@@ -3085,6 +3085,9 @@ class DeduplicacionDB:
                 "ALTER TABLE deals_publicados ADD COLUMN verif_3d             INTEGER DEFAULT 0",
                 "ALTER TABLE deals_publicados ADD COLUMN verif_7d             INTEGER DEFAULT 0",
                 "ALTER TABLE deals_publicados ADD COLUMN tallas               TEXT    DEFAULT ''",  # tallas disponibles (Esdemarca/Desigual)
+                # Ficha de producto generada bajo demanda (Haiku) al abrir el detalle
+                "ALTER TABLE deals_publicados ADD COLUMN ficha_ia             TEXT    DEFAULT ''",
+                "ALTER TABLE deals_publicados ADD COLUMN ficha_generada_en    TEXT    DEFAULT NULL",
             ]:
                 try:
                     con.execute(col_sql)

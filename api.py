@@ -707,6 +707,9 @@ def _ensure_schema():
             "verif_7d             INTEGER DEFAULT 0",
             "pocas_unidades  TEXT DEFAULT ''",
             "tallas          TEXT DEFAULT ''",
+            # Ficha de producto generada bajo demanda (Haiku) al abrir el detalle
+            "ficha_ia          TEXT DEFAULT ''",
+            "ficha_generada_en TEXT DEFAULT NULL",
         ]:
             try:
                 con.execute(f"ALTER TABLE deals_publicados ADD COLUMN {col_def}")
@@ -1323,6 +1326,137 @@ def flag_expired(deal_id: str, request: Request):
         daemon=True,
     ).start()
     return {"flags": new_flags, "expirado": False}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FICHA DE PRODUCTO (Haiku) — generada bajo demanda al abrir el detalle, cacheada
+# para siempre en `ficha_ia`. Nunca menciona precio/descuento (ya lo muestra la UI).
+# ══════════════════════════════════════════════════════════════════════════════
+
+_FICHA_MODEL = "claude-haiku-4-5-20251001"
+
+_FICHA_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "tipo":   {"type": "string", "enum": ["conocido", "generico"]},
+        "intro":  {"type": "string"},
+        "puntos": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["tipo", "intro", "puntos"],
+    "additionalProperties": False,
+}
+
+_FICHA_SYSTEM_PROMPT = """Eres redactor de fichas de producto para Flipazo, un canal español de chollos.
+Escribes SOLO la descripción del producto — el precio, el descuento y el ahorro ya se
+muestran aparte en la web, así que NUNCA los menciones ni justifiques por qué el precio es bueno.
+
+Para cada producto decides tú el tipo:
+
+TIPO "conocido" — identificas con confianza la marca Y el modelo exacto (ej. "Samsung Neo QLED
+QN1EH", "Sony WH-1000XM5", "iPhone 15 Pro"):
+- "intro": 2-4 frases en español, estilo ficha de producto, con características reales del
+  modelo que conozcas con certeza.
+- "puntos": 3-5 bullets, cada uno con UN emoji + un rasgo destacado en negrita markdown
+  (**así**) + explicación breve.
+
+TIPO "generico" — NO reconoces el modelo exacto, marca poco conocida, o el título no da datos
+suficientes:
+- "intro": 2-3 frases MUY breves — qué es y para qué sirve, usando solo lo que dice el título.
+  Nada de relleno.
+- "puntos": array vacío [].
+
+REGLA DE SEGURIDAD (aplica siempre, en ambos tipos): NUNCA afirmes un número concreto (Hz, mAh,
+Wh, GB, W, pulgadas exactas, etc.) que no venga en el título o los datos que te paso. Si no
+estás seguro de un dato concreto, descríbelo en términos generales ("batería de larga
+duración", "pantalla grande") en vez de inventar una cifra.
+
+Nunca menciones precio, descuento, ahorro, ni "por qué es una buena oferta".
+
+Responde SOLO el JSON pedido."""
+
+# Tope diario de seguridad (contador en memoria, se resetea al reiniciar el servicio).
+_FICHA_CAP_DIARIO = int(os.getenv("FICHA_IA_CAP_DIARIO", "300"))
+_ficha_contador: dict = {"fecha": None, "n": 0}
+_ficha_lock = threading.Lock()
+
+
+def _ficha_puede_generar() -> bool:
+    hoy = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    with _ficha_lock:
+        if _ficha_contador["fecha"] != hoy:
+            _ficha_contador["fecha"] = hoy
+            _ficha_contador["n"] = 0
+        if _ficha_contador["n"] >= _FICHA_CAP_DIARIO:
+            return False
+        _ficha_contador["n"] += 1
+        return True
+
+
+def _generar_ficha_ia(titulo: str, tienda: str, categoria: str) -> dict | None:
+    """Llama Haiku para generar la ficha. None si falla o no está configurado."""
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        return None
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model=_FICHA_MODEL,
+            max_tokens=600,
+            system=_FICHA_SYSTEM_PROMPT,
+            output_config={"format": {"type": "json_schema", "schema": _FICHA_SCHEMA}},
+            messages=[{
+                "role": "user",
+                "content": json.dumps(
+                    {"titulo": (titulo or "")[:150], "tienda": tienda or "", "categoria": categoria or ""},
+                    ensure_ascii=False,
+                ),
+            }],
+        )
+        text = next((b.text for b in resp.content if b.type == "text"), "")
+        data = json.loads(text)
+        if not isinstance(data, dict) or data.get("tipo") not in ("conocido", "generico"):
+            return None
+        es_conocido = data["tipo"] == "conocido"
+        return {
+            "tipo":   data["tipo"],
+            "intro":  str(data.get("intro") or "")[:1200],
+            "puntos": [str(p)[:200] for p in (data.get("puntos") or [])][:5] if es_conocido else [],
+        }
+    except Exception as e:
+        print(f"⚠️  ficha_ia error: {e}")
+        return None
+
+
+@app.get("/api/deals/{deal_id}/ficha")
+def get_ficha_ia(deal_id: str):
+    """Ficha de producto para el detalle ampliado. Cacheada en BD tras la 1ª generación."""
+    with _get_db() as con:
+        row = con.execute(
+            "SELECT titulo, tienda, categoria, ficha_ia FROM deals_publicados WHERE deal_id = ?",
+            (deal_id,),
+        ).fetchone()
+        if not row:
+            return JSONResponse(status_code=404, content={"error": "deal no encontrado"})
+
+        if row["ficha_ia"]:
+            try:
+                return JSONResponse(content=json.loads(row["ficha_ia"]))
+            except Exception:
+                pass  # caché corrupta — regenerar abajo
+
+        if not _ficha_puede_generar():
+            return JSONResponse(status_code=429, content={"error": "límite diario alcanzado, inténtalo más tarde"})
+
+        ficha = _generar_ficha_ia(row["titulo"], row["tienda"], row["categoria"])
+        if not ficha:
+            return JSONResponse(status_code=503, content={"error": "no disponible por ahora"})
+
+        con.execute(
+            "UPDATE deals_publicados SET ficha_ia = ?, ficha_generada_en = ? WHERE deal_id = ?",
+            (json.dumps(ficha, ensure_ascii=False), datetime.now(timezone.utc).isoformat(), deal_id),
+        )
+        con.commit()
+        return JSONResponse(content=ficha)
 
 
 @app.get("/r/{deal_id}")
