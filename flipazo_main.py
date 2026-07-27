@@ -2541,18 +2541,19 @@ _CAT_RE = {
         r'\bfelix\b|dentastix|acana|orijen',
         re.I),
     "belleza":      re.compile(
-        r'perfume|colonia|eau de|fragancia|m[aá]quillaje|labial|'
+        r'perfume|colonia|eau de|fragancia|\bm[aá]quillaje\b|labial|'
         r'protector solar|fotoprotector|anthelios|la roche.?posay|isdin|cerave|'
         r'av[eè]ne|vichy|eucerin|bioderma|sesderma|filorga|caudalie|heliocare|'
         r'crema.*facial|crema.*corporal|crema.*hidratante|s[eé]rum.*facial|'
         r'lanc[oô]me|loreal|l\'or[eé]al|nivea|olay\b|est[eé]e lauder|'
-        r'afeitadora|maquinilla.*afeit|rasuradora|oneblade|cepillo.*dental|sonicare|irrigador.*bucal|'
-        r'depilador|epilador|'
-        r'oral.?b|remington\b|wahl\b|babyliss|ghd\b|'
+        r'\bafeitadora\b|maquinilla.*afeit|\brasuradora\b|oneblade|cepillo.*dental|sonicare|irrigador.*bucal|'
+        r'\bdepilador\b|\bepilador\b|'
+        r'oral.?b|remington\b|wahl\b|\bbabyliss\b|ghd\b|'
         # NOTA: "plancha de pelo" va a HOGAR (no aquí). Marcas de lujo sueltas (dior/armani/
         # calvin klein…) van a MODA — aquí solo cosmética/grooming.
-        r'rizador|moldeador|alisador|plancha.*(?:pelo|cabello)|plancha alisadora|'
-        r'secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo|cortabarba',
+        # ⚠️ Palabras sueltas SIEMPRE con \b — "rizador" sin límite cazaba "Tempo-rizador" (ventilador).
+        r'\brizador\b|\bmoldeador\b|\balisador\b|plancha.*(?:pelo|cabello)|plancha alisadora|'
+        r'secador.*pelo|\bcortapelos\b|recortadora.*barba|recortadora.*pelo|\bcortabarba\b',
         re.I),
     "juguetes":     re.compile(
         r'playmobil|\blego\b|hasbro|mattel|hot wheels|barbie|funko\b|'

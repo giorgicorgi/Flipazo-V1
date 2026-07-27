@@ -673,51 +673,52 @@
       min-width: 68px;
     }
 
-    /* ── Filtro de precio: slider doble + campos numéricos ──────────── */
-    .price-filter { flex: 1; min-width: 0; max-width: 360px; }
+    /* ── Filtro de precio: slider doble + campos numéricos (1 fila, compacto) ── */
+    .price-filter { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; max-width: 420px; }
     .price-filter--panel { padding: 0 16px 4px; max-width: none; }
-    .price-slider { position: relative; height: 18px; margin: 2px 2px 0; }
+    .price-slider { position: relative; height: 15px; flex: 1 1 auto; min-width: 56px; margin: 0; }
     .price-slider__track {
-      position: absolute; top: 50%; left: 0; right: 0; height: 4px;
+      position: absolute; top: 50%; left: 0; right: 0; height: 3px;
       transform: translateY(-50%);
-      background: var(--border-soft); border-radius: 4px;
+      background: var(--border-soft); border-radius: 3px;
     }
     .price-slider__range {
-      position: absolute; top: 50%; height: 4px; transform: translateY(-50%);
-      background: var(--brand); border-radius: 4px;
+      position: absolute; top: 50%; height: 3px; transform: translateY(-50%);
+      background: var(--brand); border-radius: 3px;
     }
     .price-slider input[type="range"] {
-      position: absolute; top: 50%; left: 0; width: 100%; height: 18px;
+      position: absolute; top: 50%; left: 0; width: 100%; height: 15px;
       transform: translateY(-50%);
       margin: 0; background: none; pointer-events: none;
       -webkit-appearance: none; appearance: none;
     }
-    .price-slider input[type="range"]::-webkit-slider-runnable-track { background: transparent; height: 18px; }
-    .price-slider input[type="range"]::-moz-range-track { background: transparent; height: 18px; border: none; }
+    .price-slider input[type="range"]::-webkit-slider-runnable-track { background: transparent; height: 15px; }
+    .price-slider input[type="range"]::-moz-range-track { background: transparent; height: 15px; border: none; }
     .price-slider input[type="range"]::-webkit-slider-thumb {
       pointer-events: auto; -webkit-appearance: none; appearance: none;
-      width: 18px; height: 18px; border-radius: 50%;
+      width: 15px; height: 15px; border-radius: 50%;
       background: var(--brand); border: 2px solid var(--paper);
-      box-shadow: 0 1px 5px rgba(0,0,0,.35); cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,.35); cursor: pointer;
     }
     .price-slider input[type="range"]::-moz-range-thumb {
-      pointer-events: auto; width: 18px; height: 18px; border-radius: 50%;
+      pointer-events: auto; width: 15px; height: 15px; border-radius: 50%;
       background: var(--brand); border: 2px solid var(--paper);
-      box-shadow: 0 1px 5px rgba(0,0,0,.35); cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,.35); cursor: pointer;
     }
-    .price-slider__inputs { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .price-slider__inputs { display: flex; align-items: center; gap: 4px; margin-top: 0; flex: 0 0 auto; }
     .price-slider__field {
-      display: flex; align-items: center; gap: 4px;
-      border: 1.5px solid var(--border-soft); border-radius: 9px;
-      padding: 5px 9px; background: var(--card-bg);
+      display: flex; align-items: center; gap: 3px;
+      border: 1.5px solid var(--border-soft); border-radius: 8px;
+      padding: 3px 6px; background: var(--card-bg);
     }
     .price-slider__field input[type="number"] {
-      width: 56px; border: none; background: none; outline: none;
-      font-family: var(--sans); font-size: 12.5px; font-weight: 700; color: var(--ink);
+      width: 34px; border: none; background: none; outline: none;
+      font-family: var(--sans); font-size: 11.5px; font-weight: 700; color: var(--ink);
       -moz-appearance: textfield;
     }
     .price-slider__field input[type="number"]::-webkit-outer-spin-button,
     .price-slider__field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .price-slider__sep { font-size: 11px; }
     .price-slider__field span { font-size: 11px; color: var(--text-dim); font-weight: 700; }
     .price-slider__sep { color: var(--text-faint); font-size: 12px; }
 
@@ -2342,6 +2343,25 @@
     }
     @media (min-width: 768px) { #js-filter-fab { display: none !important; } }
 
+    /* Toggle Explorar/Todo móvil — fijo, mismo nivel que el FAB, lado opuesto.
+       Aparte del .section-header porque este se oculta durante el mobile home. */
+    .mobile-view-toggle {
+      display: none; position: fixed; z-index: 52;
+      right: 14px; top: 120px;
+      align-items: center; gap: 2px; padding: 3px;
+      background: var(--card-bg); border: 1.5px solid var(--border);
+      border-radius: 9999px; box-shadow: 0 4px 18px rgba(0,0,0,.18);
+    }
+    @media (max-width: 767px) { .mobile-view-toggle { display: flex; } }
+    @media (min-width: 768px) { .mobile-view-toggle { display: none !important; } }
+    .mvt-btn {
+      font-family: var(--sans); font-size: 11px; font-weight: 800;
+      padding: 7px 12px; border-radius: 9999px; border: none; background: none;
+      color: var(--text-mid); cursor: pointer; white-space: nowrap;
+      transition: background .15s, color .15s;
+    }
+    .mvt-btn--active { background: var(--brand); color: #fff; }
+
     /* ── Incentivo de descubrimiento del botón Filtros (una sola vez, hasta el 1er uso) ── */
     @keyframes filterPulse {
       0%   { box-shadow: 0 0 0 0 rgba(245,40,52,.45); }
@@ -2395,7 +2415,18 @@
       box-shadow: 0 -6px 28px rgba(0,0,0,.18);
       border-top: 1px solid var(--border);
       z-index: 51; padding-bottom: env(safe-area-inset-bottom, 12px);
+      max-height: 82vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
     }
+    .fpanel__footer {
+      display: flex; gap: 10px; padding: 14px 16px 4px; margin-top: 6px;
+      border-top: 1px solid var(--border-faint);
+    }
+    .fpanel__btn {
+      flex: 1; font-family: var(--sans); font-size: 13px; font-weight: 800;
+      padding: 11px; border-radius: 12px; cursor: pointer; text-align: center;
+      border: 1.5px solid var(--border-soft); background: none; color: var(--text-mid);
+    }
+    .fpanel__btn--apply { background: var(--brand); color: #fff; border-color: var(--brand); }
     #js-filter-panel.open {
       display: block;
       animation: mh-slideup 220ms cubic-bezier(.32,.72,0,1);
@@ -3189,7 +3220,7 @@
     herramientas: /taladro|sierra\b|destornillador|amoladora|lijadora|compresor|k[aä]rcher|dewalt|makita|milwaukee|stanley\b|ryobi\b|bahco\b|nivel.*l[aá]ser|mult[ií]metro|flex[oó]metro|llave inglesa|alicate|bosch.*(taladro|sierra|amoladora|compresor|atornillador)/i,
     deportes:     /running\b|trail\b|fitness\b|gimnasio|mancuerna|kettlebell|\bpesas\b|nataci[oó]n|swim\b|f[uú]tbol|bal[oó]n|raqueta|p[aá]del|esqu[ií]|snowboard|surf\b|garmin|polar\b|fitbit|under armour|\bgiro\b|shimano|alpinestars|ciclismo|mountain bike|\bmtb\b|gravel\b|bicicleta|\bbici\b|sill[ií]n|escalada|senderismo\b/i,
     hogar:        /cafetera|nespresso|delonghi|dolce.?gusto|sage\b|breville\b|krups\b|jura\b|aspirador|robot.?aspirador|roomba|irobot|roborock|lefant|dreame|ecovacs|eufy\b|freidora|airfryer|air.?fryer|microondas|lavadora|lavavajillas|frigor[ií]fico|nevera|secadora\b|\bhorno\b|plancha\b(?!.*(?:pelo|cabello|alisad))|plancha.*vapor|centro.*planchado|vaporeta|vaporizador|cepillo.*vapor|vapor.*cepillo|campana\b|campana.*extract|extractor.*humos|\bteka\b|batidora|thermomix|olla.*presi[oó]n|robot.*cocina|dyson|rowenta|tefal|cecotec|shark\b|bissell\b|kenwood\b|magimix\b|calefactor|aire.*acondicionado|ventilador\b|purificador|humidificador|deshumidificador|inducci[oó]n\b|vitrocer[aá]mic|colch[oó]n|l[aá]mpara\b|sill[oó]n\b|sof[aá]\b|escritorio\b|estanter[ií]a|molinillo|licuadora|exprimidor|tostadora|hervidor|sandwichera|gofrera|escoba de vapor|regleta|bombilla|tira led|enchufe intelig|\btermo\b|botella|fiambrera|cesto de secado/i,
-    belleza:      /perfume\b|eau de parfum|eau de toilette|\bcolonia\b|fragancia\b|maquillaje|labial\b|crema.*facial|crema.*corporal|crema.*hidratante|s[eé]rum.*facial|fotoprotector|protector solar|anthelios|la roche.?posay|isdin|cerave|av[eè]ne|vichy|eucerin|bioderma|lanc[oô]me|l'?oreal|nivea|olay\b|estee lauder|afeitadora|maquinilla.*afeit|rasuradora\b|oneblade|depiladora|epiladora|oral.?b|cepillo.*dental|cepillo el[eé]ctrico|sonicare|irrigador\b|cortabarba|\bsecador\b|remington\b|wahl\b|babyliss|ghd\b|rizador|moldeador|alisador|plancha.*(?:pelo|cabello)|plancha alisadora|secador.*pelo|cortapelos|recortadora.*barba|recortadora.*pelo/i,
+    belleza:      /perfume\b|eau de parfum|eau de toilette|\bcolonia\b|fragancia\b|\bmaquillaje\b|labial\b|crema.*facial|crema.*corporal|crema.*hidratante|s[eé]rum.*facial|fotoprotector|protector solar|anthelios|la roche.?posay|isdin|cerave|av[eè]ne|vichy|eucerin|bioderma|lanc[oô]me|l'?oreal|nivea|olay\b|estee lauder|\bafeitadora\b|maquinilla.*afeit|rasuradora\b|oneblade|\bdepiladora\b|\bepiladora\b|oral.?b|cepillo.*dental|cepillo el[eé]ctrico|sonicare|irrigador\b|\bcortabarba\b|\bsecador\b|remington\b|wahl\b|\bbabyliss\b|ghd\b|\brizador\b|\bmoldeador\b|\balisador\b|plancha.*(?:pelo|cabello)|plancha alisadora|secador.*pelo|\bcortapelos\b|recortadora.*barba|recortadora.*pelo/i,
     juguetes:     /\blego\b|playmobil|hasbro|mattel|hot wheels|barbie|juguete|mu[ñn]eca\b|\bfunko\b|\bnerf\b|juego de mesa|puzzle\b|puzle\b|scalextric|rc\b.*coche|coche.*teledirigido|\bteledirigido\b/i,
     mascotas:     /\bpienso\b|comida.*(?:perro|gato|mascota)|snack.*(?:perro|gato)|arena.*(?:gato|sanitaria)|rascador|comedero|bebedero|transport[ií]n|antiparasit|pipeta.*(?:perro|gato)|collar.*(?:antiparasit|perro|gato)|correa.*perro|\bacuario\b|pecera|royal canin|purina|whiskas|friskies|pedigree|\bfelix\b|dentastix|acana|orijen/i,
     moda:         /\bbolso[s]?\b|carteras?\b|monedero[s]?\b|mochila[s]?\b|maleta[s]?\b|lacoste|ralph lauren|\bdior\b|\bchanel\b|\barmani\b|calvin klein|tommy hilfiger|tommy jeans|pepe jeans|guess\b|gant\b|emporio armani|hugo boss|\bboss\b|barbour|hackett|fred perry|ba[&+]sh|levis?|levi['']?s|wrangler|replay\b|scotch.?soda|massimo dutti|gafas.*sol|gafas.*graduada|\bcintur[oó]n[s]?\b|\bcorbata[s]?\b|\bbufanda[s]?\b|\bgorra[s]?\b|\bpendiente[s]?\b(?!.*audio)|\breloj\b/i,
@@ -3205,7 +3236,7 @@
   const _RX_PERFUME = /perfume\b|parfum\b|eau de parfum|eau de toilette|\beau de\b|\bedp\b|\bedt\b|\bedc\b|\bcolonia\b|fragancia\b|maquillaje|s[eé]rum|crema.*(facial|hidratante|corporal)/i;
   // Útiles de pelo (secador, cepillo alisador, moldeador…): son Cuidado Personal, NO Hogar
   // (marcas como Rowenta/Cecotec los colaban en Hogar). "secadora" (ropa) NO se ve afectada.
-  const _RX_PELO = /\bsecador\b|cepillo.*(?:alisad|secador|cabello|pelo|reparador|therapist|ionicare)|alisador|moldeador\b|rizador|plancha.*(?:pelo|cabello)|cortapelos|rasuradora|afeitadora|\bhair\b/i;
+  const _RX_PELO = /\bsecador\b|cepillo.*(?:alisad|secador|cabello|pelo|reparador|therapist|ionicare)|\balisador\b|\bmoldeador\b|\brizador\b|plancha.*(?:pelo|cabello)|\bcortapelos\b|\brasuradora\b|\bafeitadora\b|\bhair\b/i;
   const _scat = (d, id) => d.categoria === id;
   // Tiendas 100% deporte: todo lo suyo (incl. ropa deportiva) va a Deportes, NUNCA a Moda
   const _DEPORTE_STORES = new Set(["Barrabes", "Decathlon", "Mammoth Bikes", "PrivateSportShop", "Padel Market", "Adidas", "Bikila"]);
@@ -3270,7 +3301,7 @@
     { id: "todas",      label: "Todo Cuidado" },
     { id: "cosmetica",  label: "Cosmética",   test: d => d.tienda === "OneBioShop" || /maquillaje|labial|m[aá]scara de pesta|colorete|base de maquillaje|corrector|sombra de ojos|eyeliner|crema.*(?:facial|hidratante|corporal|anti|manos)|s[eé]rum|mascarilla facial|contorno|t[oó]nico facial|exfoliante|limpiador facial|protector solar|fotoprotector|cerave|la roche|isdin|av[eè]ne|bioderma|eucerin|vichy|sesderma|filorga|caudalie|\btinte\b|colorante/i.test(d.titulo) },
     { id: "perfumeria", label: "Perfumería",  test: d => d.tienda === "Paco Perfumerias" || /perfume\b|parfum\b|\beau de\b|\bcolonia\b|cologne\b|fragancia|\bedp\b|\bedt\b|\bedc\b|guerlain|sisley|cacharel|paco rabanne|carolina herrera|jean paul gaultier|\bdior\b|chanel|lanc[oô]me|hugo boss|versace|givenchy|azzaro|montblanc|bvlgari|bulgari|\bkenzo\b|\bloewe\b|mugler|issey miyake|jimmy choo|calvin klein/i.test(d.titulo) },
-    { id: "cabello",    label: "Cabello",     test: d => /secador|plancha.*(?:pelo|cabello)|rizador|moldeador|alisador|champ[uú]|acondicionador|mascarilla.*(?:pelo|cabello)|cortapelos/i.test(d.titulo) },
+    { id: "cabello",    label: "Cabello",     test: d => /\bsecador\b|plancha.*(?:pelo|cabello)|\brizador\b|\bmoldeador\b|\balisador\b|champ[uú]|acondicionador|mascarilla.*(?:pelo|cabello)|\bcortapelos\b/i.test(d.titulo) },
     { id: "afeitado",   label: "Afeitado",    test: d => /afeitadora|maquinilla.*afeit|rasuradora|oneblade|depilad|epilad|recortadora|cortabarba/i.test(d.titulo) },
   ];
   let activeBellezaSubcat = "todas";
@@ -5168,6 +5199,17 @@
     return _isMobileViewport() && activeCategory === "todas" && activeSort === "recientes" && !activeLowCost && !searchQuery;
   }
 
+  // Sincroniza el toggle móvil Explorar/Todo — llamado desde los dos "choke points"
+  // (_showMobileHome/_showRegularGrid) para no tener que tocar cada punto de entrada
+  // (mhomeCat, mhomeStore, goBackToMhome, fpanelSelectCat…) que ya pasan por ellos.
+  function _syncMobileViewToggle(explorarActivo) {
+    if (!_isMobileViewport()) return;
+    const btnExp = document.getElementById("js-mvt-explorar");
+    const btnAll = document.getElementById("js-mvt-todos");
+    if (btnExp) { btnExp.classList.toggle("mvt-btn--active", explorarActivo); btnExp.setAttribute("aria-pressed", explorarActivo ? "true" : "false"); }
+    if (btnAll) { btnAll.classList.toggle("mvt-btn--active", !explorarActivo); btnAll.setAttribute("aria-pressed", !explorarActivo ? "true" : "false"); }
+  }
+
   function _showMobileHome() {
     _mhomeActive = true;
     const lcb = document.getElementById("js-lowcost-banner"); if (lcb) lcb.style.display = "none";
@@ -5182,6 +5224,7 @@
     if (hero) hero.style.display = "none";
     if (back) back.style.display = "none";
     _cameFromMhome = false;
+    _syncMobileViewToggle(true);
     updateIntroHero();
   }
 
@@ -5193,6 +5236,7 @@
     if (mh) { mh.style.display = "none"; mh.classList.remove("mhome--desktop"); }
     if (gw) gw.style.display = "";
     if (sh) sh.style.display = "";
+    _syncMobileViewToggle(false);
     // sync desktop toggle back to "todos" if needed
     if (_desktopDiscovery) {
       _desktopDiscovery = false;
@@ -5203,6 +5247,22 @@
       const zoom = document.getElementById("js-zoom-control");
       if (zoom) zoom.style.display = "";
       try { localStorage.setItem("flipazo_desktop_view","todos"); } catch {}
+    }
+  }
+
+  // Toggle móvil Explorar ⇄ Todo (siempre visible, incluso durante el scroll del mobile home,
+  // que oculta el .section-header — por eso es un botón fijo aparte, no dentro del header).
+  function setMobileHomeMode(view) {
+    if (!_isMobileViewport()) return;
+    if (view === "explorar") {
+      goBackToMhome();
+    } else {
+      activeCategory = "todas"; _resetSubcats(); activeSort = "recientes"; activeLowCost = false;
+      _showRegularGrid();
+      allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
+      document.getElementById("js-grid").innerHTML = "";
+      window.scrollTo({ top: 0, behavior: "instant" });
+      loadMore();
     }
   }
 
@@ -5794,7 +5854,7 @@
     loadMore();
   }
   function mhomeTechSubcat(subcatId) { mhomeSubcat("tecnologia", subcatId); }
-  function fpanelSelectSubcat(catId, subcatId) { closeFilterPanel(); mhomeSubcat(catId, subcatId); }
+  function fpanelSelectSubcat(catId, subcatId) { mhomeSubcat(catId, subcatId); buildFilterPanel(); }
 
   function _restoreDesktopExplorar() {
     _desktopDiscovery = true;
@@ -5866,8 +5926,11 @@
     if (window.innerWidth > 767) return;
     const inner = document.querySelector('.site-header__inner');
     const fab   = document.getElementById('js-filter-fab');
-    if (!inner || !fab) return;
-    fab.style.top = (inner.offsetHeight + 6) + 'px';
+    const mvt   = document.getElementById('js-mobile-view-toggle');
+    if (!inner) return;
+    const top = (inner.offsetHeight + 6) + 'px';
+    if (fab) fab.style.top = top;
+    if (mvt) mvt.style.top = top; // mismo nivel que el FAB, lado opuesto
   }
 
   function _positionSubcatBar() {
@@ -5905,10 +5968,10 @@
   }
 
   function fpanelSelectCat(catId) {
-    closeFilterPanel();
     if (catId === "todas" && activeSort === "recientes" && !activeLowCost && !searchQuery && _isMobileViewport()) {
       if (_mhomeDeals.length) { _showMobileHome(); renderMobileHome(_mhomeDeals); }
       else { _mhomeLoading = false; loadMobileHome(); }
+      buildFilterPanel();
       return;
     }
     // Sync con la cat-bar real para que el estado sea consistente
@@ -5926,15 +5989,44 @@
     document.getElementById("js-grid").innerHTML = "";
     window.scrollTo({ top: 0, behavior: "instant" });
     loadMore();
+    buildFilterPanel();
   }
 
   function fpanelSelectSort(sortId) {
-    closeFilterPanel();
     _applySort(sortId);
+    buildFilterPanel();
   }
   function fpanelToggleLowCost() {
-    closeFilterPanel();
     _toggleLowCost();
+    buildFilterPanel();
+  }
+
+  // Botón "Restablecer" del panel — limpia categoría/subtipo/orden/low-cost/precio,
+  // deja el panel ABIERTO (refrescado) para que el usuario elija de cero sin reabrir el FAB.
+  function fpanelReset() {
+    activeCategory = "todas";
+    _resetSubcats();
+    activeSort = "recientes";
+    activeLowCost = false;
+    activePriceMin = 0; activePriceMax = null;
+    const chip = document.getElementById("js-lowcost-chip");
+    if (chip) { chip.classList.remove("sort-tab--active"); chip.setAttribute("aria-pressed", "false"); }
+    _updateLowCostBanner();
+    _priceSyncUI("js-price");
+    _priceSyncUI("js-fpanel-price");
+    const titleEl = document.getElementById("js-section-title");
+    if (titleEl) titleEl.textContent = "Clasificados";
+    // En móvil, "todas"+"recientes"+sin low-cost es el estado de Explorar (mobile home);
+    // en desktop siempre mostramos el grid plano.
+    if (_isMobileViewport() && !searchQuery) {
+      if (_mhomeDeals.length) { _showMobileHome(); renderMobileHome(_mhomeDeals); }
+      else { _mhomeLoading = false; loadMobileHome(); }
+    } else {
+      _showRegularGrid();
+      _reloadAfterFilterChange();
+    }
+    _updateSectionTitle();
+    buildFilterPanel();
   }
 
   // ── Likes en el mobile home ───────────────────────────────────
@@ -6346,6 +6438,10 @@
     <div class="fpanel__scroll" id="js-fpanel-deportes"></div>
     <span class="fpanel__label" style="margin-top:4px">Ordenar por</span>
     <div class="fpanel__scroll" id="js-fpanel-sorts"></div>
+    <div class="fpanel__footer">
+      <button class="fpanel__btn fpanel__btn--reset" onclick="fpanelReset()">Restablecer</button>
+      <button class="fpanel__btn fpanel__btn--apply" onclick="closeFilterPanel()">Aplicar filtros</button>
+    </div>
   </div>
   <button id="js-filter-fab" onclick="toggleFilterPanel()" aria-label="Filtros y categorías">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -6355,6 +6451,10 @@
   <div class="filter-coach" id="js-filter-coach" role="status">
     <button class="filter-coach__close" onclick="_hideFilterCoach()" aria-label="Cerrar aviso">×</button>
     👉 Filtra por tienda, categoría o precio
+  </div>
+  <div class="mobile-view-toggle" id="js-mobile-view-toggle" role="group" aria-label="Cambiar vista">
+    <button class="mvt-btn mvt-btn--active" id="js-mvt-explorar" onclick="setMobileHomeMode('explorar')" aria-pressed="true">Explorar</button>
+    <button class="mvt-btn" id="js-mvt-todos" onclick="setMobileHomeMode('todos')" aria-pressed="false">Todo</button>
   </div>
 
 </body>
