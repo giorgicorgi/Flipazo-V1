@@ -2294,6 +2294,43 @@
     }
     @media (min-width: 768px) { #js-filter-fab { display: none !important; } }
 
+    /* ── Incentivo de descubrimiento del botón Filtros (una sola vez, hasta el 1er uso) ── */
+    @keyframes filterPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(245,40,52,.45); }
+      70%  { box-shadow: 0 0 0 9px rgba(245,40,52,0); }
+      100% { box-shadow: 0 0 0 0 rgba(245,40,52,0); }
+    }
+    .filter-attn { animation: filterPulse 1.9s ease-out infinite; }
+    @media (prefers-reduced-motion: reduce) {
+      .filter-attn { animation: none; box-shadow: 0 0 0 3px rgba(245,40,52,.30); }
+    }
+    .filter-coach {
+      position: fixed; z-index: 9500;
+      max-width: 230px;
+      background: var(--paper); color: var(--ink);
+      border: 1.5px solid var(--brand);
+      border-radius: 14px;
+      padding: 11px 30px 11px 14px;
+      font-family: var(--sans); font-size: 12.5px; font-weight: 700; line-height: 1.45;
+      box-shadow: 0 10px 32px rgba(0,0,0,.22);
+      opacity: 0; transform: translateY(6px) scale(.96);
+      transition: opacity .22s ease, transform .22s ease;
+      pointer-events: none;
+    }
+    .filter-coach.filter-coach--visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+    .filter-coach::before {
+      content: ""; position: absolute; top: -6px; left: var(--arrow-left, 16px);
+      width: 11px; height: 11px; background: var(--paper);
+      border-left: 1.5px solid var(--brand); border-top: 1.5px solid var(--brand);
+      transform: rotate(45deg);
+    }
+    .filter-coach__close {
+      position: absolute; top: 5px; right: 7px;
+      background: none; border: none; cursor: pointer;
+      color: var(--text-dim); font-size: 16px; line-height: 1; padding: 3px;
+    }
+    .filter-coach__close:hover { color: var(--ink); }
+
     /* Backdrop */
     #js-filter-backdrop {
       display: none; position: fixed; inset: 0;
@@ -4916,7 +4953,56 @@
     fb.classList.toggle("filter-block--collapsed", !filtersOpen);
     btn.classList.toggle("filter-toggle--collapsed", !filtersOpen);
     btn.setAttribute("aria-expanded", filtersOpen ? "true" : "false");
+    _marcarFiltrosUsados();
   }
+
+  // ── Incentivo de descubrimiento del botón Filtros ─────────────────
+  // Pulso rojo + burbuja explicativa UNA sola vez (localStorage), en el botón
+  // que esté visible según el breakpoint. Se apaga en cuanto el usuario abre
+  // filtros por primera vez (desktop o móvil) — nunca vuelve a molestar.
+  let _filterCoachTimer = null;
+
+  function _showFilterCoach() {
+    try { if (localStorage.getItem("flipazo_filtros_usado") === "1") return; } catch {}
+    const isMobile = window.innerWidth <= 767;
+    const btn = document.getElementById(isMobile ? "js-filter-fab" : "js-filter-toggle");
+    const bubble = document.getElementById("js-filter-coach");
+    if (!btn || !bubble) return;
+    const rect = btn.getBoundingClientRect();
+    if (rect.width === 0) return; // botón no visible ahora mismo
+    const left = Math.min(Math.max(rect.left, 10), window.innerWidth - 250);
+    bubble.style.left = left + "px";
+    bubble.style.top  = (rect.bottom + 12) + "px";
+    bubble.style.setProperty("--arrow-left", Math.max(14, rect.left + rect.width / 2 - left - 5) + "px");
+    bubble.classList.add("filter-coach--visible");
+    try { localStorage.setItem("flipazo_filtros_coach_visto", "1"); } catch {}
+    clearTimeout(_filterCoachTimer);
+    _filterCoachTimer = setTimeout(_hideFilterCoach, 6000);
+  }
+
+  function _hideFilterCoach() {
+    document.getElementById("js-filter-coach")?.classList.remove("filter-coach--visible");
+    clearTimeout(_filterCoachTimer);
+  }
+
+  function _marcarFiltrosUsados() {
+    try { localStorage.setItem("flipazo_filtros_usado", "1"); } catch {}
+    document.getElementById("js-filter-toggle")?.classList.remove("filter-attn");
+    document.getElementById("js-filter-fab")?.classList.remove("filter-attn");
+    _hideFilterCoach();
+  }
+
+  (function initFilterIncentivo() {
+    let usado = false, coachVisto = false;
+    try {
+      usado      = localStorage.getItem("flipazo_filtros_usado") === "1";
+      coachVisto = localStorage.getItem("flipazo_filtros_coach_visto") === "1";
+    } catch {}
+    if (usado) return;
+    document.getElementById("js-filter-toggle")?.classList.add("filter-attn");
+    document.getElementById("js-filter-fab")?.classList.add("filter-attn");
+    if (!coachVisto) setTimeout(_showFilterCoach, 3000);
+  })();
 
   // ════════════════════════════════════════════════════════════════
   // MOBILE DISCOVERY HOME — scroll por secciones (solo móvil)
@@ -5660,6 +5746,7 @@
       panel.classList.add("open");
       backdrop.classList.add("open");
     }
+    _marcarFiltrosUsados();
   }
 
   function closeFilterPanel() {
@@ -6095,6 +6182,10 @@
       <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/>
     </svg>
   </button>
+  <div class="filter-coach" id="js-filter-coach" role="status">
+    <button class="filter-coach__close" onclick="_hideFilterCoach()" aria-label="Cerrar aviso">×</button>
+    👉 Filtra por tienda, categoría o precio
+  </div>
 
 </body>
 </html>
