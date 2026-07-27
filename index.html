@@ -673,6 +673,54 @@
       min-width: 68px;
     }
 
+    /* ── Filtro de precio: slider doble + campos numéricos ──────────── */
+    .price-filter { flex: 1; min-width: 0; max-width: 360px; }
+    .price-filter--panel { padding: 0 16px 4px; max-width: none; }
+    .price-slider { position: relative; height: 18px; margin: 2px 2px 0; }
+    .price-slider__track {
+      position: absolute; top: 50%; left: 0; right: 0; height: 4px;
+      transform: translateY(-50%);
+      background: var(--border-soft); border-radius: 4px;
+    }
+    .price-slider__range {
+      position: absolute; top: 50%; height: 4px; transform: translateY(-50%);
+      background: var(--brand); border-radius: 4px;
+    }
+    .price-slider input[type="range"] {
+      position: absolute; top: 50%; left: 0; width: 100%; height: 18px;
+      transform: translateY(-50%);
+      margin: 0; background: none; pointer-events: none;
+      -webkit-appearance: none; appearance: none;
+    }
+    .price-slider input[type="range"]::-webkit-slider-runnable-track { background: transparent; height: 18px; }
+    .price-slider input[type="range"]::-moz-range-track { background: transparent; height: 18px; border: none; }
+    .price-slider input[type="range"]::-webkit-slider-thumb {
+      pointer-events: auto; -webkit-appearance: none; appearance: none;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--brand); border: 2px solid var(--paper);
+      box-shadow: 0 1px 5px rgba(0,0,0,.35); cursor: pointer;
+    }
+    .price-slider input[type="range"]::-moz-range-thumb {
+      pointer-events: auto; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--brand); border: 2px solid var(--paper);
+      box-shadow: 0 1px 5px rgba(0,0,0,.35); cursor: pointer;
+    }
+    .price-slider__inputs { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .price-slider__field {
+      display: flex; align-items: center; gap: 4px;
+      border: 1.5px solid var(--border-soft); border-radius: 9px;
+      padding: 5px 9px; background: var(--card-bg);
+    }
+    .price-slider__field input[type="number"] {
+      width: 56px; border: none; background: none; outline: none;
+      font-family: var(--sans); font-size: 12.5px; font-weight: 700; color: var(--ink);
+      -moz-appearance: textfield;
+    }
+    .price-slider__field input[type="number"]::-webkit-outer-spin-button,
+    .price-slider__field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .price-slider__field span { font-size: 11px; color: var(--text-dim); font-weight: 700; }
+    .price-slider__sep { color: var(--text-faint); font-size: 12px; }
+
     /* ── Category pills ──────────────────────────────────────────── */
     .cat-bar-inner {
       display: flex;
@@ -2556,6 +2604,28 @@
         <!-- Populated by JS after first load -->
       </div>
     </div>
+    <div class="filter-row" id="js-price-row">
+      <span class="filter-row__label">Precio</span>
+      <div class="price-filter">
+        <div class="price-slider">
+          <div class="price-slider__track"></div>
+          <div class="price-slider__range" id="js-price-range-fill"></div>
+          <input type="range" id="js-price-min-range" min="0" max="1000" step="20" value="0" aria-label="Precio mínimo">
+          <input type="range" id="js-price-max-range" min="0" max="1000" step="20" value="1000" aria-label="Precio máximo">
+        </div>
+        <div class="price-slider__inputs">
+          <div class="price-slider__field">
+            <input type="number" id="js-price-min-input" min="0" step="1" placeholder="0" inputmode="numeric" aria-label="Precio mínimo en euros">
+            <span>€</span>
+          </div>
+          <span class="price-slider__sep">—</span>
+          <div class="price-slider__field">
+            <input type="number" id="js-price-max-input" min="0" step="1" placeholder="Sin límite" inputmode="numeric" aria-label="Precio máximo en euros">
+            <span>€</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   </header>
 
@@ -3219,6 +3289,11 @@
   // Filtro "menos de 25€" — desacoplado del sorting (es un filtro, no un orden)
   let activeLowCost = false;
 
+  // Filtro de precio (slider doble 0€–1000€+ campos numéricos). null en el máximo = sin límite superior.
+  let activePriceMin = 0;
+  let activePriceMax = null;
+  function _priceFiltroActivo() { return activePriceMin > 0 || activePriceMax !== null; }
+
   // Config de subcategorías por categoría (fuente única)
   const _SUBCAT_DEFS = {
     tecnologia: { list: TECH_SUBCATS,    get: () => activeTechSubcat,    set: v => { activeTechSubcat = v; } },
@@ -3250,6 +3325,9 @@
 
   function dealMatchesFilters(deal) {
     if (activeLowCost && (deal.precio_actual || 0) >= 25) return false;
+    const p = deal.precio_actual || 0;
+    if (activePriceMin > 0 && p < activePriceMin) return false;
+    if (activePriceMax !== null && p > activePriceMax) return false;
     return dealMatchesCategory(deal, activeCategory) && dealMatchesStore(deal);
   }
 
@@ -3347,6 +3425,10 @@
     activeStore = "";
     document.querySelectorAll('.store-pill').forEach(b =>
       b.classList.toggle('store-pill--active', b.dataset.store === ''));
+
+    activePriceMin = 0; activePriceMax = null;
+    _priceSyncUI("js-price");
+    _priceSyncUI("js-fpanel-price");
 
     const titleEl = document.getElementById('js-section-title');
     if (titleEl) titleEl.textContent = "Clasificados";
@@ -4359,7 +4441,7 @@
 
   function updateCount() {
     const el = document.getElementById("js-count");
-    if (activeCategory !== "todas" || activeStore || searchQuery) {
+    if (activeCategory !== "todas" || activeStore || searchQuery || _priceFiltroActivo()) {
       const n = allDeals.filter(d => dealMatchesFilters(d)).length;
       el.textContent = `${n} oferta${n !== 1 ? "s" : ""}${hasMore ? "+" : ""}`;
     } else if (_totalDealsDB !== null) {
@@ -4399,7 +4481,7 @@
     showLoading(true);
 
     try {
-      const isCatFilter = activeCategory !== "todas" || !!activeStore || activeLowCost;
+      const isCatFilter = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo();
       const limit = isCatFilter ? 200 : PAGE_SIZE;
       const batch = await fetchDeals(limit, currentOffset);
       if (batch.length < limit) hasMore = false;
@@ -4437,7 +4519,7 @@
 
       // Con filtro activo (categoría/tienda/sort) cargamos TODAS las páginas para
       // mostrar absolutamente todo lo que cae en esa categoría, no solo la 1ª página.
-      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost;
+      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo();
       if (hasMore && (_wantAll || grid.querySelectorAll(".deal").length < 8)) {
         showLoading(false); isLoading = false; loadMore(); return;
       }
@@ -4595,13 +4677,79 @@
       renderGrid();
       // Con un filtro que exige TODAS las páginas (low-cost/categoría/tienda), seguir
       // cargando el resto en vez de quedarse con lo ya cargado en memoria.
-      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost;
+      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo();
       if (_wantAll && hasMore && !isLoading) loadMore();
     } else {
       allDeals = []; currentOffset = 0; hasMore = true;
       document.getElementById("js-grid").innerHTML = "";
       loadMore();
     }
+  }
+
+  // ── Filtro de precio: slider doble (0€–1000€+, paso 20€) + campos numéricos ──
+  // Dos instancias comparten el mismo estado global (activePriceMin/Max): la del
+  // filter-block desktop (prefijo "js-price") y la del panel móvil ("js-fpanel-price").
+  const PRICE_SLIDER_MAX = 1000; // tope del slider; llegar al máximo = sin límite superior
+  let _priceFilterTimer = null;
+
+  function _priceSyncUI(prefix) {
+    const rMin = document.getElementById(`${prefix}-min-range`);
+    const rMax = document.getElementById(`${prefix}-max-range`);
+    const iMin = document.getElementById(`${prefix}-min-input`);
+    const iMax = document.getElementById(`${prefix}-max-input`);
+    const fill = document.getElementById(`${prefix}-range-fill`);
+    if (!rMin || !rMax) return;
+    const min = Math.min(activePriceMin, PRICE_SLIDER_MAX);
+    const max = activePriceMax === null ? PRICE_SLIDER_MAX : Math.min(activePriceMax, PRICE_SLIDER_MAX);
+    rMin.value = min; rMax.value = max;
+    if (iMin) iMin.value = activePriceMin > 0 ? activePriceMin : "";
+    if (iMax) iMax.value = activePriceMax !== null ? activePriceMax : "";
+    if (fill) {
+      fill.style.left  = (min / PRICE_SLIDER_MAX * 100) + "%";
+      fill.style.right = (100 - max / PRICE_SLIDER_MAX * 100) + "%";
+    }
+  }
+
+  function _applyPriceFilter(min, max) {
+    activePriceMin = Math.max(0, min || 0);
+    activePriceMax = (max === null || max === undefined || max >= PRICE_SLIDER_MAX) ? null : Math.max(activePriceMin, max);
+    _priceSyncUI("js-price");
+    _priceSyncUI("js-fpanel-price");
+    clearTimeout(_priceFilterTimer);
+    // Debounce: el slider dispara "input" en cada pixel de arrastre — no queremos
+    // relanzar fetch/render en cada frame, solo cuando el usuario se detiene un momento.
+    _priceFilterTimer = setTimeout(() => {
+      _showRegularGrid();
+      _updateSectionTitle();
+      _reloadAfterFilterChange();
+    }, 250);
+  }
+
+  function _priceSliderInit(prefix) {
+    const rMin = document.getElementById(`${prefix}-min-range`);
+    const rMax = document.getElementById(`${prefix}-max-range`);
+    const iMin = document.getElementById(`${prefix}-min-input`);
+    const iMax = document.getElementById(`${prefix}-max-input`);
+    if (!rMin || !rMax) return;
+
+    function fromSlider() {
+      let min = Number(rMin.value), max = Number(rMax.value);
+      if (min > max) { const t = min; min = max; max = t; }
+      _applyPriceFilter(min, max);
+    }
+    rMin.addEventListener("input", fromSlider);
+    rMax.addEventListener("input", fromSlider);
+
+    function fromInputs() {
+      const min = Math.max(0, Number(iMin.value) || 0);
+      const raw = (iMax.value || "").trim();
+      const max = raw === "" ? null : Math.max(0, Number(raw) || 0);
+      _applyPriceFilter(min, max);
+    }
+    if (iMin) iMin.addEventListener("change", fromInputs);
+    if (iMax) iMax.addEventListener("change", fromInputs);
+
+    _priceSyncUI(prefix);
   }
 
   // Apaga el filtro "Menos de 25€" (chip + banner). Se llama al elegir otra categoría,
@@ -5823,6 +5971,8 @@
   buildCatBar();
   buildSubcatBar();
   buildSortTabs();
+  _priceSliderInit("js-price");
+  _priceSliderInit("js-fpanel-price");
   initZoom();
 
   if (_isMobileViewport()) {
@@ -6168,6 +6318,26 @@
     <span class="fpanel__handle" role="presentation"></span>
     <span class="fpanel__label">Categoría</span>
     <div class="fpanel__scroll" id="js-fpanel-cats"></div>
+    <span class="fpanel__label" style="margin-top:4px">Precio</span>
+    <div class="price-filter price-filter--panel">
+      <div class="price-slider">
+        <div class="price-slider__track"></div>
+        <div class="price-slider__range" id="js-fpanel-price-range-fill"></div>
+        <input type="range" id="js-fpanel-price-min-range" min="0" max="1000" step="20" value="0" aria-label="Precio mínimo">
+        <input type="range" id="js-fpanel-price-max-range" min="0" max="1000" step="20" value="1000" aria-label="Precio máximo">
+      </div>
+      <div class="price-slider__inputs">
+        <div class="price-slider__field">
+          <input type="number" id="js-fpanel-price-min-input" min="0" step="1" placeholder="0" inputmode="numeric" aria-label="Precio mínimo en euros">
+          <span>€</span>
+        </div>
+        <span class="price-slider__sep">—</span>
+        <div class="price-slider__field">
+          <input type="number" id="js-fpanel-price-max-input" min="0" step="1" placeholder="Sin límite" inputmode="numeric" aria-label="Precio máximo en euros">
+          <span>€</span>
+        </div>
+      </div>
+    </div>
     <span class="fpanel__label" id="js-fpanel-tech-label" style="margin-top:4px">Tecnología</span>
     <div class="fpanel__scroll" id="js-fpanel-tech"></div>
     <span class="fpanel__label" id="js-fpanel-moda-label" style="margin-top:4px">Moda</span>
