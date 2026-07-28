@@ -83,6 +83,8 @@ APPLE_REDIRECT_URI = os.getenv(
 THREADS_APP_ID     = os.getenv("THREADS_APP_ID",     "1472052057551805")
 THREADS_APP_SECRET = os.getenv("THREADS_APP_SECRET", "")
 THREADS_REDIRECT   = "https://api.flipazo.es/auth/threads/callback"
+THREADS_TOKEN       = os.getenv("THREADS_TOKEN", "")
+THREADS_USER_ID_ENV = os.getenv("THREADS_USER_ID", "")
 
 # ── Frontend (para redirects post-OAuth) ───────────────────────────────────────
 FRONTEND_CUENTA = os.getenv("FRONTEND_CUENTA", "https://flipazo.es/cuenta")
@@ -2285,6 +2287,48 @@ def threads_data_deletion():
 def threads_deletion_status(code: str = ""):
     """Estado de una solicitud de borrado. Sin datos personales almacenados → completada."""
     return JSONResponse(content={"code": code, "status": "completed"})
+
+
+_threads_audience_cache: dict = {"data": None, "ts": 0.0}
+
+
+@app.get("/threads-audience")
+def threads_audience():
+    """Demografía de seguidores de Threads (@flipazo.es): total + país/ciudad/edad/género.
+    Cachea 1h en memoria — la API de Meta tarda varios segundos en resolver los 4 breakdowns."""
+    now = time.time()
+    if _threads_audience_cache["data"] and now - _threads_audience_cache["ts"] < 3600:
+        return _threads_audience_cache["data"]
+    if not THREADS_TOKEN or not THREADS_USER_ID_ENV:
+        return JSONResponse(status_code=503, content={"error": "Threads no configurado"})
+
+    base = f"https://graph.threads.net/v1.0/{THREADS_USER_ID_ENV}"
+    result: dict = {"followers_count": 0, "country": [], "city": [], "age": [], "gender": []}
+
+    try:
+        r = _http.get(f"{base}/threads_insights",
+                      params={"metric": "followers_count", "access_token": THREADS_TOKEN}, timeout=15)
+        result["followers_count"] = r.json()["data"][0]["total_value"]["value"]
+    except Exception:
+        pass
+
+    for bd in ("country", "city", "age", "gender"):
+        try:
+            r = _http.get(f"{base}/threads_insights",
+                          params={"metric": "follower_demographics", "breakdown": bd,
+                                  "access_token": THREADS_TOKEN}, timeout=20)
+            tv = r.json()["data"][0].get("total_value", {})
+            filas = tv.get("breakdowns", [{}])[0].get("results", [])
+            result[bd] = sorted(
+                [{"value": f["dimension_values"][0], "count": f.get("value", 0)} for f in filas],
+                key=lambda x: -x["count"],
+            )
+        except Exception:
+            pass
+
+    _threads_audience_cache["data"] = result
+    _threads_audience_cache["ts"] = now
+    return result
 
 
 @app.get("/auth/verify-email")

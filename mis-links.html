@@ -79,6 +79,7 @@
 
     <div class="tabs" id="tabs"></div>
     <div id="detalle"></div>
+    <div id="audiencia-threads"></div>
 
     <p class="foot" id="foot">Cargando…</p>
   </div>
@@ -170,6 +171,47 @@
             <div><h2>Por hora del día</h2>${bars(d.por_hora,["0h","6h","12h","18h","23h"])}</div>
             <div><h2>Por día de la semana</h2>${bars(d.por_dow,DOW)}</div>
           </div>
+        </div>`;
+      const audBox = document.getElementById("audiencia-threads");
+      if (audBox) {
+        if (slug === "threads") { await renderAudienciaThreads(); }
+        else { audBox.innerHTML = ""; }
+      }
+    }
+
+    const GENERO_LBL = { F:"Mujeres", M:"Hombres", U:"Sin especificar" };
+    function nombrePais(cc){
+      try { return new Intl.DisplayNames(["es"],{type:"region"}).of(cc) || cc; } catch { return cc; }
+    }
+    function toRows(arr, nameKey, mapper, withFlagCode){
+      return (arr||[]).map(x=>{
+        const row = { [nameKey]: mapper ? mapper(x.value) : x.value, clicks: x.count };
+        if (withFlagCode) row.code = x.value;
+        return row;
+      });
+    }
+
+    async function renderAudienciaThreads(){
+      const box = document.getElementById("audiencia-threads");
+      if (!box) return;
+      box.innerHTML = `<div class="section"><p class="empty">Cargando audiencia…</p></div>`;
+      let d; try { d = await (await fetch(`${API}/threads-audience`,{cache:"no-store"})).json(); } catch { d=null; }
+      if (!d || d.error){ box.innerHTML = `<div class="section"><h2>👥 Audiencia de Threads</h2><p class="empty">No se pudo cargar.</p></div>`; return; }
+      box.innerHTML = `
+        <div class="section">
+          <h2>👥 Audiencia de Threads · seguidores</h2>
+          <div class="kpis">
+            <div class="kpi"><b class="brand">${(d.followers_count||0).toLocaleString("es-ES")}</b><span>seguidores totales</span></div>
+          </div>
+          <div class="cols" style="margin-top:18px">
+            <div><div class="note" style="margin:0 0 10px;font-weight:800;color:var(--mid)">Países</div>${rowlist(toRows(d.country,"pais",nombrePais,true),"pais")}</div>
+            <div><div class="note" style="margin:0 0 10px;font-weight:800;color:var(--mid)">Ciudades</div>${rowlist(toRows(d.city,"ciudad"),"ciudad")}</div>
+          </div>
+          <div class="cols" style="margin-top:20px">
+            <div><div class="note" style="margin:0 0 10px;font-weight:800;color:var(--mid)">Edad</div>${rowlist(toRows(d.age,"rango"),"rango")}</div>
+            <div><div class="note" style="margin:0 0 10px;font-weight:800;color:var(--mid)">Género</div>${rowlist(toRows(d.gender,"genero",g=>GENERO_LBL[g]||g),"genero")}</div>
+          </div>
+          <p class="note">Datos de seguidores de la cuenta (no de quién interactúa con cada post). Se actualiza como máximo cada hora.</p>
         </div>`;
     }
 
