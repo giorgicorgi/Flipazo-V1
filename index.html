@@ -2674,6 +2674,8 @@
     .prefs__subpill--on {
       background: var(--teal, #0D7A6F); border-color: var(--teal, #0D7A6F); color: #fff;
     }
+    /* ✓ igual que en los chips de tienda: son on/off y se pueden elegir varias */
+    .prefs__subpill--on::before { content: "✓ "; font-weight: 900; }
 
     /* Tiendas: chips multi-selección, con ✓ para que se vea que son on/off */
     .prefs__chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px; }
@@ -3741,12 +3743,24 @@
     if (p.stores && p.stores.length && !p.stores.includes(deal.tienda)) return false;
     return p.cats.some(catId => {
       if (!dealInCategory(deal, catId)) return false;
-      const sub = (p.subcats || {})[catId];
-      if (!sub || sub === "todas") return true;
+      const elegidas = _subcatsDe(p, catId);
+      if (!elegidas.length) return true;               // sin afinar → toda la categoría
       const sd = _SUBCAT_DEFS[catId];
-      const sc = sd && sd.list.find(s => s.id === sub);
-      return sc ? sc.test(deal) : true;
+      if (!sd) return true;
+      // Varias subcategorías por categoría: basta con que encaje en una (OR).
+      return elegidas.some(id => {
+        const sc = sd.list.find(s => s.id === id);
+        return sc ? sc.test(deal) : false;
+      });
     });
+  }
+
+  // Las subcategorías se guardan como {categoria: [id, ...]}. Se acepta el
+  // formato antiguo ({categoria: "id"}) para no romper preferencias ya guardadas.
+  function _subcatsDe(prefs, catId) {
+    const v = ((prefs && prefs.subcats) || {})[catId];
+    if (Array.isArray(v)) return v.filter(x => x && x !== "todas");
+    return (v && v !== "todas") ? [v] : [];
   }
 
   function dealMatchesFilters(deal) {
@@ -5902,9 +5916,17 @@
   let _prefsDraft = null;
 
   function openPrefsEditor() {
+    // Copia profunda de subcats: son arrays, y compartir la referencia haría que
+    // tocar el borrador modificase ya las preferencias reales (adiós "Cancelar").
+    // De paso normaliza el formato antiguo (una subcategoría suelta) a lista.
+    const subsCopia = {};
+    Object.keys((_prefs && _prefs.subcats) || {}).forEach(k => {
+      const lista = _subcatsDe(_prefs, k);
+      if (lista.length) subsCopia[k] = [...lista];
+    });
     _prefsDraft = {
       cats:    [...((_prefs && _prefs.cats) || [])],
-      subcats: { ...((_prefs && _prefs.subcats) || {}) },
+      subcats: subsCopia,
       stores:  [...((_prefs && _prefs.stores) || [])],
       precio_min: (_prefs && _prefs.precio_min) || 0,
       precio_max: (_prefs && _prefs.precio_max) ?? null,
@@ -5947,8 +5969,18 @@
     else _prefsDraft.cats.push(catId);
     _prefsTrasCambio();
   }
+  // Multi-selección: cada subcategoría es un on/off independiente. "Todo" las
+  // apaga todas (= sin afinar), y quedarse sin ninguna equivale a lo mismo.
   function _prefsSetSubcat(catId, subId) {
-    _prefsDraft.subcats[catId] = (_prefsDraft.subcats[catId] === subId) ? "todas" : subId;
+    if (subId === "todas") {
+      delete _prefsDraft.subcats[catId];
+    } else {
+      const lista = _subcatsDe(_prefsDraft, catId);
+      const i = lista.indexOf(subId);
+      if (i >= 0) lista.splice(i, 1); else lista.push(subId);
+      if (lista.length) _prefsDraft.subcats[catId] = lista;
+      else delete _prefsDraft.subcats[catId];
+    }
     _prefsTrasCambio();
   }
   function _prefsToggleStore(store) {
@@ -5981,14 +6013,16 @@
     const cats = CATEGORIAS.filter(c => !c.hidden && c.id !== "todas").map(c => {
       const on  = d.cats.includes(c.id);
       const def = _SUBCAT_DEFS[c.id];
+      const elegidas = _subcatsDe(d, c.id);
       const subs = (on && def)
         ? `<div class="prefs__subs">
-             <span class="prefs__subs-label">Afinar ${c.label.toLowerCase()} <em>(opcional)</em></span>
+             <span class="prefs__subs-label">Afinar ${c.label.toLowerCase()}
+               <em>${elegidas.length ? `· ${elegidas.length} de ${def.list.length - 1}` : "(opcional, puedes elegir varias)"}</em></span>
              <div class="prefs__subs-pills">
-               <button class="prefs__subpill${(!d.subcats[c.id] || d.subcats[c.id] === "todas") ? " prefs__subpill--on" : ""}"
+               <button class="prefs__subpill${!elegidas.length ? " prefs__subpill--on" : ""}"
                        onclick="_prefsSetSubcat('${c.id}','todas')">Todo</button>
                ${def.list.filter(s => s.id !== "todas").map(s =>
-                 `<button class="prefs__subpill${d.subcats[c.id] === s.id ? " prefs__subpill--on" : ""}"
+                 `<button class="prefs__subpill${elegidas.includes(s.id) ? " prefs__subpill--on" : ""}"
                           onclick="_prefsSetSubcat('${c.id}','${s.id}')">${s.label}</button>`).join("")}
              </div>
            </div>`

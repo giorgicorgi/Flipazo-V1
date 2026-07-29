@@ -2459,6 +2459,29 @@ class PrefsBody(BaseModel):
     tg_enabled: Optional[bool]  = None
 
 
+def _normalizar_subcats(raw) -> dict:
+    """
+    {categoria: [subcat, ...]} — se puede elegir más de una subcategoría por
+    categoría. Acepta también el formato antiguo ({categoria: "subcat"}) para no
+    romper las preferencias ya guardadas. Lista vacía o "todas" = sin filtrar.
+    """
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, list] = {}
+    for k, v in list(raw.items())[:20]:
+        key = str(k)[:40]
+        if isinstance(v, list):
+            vals = [str(x)[:40] for x in v if isinstance(x, (str, int))][:20]
+        elif isinstance(v, (str, int)):
+            vals = [str(v)[:40]]                      # formato antiguo: una sola
+        else:
+            continue
+        vals = [x for x in dict.fromkeys(vals) if x and x != "todas"]
+        if vals:
+            out[key] = vals
+    return out
+
+
 def _prefs_row_to_dict(row) -> dict:
     if not row:
         return dict(_PREFS_DEFAULT)
@@ -2470,7 +2493,7 @@ def _prefs_row_to_dict(row) -> dict:
             return fallback
     return {
         "cats":       _j(row["cats"], []),
-        "subcats":    _j(row["subcats"], {}),
+        "subcats":    _normalizar_subcats(_j(row["subcats"], {})),
         "stores":     _j(row["stores"], []),
         "precio_min": row["precio_min"] or 0,
         "precio_max": row["precio_max"],
@@ -2512,7 +2535,7 @@ def put_user_prefs(body: PrefsBody, request: Request):
     # Saneado: listas de strings cortas, precios no negativos y coherentes
     cats    = [str(c)[:40] for c in cats   if isinstance(c, (str, int))][:40]
     stores  = [str(s)[:60] for s in stores if isinstance(s, (str, int))][:60]
-    subcats = {str(k)[:40]: str(v)[:40] for k, v in list(subcats.items())[:20]} if isinstance(subcats, dict) else {}
+    subcats = _normalizar_subcats(subcats)
     try:    pmin = max(0.0, float(pmin or 0))
     except Exception: pmin = 0.0
     if pmax is not None:
