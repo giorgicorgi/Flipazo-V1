@@ -2524,6 +2524,34 @@
       padding: 10px 18px; border-radius: 9999px; cursor: pointer;
     }
 
+    /* Botón de editar dentro de la vista "Para ti" */
+    .parati-edit {
+      display: none; align-items: center; gap: 4px; flex-shrink: 0;
+      font-family: var(--sans); font-size: 12px; font-weight: 800;
+      color: var(--teal, #0D7A6F); background: none;
+      border: 1.5px solid var(--teal, #0D7A6F); border-radius: 9999px;
+      padding: 5px 12px; cursor: pointer; white-space: nowrap;
+    }
+    .parati-edit:active { opacity: .7; }
+
+    /* Gancho de registro cuando las preferencias solo viven en el navegador */
+    .parati-signup {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin: 10px 16px 0; padding: 12px 14px;
+      background: var(--teal-light, #E6F6F4); border-radius: 14px;
+    }
+    .parati-signup__txt {
+      flex: 1 1 190px; font-family: var(--sans); font-size: 12px;
+      line-height: 1.45; color: #0D5F57;
+    }
+    .parati-signup__btn {
+      flex-shrink: 0; font-family: var(--sans); font-size: 12.5px; font-weight: 800;
+      background: var(--teal, #0D7A6F); color: #fff; text-decoration: none;
+      padding: 9px 16px; border-radius: 9999px;
+    }
+    [data-theme="dark"] .parati-signup { background: rgba(13,122,111,.16); }
+    [data-theme="dark"] .parati-signup__txt { color: #7FD8CC; }
+
     /* ── Editor de intereses (mismo lenguaje visual que el panel de filtros) ── */
     #js-prefs-backdrop {
       display: none; position: fixed; inset: 0;
@@ -2557,12 +2585,91 @@
       background: none; border: none; font-size: 20px; line-height: 1;
       color: var(--text-mid); cursor: pointer; padding: 4px 6px;
     }
+    /* Texto de introducción del panel (no confundir con .prefs__subpill, que son
+       los botones de subcategoría). */
     .prefs__sub {
       font-family: var(--sans); font-size: 12.5px; color: var(--text-mid);
       padding: 0 16px 8px; line-height: 1.45;
     }
     /* Las categorías son multi-selección: se envuelven en vez de hacer scroll lateral */
     .fpanel__scroll--wrap { flex-wrap: wrap; overflow-x: visible; }
+
+    /* ── Jerarquía del editor: categoría (nivel 1) → subcategorías (nivel 2) ──
+       Antes todo eran píldoras al mismo nivel y no se distinguía qué colgaba de
+       qué, ni que se podía elegir más de una. Ahora la categoría es una fila con
+       interruptor y sus subcategorías cuelgan sangradas debajo. */
+    .prefs__section-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding: 0 16px; margin-bottom: 8px;
+    }
+    .prefs__count {
+      font-family: var(--sans); font-size: 11px; font-weight: 700;
+      color: var(--text-dim); text-transform: none; letter-spacing: 0;
+    }
+    .prefs__cats { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+    .prefs__cat {
+      border: 1.5px solid var(--border); border-radius: 14px;
+      background: var(--card-bg); overflow: hidden;
+      transition: border-color .15s, background .15s;
+    }
+    .prefs__cat--on { border-color: var(--teal, #0D7A6F); }
+    .prefs__cat-row {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 12px 14px; background: none; border: none; cursor: pointer;
+      font-family: var(--sans); text-align: left;
+    }
+    .prefs__cat-name { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+    .prefs__cat--on .prefs__cat-name { color: var(--teal, #0D7A6F); }
+
+    /* Interruptor: comunica "on/off" mucho mejor que una píldora coloreada */
+    .prefs__switch {
+      position: relative; flex-shrink: 0;
+      width: 40px; height: 23px; border-radius: 9999px;
+      background: var(--border); transition: background .18s;
+    }
+    .prefs__switch::after {
+      content: ""; position: absolute; top: 2.5px; left: 2.5px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.28);
+      transition: transform .18s;
+    }
+    .prefs__cat--on .prefs__switch { background: var(--teal, #0D7A6F); }
+    .prefs__cat--on .prefs__switch::after { transform: translateX(17px); }
+
+    /* Nivel 2: sangrado + línea vertical que ata las subcategorías a su categoría */
+    .prefs__subs {
+      margin: 0 14px 12px 14px; padding-left: 12px;
+      border-left: 2px solid var(--teal, #0D7A6F);
+    }
+    .prefs__subs-label {
+      display: block; font-family: var(--sans); font-size: 10.5px; font-weight: 800;
+      letter-spacing: .06em; text-transform: uppercase; color: var(--text-mid);
+      margin-bottom: 7px;
+    }
+    .prefs__subs-label em { font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--text-dim); }
+    .prefs__subs-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .prefs__subpill {
+      font-family: var(--sans); font-size: 12px; font-weight: 600;
+      padding: 6px 12px; border-radius: 9999px; cursor: pointer;
+      border: 1.5px solid var(--border); background: var(--surface); color: var(--ink);
+      transition: background .12s, border-color .12s, color .12s;
+    }
+    .prefs__subpill--on {
+      background: var(--teal, #0D7A6F); border-color: var(--teal, #0D7A6F); color: #fff;
+    }
+
+    /* Tiendas: chips multi-selección, con ✓ para que se vea que son on/off */
+    .prefs__chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px; }
+    .prefs__chip {
+      font-family: var(--sans); font-size: 12.5px; font-weight: 600;
+      padding: 8px 14px; border-radius: 9999px; cursor: pointer;
+      border: 1.5px solid var(--border); background: var(--surface); color: var(--ink);
+      transition: background .12s, border-color .12s, color .12s;
+    }
+    .prefs__chip--on {
+      background: var(--teal, #0D7A6F); border-color: var(--teal, #0D7A6F); color: #fff;
+    }
+    .prefs__chip--on::before { content: "✓ "; font-weight: 900; }
 
     .parati-tg { padding: 4px 16px 8px; }
     .parati-tg__hint, .parati-tg__ok {
@@ -2672,6 +2779,13 @@
     .fpanel__scroll {
       display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 16px;
       scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    /* Nivel 2 del panel de filtros: las subcategorías se sangran y se atan con
+       una línea a la categoría de la que dependen (antes flotaban al mismo nivel). */
+    .fpanel__nivel2 { margin: 2px 16px 4px; padding-left: 12px; border-left: 2px solid var(--border); }
+    .fpanel__nivel2 .fpanel__scroll { padding-left: 0; padding-right: 0; padding-bottom: 10px; }
+    .fpanel__label--sub {
+      padding: 0; margin-top: 6px; font-size: 10px; color: var(--text-dim);
     }
     .fpanel__scroll::-webkit-scrollbar { display: none; }
     .fpanel__pill {
@@ -3046,6 +3160,8 @@
       Inicio
     </button>
     <span class="section-header__title" id="js-section-title">Clasificados</span>
+    <!-- Editar intereses: solo visible dentro de la vista "Para ti" -->
+    <button class="parati-edit" id="js-parati-edit" onclick="openPrefsEditor()" style="display:none">✎ Editar intereses</button>
     <hr class="section-header__line" />
     <span class="section-header__count" id="js-count">Cargando…</span>
     <!-- Zoom slider — desktop -->
@@ -5625,19 +5741,57 @@
     try { return !!localStorage.getItem('flipazo_auth_flag'); } catch { return false; }
   }
 
+  // Sin sesión las preferencias viven en localStorage: así "Para ti" funciona de
+  // verdad antes de registrarse (es el gancho) y al crear la cuenta se suben tal
+  // cual, sin que el usuario tenga que volver a elegirlas.
+  const PREFS_LS = "flipazo_prefs_local";
+
+  function _prefsLocales() {
+    try {
+      const v = JSON.parse(localStorage.getItem(PREFS_LS) || "null");
+      return v && Array.isArray(v.cats) ? v : null;
+    } catch { return null; }
+  }
+  function _guardarPrefsLocales(p) {
+    try { localStorage.setItem(PREFS_LS, JSON.stringify(p)); } catch {}
+  }
+
+  function _prefsVacias() {
+    return { cats: [], subcats: {}, stores: [], precio_min: 0, precio_max: null,
+             tg_enabled: true, tg_linked: false, local: true };
+  }
+
   async function loadPrefs() {
-    if (!_haySesion()) { _prefs = null; _syncParaTiUI(); return; }
+    if (!_haySesion()) {
+      _prefs = _prefsLocales();
+      _syncParaTiUI();
+      if (_mhomeActive && _mhomeDeals.length) renderMobileHome(_mhomeDeals);
+      return;
+    }
     try {
       const r = await fetch(`${PREFS_API}/api/user/prefs`, { credentials: "include" });
       _prefs = r.ok ? await r.json() : null;
     } catch { _prefs = null; }
+    // Recién registrado: si eligió intereses sin sesión, se los subimos
+    const local = _prefsLocales();
+    if (local && local.cats.length && _prefs && !_prefs.cats.length) {
+      await savePrefs({ cats: local.cats, subcats: local.subcats, stores: local.stores,
+                        precio_min: local.precio_min, precio_max: local.precio_max });
+      try { localStorage.removeItem(PREFS_LS); } catch {}
+    } else if (_prefs && _prefs.cats.length) {
+      try { localStorage.removeItem(PREFS_LS); } catch {}
+    }
     _syncParaTiUI();
-    // Si el home ya estaba pintado, repintarlo para que aparezca la fila
     if (_mhomeActive && _mhomeDeals.length) renderMobileHome(_mhomeDeals);
   }
 
   async function savePrefs(patch) {
-    if (!_haySesion()) return null;
+    if (!_haySesion()) {
+      _prefs = { ..._prefsVacias(), ...(_prefs || {}), ...patch, local: true };
+      _guardarPrefsLocales(_prefs);
+      _syncParaTiUI();
+      return _prefs;
+    }
     try {
       const r = await fetch(`${PREFS_API}/api/user/prefs`, {
         method: "PUT", credentials: "include",
@@ -5650,11 +5804,16 @@
     return _prefs;
   }
 
-  // Muestra u oculta la pestaña "Para ti" según haya sesión, y marca cuál está activa.
+  // La pestaña "Para ti" se muestra SIEMPRE, también sin sesión: es el gancho
+  // para registrarse. Sin sesión funciona igual, guardando en local.
   function _syncParaTiUI() {
     const btns = [document.getElementById("js-mvt-parati"),
                   document.getElementById("js-dvt-parati")].filter(Boolean);
-    btns.forEach(b => { b.style.display = _haySesion() ? "" : "none"; });
+    btns.forEach(b => { b.style.display = ""; });
+    // Acceso al editor dentro de la propia vista (antes solo se podía desde la
+    // fila de Explorar, y desde la pestaña no había manera de volver a entrar).
+    const edit = document.getElementById("js-parati-edit");
+    if (edit) edit.style.display = _paraTiView ? "inline-flex" : "none";
     const mvtExp = document.getElementById("js-mvt-explorar");
     const mvtAll = document.getElementById("js-mvt-todos");
     if (_paraTiView) {
@@ -5665,10 +5824,11 @@
     }
   }
 
-  // Entrar en la vista "Para ti" (tercera pestaña).
+  // Entrar en la vista "Para ti" (tercera pestaña). Pulsarla estando ya dentro
+  // abre el editor: es el atajo natural para "quiero cambiar mis filtros".
   function setParaTiView() {
-    if (!_haySesion()) { showLoginGate("Crea una cuenta gratis para tener tu sección Para ti"); return; }
     if (!_tienePrefs()) { openPrefsEditor(); return; }   // sin intereses aún → configurarlos primero
+    if (_paraTiView) { openPrefsEditor(); return; }
     _paraTiView = true;
     activeCategory = "todas"; _resetSubcats();
     activeSort = "recientes"; activeLowCost = false; activeStore = "";
@@ -5689,13 +5849,15 @@
   }
 
   // ── Fila "Para ti" dentro de Explorar ─────────────────────────────
+  // Se muestra también sin sesión: el usuario puede configurarla y verla
+  // funcionando, y el registro se ofrece como lo que le falta (guardarla en
+  // todos sus dispositivos y recibirla por Telegram).
   function _paraTiSection(deals) {
-    if (!_haySesion()) return "";
     if (!_tienePrefs()) {
       return `<section class="mhome__section parati-cta">
         <div class="mhome__section-head"><h2 class="mhome__section-title">✨ Para ti</h2></div>
         <div class="parati-empty">
-          <p>Dinos qué te interesa y aquí solo verás eso.</p>
+          <p>Elige lo que te interesa y esta sección mostrará <b>solo eso</b>.</p>
           <button class="parati-empty__btn" onclick="openPrefsEditor()">Elegir mis intereses</button>
         </div>
       </section>`;
@@ -5703,24 +5865,25 @@
     const match = deals.filter(dealMatchesPrefs).slice(0, 30);
     const head = `<div class="mhome__section-head">
         <h2 class="mhome__section-title">✨ Para ti</h2>
-        <a class="mhome__see-all" href="#" onclick="event.preventDefault();openPrefsEditor()">Editar</a>
+        <a class="mhome__see-all" href="#" onclick="event.preventDefault();openPrefsEditor()">✎ Editar</a>
       </div>
       <span class="mhome__subtitle">${_prefs.cats.map(c => (CATEGORIAS.find(x => x.id === c) || {}).label || c).join(" · ")}</span>`;
-    if (!match.length) {
-      return `<section class="mhome__section parati-cta">${head}
-        <div class="parati-empty"><p>Hoy no hay nada nuevo de lo tuyo. Te avisamos en cuanto lo haya.</p></div>
-      </section>`;
-    }
-    return `<section class="mhome__section parati-cta">${head}
-      <div class="mhome__scroll">${match.map(renderHCard).join("")}</div>
-    </section>`;
+    const cuerpo = match.length
+      ? `<div class="mhome__scroll">${match.map(renderHCard).join("")}</div>`
+      : `<div class="parati-empty"><p>Hoy no hay nada nuevo de lo tuyo. Te avisamos en cuanto lo haya.</p></div>`;
+    // Sin sesión: las preferencias solo viven en este navegador → invitar a crear cuenta
+    const gancho = !_haySesion()
+      ? `<div class="parati-signup">
+           <span class="parati-signup__txt">Guardado solo en este dispositivo. Crea una cuenta gratis para conservarlo y recibir un resumen diario por Telegram.</span>
+           <a class="parati-signup__btn" href="/cuenta">Crear cuenta gratis</a>
+         </div>` : "";
+    return `<section class="mhome__section parati-cta">${head}${cuerpo}${gancho}</section>`;
   }
 
   // ── Editor de intereses ───────────────────────────────────────────
   let _prefsDraft = null;
 
   function openPrefsEditor() {
-    if (!_haySesion()) { showLoginGate("Crea una cuenta gratis para tener tu sección Para ti"); return; }
     _prefsDraft = {
       cats:    [...((_prefs && _prefs.cats) || [])],
       subcats: { ...((_prefs && _prefs.subcats) || {}) },
@@ -5764,28 +5927,53 @@
     const panel = document.getElementById("js-prefs-panel");
     const scrollPrevio = panel ? panel.scrollTop : 0;
 
-    const cats = CATEGORIAS.filter(c => !c.hidden && c.id !== "todas").map(c =>
-      `<button class="fpanel__pill${d.cats.includes(c.id) ? " fpanel__pill--active" : ""}"
-               onclick="_prefsToggleCat('${c.id}')">${c.label}</button>`).join("");
-
-    // Subcategorías solo de las categorías elegidas que las tengan
-    const subBloques = d.cats.filter(c => _SUBCAT_DEFS[c]).map(c => {
-      const def = _SUBCAT_DEFS[c];
-      const label = (CATEGORIAS.find(x => x.id === c) || {}).label || c;
-      const pills = def.list.filter(s => s.id !== "todas").map(s =>
-        `<button class="fpanel__pill${d.subcats[c] === s.id ? " fpanel__pill--active" : ""}"
-                 onclick="_prefsSetSubcat('${c}','${s.id}')">${s.label}</button>`).join("");
-      return `<span class="fpanel__label" style="margin-top:6px">${label} — afinar</span>
-              <div class="fpanel__scroll">${pills}</div>`;
+    // Cada categoría es una fila con su interruptor. Si está encendida, sus
+    // subcategorías cuelgan DEBAJO y sangradas, para que se vea que dependen de
+    // ella y no son otro filtro suelto al mismo nivel.
+    const cats = CATEGORIAS.filter(c => !c.hidden && c.id !== "todas").map(c => {
+      const on  = d.cats.includes(c.id);
+      const def = _SUBCAT_DEFS[c.id];
+      const subs = (on && def)
+        ? `<div class="prefs__subs">
+             <span class="prefs__subs-label">Afinar ${c.label.toLowerCase()} <em>(opcional)</em></span>
+             <div class="prefs__subs-pills">
+               <button class="prefs__subpill${(!d.subcats[c.id] || d.subcats[c.id] === "todas") ? " prefs__subpill--on" : ""}"
+                       onclick="_prefsSetSubcat('${c.id}','todas')">Todo</button>
+               ${def.list.filter(s => s.id !== "todas").map(s =>
+                 `<button class="prefs__subpill${d.subcats[c.id] === s.id ? " prefs__subpill--on" : ""}"
+                          onclick="_prefsSetSubcat('${c.id}','${s.id}')">${s.label}</button>`).join("")}
+             </div>
+           </div>`
+        : "";
+      return `<div class="prefs__cat${on ? " prefs__cat--on" : ""}">
+                <button class="prefs__cat-row" onclick="_prefsToggleCat('${c.id}')"
+                        role="switch" aria-checked="${on}">
+                  <span class="prefs__cat-name">${c.label}</span>
+                  <span class="prefs__switch" aria-hidden="true"></span>
+                </button>
+                ${subs}
+              </div>`;
     }).join("");
 
     const stores = [..._allStores()].filter(Boolean).sort().map(s =>
-      `<button class="fpanel__pill${d.stores.includes(s) ? " fpanel__pill--active" : ""}"
+      `<button class="prefs__chip${d.stores.includes(s) ? " prefs__chip--on" : ""}"
                onclick="_prefsToggleStore('${s.replace(/'/g, "\\'")}')">${s}</button>`).join("");
 
     const tgLinked = _prefs && _prefs.tg_linked;
-    const tgBloque = `
-      <span class="fpanel__label" style="margin-top:6px">Resumen diario por Telegram</span>
+    // Sin sesión el bloque de Telegram se convierte en la invitación a registrarse:
+    // es exactamente lo que se gana al crear la cuenta.
+    const tgBloque = !_haySesion()
+      ? `<div class="prefs__section-head" style="margin-top:14px">
+           <span class="fpanel__label" style="padding:0">Avisos</span>
+         </div>
+         <div class="parati-tg">
+           <p class="parati-tg__hint">Con una cuenta gratis guardas esta configuración en todos tus dispositivos y recibes un resumen diario por Telegram con lo tuyo.</p>
+           <a class="parati-tg__btn" style="display:block;text-align:center;text-decoration:none" href="/cuenta">Crear cuenta gratis</a>
+         </div>`
+      : `
+      <div class="prefs__section-head" style="margin-top:14px">
+        <span class="fpanel__label" style="padding:0">4 · Resumen diario por Telegram</span>
+      </div>
       <div class="parati-tg">
         ${tgLinked
           ? `<p class="parati-tg__ok">✅ Telegram conectado — recibes un resumen al día.</p>
@@ -5801,11 +5989,24 @@
              <button class="parati-tg__btn" id="js-prefs-tg-link" onclick="linkTelegram(this)">Conectar con Telegram</button>`}
       </div>`;
 
+    const nCats = d.cats.length;
     wrap.innerHTML = `
-      <span class="fpanel__label">¿Qué te interesa?</span>
-      <div class="fpanel__scroll fpanel__scroll--wrap">${cats}</div>
-      ${subBloques}
-      <span class="fpanel__label" style="margin-top:6px">Precio</span>
+      <div class="prefs__section-head">
+        <span class="fpanel__label" style="padding:0">1 · Categorías</span>
+        <span class="prefs__count">${nCats ? `${nCats} elegida${nCats > 1 ? "s" : ""}` : "elige una o varias"}</span>
+      </div>
+      <div class="prefs__cats">${cats}</div>
+
+      <div class="prefs__section-head" style="margin-top:14px">
+        <span class="fpanel__label" style="padding:0">2 · Tiendas</span>
+        <span class="prefs__count">${d.stores.length ? `${d.stores.length} elegida${d.stores.length > 1 ? "s" : ""}` : "todas"}</span>
+      </div>
+      <div class="prefs__chips">${stores}</div>
+
+      <div class="prefs__section-head" style="margin-top:14px">
+        <span class="fpanel__label" style="padding:0">3 · Precio</span>
+        <span class="prefs__count">${(!d.precio_min && d.precio_max === null) ? "sin límite" : ""}</span>
+      </div>
       <div class="price-filter price-filter--panel">
         <div class="price-slider">
           <div class="price-slider__track"></div>
@@ -5819,12 +6020,10 @@
           </div>
           <span class="price-slider__sep">—</span>
           <div class="price-slider__field">
-            <input type="number" id="js-prefs-price-max-input" min="0" step="1" placeholder="Sin límite" inputmode="numeric" aria-label="Precio máximo en euros"><span>€</span>
+            <input type="number" id="js-prefs-price-max-input" min="0" step="1" placeholder="Máx" inputmode="numeric" aria-label="Precio máximo en euros"><span>€</span>
           </div>
         </div>
       </div>
-      <span class="fpanel__label" style="margin-top:6px">Tiendas ${d.stores.length ? "" : "<em style='font-weight:500;text-transform:none;letter-spacing:0'>(todas)</em>"}</span>
-      <div class="fpanel__scroll fpanel__scroll--wrap">${stores}</div>
       ${tgBloque}`;
 
     _prefsPriceInit();
@@ -7186,6 +7385,18 @@
     <span class="fpanel__handle" role="presentation"></span>
     <span class="fpanel__label">Categoría</span>
     <div class="fpanel__scroll" id="js-fpanel-cats"></div>
+    <!-- Subcategorías: sangradas bajo "Categoría" para que se vea que dependen de ella -->
+    <div class="fpanel__nivel2">
+      <span class="fpanel__label fpanel__label--sub" id="js-fpanel-tech-label">Tecnología · afinar</span>
+      <div class="fpanel__scroll" id="js-fpanel-tech"></div>
+      <span class="fpanel__label fpanel__label--sub" id="js-fpanel-moda-label">Moda · afinar</span>
+      <div class="fpanel__scroll" id="js-fpanel-moda"></div>
+      <span class="fpanel__label fpanel__label--sub" id="js-fpanel-deportes-label">Deportes · afinar</span>
+      <div class="fpanel__scroll" id="js-fpanel-deportes"></div>
+    </div>
+    <span class="fpanel__label" style="margin-top:4px">Ordenar por</span>
+    <div class="fpanel__scroll" id="js-fpanel-sorts"></div>
+    <!-- El precio va el último: es un ajuste fino, no el punto de partida -->
     <span class="fpanel__label" style="margin-top:4px">Precio</span>
     <div class="price-filter price-filter--panel">
       <div class="price-slider">
@@ -7201,19 +7412,11 @@
         </div>
         <span class="price-slider__sep">—</span>
         <div class="price-slider__field">
-          <input type="number" id="js-fpanel-price-max-input" min="0" step="1" placeholder="Sin límite" inputmode="numeric" aria-label="Precio máximo en euros">
+          <input type="number" id="js-fpanel-price-max-input" min="0" step="1" placeholder="Máx" inputmode="numeric" aria-label="Precio máximo en euros">
           <span>€</span>
         </div>
       </div>
     </div>
-    <span class="fpanel__label" id="js-fpanel-tech-label" style="margin-top:4px">Tecnología</span>
-    <div class="fpanel__scroll" id="js-fpanel-tech"></div>
-    <span class="fpanel__label" id="js-fpanel-moda-label" style="margin-top:4px">Moda</span>
-    <div class="fpanel__scroll" id="js-fpanel-moda"></div>
-    <span class="fpanel__label" id="js-fpanel-deportes-label" style="margin-top:4px">Deportes</span>
-    <div class="fpanel__scroll" id="js-fpanel-deportes"></div>
-    <span class="fpanel__label" style="margin-top:4px">Ordenar por</span>
-    <div class="fpanel__scroll" id="js-fpanel-sorts"></div>
     <div class="fpanel__footer">
       <button class="fpanel__btn fpanel__btn--reset" onclick="fpanelReset()">Restablecer</button>
       <button class="fpanel__btn fpanel__btn--apply" onclick="closeFilterPanel()">Aplicar filtros</button>
