@@ -5352,7 +5352,16 @@
     bubble.classList.add("filter-coach--visible");
     try { localStorage.setItem("flipazo_filtros_coach_visto", "1"); } catch {}
     clearTimeout(_filterCoachTimer);
-    _filterCoachTimer = setTimeout(_hideFilterCoach, 6000);
+    _filterCoachTimer = setTimeout(_hideFilterCoach, 5000);
+    // La burbuja es position:fixed, así que sin esto se queda pegada a la pantalla
+    // acompañando al usuario mientras hace scroll. Cualquier señal de que ya está
+    // navegando (scroll, toque, tecla, giro de pantalla) la retira al momento.
+    const fuera = () => _hideFilterCoach();
+    window.addEventListener("scroll",      fuera, { once: true, passive: true });
+    window.addEventListener("resize",      fuera, { once: true });
+    window.addEventListener("orientationchange", fuera, { once: true });
+    document.addEventListener("pointerdown", fuera, { once: true, capture: true });
+    document.addEventListener("keydown",     fuera, { once: true, capture: true });
   }
 
   function _hideFilterCoach() {
