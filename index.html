@@ -2586,11 +2586,28 @@
       color: var(--text-mid); cursor: pointer; padding: 4px 6px;
     }
     /* Texto de introducción del panel (no confundir con .prefs__subpill, que son
-       los botones de subcategoría). */
+       los botones de subcategoría). Es la frase que explica de qué va todo el
+       panel, así que tiene peso propio en vez de parecer una nota al pie. */
     .prefs__sub {
-      font-family: var(--sans); font-size: 12.5px; color: var(--text-mid);
-      padding: 0 16px 8px; line-height: 1.45;
+      font-family: var(--sans); font-size: 14.5px; font-weight: 600;
+      color: var(--ink); line-height: 1.5;
+      margin: 0 16px 14px; padding: 12px 14px;
+      background: var(--teal-light, #E6F6F4); border-radius: 12px;
+      border-left: 3px solid var(--teal, #0D7A6F);
     }
+    .prefs__sub b { font-weight: 900; color: var(--teal, #0D7A6F); }
+    [data-theme="dark"] .prefs__sub { background: rgba(13,122,111,.16); color: var(--ink); }
+
+    .prefs__head-acciones { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .prefs__restore {
+      font-family: var(--sans); font-size: 11.5px; font-weight: 700;
+      color: var(--text-mid); background: none;
+      border: 1.5px solid var(--border); border-radius: 9999px;
+      padding: 5px 11px; cursor: pointer; white-space: nowrap;
+      transition: color .15s, border-color .15s;
+    }
+    .prefs__restore:hover { color: var(--brand); border-color: var(--brand); }
+    .prefs__restore:active { opacity: .7; }
     /* Las categorías son multi-selección: se envuelven en vez de hacer scroll lateral */
     .fpanel__scroll--wrap { flex-wrap: wrap; overflow-x: visible; }
 
@@ -5874,8 +5891,8 @@
     // Sin sesión: las preferencias solo viven en este navegador → invitar a crear cuenta
     const gancho = !_haySesion()
       ? `<div class="parati-signup">
-           <span class="parati-signup__txt">Guardado solo en este dispositivo. Crea una cuenta gratis para conservarlo y recibir un resumen diario por Telegram.</span>
-           <a class="parati-signup__btn" href="/cuenta">Crear cuenta gratis</a>
+           <span class="parati-signup__txt">Guardado solo en este dispositivo. Inicia sesión para conservarlo y recibir un resumen diario por Telegram.</span>
+           <a class="parati-signup__btn" href="/cuenta">Iniciar sesión</a>
          </div>` : "";
     return `<section class="mhome__section parati-cta">${head}${cuerpo}${gancho}</section>`;
   }
@@ -5900,22 +5917,52 @@
   function closePrefsEditor() {
     document.getElementById("js-prefs-panel")?.classList.remove("open");
     document.getElementById("js-prefs-backdrop")?.classList.remove("open");
+    // Sin sesión los cambios ya se aplicaron (no hay "Guardar"), así que al
+    // cerrar hay que repintar lo que hay detrás para que se vean.
+    if (!_haySesion()) _refrescarParaTi();
+  }
+
+  function _refrescarParaTi() {
+    if (_paraTiView) {
+      allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
+      const g = document.getElementById("js-grid"); if (g) g.innerHTML = "";
+      loadMore();
+    } else if (_mhomeActive && _mhomeDeals.length) {
+      renderMobileHome(_mhomeDeals);
+    }
+  }
+
+  // Sin sesión no hay botón Guardar (no hay cuenta donde guardar), así que cada
+  // cambio se aplica al momento en este navegador. Con sesión sigue siendo un
+  // borrador que se confirma con "Guardar".
+  function _prefsTrasCambio() {
+    buildPrefsEditor();
+    if (!_haySesion()) savePrefs(_prefsDraft);
   }
 
   function _prefsToggleCat(catId) {
     const i = _prefsDraft.cats.indexOf(catId);
     if (i >= 0) { _prefsDraft.cats.splice(i, 1); delete _prefsDraft.subcats[catId]; }
     else _prefsDraft.cats.push(catId);
-    buildPrefsEditor();
+    _prefsTrasCambio();
   }
   function _prefsSetSubcat(catId, subId) {
     _prefsDraft.subcats[catId] = (_prefsDraft.subcats[catId] === subId) ? "todas" : subId;
-    buildPrefsEditor();
+    _prefsTrasCambio();
   }
   function _prefsToggleStore(store) {
     const i = _prefsDraft.stores.indexOf(store);
     if (i >= 0) _prefsDraft.stores.splice(i, 1); else _prefsDraft.stores.push(store);
-    buildPrefsEditor();
+    _prefsTrasCambio();
+  }
+
+  // Deja el editor como al principio: sin categorías, sin tiendas y sin límite
+  // de precio. Con sesión afecta solo al borrador (Cancelar aún lo deshace).
+  function restaurarPrefs() {
+    if (!_prefsDraft) return;
+    _prefsDraft.cats = []; _prefsDraft.subcats = {}; _prefsDraft.stores = [];
+    _prefsDraft.precio_min = 0; _prefsDraft.precio_max = null;
+    _prefsTrasCambio();
   }
 
   function buildPrefsEditor() {
@@ -5963,12 +6010,12 @@
     // Sin sesión el bloque de Telegram se convierte en la invitación a registrarse:
     // es exactamente lo que se gana al crear la cuenta.
     const tgBloque = !_haySesion()
+      // Sin sesión solo se explica qué se gana: el botón ya está en el pie.
       ? `<div class="prefs__section-head" style="margin-top:14px">
            <span class="fpanel__label" style="padding:0">Avisos</span>
          </div>
          <div class="parati-tg">
-           <p class="parati-tg__hint">Con una cuenta gratis guardas esta configuración en todos tus dispositivos y recibes un resumen diario por Telegram con lo tuyo.</p>
-           <a class="parati-tg__btn" style="display:block;text-align:center;text-decoration:none" href="/cuenta">Crear cuenta gratis</a>
+           <p class="parati-tg__hint">Con tu cuenta guardas esta configuración en todos tus dispositivos y recibes un resumen diario por Telegram con lo tuyo.</p>
          </div>`
       : `
       <div class="prefs__section-head" style="margin-top:14px">
@@ -6026,6 +6073,17 @@
       </div>
       ${tgBloque}`;
 
+    // Pie: con sesión, Cancelar + Guardar. Sin sesión no hay nada que guardar
+    // (los cambios ya se aplican en este navegador) → solo iniciar sesión.
+    const pie = document.getElementById("js-prefs-footer");
+    if (pie) {
+      pie.innerHTML = _haySesion()
+        ? `<button class="fpanel__btn fpanel__btn--reset" onclick="closePrefsEditor()">Cancelar</button>
+           <button class="fpanel__btn fpanel__btn--apply" id="js-prefs-save" onclick="savePrefsEditor()">Guardar</button>`
+        : `<a class="fpanel__btn fpanel__btn--apply" href="/cuenta"
+              style="text-decoration:none;display:flex;align-items:center;justify-content:center">Iniciar sesión</a>`;
+    }
+
     _prefsPriceInit();
     if (panel) panel.scrollTop = scrollPrevio;
   }
@@ -6046,19 +6104,27 @@
       if (iMax) iMax.value = _prefsDraft.precio_max !== null ? _prefsDraft.precio_max : "";
       if (fill) { fill.style.left = (lo / MAXV * 100) + "%"; fill.style.right = (100 - hi / MAXV * 100) + "%"; }
     };
+    // Sin sesión el precio también se persiste solo, pero con retardo: arrastrar
+    // el slider dispararía una escritura por píxel.
+    let tPersist = null;
+    const persistirSiAnonimo = () => {
+      if (_haySesion()) return;
+      clearTimeout(tPersist);
+      tPersist = setTimeout(() => savePrefs(_prefsDraft), 350);
+    };
     rMin.oninput = () => {
       _prefsDraft.precio_min = Math.min(+rMin.value, +rMax.value);
-      pinta();
+      pinta(); persistirSiAnonimo();
     };
     rMax.oninput = () => {
       const v = Math.max(+rMax.value, +rMin.value);
       _prefsDraft.precio_max = v >= MAXV ? null : v;
-      pinta();
+      pinta(); persistirSiAnonimo();
     };
-    if (iMin) iMin.onchange = () => { _prefsDraft.precio_min = Math.max(0, +iMin.value || 0); pinta(); };
+    if (iMin) iMin.onchange = () => { _prefsDraft.precio_min = Math.max(0, +iMin.value || 0); pinta(); persistirSiAnonimo(); };
     if (iMax) iMax.onchange = () => {
       const v = +iMax.value || 0;
-      _prefsDraft.precio_max = v > 0 ? v : null; pinta();
+      _prefsDraft.precio_max = v > 0 ? v : null; pinta(); persistirSiAnonimo();
     };
     pinta();
   }
@@ -6069,13 +6135,7 @@
     await savePrefs(_prefsDraft);
     if (btn) { btn.disabled = false; btn.textContent = "Guardar"; }
     closePrefsEditor();
-    if (_paraTiView) {
-      allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
-      document.getElementById("js-grid").innerHTML = "";
-      loadMore();
-    } else if (_mhomeActive && _mhomeDeals.length) {
-      renderMobileHome(_mhomeDeals);
-    }
+    _refrescarParaTi();
   }
 
   // ── Telegram ──────────────────────────────────────────────────────
@@ -7428,14 +7488,16 @@
     <span class="fpanel__handle" role="presentation"></span>
     <div class="prefs__head">
       <span class="prefs__title">✨ Para ti</span>
-      <button class="prefs__close" onclick="closePrefsEditor()" aria-label="Cerrar">✕</button>
+      <div class="prefs__head-acciones">
+        <button class="prefs__restore" onclick="restaurarPrefs()">↺ Restaurar</button>
+        <button class="prefs__close" onclick="closePrefsEditor()" aria-label="Cerrar">✕</button>
+      </div>
     </div>
-    <p class="prefs__sub">Elige lo que te interesa y solo verás eso. Puedes cambiarlo cuando quieras.</p>
+    <p class="prefs__sub">Elige lo que te interesa y <b>solo verás eso</b>. Puedes cambiarlo cuando quieras.</p>
     <div id="js-prefs-body"></div>
-    <div class="fpanel__footer">
-      <button class="fpanel__btn fpanel__btn--reset" onclick="closePrefsEditor()">Cancelar</button>
-      <button class="fpanel__btn fpanel__btn--apply" id="js-prefs-save" onclick="savePrefsEditor()">Guardar</button>
-    </div>
+    <!-- El pie cambia según haya sesión: sin ella no hay nada que guardar (los
+         cambios se aplican al momento en este navegador), solo iniciar sesión. -->
+    <div class="fpanel__footer" id="js-prefs-footer"></div>
   </div>
 
   <div class="filter-coach" id="js-filter-coach" role="status">
