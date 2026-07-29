@@ -76,7 +76,8 @@
     [data-theme="dark"] .criteria-section, [data-theme="dark"] .contact-section { border-color: #374151; }
 
     html { scroll-behavior: smooth; }
-    body { background: var(--bg); color: var(--ink); font-family: var(--serif); -webkit-font-smoothing: antialiased; }
+    /* clip (no hidden) para no crear contexto de scroll y no romper el header sticky */
+    body { background: var(--bg); color: var(--ink); font-family: var(--serif); -webkit-font-smoothing: antialiased; max-width: 100%; overflow-x: clip; }
     a { color: var(--brand); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
@@ -335,10 +336,25 @@
     .footer__copy { font-family: var(--sans); font-size: 11px; color: var(--text-dim); }
 
     @media (max-width: 640px) {
-      .site-header__inner { padding: 0 18px; }
+      /* El header no cabía en pantallas de 375-390px: logo (117px) + 4 enlaces,
+         todos con flex-shrink:0, sumaban ~475px → scroll horizontal en la página.
+         Se reduce logo, gaps y tipografía hasta que la fila entra sin desbordar. */
+      .site-header__inner { padding: 0 14px; gap: 10px; height: 56px; }
+      .site-logo__img { height: 36px; }
+      .header-nav { gap: 12px; min-width: 0; }
+      .header-nav__link { font-size: 12px; }
+      .theme-toggle { padding: 4px; font-size: 14px; }
       .page-hero, .content, .footer { padding-left: 18px; padding-right: 18px; }
       .page-hero { padding-top: 40px; }
       .criteria-grid { grid-template-columns: 1fr; }
+      .pull-quote { padding-left: 0; padding-right: 0; }
+      .story-block--feature { padding: 22px 20px; }
+    }
+    @media (max-width: 380px) {
+      .site-header__inner { padding: 0 12px; gap: 8px; }
+      .site-logo__img { height: 32px; }
+      .header-nav { gap: 9px; }
+      .header-nav__link { font-size: 11.5px; }
     }
   </style>
   <script>(function(){ var t = localStorage.getItem('flipazo_theme')||'light'; if(t==='dark') document.documentElement.setAttribute('data-theme','dark'); })();</script>

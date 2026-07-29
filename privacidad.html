@@ -46,7 +46,7 @@
     [data-theme="dark"] .footer { border-color: #374151; }
 
     html { scroll-behavior: smooth; }
-    body { background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; min-height: 100vh; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; min-height: 100vh;  max-width: 100%; overflow-x: clip; }
     a { color: var(--brand); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
@@ -99,11 +99,26 @@
     .footer__links a:hover { color: var(--brand); text-decoration: none; }
     .footer__copy { font-family: var(--sans); font-size: 11px; color: var(--text-dim); }
 
+    /* Tablas anchas: scroll propio en vez de desbordar la página en móvil */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 16px 0; }
+    .table-wrap > table { margin: 0; min-width: 340px; }
+
     @media (max-width: 640px) {
-      .site-header__inner { padding: 0 18px; }
+      /* Header no cabía a 375-390px: logo + 4 enlaces con flex-shrink:0 ~475px
+         → scroll horizontal. Se encoge hasta que la fila entra sin desbordar. */
+      .site-header__inner { padding: 0 14px; gap: 10px; height: 56px; }
+      .site-logo__img { height: 36px; }
+      .header-nav { gap: 12px; min-width: 0; }
+      .header-nav__link { font-size: 12px; }
+      .theme-toggle { padding: 4px; font-size: 14px; }
       .page-header, .content, .footer { padding-left: 18px; padding-right: 18px; }
       .page-header { padding-top: 32px; }
-      .header-nav gap: 14px; }
+    }
+    @media (max-width: 380px) {
+      .site-header__inner { padding: 0 12px; gap: 8px; }
+      .site-logo__img { height: 32px; }
+      .header-nav { gap: 9px; }
+      .header-nav__link { font-size: 11.5px; }
     }
   </style>
   <script>
@@ -151,21 +166,21 @@
 
     <div class="section">
       <h2>1. Responsable del tratamiento</h2>
-      <table>
+      <div class="table-wrap"><table>
         <tr><th>Campo</th><th>Detalle</th></tr>
         <tr><td>Responsable</td><td>Estefanía Martínez Franco (trabajadora autónoma)</td></tr>
         <tr><td>NIF</td><td>54717225H</td></tr>
         <tr><td>Sitio web</td><td>flipazo.es</td></tr>
         <tr><td>Correo de contacto</td><td><a href="mailto:hola@flipazo.es">hola@flipazo.es</a></td></tr>
         <tr><td>Domicilio</td><td>Abaixadors 10, 08003 Barcelona, España</td></tr>
-      </table>
+      </table></div>
     </div>
 
     <div class="section">
       <h2>2. Qué datos recogemos y por qué</h2>
       <p>Flipazo es un sitio web de consulta de ofertas. <strong>No requiere registro, no almacena contraseñas y no recoge datos de identificación personal de los visitantes</strong> de forma activa.</p>
       <p>Los únicos datos que pueden tratarse son los siguientes:</p>
-      <table>
+      <div class="table-wrap"><table>
         <tr><th>Dato</th><th>Origen</th><th>Finalidad</th><th>Base legal</th></tr>
         <tr>
           <td>Dirección IP y datos técnicos de navegación</td>
@@ -185,7 +200,7 @@
           <td>Responder tu consulta</td>
           <td>Consentimiento / interés legítimo</td>
         </tr>
-      </table>
+      </table></div>
     </div>
 
     <div class="section">
@@ -200,7 +215,7 @@
     <div class="section">
       <h2>4. Servicios de terceros</h2>
       <p>Para el funcionamiento del sitio utilizamos los siguientes servicios de terceros que pueden tratar datos técnicos:</p>
-      <table>
+      <div class="table-wrap"><table>
         <tr><th>Servicio</th><th>Proveedor</th><th>Finalidad</th><th>Política</th></tr>
         <tr>
           <td>Google Fonts</td>
@@ -226,7 +241,7 @@
           <td>Red de afiliados — seguimiento de conversiones</td>
           <td><a href="https://www.awin.com/es/privacidad" target="_blank" rel="noopener">Ver →</a></td>
         </tr>
-      </table>
+      </table></div>
       <p>Cuando utilizamos servicios de terceros ubicados fuera de la UE (como Google LLC, en EE.UU.), la transferencia se realiza al amparo de las Cláusulas Contractuales Tipo aprobadas por la Comisión Europea o la certificación del Marco de Privacidad de Datos UE-EE.UU.</p>
     </div>
 

@@ -1870,6 +1870,87 @@
     .deals-grid--mosaic .vote-btn       { padding: 4px 8px; }
     .deals-grid--mosaic .vote-btn span[style] { display: none; }
 
+    /* ── Tarjeta compacta en móvil (2 por fila) ──────────────────────
+       A ~170px de ancho la tarjeta salía altísima (imagen 4:3 + tags +
+       tienda + hook + subtítulo + social + 2 filas de precio + CTA +
+       votos + timestamp ≈ 470px), así que la foto parecía diminuta.
+       Se recorta lo redundante (la tienda ya va en el badge de la imagen)
+       y se aprieta el resto: la imagen pasa a cuadrada y a ser ~45% de
+       la tarjeta en vez de ~30%. */
+    @media (max-width: 767px) {
+      .deals-grid--mosaic { --grid-cols: 2; gap: 18px 10px; }
+
+      /* Imagen: cuadrada → más área útil con el mismo ancho de columna */
+      .deals-grid--mosaic .deal__image-wrap { aspect-ratio: 1 / 1; }
+      .deals-grid--mosaic .deal__discount-badge { font-size: 11px; padding: 3px 7px; }
+
+      /* Redundante o prescindible a este tamaño */
+      .deals-grid--mosaic .deal__store,
+      .deals-grid--mosaic .deal__social,
+      .deals-grid--mosaic .deal__appliance-note { display: none; }
+
+      .deals-grid--mosaic .deal__tags { padding: 8px 9px 0; gap: 3px; }
+      .deals-grid--mosaic .deal__tag  { font-size: 9px; padding: 2px 6px; }
+      /* Una sola fila de tags: con dos se comía 48px y desnivelaba toda la fila.
+         Si hay tag de urgencia (bajada de precio / stock) gana ese y se oculta el
+         emocional, que es el menos accionable. Sin :has() se ve como hasta ahora. */
+      .deals-grid--mosaic .deal__tags:has(.deal__tag--rebajado, .deal__tag--drop, .deal__tag--stock)
+        > .deal__tag:not(.deal__tag--rebajado):not(.deal__tag--drop):not(.deal__tag--stock) {
+        display: none;
+      }
+
+      /* El titular es flex-item con `flex:1`, así que (a) estiraba para absorber
+         todo el hueco sobrante de la tarjeta más alta de la fila y (b) al
+         blockificarse el `display:-webkit-box` su `line-clamp` no se aplicaba
+         nunca. Aquí se fija a 2 líneas exactas con altura calculada, de modo que
+         los bloques de texto queden alineados entre tarjetas. */
+      .deals-grid--mosaic .deal__hook {
+        flex: 0 0 auto;
+        font-size: 13px; line-height: 1.25;
+        padding: 8px 9px 2px;
+        height: calc(1.25em * 2 + 10px); overflow: hidden;
+      }
+      .deals-grid--mosaic .deal__title {
+        flex: 0 0 auto;
+        font-size: 12.5px; line-height: 1.25;
+        padding: 8px 9px 0; margin-bottom: 6px;
+        height: calc(1.25em * 2 + 8px); overflow: hidden;
+      }
+      .deals-grid--mosaic .deal__title-sub {
+        font-size: 10.5px; line-height: 1.3;
+        padding: 0 9px; margin-bottom: 6px;
+        height: 1.3em; overflow: hidden;   /* margin va fuera del border-box */
+      }
+      /* El span interior sí puede ser -webkit-box (no es flex item) → recorte con "…" */
+      .deals-grid--mosaic .deal__hook > span,
+      .deals-grid--mosaic .deal__title > span,
+      .deals-grid--mosaic .deal__title-sub > span {
+        display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+      }
+      .deals-grid--mosaic .deal__hook > span,
+      .deals-grid--mosaic .deal__title > span { -webkit-line-clamp: 2; }
+      .deals-grid--mosaic .deal__title-sub > span { -webkit-line-clamp: 1; }
+
+      .deals-grid--mosaic .deal__pricing  { padding: 0 9px; gap: 1px; margin-bottom: 6px; }
+      .deals-grid--mosaic .deal__current  { font-size: 19px; }
+      .deals-grid--mosaic .deal__original { font-size: 11px; }
+      .deals-grid--mosaic .deal__pct      { font-size: 9.5px; padding: 1px 5px; }
+      .deals-grid--mosaic .deal__sizes    { margin-top: 4px; padding: 0 9px; }
+
+      .deals-grid--mosaic .deal__cta { padding: 0 9px 8px; }
+      .deals-grid--mosaic .btn--primary {
+        font-size: 12px; padding: 8px 10px; border-radius: 10px;
+      }
+      .deals-grid--mosaic .deal__votes { padding: 5px 9px 0; gap: 3px; }
+      .deals-grid--mosaic .vote-btn    { padding: 3px 6px; }
+
+      /* Timestamp: se mantiene (informa de frescura) pero sin la franja separadora */
+      .deals-grid--mosaic .deal__bottom {
+        padding: 3px 9px 7px; margin-top: 0; border-top: none;
+      }
+      .deals-grid--mosaic .deal__time { font-size: 9px; }
+    }
+
     /* ── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 1100px) {
       :root { --grid-cols: 3; }
@@ -1900,7 +1981,8 @@
       .filter-row { padding: 8px 18px; }
       .subcat-bar { padding: 8px 18px; }
       .section-header { padding: 12px 18px; }
-      .deals-grid { padding: 16px 18px; }
+      /* Gutter más estrecho que el resto de secciones: gana ancho para las 2 columnas */
+      .deals-grid { padding: 14px 12px 44px; }
       .about { grid-template-columns: 1fr; padding: 36px 18px; gap: 28px; }
       .footer { padding: 24px 18px 80px; }
       .hero { padding: 24px 18px; }
@@ -2320,43 +2402,62 @@
       #js-filter-block { display: none !important; }
       #js-sort-tabs    { display: none !important; }
     }
-    /* FAB circular flotante */
+    /* ── BARRA DE CONTROLES MÓVIL ────────────────────────────────────
+       Filtros + toggle Explorar/Todo acoplados justo debajo del header.
+       En móvil el header (logo + buscador + nav) deja de ser sticky y hace
+       scroll normal; esta barra sí es sticky, así que al bajar se queda
+       pegada arriba y los ajustes siguen siempre accesibles.
+       z-index 45 → por debajo del backdrop (50) del panel de filtros. */
+    .mctrlbar { display: none; }
+    @media (max-width: 767px) {
+      /* `overflow-x: hidden` en body lo convierte en contenedor de scroll y anula
+         position:sticky en sus hijos. El recorte horizontal ya lo hace html (se
+         propaga al viewport), así que aquí se libera para que la barra se fije. */
+      body { overflow-x: visible; }
+      /* relative (no static): el desplegable del buscador sobresale del header y
+         debe pintarse por encima de la barra sticky. Sus cajas nunca se solapan
+         (la barra solo se fija cuando el header ya salió de pantalla). */
+      .site-header { position: relative; z-index: 46; }
+      .mctrlbar {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        position: sticky; top: 0; z-index: 45;
+        padding: 7px 12px;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+        transition: box-shadow .18s ease;
+      }
+      .mctrlbar--stuck { box-shadow: 0 5px 16px rgba(0,0,0,.10); }
+    }
+
+    /* Botón Filtros (píldora dentro de la barra) */
     #js-filter-fab {
       display: none;
-      position: fixed; right: 16px; bottom: 28px;
-      width: 46px; height: 46px; border-radius: 50%;
+      align-items: center; justify-content: center; gap: 6px;
+      height: 34px; padding: 0 14px; border-radius: 9999px;
       background: var(--card-bg); border: 1.5px solid var(--border);
-      box-shadow: 0 4px 18px rgba(0,0,0,.20);
-      align-items: center; justify-content: center;
-      cursor: pointer; z-index: 52;
-      transition: transform 150ms, box-shadow 150ms;
+      font-family: var(--sans); font-size: 12px; font-weight: 800;
+      color: var(--ink); letter-spacing: .01em; white-space: nowrap;
+      cursor: pointer; flex-shrink: 0;
+      transition: transform 150ms, box-shadow 150ms, background 150ms;
     }
-    #js-filter-fab svg { width: 18px; height: 18px; color: var(--ink); }
-    #js-filter-fab:active { transform: scale(0.88); }
-    @media (max-width: 767px) {
-      #js-filter-fab {
-        display: flex;
-        top: 120px; left: 14px;
-        bottom: auto; right: auto;
-        z-index: 151;
-      }
-    }
+    #js-filter-fab svg { width: 15px; height: 15px; color: var(--ink); }
+    #js-filter-fab:active { transform: scale(0.94); }
+    @media (max-width: 767px) { #js-filter-fab { display: inline-flex; } }
     @media (min-width: 768px) { #js-filter-fab { display: none !important; } }
 
-    /* Toggle Explorar/Todo móvil — fijo, mismo nivel que el FAB, lado opuesto.
+    /* Toggle Explorar/Todo móvil — vive en la barra de controles.
        Aparte del .section-header porque este se oculta durante el mobile home. */
     .mobile-view-toggle {
-      display: none; position: fixed; z-index: 52;
-      right: 14px; top: 120px;
+      display: none;
       align-items: center; gap: 2px; padding: 3px;
-      background: var(--card-bg); border: 1.5px solid var(--border);
-      border-radius: 9999px; box-shadow: 0 4px 18px rgba(0,0,0,.18);
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 9999px; flex-shrink: 0;
     }
     @media (max-width: 767px) { .mobile-view-toggle { display: flex; } }
     @media (min-width: 768px) { .mobile-view-toggle { display: none !important; } }
     .mvt-btn {
       font-family: var(--sans); font-size: 11px; font-weight: 800;
-      padding: 7px 12px; border-radius: 9999px; border: none; background: none;
+      padding: 6px 13px; border-radius: 9999px; border: none; background: none;
       color: var(--text-mid); cursor: pointer; white-space: nowrap;
       transition: background .15s, color .15s;
     }
@@ -2399,10 +2500,11 @@
     }
     .filter-coach__close:hover { color: var(--ink); }
 
-    /* Backdrop */
+    /* Backdrop — por encima del banner de cookies (z-200), que si no tapaba
+       los botones Restablecer/Aplicar del pie del panel. */
     #js-filter-backdrop {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.40); z-index: 50;
+      background: rgba(0,0,0,.40); z-index: 201;
     }
     #js-filter-backdrop.open { display: block; }
 
@@ -2414,7 +2516,7 @@
       border-radius: 20px 20px 0 0;
       box-shadow: 0 -6px 28px rgba(0,0,0,.18);
       border-top: 1px solid var(--border);
-      z-index: 51; padding-bottom: env(safe-area-inset-bottom, 12px);
+      z-index: 202; padding-bottom: env(safe-area-inset-bottom, 12px);
       max-height: 82vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
     }
     .fpanel__footer {
@@ -2659,6 +2761,20 @@
     </div>
   </div>
   </header>
+
+  <!-- ── BARRA DE CONTROLES MÓVIL (sticky: siempre accesible) ───── -->
+  <div class="mctrlbar" id="js-mctrlbar">
+    <button id="js-filter-fab" onclick="toggleFilterPanel()" aria-label="Filtros y categorías">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/>
+      </svg>
+      Filtros
+    </button>
+    <div class="mobile-view-toggle" id="js-mobile-view-toggle" role="group" aria-label="Cambiar vista">
+      <button class="mvt-btn mvt-btn--active" id="js-mvt-explorar" onclick="setMobileHomeMode('explorar')" aria-pressed="true">Explorar</button>
+      <button class="mvt-btn" id="js-mvt-todos" onclick="setMobileHomeMode('todos')" aria-pressed="false">Todo</button>
+    </div>
+  </div>
 
   <!-- ── SEARCH ACTIVE BANNER ──────────────────────────────────── -->
   <div class="search-active-banner" id="js-search-banner" style="display:none">
@@ -3659,10 +3775,13 @@
     const hook         = (d.hook || "").trim();
     const showHook     = hook.length > 0 && !isExpired;
     const cleanedTitle = esc(marcaPrimero(d.titulo || ""));
+    // El <span> interior existe para poder recortar con "…": -webkit-line-clamp no
+    // funciona sobre .deal__hook/.deal__title porque son flex items de .deal y el
+    // navegador blockifica su display:-webkit-box.
     const titleBlock   = showHook
-      ? `<h2 class="deal__hook">${esc(hook)}</h2>
-         <p class="deal__title-sub">${cleanedTitle}</p>`
-      : `<h2 class="deal__title">${cleanedTitle}</h2>`;
+      ? `<h2 class="deal__hook"><span>${esc(hook)}</span></h2>
+         <p class="deal__title-sub"><span>${cleanedTitle}</span></p>`
+      : `<h2 class="deal__title"><span>${cleanedTitle}</span></h2>`;
 
     const social       = (d.social_context || "").trim();
     const socialHtml   = (social && !isExpired) ? `<p class="deal__social">${esc(social)}</p>` : "";
@@ -5922,16 +6041,20 @@
                onclick="fpanelToggleLowCost()">💸 Menos de 25€</button>`;
   }
 
-  function _positionFab() {
-    if (window.innerWidth > 767) return;
-    const inner = document.querySelector('.site-header__inner');
-    const fab   = document.getElementById('js-filter-fab');
-    const mvt   = document.getElementById('js-mobile-view-toggle');
-    if (!inner) return;
-    const top = (inner.offsetHeight + 6) + 'px';
-    if (fab) fab.style.top = top;
-    if (mvt) mvt.style.top = top; // mismo nivel que el FAB, lado opuesto
+  // La barra de controles (#js-mctrlbar) es position:sticky, así que no necesita
+  // posicionarse por JS. Solo le damos sombra cuando se despega del header.
+  let _mctrlTick = false;
+  function _syncCtrlbarShadow() {
+    const bar = document.getElementById('js-mctrlbar');
+    if (!bar || window.innerWidth > 767) return;
+    bar.classList.toggle('mctrlbar--stuck', bar.getBoundingClientRect().top <= 0.5);
   }
+  window.addEventListener('scroll', () => {
+    if (_mctrlTick) return;
+    _mctrlTick = true;
+    requestAnimationFrame(() => { _mctrlTick = false; _syncCtrlbarShadow(); });
+  }, { passive: true });
+  window.addEventListener('resize', _syncCtrlbarShadow);
 
   function _positionSubcatBar() {
     const header = document.querySelector('.site-header');
@@ -5940,8 +6063,7 @@
     bar.style.top = header.offsetHeight + 'px';
   }
 
-  window.addEventListener('load',   _positionFab);
-  window.addEventListener('resize', _positionFab);
+  window.addEventListener('load',   _syncCtrlbarShadow);
   window.addEventListener('load',   _positionSubcatBar);
   window.addEventListener('resize', _positionSubcatBar);
 
@@ -6443,18 +6565,9 @@
       <button class="fpanel__btn fpanel__btn--apply" onclick="closeFilterPanel()">Aplicar filtros</button>
     </div>
   </div>
-  <button id="js-filter-fab" onclick="toggleFilterPanel()" aria-label="Filtros y categorías">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/>
-    </svg>
-  </button>
   <div class="filter-coach" id="js-filter-coach" role="status">
     <button class="filter-coach__close" onclick="_hideFilterCoach()" aria-label="Cerrar aviso">×</button>
     👉 Filtra por tienda, categoría o precio
-  </div>
-  <div class="mobile-view-toggle" id="js-mobile-view-toggle" role="group" aria-label="Cambiar vista">
-    <button class="mvt-btn mvt-btn--active" id="js-mvt-explorar" onclick="setMobileHomeMode('explorar')" aria-pressed="true">Explorar</button>
-    <button class="mvt-btn" id="js-mvt-todos" onclick="setMobileHomeMode('todos')" aria-pressed="false">Todo</button>
   </div>
 
 </body>

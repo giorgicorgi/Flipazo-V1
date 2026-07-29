@@ -109,7 +109,7 @@
     [data-theme="dark"] .faq-item[open] { background: #1F2937; }
 
     html { scroll-behavior: smooth; }
-    body { background: var(--bg); color: var(--ink); font-family: var(--serif); -webkit-font-smoothing: antialiased; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--serif); -webkit-font-smoothing: antialiased;  max-width: 100%; overflow-x: clip; }
     a { color: var(--brand); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
@@ -248,11 +248,23 @@
     .footer__copy { font-family: var(--sans); font-size: 11px; color: var(--text-dim); }
 
     @media (max-width: 640px) {
-      .site-header__inner { padding: 0 18px; }
+      /* Header no cabía a 375-390px: logo + 4 enlaces con flex-shrink:0 ~475px
+         → scroll horizontal. Se encoge hasta que la fila entra sin desbordar. */
+      .site-header__inner { padding: 0 14px; gap: 10px; height: 56px; }
+      .site-logo__img { height: 36px; }
+      .header-nav { gap: 12px; min-width: 0; }
+      .header-nav__link { font-size: 12px; }
+      .theme-toggle { padding: 4px; font-size: 14px; }
       .page-hero, .content, .footer { padding-left: 18px; padding-right: 18px; }
       .page-hero { padding-top: 40px; }
       .faq-item > summary { padding: 17px 18px; font-size: 16px; }
       .faq-item__answer { padding: 0 18px 18px; }
+    }
+    @media (max-width: 380px) {
+      .site-header__inner { padding: 0 12px; gap: 8px; }
+      .site-logo__img { height: 32px; }
+      .header-nav { gap: 9px; }
+      .header-nav__link { font-size: 11.5px; }
     }
   </style>
   <script>(function(){ var t = localStorage.getItem('flipazo_theme')||'light'; if(t==='dark') document.documentElement.setAttribute('data-theme','dark'); })();</script>
