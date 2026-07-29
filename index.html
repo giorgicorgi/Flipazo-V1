@@ -4068,8 +4068,10 @@
     // blockifica su display:-webkit-box.
     const titleBlock   = `<h2 class="deal__title"><span>${cleanedTitle}</span></h2>`;
 
-    const social       = (d.social_context || "").trim();
-    const socialHtml   = (social && !isExpired) ? `<p class="deal__social">${esc(social)}</p>` : "";
+    // social_context ("volvió a bajar tras semanas", "el precio más bajo en meses")
+    // era la otra línea de copy generado. Fuera también: en la ficha van marca,
+    // producto, precio y descuento, y nada más.
+    const socialHtml   = "";
 
     const dealId    = d.id || "";
     const flagCount = d.flags_expirado || 0;

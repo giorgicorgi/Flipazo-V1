@@ -3990,23 +3990,24 @@ async def run_pipeline(modo: str = "completo"):
             for p in deals_nuevos:
                 p.titulo = _marca_al_frente(p.titulo)
 
-            # ── Fase 4.7: Discovery enrichment (Deal Score + Tags + Hooks) ──
+            # ── Fase 4.7: Discovery enrichment (Deal Score + Tags) ──
             # Solo enriquecemos deals que se van a publicar — evita gasto Haiku innecesario.
             if deals_nuevos:
                 for p in deals_nuevos:
                     p.deal_score     = calcular_deal_score(p, age_hours=0.0)  # frescura máx, recién publicado
                     p.emotional_tags = asignar_tags(p, p.deal_score)
-                try:
-                    await generar_hooks_batch(deals_nuevos)
-                    # El titular generado se descarta: en la ficha solo va marca +
-                    # producto, y el hook repetía el descuento que ya está en el
-                    # badge y en el precio. Se conserva social_context, que sí
-                    # aporta contexto ("volvió a bajar", "mínimo en meses").
-                    # Para recuperarlo: borrar este bucle.
-                    for p in deals_nuevos:
-                        p.hook = ""
-                except Exception as e:
-                    print(f"⚠️  Discovery enrichment falló: {e}")
+                # generar_hooks_batch() está desactivado a propósito: producía `hook`
+                # y `social_context`, el copy que salía en la ficha ("a mitad de su
+                # valor", "volvió a bajar tras semanas"). Repetía el descuento que
+                # ya está en el badge y en el precio, así que no se muestra ninguno
+                # de los dos y la llamada a Haiku sería gasto sin destino.
+                # Para reactivarlo: descomentar y volver a pintar los campos en
+                # renderDeal() de index.html.
+                #
+                # try:
+                #     await generar_hooks_batch(deals_nuevos)
+                # except Exception as e:
+                #     print(f"⚠️  Discovery enrichment falló: {e}")
 
             print(f"\n📢 Publicando {len(deals_nuevos)} deals nuevos en Telegram...")
             publicados = 0
