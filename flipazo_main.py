@@ -3998,6 +3998,13 @@ async def run_pipeline(modo: str = "completo"):
                     p.emotional_tags = asignar_tags(p, p.deal_score)
                 try:
                     await generar_hooks_batch(deals_nuevos)
+                    # El titular generado se descarta: en la ficha solo va marca +
+                    # producto, y el hook repetía el descuento que ya está en el
+                    # badge y en el precio. Se conserva social_context, que sí
+                    # aporta contexto ("volvió a bajar", "mínimo en meses").
+                    # Para recuperarlo: borrar este bucle.
+                    for p in deals_nuevos:
+                        p.hook = ""
                 except Exception as e:
                     print(f"⚠️  Discovery enrichment falló: {e}")
 

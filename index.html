@@ -4058,16 +4058,15 @@
 
     const tallasHtml = _tallasHtml(d, isExpired);
 
-    const hook         = (d.hook || "").trim();
-    const showHook     = hook.length > 0 && !isExpired;
     const cleanedTitle = esc(marcaPrimero(d.titulo || ""));
+    // En el título grande va SOLO marca + producto. El "hook" que generaba Haiku
+    // ("… a mitad de precio", "… con rebaja del 46%") repetía el descuento que ya
+    // está en el badge y en el precio, y empujaba el nombre real del producto a
+    // un subtítulo gris. Fuera.
     // El <span> interior existe para poder recortar con "…": -webkit-line-clamp no
-    // funciona sobre .deal__hook/.deal__title porque son flex items de .deal y el
-    // navegador blockifica su display:-webkit-box.
-    const titleBlock   = showHook
-      ? `<h2 class="deal__hook"><span>${esc(hook)}</span></h2>
-         <p class="deal__title-sub"><span>${cleanedTitle}</span></p>`
-      : `<h2 class="deal__title"><span>${cleanedTitle}</span></h2>`;
+    // funciona sobre .deal__title porque es flex item de .deal y el navegador
+    // blockifica su display:-webkit-box.
+    const titleBlock   = `<h2 class="deal__title"><span>${cleanedTitle}</span></h2>`;
 
     const social       = (d.social_context || "").trim();
     const socialHtml   = (social && !isExpired) ? `<p class="deal__social">${esc(social)}</p>` : "";
@@ -6372,7 +6371,8 @@
   function renderWhero(d) {
     if (!d) return "";
     const url = d.url_affiliate || "#";
-    const hookOrTitle = (d.hook && d.hook.trim()) ? d.hook.trim() : marcaPrimero(d.titulo || "");
+    // Igual que en las tarjetas: marca + producto, sin copy generado.
+    const hookOrTitle = marcaPrimero(d.titulo || "");
     return `<div class="whero-wrap${d.expirado ? ' mh-expirado' : ''}">
       <a class="whero" href="${url}" data-track="${d.id || ''}" target="_blank" rel="noopener sponsored">
         <div class="whero__img">
