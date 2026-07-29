@@ -2481,6 +2481,111 @@
     }
     .mvt-btn--active { background: var(--brand); color: #fff; }
 
+    /* ── "Para ti": botón distinto del resto del toggle ──────────────
+       No es otra forma de ver el mismo catálogo, es contenido propio del
+       usuario, así que se marca con contorno y color de acento en vez de
+       comportarse como una pestaña más. */
+    .mvt-btn--parati, .dvt-btn--parati {
+      color: var(--teal, #0D7A6F);
+      border: 1.5px solid var(--teal, #0D7A6F);
+      background: transparent;
+      font-weight: 900;
+    }
+    .mvt-btn--parati-on, .dvt-btn--parati-on {
+      background: var(--teal, #0D7A6F) !important;
+      border-color: var(--teal, #0D7A6F) !important;
+      color: #fff !important;
+    }
+    .dvt-btn--parati { padding: 6px 12px; border-radius: 9999px; }
+
+    /* Con tres pestañas la barra no cabe en pantallas de 320px: el botón de
+       filtros se queda en icono y las pestañas se aprietan. */
+    @media (max-width: 360px) {
+      .mctrl-label { display: none; }
+      #js-filter-fab { padding: 0 11px; gap: 0; }
+      .mvt-btn { padding: 6px 9px; font-size: 10.5px; }
+      .mctrlbar { padding: 7px 10px; gap: 6px; }
+    }
+
+    /* ── Fila "Para ti" en Explorar ──────────────────────────────── */
+    .parati-cta .mhome__section-title { color: var(--teal, #0D7A6F); }
+    .parati-empty {
+      margin: 0 16px; padding: 18px 16px;
+      border: 1.5px dashed var(--border); border-radius: 16px;
+      background: var(--card-bg); text-align: center;
+    }
+    .parati-empty p {
+      font-family: var(--sans); font-size: 13px; color: var(--text-mid);
+      line-height: 1.5; margin-bottom: 12px;
+    }
+    .parati-empty__btn {
+      font-family: var(--sans); font-size: 13px; font-weight: 800;
+      background: var(--teal, #0D7A6F); color: #fff; border: none;
+      padding: 10px 18px; border-radius: 9999px; cursor: pointer;
+    }
+
+    /* ── Editor de intereses (mismo lenguaje visual que el panel de filtros) ── */
+    #js-prefs-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.40); z-index: 201;
+    }
+    #js-prefs-backdrop.open { display: block; }
+    #js-prefs-panel {
+      display: none; position: fixed; left: 0; right: 0; bottom: 0;
+      background: var(--paper); border-radius: 20px 20px 0 0;
+      box-shadow: 0 -6px 28px rgba(0,0,0,.18); border-top: 1px solid var(--border);
+      z-index: 202; padding-bottom: env(safe-area-inset-bottom, 12px);
+      max-height: 86vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    }
+    #js-prefs-panel.open { display: block; animation: mh-slideup 220ms cubic-bezier(.32,.72,0,1); }
+    @media (min-width: 768px) {
+      #js-prefs-panel {
+        left: 50%; right: auto; bottom: auto; top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(560px, 92vw); border-radius: 20px; max-height: 84vh;
+      }
+      #js-prefs-panel.open { animation: none; }
+    }
+    .prefs__head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 16px 4px;
+    }
+    .prefs__title {
+      font-family: var(--sans); font-size: 17px; font-weight: 900; color: var(--ink);
+    }
+    .prefs__close {
+      background: none; border: none; font-size: 20px; line-height: 1;
+      color: var(--text-mid); cursor: pointer; padding: 4px 6px;
+    }
+    .prefs__sub {
+      font-family: var(--sans); font-size: 12.5px; color: var(--text-mid);
+      padding: 0 16px 8px; line-height: 1.45;
+    }
+    /* Las categorías son multi-selección: se envuelven en vez de hacer scroll lateral */
+    .fpanel__scroll--wrap { flex-wrap: wrap; overflow-x: visible; }
+
+    .parati-tg { padding: 4px 16px 8px; }
+    .parati-tg__hint, .parati-tg__ok {
+      font-family: var(--sans); font-size: 12.5px; color: var(--text-mid);
+      line-height: 1.45; margin-bottom: 8px;
+    }
+    .parati-tg__ok { color: var(--teal, #0D7A6F); font-weight: 700; }
+    .parati-tg__btn {
+      width: 100%; font-family: var(--sans); font-size: 13.5px; font-weight: 800;
+      background: #229ED9; color: #fff; border: none;
+      padding: 12px; border-radius: 12px; cursor: pointer;
+    }
+    .parati-tg__btn:disabled { opacity: .7; cursor: default; }
+    .parati-tg__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .parati-tg__switch {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer;
+    }
+    .parati-tg__unlink {
+      background: none; border: none; font-family: var(--sans); font-size: 12px;
+      font-weight: 700; color: var(--brand); cursor: pointer; text-decoration: underline;
+    }
+
     /* ── Incentivo de descubrimiento del botón Filtros (una sola vez, hasta el 1er uso) ── */
     @keyframes filterPulse {
       0%   { box-shadow: 0 0 0 0 rgba(245,40,52,.45); }
@@ -2786,9 +2891,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/>
       </svg>
-      Filtros
+      <span class="mctrl-label">Filtros</span>
     </button>
     <div class="mobile-view-toggle" id="js-mobile-view-toggle" role="group" aria-label="Cambiar vista">
+      <button class="mvt-btn mvt-btn--parati" id="js-mvt-parati" onclick="setParaTiView()" aria-pressed="false" style="display:none" title="Ofertas de lo que te interesa">✨ Para ti</button>
       <button class="mvt-btn mvt-btn--active" id="js-mvt-explorar" onclick="setMobileHomeMode('explorar')" aria-pressed="true">Explorar</button>
       <button class="mvt-btn" id="js-mvt-todos" onclick="setMobileHomeMode('todos')" aria-pressed="false">Todo</button>
     </div>
@@ -2950,6 +3056,7 @@
     </div>
     <!-- Desktop discovery toggle (Todos / Explorar) — desktop only -->
     <div class="desktop-view-toggle" id="js-desktop-view-toggle" aria-label="Cambiar vista desktop">
+      <button class="dvt-btn dvt-btn--parati" id="js-dvt-parati" onclick="setParaTiView()" aria-pressed="false" style="display:none" title="Ofertas de lo que te interesa">✨ Para ti</button>
       <button class="dvt-btn dvt-btn--active" id="js-dvt-todos" onclick="setDesktopView('todos')" aria-pressed="true">
         <svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
           <rect x="0" y="0" width="5.5" height="5.5" rx="1"/>
@@ -3488,13 +3595,41 @@
 
   function dealMatchesStore(deal) { return !activeStore || deal.tienda === activeStore; }
 
+  // ── "Para ti": ¿este deal encaja con las preferencias del usuario? ──────
+  // Reutiliza la MISMA lógica de categorías/subcategorías que el resto de
+  // filtros, así lo que ve en "Para ti" coincide con lo que vería filtrando
+  // a mano. Sin categorías elegidas no hay sección que mostrar.
+  function dealMatchesPrefs(deal) {
+    const p = _prefs;
+    if (!p || !p.cats || !p.cats.length) return false;
+    const precio = deal.precio_actual || 0;
+    if (p.precio_min > 0 && precio < p.precio_min) return false;
+    if (p.precio_max !== null && p.precio_max !== undefined && precio > p.precio_max) return false;
+    if (p.stores && p.stores.length && !p.stores.includes(deal.tienda)) return false;
+    return p.cats.some(catId => {
+      if (!dealInCategory(deal, catId)) return false;
+      const sub = (p.subcats || {})[catId];
+      if (!sub || sub === "todas") return true;
+      const sd = _SUBCAT_DEFS[catId];
+      const sc = sd && sd.list.find(s => s.id === sub);
+      return sc ? sc.test(deal) : true;
+    });
+  }
+
   function dealMatchesFilters(deal) {
+    if (_paraTiView && !dealMatchesPrefs(deal)) return false;
     if (activeLowCost && (deal.precio_actual || 0) >= 25) return false;
     const p = deal.precio_actual || 0;
     if (activePriceMin > 0 && p < activePriceMin) return false;
     if (activePriceMax !== null && p > activePriceMax) return false;
     return dealMatchesCategory(deal, activeCategory) && dealMatchesStore(deal);
   }
+
+  // Preferencias "Para ti" (null = sin sesión o aún sin cargar)
+  let _prefs       = null;
+  let _paraTiView  = false;   // vista "Para ti" activa (tercera pestaña)
+
+  function _tienePrefs() { return !!(_prefs && _prefs.cats && _prefs.cats.length); }
 
   // ── State ────────────────────────────────────────────────────
   let allDeals       = [];
@@ -4668,7 +4803,7 @@
 
   function updateCount() {
     const el = document.getElementById("js-count");
-    if (activeCategory !== "todas" || activeStore || searchQuery || _priceFiltroActivo()) {
+    if (activeCategory !== "todas" || activeStore || searchQuery || _priceFiltroActivo() || _paraTiView) {
       const n = allDeals.filter(d => dealMatchesFilters(d)).length;
       el.textContent = `${n} oferta${n !== 1 ? "s" : ""}${hasMore ? "+" : ""}`;
     } else if (_totalDealsDB !== null) {
@@ -4708,7 +4843,7 @@
     showLoading(true);
 
     try {
-      const isCatFilter = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo();
+      const isCatFilter = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo() || _paraTiView;
       const limit = isCatFilter ? 200 : PAGE_SIZE;
       const batch = await fetchDeals(limit, currentOffset);
       if (batch.length < limit) hasMore = false;
@@ -4746,7 +4881,7 @@
 
       // Con filtro activo (categoría/tienda/sort) cargamos TODAS las páginas para
       // mostrar absolutamente todo lo que cae en esa categoría, no solo la 1ª página.
-      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo();
+      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo() || _paraTiView;
       if (hasMore && (_wantAll || grid.querySelectorAll(".deal").length < 8)) {
         showLoading(false); isLoading = false; loadMore(); return;
       }
@@ -4904,7 +5039,7 @@
       renderGrid();
       // Con un filtro que exige TODAS las páginas (low-cost/categoría/tienda), seguir
       // cargando el resto en vez de quedarse con lo ya cargado en memoria.
-      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo();
+      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo() || _paraTiView;
       if (_wantAll && hasMore && !isLoading) loadMore();
     } else {
       allDeals = []; currentOffset = 0; hasMore = true;
@@ -5462,6 +5597,7 @@
     if (view === "explorar") {
       goBackToMhome();
     } else {
+      _salirParaTi();
       activeCategory = "todas"; _resetSubcats(); activeSort = "recientes"; activeLowCost = false;
       _showRegularGrid();
       allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
@@ -5471,7 +5607,306 @@
     }
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // "PARA TI" — sección personalizada para usuarios con sesión
+  //   · fila propia en Explorar
+  //   · tercera pestaña del toggle (botón visualmente distinto)
+  //   · editor de intereses con la misma estructura que los filtros
+  //   · resumen diario por Telegram (bot vinculado por código)
+  // ════════════════════════════════════════════════════════════════
+
+  // Mismo host que favoritos. Literal y no `FAV_API` porque esa const se declara
+  // más abajo, en otro punto del script (quedaría en zona muerta temporal).
+  const PREFS_API = 'https://api.flipazo.es';
+
+  // isLoggedIn() vive en un <script> posterior, así que aún no existe cuando este
+  // módulo arranca. Se lee el mismo flag directamente.
+  function _haySesion() {
+    try { return !!localStorage.getItem('flipazo_auth_flag'); } catch { return false; }
+  }
+
+  async function loadPrefs() {
+    if (!_haySesion()) { _prefs = null; _syncParaTiUI(); return; }
+    try {
+      const r = await fetch(`${PREFS_API}/api/user/prefs`, { credentials: "include" });
+      _prefs = r.ok ? await r.json() : null;
+    } catch { _prefs = null; }
+    _syncParaTiUI();
+    // Si el home ya estaba pintado, repintarlo para que aparezca la fila
+    if (_mhomeActive && _mhomeDeals.length) renderMobileHome(_mhomeDeals);
+  }
+
+  async function savePrefs(patch) {
+    if (!_haySesion()) return null;
+    try {
+      const r = await fetch(`${PREFS_API}/api/user/prefs`, {
+        method: "PUT", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (r.ok) _prefs = await r.json();
+    } catch {}
+    _syncParaTiUI();
+    return _prefs;
+  }
+
+  // Muestra u oculta la pestaña "Para ti" según haya sesión, y marca cuál está activa.
+  function _syncParaTiUI() {
+    const btns = [document.getElementById("js-mvt-parati"),
+                  document.getElementById("js-dvt-parati")].filter(Boolean);
+    btns.forEach(b => { b.style.display = _haySesion() ? "" : "none"; });
+    const mvtExp = document.getElementById("js-mvt-explorar");
+    const mvtAll = document.getElementById("js-mvt-todos");
+    if (_paraTiView) {
+      btns.forEach(b => { b.classList.add("mvt-btn--parati-on"); b.setAttribute("aria-pressed", "true"); });
+      [mvtExp, mvtAll].forEach(b => b && b.classList.remove("mvt-btn--active"));
+    } else {
+      btns.forEach(b => { b.classList.remove("mvt-btn--parati-on"); b.setAttribute("aria-pressed", "false"); });
+    }
+  }
+
+  // Entrar en la vista "Para ti" (tercera pestaña).
+  function setParaTiView() {
+    if (!_haySesion()) { showLoginGate("Crea una cuenta gratis para tener tu sección Para ti"); return; }
+    if (!_tienePrefs()) { openPrefsEditor(); return; }   // sin intereses aún → configurarlos primero
+    _paraTiView = true;
+    activeCategory = "todas"; _resetSubcats();
+    activeSort = "recientes"; activeLowCost = false; activeStore = "";
+    _showRegularGrid();
+    _syncParaTiUI();
+    const titleEl = document.getElementById("js-section-title");
+    if (titleEl) titleEl.textContent = "Para ti";
+    allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
+    document.getElementById("js-grid").innerHTML = "";
+    window.scrollTo({ top: 0, behavior: "instant" });
+    loadMore();
+  }
+
+  function _salirParaTi() {
+    if (!_paraTiView) return;
+    _paraTiView = false;
+    _syncParaTiUI();
+  }
+
+  // ── Fila "Para ti" dentro de Explorar ─────────────────────────────
+  function _paraTiSection(deals) {
+    if (!_haySesion()) return "";
+    if (!_tienePrefs()) {
+      return `<section class="mhome__section parati-cta">
+        <div class="mhome__section-head"><h2 class="mhome__section-title">✨ Para ti</h2></div>
+        <div class="parati-empty">
+          <p>Dinos qué te interesa y aquí solo verás eso.</p>
+          <button class="parati-empty__btn" onclick="openPrefsEditor()">Elegir mis intereses</button>
+        </div>
+      </section>`;
+    }
+    const match = deals.filter(dealMatchesPrefs).slice(0, 30);
+    const head = `<div class="mhome__section-head">
+        <h2 class="mhome__section-title">✨ Para ti</h2>
+        <a class="mhome__see-all" href="#" onclick="event.preventDefault();openPrefsEditor()">Editar</a>
+      </div>
+      <span class="mhome__subtitle">${_prefs.cats.map(c => (CATEGORIAS.find(x => x.id === c) || {}).label || c).join(" · ")}</span>`;
+    if (!match.length) {
+      return `<section class="mhome__section parati-cta">${head}
+        <div class="parati-empty"><p>Hoy no hay nada nuevo de lo tuyo. Te avisamos en cuanto lo haya.</p></div>
+      </section>`;
+    }
+    return `<section class="mhome__section parati-cta">${head}
+      <div class="mhome__scroll">${match.map(renderHCard).join("")}</div>
+    </section>`;
+  }
+
+  // ── Editor de intereses ───────────────────────────────────────────
+  let _prefsDraft = null;
+
+  function openPrefsEditor() {
+    if (!_haySesion()) { showLoginGate("Crea una cuenta gratis para tener tu sección Para ti"); return; }
+    _prefsDraft = {
+      cats:    [...((_prefs && _prefs.cats) || [])],
+      subcats: { ...((_prefs && _prefs.subcats) || {}) },
+      stores:  [...((_prefs && _prefs.stores) || [])],
+      precio_min: (_prefs && _prefs.precio_min) || 0,
+      precio_max: (_prefs && _prefs.precio_max) ?? null,
+      tg_enabled: _prefs ? _prefs.tg_enabled !== false : true,
+    };
+    buildPrefsEditor();
+    document.getElementById("js-prefs-panel")?.classList.add("open");
+    document.getElementById("js-prefs-backdrop")?.classList.add("open");
+  }
+
+  function closePrefsEditor() {
+    document.getElementById("js-prefs-panel")?.classList.remove("open");
+    document.getElementById("js-prefs-backdrop")?.classList.remove("open");
+  }
+
+  function _prefsToggleCat(catId) {
+    const i = _prefsDraft.cats.indexOf(catId);
+    if (i >= 0) { _prefsDraft.cats.splice(i, 1); delete _prefsDraft.subcats[catId]; }
+    else _prefsDraft.cats.push(catId);
+    buildPrefsEditor();
+  }
+  function _prefsSetSubcat(catId, subId) {
+    _prefsDraft.subcats[catId] = (_prefsDraft.subcats[catId] === subId) ? "todas" : subId;
+    buildPrefsEditor();
+  }
+  function _prefsToggleStore(store) {
+    const i = _prefsDraft.stores.indexOf(store);
+    if (i >= 0) _prefsDraft.stores.splice(i, 1); else _prefsDraft.stores.push(store);
+    buildPrefsEditor();
+  }
+
+  function buildPrefsEditor() {
+    const wrap = document.getElementById("js-prefs-body");
+    if (!wrap || !_prefsDraft) return;
+    const d = _prefsDraft;
+    // Se repinta entero en cada toque (aparecen/desaparecen bloques de subcategoría),
+    // así que hay que conservar el scroll o el panel salta arriba al elegir varias.
+    const panel = document.getElementById("js-prefs-panel");
+    const scrollPrevio = panel ? panel.scrollTop : 0;
+
+    const cats = CATEGORIAS.filter(c => !c.hidden && c.id !== "todas").map(c =>
+      `<button class="fpanel__pill${d.cats.includes(c.id) ? " fpanel__pill--active" : ""}"
+               onclick="_prefsToggleCat('${c.id}')">${c.label}</button>`).join("");
+
+    // Subcategorías solo de las categorías elegidas que las tengan
+    const subBloques = d.cats.filter(c => _SUBCAT_DEFS[c]).map(c => {
+      const def = _SUBCAT_DEFS[c];
+      const label = (CATEGORIAS.find(x => x.id === c) || {}).label || c;
+      const pills = def.list.filter(s => s.id !== "todas").map(s =>
+        `<button class="fpanel__pill${d.subcats[c] === s.id ? " fpanel__pill--active" : ""}"
+                 onclick="_prefsSetSubcat('${c}','${s.id}')">${s.label}</button>`).join("");
+      return `<span class="fpanel__label" style="margin-top:6px">${label} — afinar</span>
+              <div class="fpanel__scroll">${pills}</div>`;
+    }).join("");
+
+    const stores = [..._allStores()].filter(Boolean).sort().map(s =>
+      `<button class="fpanel__pill${d.stores.includes(s) ? " fpanel__pill--active" : ""}"
+               onclick="_prefsToggleStore('${s.replace(/'/g, "\\'")}')">${s}</button>`).join("");
+
+    const tgLinked = _prefs && _prefs.tg_linked;
+    const tgBloque = `
+      <span class="fpanel__label" style="margin-top:6px">Resumen diario por Telegram</span>
+      <div class="parati-tg">
+        ${tgLinked
+          ? `<p class="parati-tg__ok">✅ Telegram conectado — recibes un resumen al día.</p>
+             <div class="parati-tg__row">
+               <label class="parati-tg__switch">
+                 <input type="checkbox" id="js-prefs-tg-on" ${d.tg_enabled ? "checked" : ""}
+                        onchange="_prefsDraft.tg_enabled = this.checked">
+                 <span>Quiero recibirlo</span>
+               </label>
+               <button class="parati-tg__unlink" onclick="unlinkTelegram()">Desconectar</button>
+             </div>`
+          : `<p class="parati-tg__hint">Recibe una vez al día los chollos que encajan contigo.</p>
+             <button class="parati-tg__btn" id="js-prefs-tg-link" onclick="linkTelegram(this)">Conectar con Telegram</button>`}
+      </div>`;
+
+    wrap.innerHTML = `
+      <span class="fpanel__label">¿Qué te interesa?</span>
+      <div class="fpanel__scroll fpanel__scroll--wrap">${cats}</div>
+      ${subBloques}
+      <span class="fpanel__label" style="margin-top:6px">Precio</span>
+      <div class="price-filter price-filter--panel">
+        <div class="price-slider">
+          <div class="price-slider__track"></div>
+          <div class="price-slider__range" id="js-prefs-price-range-fill"></div>
+          <input type="range" id="js-prefs-price-min-range" min="0" max="1000" step="20" value="0" aria-label="Precio mínimo">
+          <input type="range" id="js-prefs-price-max-range" min="0" max="1000" step="20" value="1000" aria-label="Precio máximo">
+        </div>
+        <div class="price-slider__inputs">
+          <div class="price-slider__field">
+            <input type="number" id="js-prefs-price-min-input" min="0" step="1" placeholder="0" inputmode="numeric" aria-label="Precio mínimo en euros"><span>€</span>
+          </div>
+          <span class="price-slider__sep">—</span>
+          <div class="price-slider__field">
+            <input type="number" id="js-prefs-price-max-input" min="0" step="1" placeholder="Sin límite" inputmode="numeric" aria-label="Precio máximo en euros"><span>€</span>
+          </div>
+        </div>
+      </div>
+      <span class="fpanel__label" style="margin-top:6px">Tiendas ${d.stores.length ? "" : "<em style='font-weight:500;text-transform:none;letter-spacing:0'>(todas)</em>"}</span>
+      <div class="fpanel__scroll fpanel__scroll--wrap">${stores}</div>
+      ${tgBloque}`;
+
+    _prefsPriceInit();
+    if (panel) panel.scrollTop = scrollPrevio;
+  }
+
+  // Slider de precio del editor: mismo componente, pero escribe en el borrador.
+  function _prefsPriceInit() {
+    const ids = ["js-prefs-price-min-range", "js-prefs-price-max-range",
+                 "js-prefs-price-min-input", "js-prefs-price-max-input"];
+    const [rMin, rMax, iMin, iMax] = ids.map(id => document.getElementById(id));
+    const fill = document.getElementById("js-prefs-price-range-fill");
+    if (!rMin || !rMax) return;
+    const MAXV = 1000;
+    const pinta = () => {
+      const lo = Math.min(_prefsDraft.precio_min, MAXV);
+      const hi = _prefsDraft.precio_max === null ? MAXV : Math.min(_prefsDraft.precio_max, MAXV);
+      rMin.value = lo; rMax.value = hi;
+      if (iMin) iMin.value = _prefsDraft.precio_min > 0 ? _prefsDraft.precio_min : "";
+      if (iMax) iMax.value = _prefsDraft.precio_max !== null ? _prefsDraft.precio_max : "";
+      if (fill) { fill.style.left = (lo / MAXV * 100) + "%"; fill.style.right = (100 - hi / MAXV * 100) + "%"; }
+    };
+    rMin.oninput = () => {
+      _prefsDraft.precio_min = Math.min(+rMin.value, +rMax.value);
+      pinta();
+    };
+    rMax.oninput = () => {
+      const v = Math.max(+rMax.value, +rMin.value);
+      _prefsDraft.precio_max = v >= MAXV ? null : v;
+      pinta();
+    };
+    if (iMin) iMin.onchange = () => { _prefsDraft.precio_min = Math.max(0, +iMin.value || 0); pinta(); };
+    if (iMax) iMax.onchange = () => {
+      const v = +iMax.value || 0;
+      _prefsDraft.precio_max = v > 0 ? v : null; pinta();
+    };
+    pinta();
+  }
+
+  async function savePrefsEditor() {
+    const btn = document.getElementById("js-prefs-save");
+    if (btn) { btn.disabled = true; btn.textContent = "Guardando…"; }
+    await savePrefs(_prefsDraft);
+    if (btn) { btn.disabled = false; btn.textContent = "Guardar"; }
+    closePrefsEditor();
+    if (_paraTiView) {
+      allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
+      document.getElementById("js-grid").innerHTML = "";
+      loadMore();
+    } else if (_mhomeActive && _mhomeDeals.length) {
+      renderMobileHome(_mhomeDeals);
+    }
+  }
+
+  // ── Telegram ──────────────────────────────────────────────────────
+  async function linkTelegram(btn) {
+    if (btn) { btn.disabled = true; btn.textContent = "Abriendo Telegram…"; }
+    try {
+      const r = await fetch(`${PREFS_API}/api/user/telegram/link`, { method: "POST", credentials: "include" });
+      if (!r.ok) throw new Error("link");
+      const { url } = await r.json();
+      window.open(url, "_blank", "noopener");
+      if (btn) btn.textContent = "Termina en Telegram y vuelve";
+      // Al volver a la pestaña, refrescar el estado de vinculación
+      const recheck = async () => {
+        await loadPrefs();
+        if (_prefs && _prefs.tg_linked) { buildPrefsEditor(); document.removeEventListener("visibilitychange", recheck); }
+      };
+      document.addEventListener("visibilitychange", recheck);
+    } catch {
+      if (btn) { btn.disabled = false; btn.textContent = "No se pudo conectar — reintentar"; }
+    }
+  }
+
+  async function unlinkTelegram() {
+    try { await fetch(`${PREFS_API}/api/user/telegram/unlink`, { method: "POST", credentials: "include" }); } catch {}
+    await loadPrefs();
+    buildPrefsEditor();
+  }
+
   function goBackToMhome() {
+    _salirParaTi();
     // Restaura el mobile home en la posición de scroll guardada
     _showMobileHome();
     // Reset estado de navegación al inicial — clave para que el home funcione correctamente
@@ -5496,6 +5931,7 @@
 
   function setDesktopView(view) {
     if (_isMobileViewport()) return; // mobile has its own system
+    _salirParaTi();
     _desktopDiscovery = (view === "explorar");
     const mh     = document.getElementById("js-mobile-home");
     const gw     = document.getElementById("js-grid-wrap");
@@ -5876,7 +6312,9 @@
       : "";
 
     // Filas del feed. "Explorar" (tags de categorías) se coloca en el 8º lugar.
+    // "Para ti" va la primera: es lo que el usuario ha pedido ver.
     const rows = [
+      _paraTiSection(deals),
       _mhSection("Mayores descuentos", topDiscDeals.map(renderDiscountCard).join(""), null, "Ordenados por % de ahorro"),
       lowcostSection,
       storeSection,
@@ -6096,6 +6534,7 @@
       flipazo: 1,
       home:    _mhomeActive || _desktopDiscovery,
       desktop: _desktopDiscovery,
+      parati:  _paraTiView,
       cat:     activeCategory,
       store:   activeStore,
       sort:    activeSort,
@@ -6112,7 +6551,7 @@
   }
 
   function _viewSig(s) {
-    return JSON.stringify([s.home, s.desktop, s.cat, s.store, s.sort, s.low, s.pmin, s.pmax, s.q, s.sub]);
+    return JSON.stringify([s.home, s.desktop, s.parati, s.cat, s.store, s.sort, s.low, s.pmin, s.pmax, s.q, s.sub]);
   }
 
   // Actualiza la entrada actual sin apilar otra. Se usa cuando la vista se
@@ -6140,6 +6579,7 @@
   function _aplicarViewState(s) {
     _restaurandoHistorial = true;
     try {
+      _paraTiView     = !!s.parati;
       activeCategory  = s.cat   ?? "todas";
       activeStore     = s.store ?? "";
       activeSort      = s.sort  ?? "recientes";
@@ -6162,6 +6602,7 @@
       document.querySelectorAll(".store-pill").forEach(b => b.classList.toggle("store-pill--active", b.dataset.store === activeStore));
       _priceSyncUI("js-price"); _priceSyncUI("js-fpanel-price");
       _updateLowCostBanner();
+      _syncParaTiUI();
 
       if (s.home) {
         if (s.desktop && !_isMobileViewport()) {
@@ -6415,6 +6856,9 @@
 
   setTimeout(preloadStoresForBar, 1500);
 
+  // Preferencias "Para ti": pinta la pestaña y la fila de Explorar si hay sesión
+  loadPrefs();
+
   setInterval(pollNew, POLL_MS);
   setInterval(() => {
     document.querySelectorAll("[data-ts]").forEach(el => { el.textContent = timeAgo(el.dataset.ts); });
@@ -6495,6 +6939,7 @@
             localStorage.setItem('flipazo_auth_flag', '1');
             // Refrescar favoritos/estado ahora que sabemos que hay sesión
             if (typeof initFavs === 'function') { try { initFavs(); } catch {} }
+            if (typeof loadPrefs === 'function') { try { loadPrefs(); } catch {} }
           }
         } else if (r.status === 401) {
           localStorage.removeItem('flipazo_auth_flag');
@@ -6774,6 +7219,22 @@
       <button class="fpanel__btn fpanel__btn--apply" onclick="closeFilterPanel()">Aplicar filtros</button>
     </div>
   </div>
+  <!-- ── EDITOR DE INTERESES "PARA TI" ─────────────────────────── -->
+  <div id="js-prefs-backdrop" onclick="closePrefsEditor()"></div>
+  <div id="js-prefs-panel" role="dialog" aria-modal="true" aria-label="Tus intereses">
+    <span class="fpanel__handle" role="presentation"></span>
+    <div class="prefs__head">
+      <span class="prefs__title">✨ Para ti</span>
+      <button class="prefs__close" onclick="closePrefsEditor()" aria-label="Cerrar">✕</button>
+    </div>
+    <p class="prefs__sub">Elige lo que te interesa y solo verás eso. Puedes cambiarlo cuando quieras.</p>
+    <div id="js-prefs-body"></div>
+    <div class="fpanel__footer">
+      <button class="fpanel__btn fpanel__btn--reset" onclick="closePrefsEditor()">Cancelar</button>
+      <button class="fpanel__btn fpanel__btn--apply" id="js-prefs-save" onclick="savePrefsEditor()">Guardar</button>
+    </div>
+  </div>
+
   <div class="filter-coach" id="js-filter-coach" role="status">
     <button class="filter-coach__close" onclick="_hideFilterCoach()" aria-label="Cerrar aviso">×</button>
     👉 Filtra por tienda, categoría o precio

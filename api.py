@@ -782,6 +782,27 @@ def _ensure_schema():
         """)
         con.execute("CREATE INDEX IF NOT EXISTS idx_fav_user ON favorites(user_id)")
 
+        # Preferencias "Para ti" + vinculación con el bot de Telegram.
+        # cats/subcats/stores van como JSON: la forma la define el frontend
+        # (mismas categorías y subcategorías que los filtros de la web).
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS user_prefs (
+                user_id      TEXT PRIMARY KEY,
+                cats         TEXT    DEFAULT '[]',
+                subcats      TEXT    DEFAULT '{}',
+                stores       TEXT    DEFAULT '[]',
+                precio_min   REAL    DEFAULT 0,
+                precio_max   REAL,
+                tg_chat_id   TEXT    DEFAULT '',
+                tg_code      TEXT    DEFAULT '',
+                tg_enabled   INTEGER DEFAULT 1,
+                tg_last_sent TEXT    DEFAULT '',
+                updated_at   TEXT    NOT NULL
+            )
+        """)
+        con.execute("CREATE INDEX IF NOT EXISTS idx_prefs_tg   ON user_prefs(tg_chat_id)")
+        con.execute("CREATE INDEX IF NOT EXISTS idx_prefs_code ON user_prefs(tg_code)")
+
         # Blog posts
         con.execute("""
             CREATE TABLE IF NOT EXISTS blog_posts (
@@ -2407,6 +2428,239 @@ def remove_favorite(deal_id: str, request: Request):
                     (payload["sub"], deal_id))
         con.commit()
     return {"removed": True, "deal_id": deal_id}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# "PARA TI" — preferencias del usuario + vinculación con el bot de Telegram
+#
+# La web filtra en cliente con la MISMA lógica que el resto de filtros (para no
+# duplicar las regex de categoría en Python). Aquí solo se guardan/leen las
+# preferencias y se gestiona el enlace con Telegram; el resumen diario lo manda
+# scripts/telegram_para_ti.py leyendo esta tabla.
+# ══════════════════════════════════════════════════════════════════════════════
+
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
+# Path secreto del webhook: Telegram es el único que debe poder llamarlo.
+TG_WEBHOOK_SECRET = os.getenv("TG_WEBHOOK_SECRET", "")
+
+_PREFS_DEFAULT = {
+    "cats": [], "subcats": {}, "stores": [],
+    "precio_min": 0, "precio_max": None,
+    "tg_enabled": True, "tg_linked": False,
+}
+
+
+class PrefsBody(BaseModel):
+    cats:       Optional[list]  = None
+    subcats:    Optional[dict]  = None
+    stores:     Optional[list]  = None
+    precio_min: Optional[float] = None
+    precio_max: Optional[float] = None
+    tg_enabled: Optional[bool]  = None
+
+
+def _prefs_row_to_dict(row) -> dict:
+    if not row:
+        return dict(_PREFS_DEFAULT)
+    def _j(txt, fallback):
+        try:
+            v = json.loads(txt or "")
+            return v if isinstance(v, type(fallback)) else fallback
+        except Exception:
+            return fallback
+    return {
+        "cats":       _j(row["cats"], []),
+        "subcats":    _j(row["subcats"], {}),
+        "stores":     _j(row["stores"], []),
+        "precio_min": row["precio_min"] or 0,
+        "precio_max": row["precio_max"],
+        "tg_enabled": bool(row["tg_enabled"]),
+        "tg_linked":  bool(row["tg_chat_id"]),
+    }
+
+
+def _get_prefs(user_id: str) -> dict:
+    with _get_db() as con:
+        row = con.execute("SELECT * FROM user_prefs WHERE user_id = ?", (user_id,)).fetchone()
+    return _prefs_row_to_dict(row)
+
+
+@app.get("/api/user/prefs")
+def get_user_prefs(request: Request):
+    payload = _require_user(request)
+    if not payload:
+        return JSONResponse(status_code=401, content={"error": "No autenticado"})
+    return _get_prefs(payload["sub"])
+
+
+@app.put("/api/user/prefs")
+def put_user_prefs(body: PrefsBody, request: Request):
+    payload = _require_user(request)
+    if not payload:
+        return JSONResponse(status_code=401, content={"error": "No autenticado"})
+    uid  = payload["sub"]
+    ahora = datetime.now(timezone.utc).isoformat()
+    cur  = _get_prefs(uid)
+
+    cats    = body.cats    if body.cats    is not None else cur["cats"]
+    subcats = body.subcats if body.subcats is not None else cur["subcats"]
+    stores  = body.stores  if body.stores  is not None else cur["stores"]
+    pmin    = body.precio_min if body.precio_min is not None else cur["precio_min"]
+    pmax    = body.precio_max if body.precio_max is not None else cur["precio_max"]
+    tg_en   = body.tg_enabled if body.tg_enabled is not None else cur["tg_enabled"]
+
+    # Saneado: listas de strings cortas, precios no negativos y coherentes
+    cats    = [str(c)[:40] for c in cats   if isinstance(c, (str, int))][:40]
+    stores  = [str(s)[:60] for s in stores if isinstance(s, (str, int))][:60]
+    subcats = {str(k)[:40]: str(v)[:40] for k, v in list(subcats.items())[:20]} if isinstance(subcats, dict) else {}
+    try:    pmin = max(0.0, float(pmin or 0))
+    except Exception: pmin = 0.0
+    if pmax is not None:
+        try:    pmax = max(0.0, float(pmax))
+        except Exception: pmax = None
+    if pmax is not None and pmax < pmin:
+        pmin, pmax = pmax, pmin
+
+    with _get_db() as con:
+        con.execute("""
+            INSERT INTO user_prefs (user_id, cats, subcats, stores, precio_min, precio_max, tg_enabled, updated_at)
+            VALUES (?,?,?,?,?,?,?,?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                cats=excluded.cats, subcats=excluded.subcats, stores=excluded.stores,
+                precio_min=excluded.precio_min, precio_max=excluded.precio_max,
+                tg_enabled=excluded.tg_enabled, updated_at=excluded.updated_at
+        """, (uid, json.dumps(cats, ensure_ascii=False), json.dumps(subcats, ensure_ascii=False),
+              json.dumps(stores, ensure_ascii=False), pmin, pmax, 1 if tg_en else 0, ahora))
+        con.commit()
+    return _get_prefs(uid)
+
+
+# ── Telegram: vinculación por código ──────────────────────────────────────────
+
+_tg_bot_username = None
+
+def _tg_username() -> str:
+    """Nombre del bot (para construir el deep link). Se cachea tras el primer getMe."""
+    global _tg_bot_username
+    if _tg_bot_username is not None:
+        return _tg_bot_username
+    _tg_bot_username = ""
+    if TELEGRAM_TOKEN:
+        try:
+            r = _http.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getMe", timeout=8)
+            if r.ok:
+                _tg_bot_username = r.json().get("result", {}).get("username", "") or ""
+        except Exception:
+            pass
+    return _tg_bot_username
+
+
+def _tg_send(chat_id: str, texto: str, markup: dict | None = None) -> bool:
+    if not TELEGRAM_TOKEN or not chat_id:
+        return False
+    try:
+        data = {"chat_id": chat_id, "text": texto,
+                "parse_mode": "HTML", "disable_web_page_preview": True}
+        if markup:
+            data["reply_markup"] = json.dumps(markup)
+        r = _http.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+                       data=data, timeout=12)
+        return r.ok
+    except Exception:
+        return False
+
+
+@app.post("/api/user/telegram/link")
+def telegram_link(request: Request):
+    """Genera (o reutiliza) el código de vinculación y devuelve el deep link del bot."""
+    payload = _require_user(request)
+    if not payload:
+        return JSONResponse(status_code=401, content={"error": "No autenticado"})
+    uid   = payload["sub"]
+    ahora = datetime.now(timezone.utc).isoformat()
+
+    with _get_db() as con:
+        row  = con.execute("SELECT tg_code FROM user_prefs WHERE user_id = ?", (uid,)).fetchone()
+        code = (row["tg_code"] if row else "") or secrets.token_urlsafe(9).replace("-", "_")
+        con.execute("""
+            INSERT INTO user_prefs (user_id, tg_code, updated_at) VALUES (?,?,?)
+            ON CONFLICT(user_id) DO UPDATE SET tg_code=excluded.tg_code, updated_at=excluded.updated_at
+        """, (uid, code, ahora))
+        con.commit()
+
+    user = _tg_username()
+    if not user:
+        return JSONResponse(status_code=503,
+                            content={"error": "Bot de Telegram no disponible ahora mismo"})
+    return {"url": f"https://t.me/{user}?start={code}", "bot": user, "code": code}
+
+
+@app.post("/api/user/telegram/unlink")
+def telegram_unlink(request: Request):
+    payload = _require_user(request)
+    if not payload:
+        return JSONResponse(status_code=401, content={"error": "No autenticado"})
+    with _get_db() as con:
+        con.execute("UPDATE user_prefs SET tg_chat_id='', updated_at=? WHERE user_id=?",
+                    (datetime.now(timezone.utc).isoformat(), payload["sub"]))
+        con.commit()
+    return {"unlinked": True}
+
+
+@app.post("/telegram/webhook/{secret}")
+async def telegram_webhook(secret: str, request: Request):
+    """Recibe los mensajes del bot. Solo /start <código>, /stop y /ayuda."""
+    if not TG_WEBHOOK_SECRET or not _hmac.compare_digest(secret, TG_WEBHOOK_SECRET):
+        return JSONResponse(status_code=403, content={"error": "forbidden"})
+    try:
+        upd = await request.json()
+    except Exception:
+        return {"ok": True}
+
+    msg     = upd.get("message") or upd.get("edited_message") or {}
+    chat_id = str((msg.get("chat") or {}).get("id") or "")
+    texto   = (msg.get("text") or "").strip()
+    if not chat_id or not texto:
+        return {"ok": True}
+
+    ahora = datetime.now(timezone.utc).isoformat()
+
+    if texto.startswith("/start"):
+        partes = texto.split(maxsplit=1)
+        code   = partes[1].strip() if len(partes) > 1 else ""
+        if not code:
+            _tg_send(chat_id, "Para recibir tus ofertas, entra en <b>flipazo.es</b> → Para ti "
+                              "y pulsa «Conectar con Telegram».")
+            return {"ok": True}
+        with _get_db() as con:
+            row = con.execute("SELECT user_id FROM user_prefs WHERE tg_code = ?", (code,)).fetchone()
+            if not row:
+                _tg_send(chat_id, "Ese enlace ya no es válido. Genera uno nuevo desde flipazo.es → Para ti.")
+                return {"ok": True}
+            # Un chat de Telegram solo puede estar vinculado a una cuenta
+            con.execute("UPDATE user_prefs SET tg_chat_id='' WHERE tg_chat_id = ?", (chat_id,))
+            con.execute("UPDATE user_prefs SET tg_chat_id=?, tg_enabled=1, updated_at=? WHERE user_id=?",
+                        (chat_id, ahora, row["user_id"]))
+            con.commit()
+            prefs = _get_prefs(row["user_id"])
+        cats = ", ".join(prefs["cats"]) if prefs["cats"] else "todas las categorías"
+        _tg_send(chat_id,
+                 "✅ <b>Cuenta vinculada.</b>\n\n"
+                 f"Cada día te mando un resumen con los mejores chollos de: <b>{cats}</b>.\n\n"
+                 "Cambia tus intereses en flipazo.es → Para ti.\n"
+                 "Escribe /stop cuando quieras dejar de recibirlos.")
+        return {"ok": True}
+
+    if texto.startswith("/stop"):
+        with _get_db() as con:
+            con.execute("UPDATE user_prefs SET tg_enabled=0, updated_at=? WHERE tg_chat_id=?", (ahora, chat_id))
+            con.commit()
+        _tg_send(chat_id, "🔕 Listo, no te mando más resúmenes. Escribe /start para volver a activarlos.")
+        return {"ok": True}
+
+    _tg_send(chat_id, "Comandos: /stop para dejar de recibir avisos.\n"
+                      "Tus intereses se editan en flipazo.es → Para ti.")
+    return {"ok": True}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
