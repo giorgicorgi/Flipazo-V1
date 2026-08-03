@@ -40,6 +40,11 @@ _CACHE_TTL_H = 23
 _cache: list[dict] = []
 _last_fetch: datetime | None = None
 
+# Motivo del último truncado, o None si el feed se leyó entero. Lo consulta
+# flipazo_main para avisar al admin: un feed a medias es pérdida silenciosa de
+# tiendas enteras, no un aviso cosmético.
+ultimo_fetch_truncado: str | None = None
+
 # merchant_name (tal cual viene en el feed) → nombre de tienda interno de Flipazo
 _MERCHANT_MAP = {
     "Padel Market":         "Padel Market",
@@ -128,6 +133,8 @@ def fetch_awin_productos(
 
     tmp_path = None
     gz = None
+    global ultimo_fetch_truncado
+    ultimo_fetch_truncado = None
     try:
         print("   📡 AWIN feed (Create-a-Feed)...")
         # Se descarga ENTERO a disco antes de parsear (≈100 MB, ~1 min).
@@ -166,15 +173,18 @@ def fetch_awin_productos(
         fecha_hoy = datetime.now().strftime("%Y-%m-%d")
         n = 0
         def _rows_seguras(reader):
-            # El feed AWIN (enorme, chunked) a veces se corta cerca del final
-            # (IncompleteRead/EOFError). Con este envoltorio procesamos las filas leídas
-            # hasta el corte en vez de descartar TODO el feed y quedarnos en 0.
+            # Si aun así el .gz llega corrupto, se procesan las filas leídas en vez de
+            # perder el feed entero. PERO se marca como truncado: este "seguir adelante
+            # a medias" fue lo que dejó a El Corte Inglés 2 semanas fuera sin que nada
+            # chillara — el ciclo parecía correcto porque solo se imprimía un warning.
+            global ultimo_fetch_truncado
             nonlocal n
             try:
                 for _r in reader:
                     n += 1
                     yield _r
             except Exception as _e:
+                ultimo_fetch_truncado = f"{type(_e).__name__} tras {n:,} filas"
                 print(f"   ⚠️  AWIN feed truncado a {n:,} filas ({type(_e).__name__}) — se procesan las leídas")
         for row in _rows_seguras(rdr):
             tienda = _MERCHANT_MAP.get((row.get("merchant_name") or "").strip())

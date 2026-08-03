@@ -27,6 +27,7 @@ from affiliate.link_builder import build_affiliate_url
 from scrapers.pss_email import get_pss_productos
 from scrapers.tradedoubler_feed import fetch_tradedoubler_productos, fetch_tradedoubler_historial
 from scrapers.awin_feed         import fetch_awin_productos
+import scrapers.awin_feed       as awin_feed_mod   # para leer ultimo_fetch_truncado
 from scrapers.awin_promotions   import fetch_awin_promociones
 from scrapers.tradedoubler_vouchers import fetch_td_vouchers
 from scrapers.decathlon_feed   import fetch_decathlon_productos
@@ -1974,6 +1975,17 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             fetch_awin_productos, DESCUENTO_MINIMO, PRECIO_MINIMO_LC, PRECIO_MAXIMO,
             DB_PATH, _descuento_minimo_para,
         )
+        # Un feed a medias = tiendas enteras perdidas en silencio. Que avise.
+        if awin_feed_mod.ultimo_fetch_truncado:
+            alertar_admin(
+                "Feed AWIN truncado — puede faltar una tienda entera",
+                f"{awin_feed_mod.ultimo_fetch_truncado}. El feed va por comercios en serie: "
+                f"lo que quede detrás del corte no se lee.",
+            )
+        # Comprueba que ninguna tienda haya dejado de registrar precios (ver
+        # vigilar_frescura_feeds). Aquí porque el feed AWIN solo se refresca 1×/23h,
+        # así que el chequeo queda naturalmente limitado a una vez al día.
+        await asyncio.to_thread(vigilar_frescura_feeds, DB_PATH)
         # Barajar + tope por tienda: las publicables (Padel, Adidas) pueden traer
         # miles de deals; sin rotación se publicarían siempre los mismos y podrían
         # inundar el canal. Con shuffle + cap entran variados y acotados por ciclo.
@@ -3715,6 +3727,66 @@ def alertar_admin(titulo: str, detalle: str = ""):
         )
     except Exception:
         pass  # nunca bloquear el pipeline por fallo de alerta
+
+
+# ── Vigilante de frescura de feeds ────────────────────────────────
+# El 20-jul-2026 El Corte Inglés dejó de registrarse en price_history (entró
+# Carrefour en el feed AWIN y empujó a ECI detrás del punto donde la descarga se
+# cortaba). Estuvo 2 SEMANAS sin publicar y el pipeline seguía "en verde": nadie
+# comprobaba que cada tienda siguiera escribiendo su histórico. Esto lo vigila.
+FRESCURA_MAX_DIAS = int(os.getenv("FRESCURA_MAX_DIAS", "3"))
+
+def vigilar_frescura_feeds(db_path: str = DB_PATH) -> list[tuple]:
+    """
+    Avisa (Telegram admin) de las tiendas que llevan >FRESCURA_MAX_DIAS sin
+    registrar precios, señal de que su feed dejó de leerse.
+
+    Solo avisa de tiendas que YA tenían histórico: una tienda nueva sin datos aún
+    no es un fallo. Y como máximo un aviso por tienda y día, para no ser ruido.
+    """
+    try:
+        with sqlite3.connect(db_path, timeout=60) as con:
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS feed_watchdog (
+                    tienda        TEXT PRIMARY KEY,
+                    ultimo_aviso  TEXT NOT NULL
+                )
+            """)
+            filas = con.execute(
+                "SELECT tienda, MAX(fecha) FROM price_history GROUP BY tienda"
+            ).fetchall()
+            hoy    = datetime.now().date()
+            hoy_iso = hoy.isoformat()
+            avisados = dict(con.execute("SELECT tienda, ultimo_aviso FROM feed_watchdog").fetchall())
+
+            rancias = []
+            for tienda, ult in filas:
+                if not tienda or not ult:
+                    continue
+                try:
+                    dias = (hoy - datetime.fromisoformat(str(ult)[:10]).date()).days
+                except ValueError:
+                    continue
+                if dias > FRESCURA_MAX_DIAS:
+                    rancias.append((tienda, str(ult)[:10], dias))
+
+            nuevas = [r for r in rancias if avisados.get(r[0]) != hoy_iso]
+            if nuevas:
+                detalle = "\n".join(f"{t}: sin datos desde {f} ({d} días)" for t, f, d in sorted(nuevas, key=lambda x: -x[2]))
+                print(f"   🚨 Feeds sin registrar precios ({len(nuevas)}):\n      " + detalle.replace("\n", "\n      "))
+                alertar_admin(f"{len(nuevas)} tienda(s) han dejado de registrar precios", detalle)
+                con.executemany(
+                    "INSERT INTO feed_watchdog (tienda, ultimo_aviso) VALUES (?,?) "
+                    "ON CONFLICT(tienda) DO UPDATE SET ultimo_aviso=excluded.ultimo_aviso",
+                    [(t, hoy_iso) for t, _, _ in nuevas],
+                )
+                con.commit()
+            else:
+                print(f"   ✅ Frescura de feeds OK ({len(filas)} tiendas, ninguna >{FRESCURA_MAX_DIAS} días sin datos)")
+            return rancias
+    except Exception as e:
+        print(f"   ⚠️  Vigilante de frescura falló: {e}")
+        return []
 
 
 # ── IndexNow: notifica a Bing/Yandex (y, vía Bing, a ChatGPT/Copilot) al instante ──
