@@ -5312,9 +5312,20 @@
   // ── Store bar ─────────────────────────────────────────────────
   // Pre-poblamos con las tiendas activas para que aparezcan en el filtro aunque no tengan deals en el primer lote.
   const _KNOWN_STORES = [
-    "Amazon", "MediaMarkt", "PCBox", "Decathlon", "Mammoth Bikes",
-    "Barrabes", "Padel Market", "Esdemarca", "Desigual"
+    "Amazon", "MediaMarkt", "PCBox", "PcComponentes", "Decathlon", "Mammoth Bikes",
+    "Barrabes", "Padel Market", "Esdemarca", "Desigual",
+    // Faltaban: sin deals en el primer lote no salían nunca en el filtro
+    "ElCorteIngles", "Adidas", "Deporte Outlet", "Brico Depot",
+    "Paco Perfumerias", "OneBioShop", "Carrefour"
   ];
+
+  // Algunas tiendas se guardan sin espacios ni acentos (el nombre viene del feed).
+  // En pantalla se muestran bien escritas; el valor del filtro sigue siendo el interno.
+  const _STORE_LABELS = {
+    "ElCorteIngles": "El Corte Inglés",
+    "Mammoth Bikes": "Mammoth",
+  };
+  function _storeLabel(s) { return _STORE_LABELS[s] || s; }
   function _allStores() {
     const s = new Set(_KNOWN_STORES);
     _poolDeals().forEach(d => d.tienda && s.add(d.tienda));
@@ -5341,7 +5352,7 @@
     bar.innerHTML =
       `<button class="store-pill${!activeStore ? " store-pill--active" : ""}" data-store="">Todas</button>` +
       stores.map(s =>
-        `<button class="store-pill${activeStore === s ? " store-pill--active" : ""}" data-store="${s}">${s}</button>`
+        `<button class="store-pill${activeStore === s ? " store-pill--active" : ""}" data-store="${s}">${_storeLabel(s)}</button>`
       ).join("");
     if (row) row.style.display = "flex";
     bar.querySelectorAll(".store-pill").forEach(btn => {
@@ -6039,7 +6050,7 @@
 
     const stores = [..._allStores()].filter(Boolean).sort().map(s =>
       `<button class="prefs__chip${d.stores.includes(s) ? " prefs__chip--on" : ""}"
-               onclick="_prefsToggleStore('${s.replace(/'/g, "\\'")}')">${s}</button>`).join("");
+               onclick="_prefsToggleStore('${s.replace(/'/g, "\\'")}')">${_storeLabel(s)}</button>`).join("");
 
     const tgLinked = _prefs && _prefs.tg_linked;
     // Sin sesión el bloque de Telegram se convierte en la invitación a registrarse:

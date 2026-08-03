@@ -22,6 +22,7 @@ import io
 import os
 import re
 import sqlite3
+import tempfile
 from datetime import datetime, timedelta
 
 import collections
@@ -125,14 +126,34 @@ def fetch_awin_productos(
         print(f"   📦 AWIN caché activa: {len(_cache)} deals")
         return _cache
 
+    tmp_path = None
+    gz = None
     try:
         print("   📡 AWIN feed (Create-a-Feed)...")
-        r = requests.get(AWIN_FEED_URL, stream=True, timeout=180)
-        if r.status_code != 200:
-            print(f"   ❌ AWIN feed HTTP {r.status_code} — se mantiene caché previa ({len(_cache)})")
-            return _cache
-        r.raw.decode_content = False  # el cuerpo ES gzip (compression/gzip), no transfer-encoding
-        gz = gzip.GzipFile(fileobj=r.raw)
+        # Se descarga ENTERO a disco antes de parsear (≈100 MB, ~1 min).
+        #
+        # Antes se parseaba directamente del socket, y como el bucle hace trabajo por
+        # fila (lookup de referencia, acumular observaciones), éramos un consumidor
+        # lento: AWIN cortaba la conexión a mitad del stream (ProtocolError) tras
+        # 150-260k filas de un feed de 1,9 M. Mientras El Corte Inglés empezaba sobre
+        # la fila 160k eso pasaba desapercibido, pero al entrar Carrefour en el feed
+        # (864k filas, justo antes de ECI) ECI se fue a la fila 1.024.428 y dejó de
+        # leerse por completo: sin histórico nuevo desde el 20-jul, cero deals.
+        # Descargando primero, la red no depende de lo que tarde el parseo.
+        with requests.get(AWIN_FEED_URL, stream=True, timeout=180) as r:
+            if r.status_code != 200:
+                print(f"   ❌ AWIN feed HTTP {r.status_code} — se mantiene caché previa ({len(_cache)})")
+                return _cache
+            r.raw.decode_content = False  # el cuerpo ES gzip (compression/gzip), no transfer-encoding
+            with tempfile.NamedTemporaryFile(prefix="awin_feed_", suffix=".gz", delete=False) as tmp:
+                tmp_path = tmp.name
+                bytes_leidos = 0
+                for chunk in r.raw.stream(1 << 20, decode_content=False):
+                    tmp.write(chunk)
+                    bytes_leidos += len(chunk)
+        print(f"   ⬇️  AWIN feed descargado: {bytes_leidos / 1048576:.0f} MB")
+
+        gz = gzip.open(tmp_path, "rb")
         rdr = csv.DictReader(io.TextIOWrapper(gz, encoding="utf-8", errors="replace"))
 
         # Referencias de histórico (precio_max sostenido) por producto, para detectar
@@ -247,3 +268,16 @@ def fetch_awin_productos(
     except Exception as e:
         print(f"   ❌ AWIN feed error: {e} — se mantiene caché previa ({len(_cache)})")
         return _cache
+
+    finally:
+        # El .gz temporal ocupa ~100 MB: fuera pase lo que pase.
+        if gz is not None:
+            try:
+                gz.close()
+            except Exception:
+                pass
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
