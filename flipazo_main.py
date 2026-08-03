@@ -2387,7 +2387,10 @@ _TIENDAS_FEED_CONFIABLE = {
     "Decathlon", "Padel Market", "Adidas",
     # Tiendas AWIN con descuento detectado por NUESTRO histórico (price_drop) → ya verificado
     "ElCorteIngles", "Zalando", "Deporte Outlet", "Brico Depot", "Paco Perfumerias", "Bikila",
-    "OneBioShop", "Tiendanimal", "Carrefour", "ToysRus",
+    "OneBioShop", "Tiendanimal", "Carrefour", "ToysRus", "TodoConsolas",
+    # Foot Locker sí trae product_price_old real, pero su catálogo es Nike/Adidas/
+    # Jordan/New Balance: marcas reconocidas de sobra, no necesita la exención.
+    "Foot Locker",
     # Feeds TD solo-historial: bajada detectada por NUESTRO histórico (price_drop) → verificada
     "Braun", "De'Longhi", "Tefal", "Suunto", "L'Occitane", "The Beauty Corner",
     "Eureka Electrodomésticos", "DC Shoes", "Quiksilver", "Roxy", "Element",

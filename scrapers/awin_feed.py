@@ -36,6 +36,17 @@ load_dotenv()
 
 AWIN_FEED_URL = os.getenv("AWIN_FEED_URL", "")
 
+# Feeds ADICIONALES, cada uno con sus propios fids. Se leen por separado a
+# propósito: meter comercios nuevos dentro del feed principal fue justo lo que
+# dejó a El Corte Inglés fuera (Carrefour, 864k filas, lo empujó detrás del
+# punto donde se cortaba la descarga). Un feed por lote = fallos aislados.
+AWIN_FEED_URLS_EXTRA = [
+    u for u in (os.getenv(f"AWIN_FEED_URL_{i}", "").strip() for i in range(2, 6)) if u
+]
+
+def _feeds_configurados() -> list[str]:
+    return [u for u in ([AWIN_FEED_URL] + AWIN_FEED_URLS_EXTRA) if u]
+
 _CACHE_TTL_H = 23
 _cache: list[dict] = []
 _last_fetch: datetime | None = None
@@ -56,14 +67,20 @@ _MERCHANT_MAP = {
     "Paco Perfumerias ES":  "Paco Perfumerias",  # perfumería, sin "precio antes"
     "BIKILA ES":            "Bikila",            # running/trail, sin "precio antes"
     "Carrefour Supermercado Online":  "Carrefour",  # marketplace ruidoso, product_price_old = PVP inflado → histórico + blocklist
+    # Feed 2 (fids 78257,101515):
+    "Foot Locker ES":       "Foot Locker",   # product_price_old REAL en 8.185/49.742 → publicable
+    "TodoConsolas ES":      "TodoConsolas",  # product_price_old vacío en las 24.596 → histórico
 }
 # Tiendas con product_price_old fiable → se publican como deals
-_PUBLICABLE = {"Padel Market"}
+_PUBLICABLE = {"Padel Market", "Foot Locker"}
 # Tiendas sin precio de referencia usable → solo histórico (registro diario de precio actual)
 # para detectar bajadas ≥40% por histórico propio (los feeds no traen "precio antes" real;
 # adidas trae product_price_old pero == precio actual, así que tampoco sirve).
+# TodoConsolas: las 24.596 filas traen product_price_old VACÍO. Tiene rrp_price en
+# 2.087, pero con mediana de solo -15% y siendo PVP de fabricante (la misma trampa
+# que Beep) → no sirve como "precio antes". Histórico propio.
 _SOLO_HISTORICO = {"ElCorteIngles", "Brico Depot", "Zalando", "Deporte Outlet",
-                   "Paco Perfumerias", "Bikila", "Adidas", "Carrefour"}
+                   "Paco Perfumerias", "Bikila", "Adidas", "Carrefour", "TodoConsolas"}
 # Carrefour "Supermercado Online" es en realidad un marketplace mayormente B2B/pro (tóner,
 # hardware de servidor, AV de integración tipo Crestron/CTouch, reacondicionados). NO nos vale
 # un blocklist (el 58% del catálogo ≥100€ es material profesional). Usamos ALLOWLIST de marcas
@@ -123,7 +140,8 @@ def fetch_awin_productos(
     Caché 23h. Devuelve list[dict] compatible con el constructor de Producto."""
     global _cache, _last_fetch
 
-    if not AWIN_FEED_URL:
+    feeds = _feeds_configurados()
+    if not feeds:
         return []
 
     ahora = datetime.now()
@@ -131,37 +149,49 @@ def fetch_awin_productos(
         print(f"   📦 AWIN caché activa: {len(_cache)} deals")
         return _cache
 
-    tmp_path = None
-    gz = None
+    temporales: list[str] = []
+    abiertos: list = []
     global ultimo_fetch_truncado
     ultimo_fetch_truncado = None
-    try:
-        print("   📡 AWIN feed (Create-a-Feed)...")
-        # Se descarga ENTERO a disco antes de parsear (≈100 MB, ~1 min).
-        #
-        # Antes se parseaba directamente del socket, y como el bucle hace trabajo por
-        # fila (lookup de referencia, acumular observaciones), éramos un consumidor
-        # lento: AWIN cortaba la conexión a mitad del stream (ProtocolError) tras
-        # 150-260k filas de un feed de 1,9 M. Mientras El Corte Inglés empezaba sobre
-        # la fila 160k eso pasaba desapercibido, pero al entrar Carrefour en el feed
-        # (864k filas, justo antes de ECI) ECI se fue a la fila 1.024.428 y dejó de
-        # leerse por completo: sin histórico nuevo desde el 20-jul, cero deals.
-        # Descargando primero, la red no depende de lo que tarde el parseo.
-        with requests.get(AWIN_FEED_URL, stream=True, timeout=180) as r:
+
+    def _descargar(url: str, etiqueta: str) -> str | None:
+        """Baja el .gz ENTERO a disco antes de parsear.
+
+        Antes se parseaba directamente del socket, y como el bucle hace trabajo por
+        fila (lookup de referencia, acumular observaciones), éramos un consumidor
+        lento: AWIN cortaba la conexión a mitad del stream (ProtocolError) tras
+        150-260k filas de un feed de 1,9 M. Mientras El Corte Inglés empezaba sobre
+        la fila 160k eso pasaba desapercibido, pero al entrar Carrefour en el feed
+        (864k filas, justo antes de ECI) ECI se fue a la fila 1.024.428 y dejó de
+        leerse por completo. Descargando primero, la red no depende del parseo."""
+        with requests.get(url, stream=True, timeout=180) as r:
             if r.status_code != 200:
-                print(f"   ❌ AWIN feed HTTP {r.status_code} — se mantiene caché previa ({len(_cache)})")
-                return _cache
-            r.raw.decode_content = False  # el cuerpo ES gzip (compression/gzip), no transfer-encoding
+                print(f"   ❌ AWIN {etiqueta} HTTP {r.status_code} — se salta este feed")
+                return None
+            r.raw.decode_content = False  # el cuerpo ES gzip, no transfer-encoding
             with tempfile.NamedTemporaryFile(prefix="awin_feed_", suffix=".gz", delete=False) as tmp:
-                tmp_path = tmp.name
-                bytes_leidos = 0
+                nbytes = 0
                 for chunk in r.raw.stream(1 << 20, decode_content=False):
                     tmp.write(chunk)
-                    bytes_leidos += len(chunk)
-        print(f"   ⬇️  AWIN feed descargado: {bytes_leidos / 1048576:.0f} MB")
+                    nbytes += len(chunk)
+        print(f"   ⬇️  AWIN {etiqueta} descargado: {nbytes / 1048576:.0f} MB")
+        return tmp.name
 
-        gz = gzip.open(tmp_path, "rb")
-        rdr = csv.DictReader(io.TextIOWrapper(gz, encoding="utf-8", errors="replace"))
+    try:
+        print(f"   📡 AWIN feed (Create-a-Feed) — {len(feeds)} feed(s)...")
+        lectores = []
+        for i, url in enumerate(feeds, 1):
+            etiqueta = "feed principal" if i == 1 else f"feed {i}"
+            ruta = _descargar(url, etiqueta)
+            if not ruta:
+                continue
+            temporales.append(ruta)
+            _gz = gzip.open(ruta, "rb")
+            abiertos.append(_gz)
+            lectores.append(csv.DictReader(io.TextIOWrapper(_gz, encoding="utf-8", errors="replace")))
+        if not lectores:
+            print(f"   ❌ Ningún feed AWIN legible — se mantiene caché previa ({len(_cache)})")
+            return _cache
 
         # Referencias de histórico (precio_max sostenido) por producto, para detectar
         # bajadas en las tiendas sin "precio antes" en el feed. 1 query antes de stremear.
@@ -172,7 +202,8 @@ def fetch_awin_productos(
         obs: list[tuple] = []  # (asin, tienda, precio, precio_ref, fecha) para price_history
         fecha_hoy = datetime.now().strftime("%Y-%m-%d")
         n = 0
-        def _rows_seguras(reader):
+
+        def _rows_seguras(reader, etiqueta):
             # Si aun así el .gz llega corrupto, se procesan las filas leídas en vez de
             # perder el feed entero. PERO se marca como truncado: este "seguir adelante
             # a medias" fue lo que dejó a El Corte Inglés 2 semanas fuera sin que nada
@@ -184,9 +215,14 @@ def fetch_awin_productos(
                     n += 1
                     yield _r
             except Exception as _e:
-                ultimo_fetch_truncado = f"{type(_e).__name__} tras {n:,} filas"
-                print(f"   ⚠️  AWIN feed truncado a {n:,} filas ({type(_e).__name__}) — se procesan las leídas")
-        for row in _rows_seguras(rdr):
+                ultimo_fetch_truncado = f"{etiqueta}: {type(_e).__name__} tras {n:,} filas"
+                print(f"   ⚠️  AWIN {etiqueta} truncado a {n:,} filas ({type(_e).__name__}) — se procesan las leídas")
+
+        def _todas_las_filas():
+            for i, lector in enumerate(lectores, 1):
+                yield from _rows_seguras(lector, "feed principal" if i == 1 else f"feed {i}")
+
+        for row in _todas_las_filas():
             tienda = _MERCHANT_MAP.get((row.get("merchant_name") or "").strip())
             if not tienda:
                 continue
@@ -280,14 +316,14 @@ def fetch_awin_productos(
         return _cache
 
     finally:
-        # El .gz temporal ocupa ~100 MB: fuera pase lo que pase.
-        if gz is not None:
+        # Los .gz temporales ocupan ~110 MB entre todos: fuera pase lo que pase.
+        for _gz in abiertos:
             try:
-                gz.close()
+                _gz.close()
             except Exception:
                 pass
-        if tmp_path:
+        for ruta in temporales:
             try:
-                os.unlink(tmp_path)
+                os.unlink(ruta)
             except OSError:
                 pass

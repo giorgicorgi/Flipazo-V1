@@ -104,6 +104,8 @@ discovery/               ← scoring.py + emotional_layer.py (hooks con Haiku)
 | ToysRus | Feed TD (fid=21529) + histórico propio (`scrapers/toysrus_feed.py`, tablas `toysrus_precios`/`toysrus_productos`, clave EAN) | ✅ Armado; publica solo bajadas reales ≥40% → 0 ahora (juguetes bajan máx ~20%; saldrá en liquidaciones Reyes/BF). NO añadir a `_FEEDS_HISTORIAL` (duplicado) |
 | Tiendanimal | Feed TD (fid=50625, `sale_price`) → Mascotas | ✅ Directo; 0 ≥40% ahora (falta oferta) |
 | Carrefour | Feed AWIN (fid 76395,98228 = "Carrefour Supermercado Online") | ⚠️ Marketplace B2B ruidoso → **modo histórico** (`_SOLO_HISTORICO`) + allowlist de consumo (`_CARREFOUR_KEEP`) − blocklist (`_CARREFOUR_SKIP`) en `awin_feed.py`. Publica bajadas reales propias (~2 sem) |
+| Foot Locker | Feed AWIN 2 (fid 78257, `AWIN_FEED_URL_2`) | ✅ **Publicable directo**: `product_price_old` real en 8.185/49.742 filas. 48k productos ≥25€, ~628 con ≥40%. Nike/Adidas/Jordan/New Balance/Puma → `calzado`. Repite modelo por talla: `_clave_familia` las agrupa |
+| TodoConsolas | Feed AWIN 2 (fid 101515, `AWIN_FEED_URL_2`) | ⚠️ **Modo histórico**: `product_price_old` vacío en las 24.596 filas; `rrp_price` es PVP inflado (mediana −15%, trampa Beep). 6.225 productos ≥25€. Videojuegos/consolas/merch → `tecnologia` |
 
 **TD feeds:** Caché 23h en memoria. `offer["priceHistory"][0]["price"]["value"]` = precio actual. `TD_PUBLISHER_ID` debe ser el SITE ID (3481714), NO el publisher ID (2468812).
 
@@ -154,6 +156,36 @@ discovery/               ← scoring.py + emotional_layer.py (hooks con Haiku)
 - **Skill `scraper-monitor`:** `.claude/skills/scraper-monitor/` — diagnóstico y reparación del pipeline. Invocar con `/scraper-monitor`
 - **Skill `ui-ux-pro-max`:** `.claude/skills/ui-ux-pro-max/` — sistemas de diseño UI/UX
 - **Agente `threads-storyteller`:** `.claude/agents/threads-storyteller.md` — redacta y publica HILOS narrativos (tuiteratura) en Threads @flipazo.es. Universo "el precio real de las cosas". Borrador → aprobación → publica encadenado. Las historias son a mano; los deals los publica el pipeline (`_threads_elegible`, score ≥70)
+
+---
+
+## Procedimiento para añadir una tienda nueva
+
+**Obligatorio hacerlo entero.** Saltarse el paso 1 es lo que dejó a El Corte Inglés
+2 semanas sin publicar (ver tabla de errores).
+
+1. **Analizar el feed ANTES de integrarlo** — descargarlo y medir, sin suponer:
+   - Qué comercios trae, cuántas filas cada uno y **en qué orden** (los feeds AWIN
+     concatenan comercios: uno grande empuja a los de detrás).
+   - `product_price_old`: ¿es mayor que `search_price` en una parte significativa?
+     ¿o viene vacío / igual al precio? ¿`rrp_price` es PVP inflado (trampa Beep)?
+   - Cuántos productos superan los umbrales reales (≥25€, ≥40%): ese es el rendimiento.
+   - Marcas y categorías dominantes (¿es catálogo de consumo o material profesional?).
+2. **Decidir el modo según el paso 1:**
+   - `product_price_old` fiable → `_PUBLICABLE`: se publica directo con el filtro de descuento.
+   - Sin precio de referencia usable → `_SOLO_HISTORICO`: se registra el precio diario en
+     `price_history` y se publican solo las bajadas que detectemos nosotros (`price_drop.py`).
+3. **Feed nuevo = URL nueva** (`AWIN_FEED_URL_2..5` en `.env`), no ampliar la existente:
+   fallos aislados y ningún comercio desplaza a otro. La apikey **nunca** va a git.
+4. **Cablear:** `_MERCHANT_MAP` + `_PUBLICABLE`/`_SOLO_HISTORICO` en `awin_feed.py`;
+   `_TIENDAS_FEED_CONFIABLE` en `flipazo_main.py` si el descuento lo verificamos nosotros.
+5. **Web:** añadir la tienda a `_KNOWN_STORES` en `index.html` (si no, solo aparece en el
+   filtro cuando casualmente tenga deals en el primer lote) y a `_STORE_LABELS` si el
+   nombre del feed no es presentable. Opcional: `_MH_STORES` para el carrusel de Explorar.
+6. **Verificar de verdad:** ejecutar el feed, comprobar categoría asignada
+   (`_inferir_categoria`), que el enlace de afiliado sea el `aw_deep_link`, que
+   `_clave_familia` agrupe variantes (tallas/colores) para no inundar el canal, y que la
+   tienda salga en el filtro de la web.
 
 ---
 
