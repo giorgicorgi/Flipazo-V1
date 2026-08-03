@@ -3781,6 +3781,11 @@ def vigilar_frescura_feeds(db_path: str = DB_PATH) -> list[tuple]:
                     [(t, hoy_iso) for t, _, _ in nuevas],
                 )
                 con.commit()
+            elif rancias:
+                # Ya avisadas hoy: NO decir "OK". Un falso verde es justo lo que hizo
+                # que ECI pasara 2 semanas fuera sin que nadie mirara.
+                print(f"   🔇 {len(rancias)} tienda(s) siguen sin registrar precios (ya avisadas hoy): "
+                      + ", ".join(f"{t} ({d}d)" for t, _, d in sorted(rancias, key=lambda x: -x[2])))
             else:
                 print(f"   ✅ Frescura de feeds OK ({len(filas)} tiendas, ninguna >{FRESCURA_MAX_DIAS} días sin datos)")
             return rancias
