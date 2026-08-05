@@ -1305,12 +1305,16 @@
       color: #0581FC; line-height: 1; white-space: nowrap;
       flex-shrink: 0;
     }
+    /* Precio anterior: es la mitad del argumento (sin él, "35€" no dice nada).
+       Estaba en gris claro y peso 500, o sea casi invisible. Ahora va en el color
+       del texto principal y en negrita, para que el contraste con el precio actual
+       se lea de un vistazo. El tachado sigue en rojo de marca. */
     .deal__original {
-      font-family: var(--sans); font-size: 16px; font-weight: 500;
-      color: var(--text-mid);
+      font-family: var(--sans); font-size: 16px; font-weight: 700;
+      color: var(--ink);
       text-decoration: line-through;
       text-decoration-color: var(--brand);
-      text-decoration-thickness: 1.5px;
+      text-decoration-thickness: 2px;
       white-space: nowrap; flex-shrink: 0;
     }
     .deal__pct { flex-shrink: 0; }
@@ -2202,7 +2206,8 @@
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .hcard__prices { display: flex; align-items: center; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
-    .hcard__orig { font-size: 11px; color: var(--text-dim); text-decoration: line-through; }
+    .hcard__orig { font-size: 11px; font-weight: 700; color: var(--ink); text-decoration: line-through;
+                   text-decoration-color: var(--brand); text-decoration-thickness: 1.5px; }
     .hcard__now  { font-size: 14px; font-weight: 800; color: var(--brand); }
 
     /* ── CCard: circular (Low Cost) ── */
@@ -2236,7 +2241,8 @@
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .ccard__now  { font-size: 13px; font-weight: 800; color: #0581FC; }
-    .ccard__orig { font-size: 10px; color: var(--text-dim); text-decoration: line-through; }
+    .ccard__orig { font-size: 10px; font-weight: 700; color: var(--ink); text-decoration: line-through;
+                   text-decoration-color: var(--brand); text-decoration-thickness: 1.5px; }
 
     /* ── DCard: descuento grande (mismas medidas que hcard) ── */
     .dcard {
@@ -2259,7 +2265,8 @@
       overflow: hidden; margin: 0; flex: 0 0 auto; height: calc(1.35em * 2);
     }
     .dcard__prices { display: flex; align-items: baseline; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
-    .dcard__orig { font-size: 11px; color: var(--text-dim); text-decoration: line-through; }
+    .dcard__orig { font-size: 11px; font-weight: 700; color: var(--ink); text-decoration: line-through;
+                   text-decoration-color: var(--brand); text-decoration-thickness: 1.5px; }
     .dcard__now { font-size: 13px; font-weight: 800; color: var(--brand); }
 
     /* ── Category grid: 3 filas × scroll horizontal ── */
@@ -2323,7 +2330,8 @@
       display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
     }
     .whero__prices { display: flex; align-items: center; gap: 6px; }
-    .whero__orig { font-size: 11px; color: var(--text-dim); text-decoration: line-through; }
+    .whero__orig { font-size: 11px; font-weight: 700; color: var(--ink); text-decoration: line-through;
+                   text-decoration-color: var(--brand); text-decoration-thickness: 1.5px; }
     .whero__now  { font-size: 15px; font-weight: 800; color: var(--brand); }
 
     /* ── Skeleton ── */
@@ -5371,7 +5379,11 @@
 
   async function preloadStoresForBar() {
     try {
-      const batch = await fetchDeals(500, 0);
+      // Reutiliza lo ya descargado en vez de volver a pedir 500 deals: en móvil
+      // esta llamada duplicaba ~500 KB que loadMobileHome ya tenía en memoria.
+      const yaEnMemoria = (_mhomeDeals && _mhomeDeals.length >= 120) ? _mhomeDeals
+                        : (allDeals && allDeals.length >= 120) ? allDeals : null;
+      const batch = yaEnMemoria || await fetchDeals(500, 0);
       if (batch && batch.length) _filterPool = batch;
       buildStoreBar();
       buildSubcatBar();
@@ -6679,19 +6691,28 @@
 
       // Resto en segundo plano → las ~20 filas de subcategoría se llenan.
       // La API sirve máx. 500 por petición, así que paginamos por offset.
+      //
+      // EN PARALELO, no en cadena: encadenadas tardaban >4 s en el navegador de
+      // Threads (cada página esperaba a la anterior) y la home se quedaba a medio
+      // llenar mientras tanto. Los offsets son conocidos de antemano, así que no
+      // hace falta esperar a una para pedir la siguiente.
       const _PAGE = 500, _MAX = 2000;
       if (first.length === FIRST) {
-        let acc = first.slice(), offset = first.length;
-        while (acc.length < _MAX) {
-          let page;
-          try { page = await fetch(`${API_URL}?limit=${_PAGE}&offset=${offset}`).then(r => r.ok ? r.json() : []); }
-          catch { break; }
-          if (!page.length) break;
-          const seen = new Set(acc.map(d => d.id));
-          acc = acc.concat(page.filter(d => !seen.has(d.id)));
-          offset += page.length;
-          if (page.length < _PAGE) break;
+        const offsets = [];
+        for (let o = first.length; o < _MAX; o += _PAGE) offsets.push(o);
+        const paginas = await Promise.all(offsets.map(o =>
+          fetch(`${API_URL}?limit=${_PAGE}&offset=${o}`)
+            .then(r => r.ok ? r.json() : [])
+            .catch(() => [])
+        ));
+        const vistos = new Set(first.map(d => d.id));
+        const acc = first.slice();
+        for (const page of paginas) {
+          for (const d of page) {
+            if (!vistos.has(d.id)) { vistos.add(d.id); acc.push(d); }
+          }
         }
+        // Un solo repintado al final (antes se repintaba tras cada página).
         if (acc.length > first.length) { _mhomeDeals = acc; _renderIfHome(acc); }
       }
     } catch {
