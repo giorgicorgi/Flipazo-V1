@@ -1089,7 +1089,15 @@ _MODELO_RE = re.compile(
 # (búsqueda en i=electronics anclada en número de modelo real). Para moda, calzado,
 # deportes, bicis o juguetes, ese cross-check es ruido y provoca falsos emparejamientos
 # por códigos SKU coincidentes → NO se aplica.
-_CROSSCHECK_AMAZON_TIENDAS = frozenset({"MediaMarkt", "PCBox", "PcComponentes", "Beep"})
+_CROSSCHECK_AMAZON_TIENDAS = frozenset({"MediaMarkt", "PCBox", "PcComponentes", "Beep", "Carrefour"})
+
+# Marketplaces: el vendedor fija el precio Y el "PVP", así que NUESTRO histórico no
+# vale como referencia. Ejemplo real: un Logitech MX Master 2S llevaba dos semanas
+# listado en Carrefour a 303-343€ y bajó a 179€ → detectamos un −41% correcto contra
+# su propio histórico… siendo 179€ un 41% MÁS CARO que los 127€ de Amazon.
+# En estas tiendas la bajada propia NO basta: si Amazon no confirma el precio, no se
+# publica. Es la única referencia externa de mercado que tenemos.
+_TIENDAS_MARKETPLACE = frozenset({"Carrefour"})
 
 # Stopwords para comparar títulos en el cross-check Amazon (colores, género, conectores).
 # No deben contar como "término compartido" porque son demasiado genéricos.
@@ -3897,6 +3905,11 @@ async def run_pipeline(modo: str = "completo"):
                             datos = await _buscar_precio_amazon_mas_barato(
                                 p.titulo, p.precio_actual, browser
                             )
+                            if not datos and p.tienda in _TIENDAS_MARKETPLACE:
+                                # Sin confirmación externa no publicamos: su precio de
+                                # lista lo pone el vendedor y puede ser cualquier cosa.
+                                print(f"   🚫 {p.tienda} sin verificar en Amazon → descartado: {p.titulo[:40]}")
+                                p.descuento_pct = 0
                             if datos:
                                 tienda_orig = p.tienda
                                 if datos.get("es_mas_barato", True):
@@ -3904,7 +3917,13 @@ async def run_pipeline(modo: str = "completo"):
                                     ahorro = round(p.precio_actual - datos["precio_actual"], 2)
                                     p.asin          = datos["asin"]
                                     p.precio_actual = datos["precio_actual"]
-                                    if datos["precio_original_amazon"] > p.precio_actual:
+                                    if tienda_orig in _TIENDAS_MARKETPLACE:
+                                        # NO arrastrar la referencia del marketplace: es
+                                        # justo el dato del que desconfiamos. Con el
+                                        # max() de abajo, el MX Master habría acabado
+                                        # como "Amazon 127€, antes 303,63€, −58%".
+                                        p.precio_original = datos["precio_original_amazon"]
+                                    elif datos["precio_original_amazon"] > p.precio_actual:
                                         p.precio_original = max(p.precio_original, datos["precio_original_amazon"])
                                     if p.precio_original > 0:
                                         p.descuento_pct = max(0, round((1 - p.precio_actual / p.precio_original) * 100))

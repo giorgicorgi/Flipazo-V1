@@ -106,8 +106,17 @@ _CARREFOUR_KEEP = re.compile(
     re.I,
 )
 _CARREFOUR_SKIP = re.compile(
-    r"t[oó]ner|tinta|cartucho|\bdrum\b|t[aá]mbor|fusor|\bpapel\b|\bdvd\b|dvd[+\-]?r|\bcd-?r\b|"
-    r"\bhpe\b|servidor|\bserver\b|ethernet|base-?t|\bsfp\b|\brack\b|\bswitch\b|patch panel|"
+    # "cartucho" no bastaba: Carrefour lo abrevia ("Samsung Print Cart. Clt-m659s"),
+    # y ese tóner acabó publicado como deal. Se añaden la abreviatura y las series
+    # de tóner que se nombran solo por referencia (Samsung CLT-, Brother TN-).
+    r"t[oó]ner|tinta|cartucho|print cart|\bcart\.|\bclt-[a-z]?\d|\btn-?\d{3}|"
+    r"\bdrum\b|t[aá]mbor|fusor|\bpapel\b|\bdvd\b|dvd[+\-]?r|\bcd-?r\b|"
+    # "switch" a secas bloqueaba también Nintendo Switch (la allowlist sí deja pasar
+    # "nintendo", así que sus juegos y consolas se caían en silencio). Ahora solo se
+    # bloquea el switch de RED, por contexto.
+    r"\bhpe\b|servidor|\bserver\b|ethernet|base-?t|\bsfp\b|\brack\b|patch panel|"
+    r"switch\s+(?:de\s+red|gigabit|poe|ethernet|gestionab|administrab|no\s+gestionad|\d+\s*puertos)|"
+    r"(?:de\s+red|gigabit|poe|ethernet)\s+switch|"
     r"licencia|\blicense\b|warranty|garant[ií]a ext|reacondicionad|refurbish|renewed|open box|"
     r"segunda mano|recambio|repuesto|consumible|resma|etiquetas|precinto|embalaje",
     re.I,
