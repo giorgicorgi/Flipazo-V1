@@ -3754,6 +3754,37 @@ def alertar_admin(titulo: str, detalle: str = ""):
 # cortaba). Estuvo 2 SEMANAS sin publicar y el pipeline seguía "en verde": nadie
 # comprobaba que cada tienda siguiera escribiendo su histórico. Esto lo vigila.
 FRESCURA_MAX_DIAS = int(os.getenv("FRESCURA_MAX_DIAS", "3"))
+# Días sin que cambie NI UN precio para considerar el feed congelado. Un catálogo
+# grande mueve precios cada pocos días; 14 sin un solo cambio es un feed muerto.
+ESTANCADO_MAX_DIAS = int(os.getenv("ESTANCADO_MAX_DIAS", "14"))
+
+
+def _tiendas_con_precios_estancados(con, hoy) -> list[tuple]:
+    """
+    Tiendas que siguen escribiendo pero cuyos precios no se mueven.
+
+    Se mira la ventana de ESTANCADO_MAX_DIAS: si en ese tiempo el catálogo entero
+    tuvo un único precio por producto, el feed está sirviendo una foto fija. Solo
+    se evalúan catálogos grandes (≥500 productos), donde tener cero cambios en dos
+    semanas es estadísticamente imposible.
+    """
+    fuera = []
+    consultas = [
+        ("Decathlon", "SELECT COUNT(*), SUM(CASE WHEN n > 1 THEN 1 ELSE 0 END) FROM ("
+                      "SELECT COUNT(DISTINCT precio) n FROM decathlon_precios "
+                      f"WHERE fecha >= date('now','-{ESTANCADO_MAX_DIAS} day') GROUP BY model_id)"),
+        ("ToysRus",   "SELECT COUNT(*), SUM(CASE WHEN n > 1 THEN 1 ELSE 0 END) FROM ("
+                      "SELECT COUNT(DISTINCT precio) n FROM toysrus_precios "
+                      f"WHERE fecha >= date('now','-{ESTANCADO_MAX_DIAS} day') GROUP BY ean)"),
+    ]
+    for tienda, sql in consultas:
+        try:
+            total, cambian = con.execute(sql).fetchone()
+        except sqlite3.Error:
+            continue                      # la tabla puede no existir
+        if (total or 0) >= 500 and not (cambian or 0):
+            fuera.append((f"{tienda} (precios congelados)", hoy.isoformat(), ESTANCADO_MAX_DIAS))
+    return fuera
 
 def vigilar_frescura_feeds(db_path: str = DB_PATH) -> list[tuple]:
     """
@@ -3799,6 +3830,14 @@ def vigilar_frescura_feeds(db_path: str = DB_PATH) -> list[tuple]:
                     continue
                 if dias > FRESCURA_MAX_DIAS:
                     rancias.append((tienda, str(ult)[:10], dias))
+
+            # ── Precios ESTANCADOS ───────────────────────────────────────
+            # Escribir a diario no basta: el feed de Decathlon (id=98) siguió
+            # respondiendo con 364.605 productos durante 57 días, pero con los
+            # precios congelados del 14-jun. Guardábamos la misma foto una y otra
+            # vez, la tienda dejó de publicar y este vigilante decía que todo
+            # bien, porque solo miraba que hubiera datos nuevos.
+            rancias += _tiendas_con_precios_estancados(con, hoy)
 
             nuevas = [r for r in rancias if avisados.get(r[0]) != hoy_iso]
             if nuevas:

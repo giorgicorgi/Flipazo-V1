@@ -168,7 +168,12 @@ def _registrar_precios(modelos: dict[str, dict]) -> None:
 # ── Descarga + parseo ──────────────────────────────────────────────────────
 
 def _descargar_a_fichero() -> str:
-    """Descarga el feed en streaming a un fichero temporal. Devuelve la ruta."""
+    """Descarga el feed en streaming a un fichero temporal. Devuelve la ruta.
+
+    Valida que lo descargado sea XML: si se pide el feed varias veces seguidas, el
+    proveedor responde 200 con el cuerpo "File not found" (15 bytes). Sin este
+    control se parseaba esa cadena y saltaba un 'syntax error: line 1, column 0'
+    que parecía un feed corrupto, cuando en realidad no había feed."""
     fd, path = tempfile.mkstemp(suffix=".xml", prefix="decathlon_feed_")
     with os.fdopen(fd, "wb") as f:
         with requests.get(DECATHLON_FEED_URL, timeout=180, stream=True) as resp:
@@ -176,6 +181,13 @@ def _descargar_a_fichero() -> str:
             for chunk in resp.iter_content(chunk_size=1 << 16):
                 if chunk:
                     f.write(chunk)
+
+    with open(path, "rb") as f:
+        cabecera = f.read(200).lstrip()
+    if not cabecera.startswith(b"<?xml") and not cabecera.startswith(b"<items"):
+        detalle = cabecera[:80].decode("utf-8", "replace").strip()
+        os.unlink(path)
+        raise RuntimeError(f"el proveedor no devolvió XML ({os.path.getsize(path) if os.path.exists(path) else 0} b): {detalle!r}")
     return path
 
 
