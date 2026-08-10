@@ -1,21 +1,33 @@
 """
-scrapers/decathlon_feed.py — Feed de afiliado Decathlon ES (feed id=98).
+scrapers/decathlon_feed.py — Feed de afiliado Decathlon ES (feed id=107).
 
-Esquema XML:  <Products><Product>...</Product>...</Products>
-Campos:       Sku, Product_ID, Name, Brand, Product_Nature, Images, Url,
-              InitialPrice (precio de referencia), Discount_Price (precio actual),
-              Avaibility_Model / AvaibilitySku (stock), Size.
+Esquema XML:  <items><item>...</item>...</items>
+Campos:       ModelID, SkuID, Name, Brand, Sport, Img, URL (ya es deep link
+              afiliado), Price, Size, Seller.
 
-⚠️ OJO con InitialPrice: en el feed id=98 es el **PVP/RRP del fabricante**, NO un
-precio anterior real. Decathlon vende muchas marcas 3ª (Regatta, Wilson, Siux…) por
-debajo del PVP como precio NORMAL, así que (InitialPrice − Discount_Price) daba
-descuentos FALSOS (verificado: los productos nunca costaron el InitialPrice). Por eso
-detectamos bajadas con NUESTRO histórico propio (decathlon_precios), como ECI/ToysRus:
-referencia = precio máximo sostenido ≥3 días en los últimos 30; deal solo si el precio
-de hoy cae ≥40% respecto a esa referencia REAL.
+⚠️ POR QUÉ id=107 Y NO id=98 (10-ago-2026):
+El 14-jun se cambió a id=98 porque traía InitialPrice y prometía "descuento
+directo". Fue un error doble:
 
-El feed pesa ~170 MB, así que se descarga en streaming a un fichero temporal y se
-parsea con ET.iterparse (memoria acotada), liberando cada nodo al procesarlo.
+  1. Sus precios se CONGELARON ese mismo día. Comprobado sobre 85 días de
+     histórico propio: hasta el 14-jun había cientos o miles de cambios diarios;
+     desde entonces, CERO cambios en 158.927 modelos durante 57 días. Como la
+     detección compara contra los últimos 30 días, los deals se agotaron el
+     10-jul y la tienda quedó muda sin que nada fallara aparentemente.
+  2. InitialPrice no es un precio anterior real. En los recambios es el precio
+     del producto PADRE: la vela del velero Tribord salió a 399,99€ "antes
+     2.469,99€" (el velero completo), llevando 85 días a 399,99€.
+
+id=107 trae precios FRESCOS (de 20.033 modelos comunes, 5.805 tienen precio
+distinto del congelado de id=98) y solo catálogo propio: Seller="Decathlon" en
+los 79.119 items, sin marketplace de terceros.
+
+No trae precio de referencia, y está bien: la única referencia fiable es NUESTRO
+histórico (decathlon_precios) — referencia = precio máximo sostenido ≥3 días en
+los últimos 30; deal solo si el de hoy cae ≥40% respecto a esa referencia real.
+
+Se descarga en streaming a un fichero temporal (~85 MB) y se parsea con
+ET.iterparse (memoria acotada), liberando cada nodo al procesarlo.
 
 Caché 23h. Devuelve list[dict] compatible con Producto(**d) en flipazo_main.
 
@@ -179,45 +191,41 @@ def _parsear(path: str) -> tuple[dict[str, dict], int]:
         def _t(tag: str) -> str:
             v = el.findtext(tag)
             return v.strip() if v else ""
-        pid = _t("Product_ID")
-        if not pid:
+        mid = _t("ModelID")
+        if not mid:
             return
-        precio_actual = _parse_precio(_t("Discount_Price"))
-        precio_ref    = _parse_precio(_t("InitialPrice"))
-        if precio_actual <= 0 or precio_ref <= 0:
+        precio = _parse_precio(_t("Price"))
+        if precio <= 0:
             return
-        disp     = _parse_int(_t("Avaibility_Model") or _t("AvaibilitySku"))
         es_letra = bool(_TALLA_LETRA_RE.match(_t("Size")))
-        if pid not in modelos:
-            modelos[pid] = {
-                "model_id":      pid,
+        if mid not in modelos:
+            modelos[mid] = {
+                "model_id":      mid,
                 "nombre":        _t("Name"),
                 "marca":         _t("Brand") or "DECATHLON",
-                "deporte":       _t("Product_Nature"),
-                "precio_actual": precio_actual,
-                "precio_ref":    precio_ref,
-                "imagen_url":    _t("Images"),
-                "url":           _t("Url"),
-                "disp":          disp,
+                "deporte":       _t("Sport"),
+                "precio_actual": precio,
+                "precio_ref":    0.0,     # este feed NO trae precio de referencia: se usa el histórico
+                "imagen_url":    _t("Img"),
+                "url":           _t("URL"),
+                "disp":          1,       # id=107 solo lista producto disponible
                 "_letra":        es_letra,
             }
         else:
-            m = modelos[pid]
-            m["disp"] = max(m["disp"], disp)
+            m = modelos[mid]
             # Preferir variante de talla no-letra (mejor URL/representación)
             if m["_letra"] and not es_letra:
                 m.update({
-                    "precio_actual": precio_actual,
-                    "precio_ref":    precio_ref,
-                    "url":           _t("Url") or m["url"],
+                    "precio_actual": precio,
+                    "url":           _t("URL") or m["url"],
                     "_letra":        False,
                 })
 
     context = ET.iterparse(path, events=("start", "end"))
-    _, root = next(context)  # primer start = <Products>
+    _, root = next(context)  # primer start = <items>
     try:
         for event, el in context:
-            if event == "end" and el.tag == "Product":
+            if event == "end" and el.tag == "item":
                 total += 1
                 _procesar(el)
                 el.clear()
