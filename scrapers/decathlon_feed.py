@@ -50,6 +50,27 @@ _DIAS_HISTORIAL  = 30   # ventana de histórico considerada
 _MIN_DIAS_DATOS  = 7    # días distintos de datos exigidos (fiabilidad)
 _MIN_DIAS_EN_MAX = 3    # el precio de referencia debe haberse sostenido ≥N días
 
+# ── Marcas PROPIAS de Decathlon ────────────────────────────────────────────
+# Para estas, InitialPrice es el precio anterior de la PROPIA Decathlon (es
+# fabricante y vendedor a la vez), así que sí sirve como referencia. Para marcas
+# de terceros (Regatta, Geox, Puma, Vans…) es el PVP del fabricante: la trampa
+# de Beep, y no se usa.
+#
+# Por qué hace falta esto: Discount_Price no se mueve NUNCA. En 84 días de
+# histórico propio, los 158.927 modelos tienen un único precio, así que la
+# detección por bajada propia no puede dispararse jamás para Decathlon.
+_MARCAS_PROPIAS = {
+    "quechua", "kalenji", "domyos", "kipsta", "nabaiji", "wedze", "forclaz",
+    "tribord", "artengo", "btwin", "rockrider", "van rysel", "solognac",
+    "caperlan", "geologic", "simond", "olaian", "newfeel", "inesis", "fouganza",
+    "aptonia", "kiprun", "decathlon", "corique", "offload", "allsix", "perfly",
+    "outshock", "copaya", "evadict", "wanabee", "subea", "itiwit", "orao",
+}
+
+def _es_marca_propia(marca: str) -> bool:
+    m = (marca or "").lower().strip()
+    return any(m == p or m.startswith(p) for p in _MARCAS_PROPIAS)
+
 # Descarta variantes cuya única diferencia sea una talla de letra (S/M/L/XL…),
 # para preferir una URL/representación de talla numérica o única por modelo.
 _TALLA_LETRA_RE = re.compile(r'^\s*(?:XXL|XXXL|XXS|XS|XL|[SML])\s*(?:/|$)', re.IGNORECASE)
@@ -244,8 +265,12 @@ def _detectar_deals(modelos: dict[str, dict]) -> list[dict]:
     for m in modelos.values():
         pa   = m["precio_actual"]
         pmax = ref.get(m["model_id"])
+        # Sin bajada en nuestro histórico, aceptamos InitialPrice como referencia
+        # SOLO en marcas propias de Decathlon (ver _MARCAS_PROPIAS).
+        if (not pmax or pmax <= pa) and _es_marca_propia(m.get("marca", "")):
+            pmax = m.get("precio_ref") or 0
         if not pmax or pmax <= pa:
-            continue                                   # sin bajada real vs nuestro histórico
+            continue                                   # sin referencia utilizable
         if not (_PRECIO_MIN <= pa <= _PRECIO_MAX):
             continue
         if m["disp"] <= 0:
