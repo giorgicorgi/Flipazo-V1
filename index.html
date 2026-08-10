@@ -3147,6 +3147,10 @@
           <button type="submit">Buscar</button>
         </form>
         <div class="wb__pills">
+          <!-- Cifra de credibilidad: TODAS las ofertas verificadas desde el primer
+               día, no solo las que siguen en catálogo. Va aquí y no en la cabecera
+               del listado porque ahí significaría "cuántas hay en esta lista". -->
+          <span class="wb__pill" id="js-ih-historico" style="display:none"><b id="js-ih-hist-n">—</b> ofertas verificadas</span>
           <span class="wb__pill"><b id="js-ih-avg">−52%</b> descuento medio</span>
           <span class="wb__pill">Actualizado cada 5 min</span>
           <span class="wb__pill">Gratis · sin registro</span>
@@ -4943,7 +4947,8 @@
     document.getElementById("js-load-indicator").style.display = show ? "" : "none";
   }
 
-  let _totalDealsDB = null;
+  let _totalDealsDB     = null;   // navegables ahora (30 días) → cabecera del listado
+  let _historicoDealsDB = null;   // todas las verificadas → cifra de credibilidad del hero
 
   async function fetchTotalCount() {
     if (USE_MOCK) return;
@@ -4952,7 +4957,15 @@
       if (r.ok) {
         const data = await r.json();
         _totalDealsDB = data.total || null;
+        _historicoDealsDB = data.historico || null;
         updateCount();
+        // Cifra grande y siempre visible en el hero: es la que da credibilidad.
+        if (_historicoDealsDB) {
+          const chip = document.getElementById("js-ih-historico");
+          const n    = document.getElementById("js-ih-hist-n");
+          if (n)    n.textContent = _historicoDealsDB.toLocaleString("es-ES");
+          if (chip) chip.style.display = "";
+        }
       }
     } catch {}
   }

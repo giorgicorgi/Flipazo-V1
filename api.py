@@ -1161,9 +1161,21 @@ def get_section(name: str, limit: int = Query(default=12, ge=1, le=50)):
 
 @app.get("/api/deals/count")
 def get_count():
+    """
+    Dos cifras distintas, y conviene no confundirlas:
+      total     → ofertas navegables AHORA (el catálogo se limita a 30 días,
+                  igual que /api/deals; más atrás los precios ya no son fiables).
+      historico → todas las publicadas y verificadas desde el primer día.
+    El admin veía solo `historico` y la web solo `total`, de ahí que un mismo
+    día marcaran 5.621 y 3.302 sin que se entendiera por qué.
+    """
     with _get_db() as con:
-        total = con.execute("SELECT COUNT(*) FROM deals_publicados WHERE publicado_en >= datetime('now', '-30 days')").fetchone()[0]
-    return {"total": total}
+        total = con.execute(
+            "SELECT COUNT(*) FROM deals_publicados WHERE publicado_en >= datetime('now', '-30 days')"
+        ).fetchone()[0]
+        historico = con.execute("SELECT COUNT(*) FROM deals_publicados").fetchone()[0]
+        desde = con.execute("SELECT MIN(publicado_en) FROM deals_publicados").fetchone()[0] or ""
+    return {"total": total, "historico": historico, "desde": desde[:10]}
 
 
 @app.get("/api/promociones")
@@ -1866,6 +1878,11 @@ def admin_stats(request: Request):
 
     with _get_db() as con:
         total_deals   = con.execute("SELECT COUNT(*) FROM deals_publicados").fetchone()[0]
+        # En catálogo = lo que la web puede mostrar (ventana de 30 días). Sin este
+        # dato, admin y web daban cifras distintas sin explicación aparente.
+        deals_catalogo = con.execute(
+            "SELECT COUNT(*) FROM deals_publicados WHERE publicado_en >= datetime('now','-30 days')"
+        ).fetchone()[0]
         today_deals   = con.execute(
             "SELECT COUNT(*) FROM deals_publicados WHERE publicado_en >= date('now')"
         ).fetchone()[0]
@@ -1897,8 +1914,9 @@ def admin_stats(request: Request):
         ).fetchall()
 
     return {
-        "total_deals":   total_deals,
-        "today_deals":   today_deals,
+        "total_deals":    total_deals,
+        "deals_catalogo": deals_catalogo,   # los que la web puede mostrar (30 días)
+        "today_deals":    today_deals,
         "total_clicks":  total_clicks,
         "today_clicks":  today_clicks,
         "total_users":   total_users,

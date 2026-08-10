@@ -603,7 +603,11 @@
       if(res.status===401) return logout();
       var d=await res.json();
       document.getElementById('stats-grid').innerHTML=[
-        {label:'Deals totales',   value:d.total_deals,  sub:(d.today_deals||0)+' hoy'},
+        // "Deals totales" es el histórico completo; la web solo muestra los de los
+        // últimos 30 días, así que se indica cuántos hay en catálogo para que las
+        // dos cifras se puedan cuadrar de un vistazo.
+        {label:'Deals totales',   value:d.total_deals,
+         sub:(d.today_deals||0)+' hoy · '+((d.deals_catalogo||0).toLocaleString('es-ES'))+' en la web'},
         {label:'Clicks totales',  value:d.total_clicks, sub:(d.today_clicks||0)+' hoy'},
         {label:'Usuarios',        value:d.total_users,  sub:(d.premium_users||0)+' premium'},
         {label:'Clicks Telegram', value:(d.clicks_canal&&d.clicks_canal.telegram)||0, sub:''},
