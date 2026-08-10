@@ -659,7 +659,8 @@ async def _comportamiento_humano(page: Page):
 
 # Circuit breaker: { "StoreName": datetime_hasta_cuando_ignorar }
 _store_block_until: dict[str, datetime] = {}
-_CIRCUIT_BREAKER_MINUTOS = 60  # Skip la tienda 60 min tras 3 fallos consecutivos
+_CIRCUIT_BREAKER_MINUTOS = 60   # Skip la tienda 60 min tras 3 fallos consecutivos
+_CIRCUIT_BREAKER_MAX_MIN = 720  # …duplicando en cada tanda hasta 12 h como máximo
 _store_fail_count: dict[str, int] = {}
 
 # Tiendas bloqueadas por Cloudflare sin solución conocida: NO alertar al admin por
@@ -737,11 +738,18 @@ async def _cargar_con_reintento(
     if store_key not in _NO_ALERTAR_BLOQUEO:
         alertar_admin(f"Scraper bloqueado: {store}", f"No accesible tras {max_intentos} intentos.\nURL: {url}")
 
-    # Circuit breaker: acumular fallos y bloquear si supera el umbral
+    # Circuit breaker con espera creciente. Una tienda con el scraping bloqueado
+    # de forma permanente (PcComponentes lleva semanas con el reto de Cloudflare)
+    # gastaba un navegador y ~2 min en 3 intentos fallidos CADA ciclo. Con el
+    # backoff, tras varias tandas fallidas se reintenta una vez cada varias horas:
+    # sigue pudiendo recuperarse sola, pero deja de robar tiempo al resto.
     _store_fail_count[store_key] = _store_fail_count.get(store_key, 0) + 1
+    tandas = _store_fail_count[store_key] // 3
     if _store_fail_count[store_key] >= 3:
-        _store_block_until[store_key] = datetime.now() + timedelta(minutes=_CIRCUIT_BREAKER_MINUTOS)
-        print(f"   🔴 [{store_key}] Circuit breaker activado — pausando {_CIRCUIT_BREAKER_MINUTOS}min")
+        minutos = min(_CIRCUIT_BREAKER_MINUTOS * (2 ** (tandas - 1)), _CIRCUIT_BREAKER_MAX_MIN)
+        _store_block_until[store_key] = datetime.now() + timedelta(minutes=minutos)
+        print(f"   🔴 [{store_key}] Circuit breaker activado — pausando {minutos}min "
+              f"(tanda {tandas} de fallos seguidos)")
 
     return False
 
