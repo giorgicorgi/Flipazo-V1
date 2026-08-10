@@ -3766,6 +3766,17 @@ def vigilar_frescura_feeds(db_path: str = DB_PATH) -> list[tuple]:
             filas = con.execute(
                 "SELECT tienda, MAX(fecha) FROM price_history GROUP BY tienda"
             ).fetchall()
+            # Decathlon y ToysRus NO escriben en price_history, tienen sus propias
+            # tablas. Sin esto el vigilante los daba por muertos estando sanos —
+            # y una alarma que miente es peor que no tenerla: se deja de mirar.
+            for tienda, tabla in (("Decathlon", "decathlon_precios"),
+                                  ("ToysRus",   "toysrus_precios")):
+                try:
+                    ult = con.execute(f"SELECT MAX(fecha) FROM {tabla}").fetchone()[0]
+                    if ult:
+                        filas = [f for f in filas if f[0] != tienda] + [(tienda, ult)]
+                except sqlite3.Error:
+                    pass   # la tabla puede no existir aún
             hoy    = datetime.now().date()
             hoy_iso = hoy.isoformat()
             avisados = dict(con.execute("SELECT tienda, ultimo_aviso FROM feed_watchdog").fetchall())

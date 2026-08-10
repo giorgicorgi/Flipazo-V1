@@ -980,7 +980,11 @@ def get_deals(
 ):
     """Devuelve deals publicados ordenados del más reciente al más antiguo."""
     where_clauses, params = [], []
-    where_clauses.append("publicado_en >= datetime('now', '-30 days')")
+    # Catálogo COMPLETO, sin ventana temporal: el número que anunciamos ("N ofertas
+    # verificadas") tiene que corresponderse con lo que se puede ver de verdad.
+    # Antes se cortaba a 30 días, así que la web decía 3.302 mientras el histórico
+    # era 5.621 y esas 2.319 no había forma de alcanzarlas. Van ordenadas de más
+    # reciente a más antigua, así que lo viejo queda al final del scroll.
     if tipo:
         where_clauses.append("tipo = ?"); params.append(tipo.upper())
     if tienda:
@@ -1162,18 +1166,13 @@ def get_section(name: str, limit: int = Query(default=12, ge=1, le=50)):
 @app.get("/api/deals/count")
 def get_count():
     """
-    Dos cifras distintas, y conviene no confundirlas:
-      total     → ofertas navegables AHORA (el catálogo se limita a 30 días,
-                  igual que /api/deals; más atrás los precios ya no son fiables).
-      historico → todas las publicadas y verificadas desde el primer día.
-    El admin veía solo `historico` y la web solo `total`, de ahí que un mismo
-    día marcaran 5.621 y 3.302 sin que se entendiera por qué.
+    `total` e `historico` son ya el MISMO número: el catálogo dejó de recortarse a
+    30 días para que la cifra que anunciamos sea la que de verdad se puede navegar.
+    Se mantienen las dos claves para no romper a quien ya consuma este endpoint.
     """
     with _get_db() as con:
-        total = con.execute(
-            "SELECT COUNT(*) FROM deals_publicados WHERE publicado_en >= datetime('now', '-30 days')"
-        ).fetchone()[0]
-        historico = con.execute("SELECT COUNT(*) FROM deals_publicados").fetchone()[0]
+        total = con.execute("SELECT COUNT(*) FROM deals_publicados").fetchone()[0]
+        historico = total
         desde = con.execute("SELECT MIN(publicado_en) FROM deals_publicados").fetchone()[0] or ""
     return {"total": total, "historico": historico, "desde": desde[:10]}
 
