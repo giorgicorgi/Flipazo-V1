@@ -341,7 +341,7 @@ def fetch_decathlon_productos() -> list[dict]:
             _cache      = deals
             _last_fetch = now
             print(
-                f"📡 Decathlon feed (id=98): {total} productos, "
+                f"📡 Decathlon feed (id=107): {total} productos, "
                 f"{len(modelos)} modelos, {len(deals)} deals detectados"
             )
             return deals

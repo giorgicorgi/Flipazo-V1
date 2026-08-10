@@ -3775,17 +3775,25 @@ def _tiendas_con_precios_estancados(con, hoy) -> list[tuple]:
     semanas es estadísticamente imposible.
     """
     fuera = []
-    consultas = [
-        ("Decathlon", "SELECT COUNT(*), SUM(CASE WHEN n > 1 THEN 1 ELSE 0 END) FROM ("
-                      "SELECT COUNT(DISTINCT precio) n FROM decathlon_precios "
-                      f"WHERE fecha >= date('now','-{ESTANCADO_MAX_DIAS} day') GROUP BY model_id)"),
-        ("ToysRus",   "SELECT COUNT(*), SUM(CASE WHEN n > 1 THEN 1 ELSE 0 END) FROM ("
-                      "SELECT COUNT(DISTINCT precio) n FROM toysrus_precios "
-                      f"WHERE fecha >= date('now','-{ESTANCADO_MAX_DIAS} day') GROUP BY ean)"),
-    ]
-    for tienda, sql in consultas:
+    tablas = [("Decathlon", "decathlon_precios", "model_id"),
+              ("ToysRus",   "toysrus_precios",   "ean")]
+    for tienda, tabla, clave in tablas:
         try:
-            total, cambian = con.execute(sql).fetchone()
+            # Días DISTINTOS de datos en la ventana. Sin esto, un histórico recién
+            # empezado (1 día) tiene cero cambios por definición y se marcaba como
+            # congelado: le pasó a Decathlon al migrar de feed, y un vigilante que
+            # da falsos positivos deja de mirarse.
+            dias = con.execute(
+                f"SELECT COUNT(DISTINCT fecha) FROM {tabla} "
+                f"WHERE fecha >= date('now','-{ESTANCADO_MAX_DIAS} day')"
+            ).fetchone()[0]
+            if (dias or 0) < 7:
+                continue                  # aún no hay ventana suficiente para juzgar
+            total, cambian = con.execute(
+                f"SELECT COUNT(*), SUM(CASE WHEN n > 1 THEN 1 ELSE 0 END) FROM ("
+                f"SELECT COUNT(DISTINCT precio) n FROM {tabla} "
+                f"WHERE fecha >= date('now','-{ESTANCADO_MAX_DIAS} day') GROUP BY {clave})"
+            ).fetchone()
         except sqlite3.Error:
             continue                      # la tabla puede no existir
         if (total or 0) >= 500 and not (cambian or 0):
