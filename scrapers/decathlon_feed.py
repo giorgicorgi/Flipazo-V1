@@ -51,14 +51,21 @@ _MIN_DIAS_DATOS  = 7    # días distintos de datos exigidos (fiabilidad)
 _MIN_DIAS_EN_MAX = 3    # el precio de referencia debe haberse sostenido ≥N días
 
 # ── Marcas PROPIAS de Decathlon ────────────────────────────────────────────
-# Para estas, InitialPrice es el precio anterior de la PROPIA Decathlon (es
-# fabricante y vendedor a la vez), así que sí sirve como referencia. Para marcas
-# de terceros (Regatta, Geox, Puma, Vans…) es el PVP del fabricante: la trampa
-# de Beep, y no se usa.
+# ⚠️ NO usar InitialPrice como referencia, ni siquiera en estas marcas. Se probó
+# el 10-ago-2026 y salió mal: de 11 deals publicados, en 9 NUNCA habíamos
+# observado ese precio anterior. Casos reales:
+#   · "Vela Velero Hinchable Tribord 5S V2": 399,99€ "antes 2.469,99€". Los
+#     2.469€ son el precio del VELERO COMPLETO — el feed hereda el precio del
+#     producto padre a cada recambio (rueda 9,99€, orza 77,99€, mástil 369,99€…).
+#     Ese modelo lleva 85 días a 399,99€ y nunca estuvo a otro precio.
+#   · "Chaqueta Offshore 900": publicada a 119,99€ "antes 249,99€" cuando en
+#     nuestro histórico llevaba 55 días a 49,99€ — anunciábamos como oferta un
+#     precio MÁS CARO del que habíamos visto.
+# InitialPrice es un precio de catálogo que no podemos verificar. La única
+# referencia fiable es nuestro propio histórico (decathlon_precios).
 #
-# Por qué hace falta esto: Discount_Price no se mueve NUNCA. En 84 días de
-# histórico propio, los 158.927 modelos tienen un único precio, así que la
-# detección por bajada propia no puede dispararse jamás para Decathlon.
+# El conjunto se conserva porque distingue el catálogo propio del marketplace
+# (86% del feed son terceros), útil para futuras decisiones.
 _MARCAS_PROPIAS = {
     "quechua", "kalenji", "domyos", "kipsta", "nabaiji", "wedze", "forclaz",
     "tribord", "artengo", "btwin", "rockrider", "van rysel", "solognac",
@@ -265,12 +272,8 @@ def _detectar_deals(modelos: dict[str, dict]) -> list[dict]:
     for m in modelos.values():
         pa   = m["precio_actual"]
         pmax = ref.get(m["model_id"])
-        # Sin bajada en nuestro histórico, aceptamos InitialPrice como referencia
-        # SOLO en marcas propias de Decathlon (ver _MARCAS_PROPIAS).
-        if (not pmax or pmax <= pa) and _es_marca_propia(m.get("marca", "")):
-            pmax = m.get("precio_ref") or 0
         if not pmax or pmax <= pa:
-            continue                                   # sin referencia utilizable
+            continue                                   # sin bajada real vs nuestro histórico
         if not (_PRECIO_MIN <= pa <= _PRECIO_MAX):
             continue
         if m["disp"] <= 0:
