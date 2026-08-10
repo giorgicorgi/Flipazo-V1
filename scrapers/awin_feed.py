@@ -70,6 +70,8 @@ _MERCHANT_MAP = {
     # Feed 2 (fids 78257,101515):
     "Foot Locker ES":       "Foot Locker",   # product_price_old REAL en 8.185/49.742 → publicable
     "TodoConsolas ES":      "TodoConsolas",  # product_price_old vacío en las 24.596 → histórico
+    # Feed 3 (fid 78983): bricolaje/baño/iluminación. Cadena propia, no marketplace.
+    "BAUHAUS ES":           "Bauhaus",       # product_price_old y rrp_price VACÍOS → histórico
 }
 # Tiendas con product_price_old fiable → se publican como deals
 _PUBLICABLE = {"Padel Market", "Foot Locker"}
@@ -80,7 +82,8 @@ _PUBLICABLE = {"Padel Market", "Foot Locker"}
 # 2.087, pero con mediana de solo -15% y siendo PVP de fabricante (la misma trampa
 # que Beep) → no sirve como "precio antes". Histórico propio.
 _SOLO_HISTORICO = {"ElCorteIngles", "Brico Depot", "Zalando", "Deporte Outlet",
-                   "Paco Perfumerias", "Bikila", "Adidas", "Carrefour", "TodoConsolas"}
+                   "Paco Perfumerias", "Bikila", "Adidas", "Carrefour", "TodoConsolas",
+                   "Bauhaus"}
 # Carrefour "Supermercado Online" es en realidad un marketplace mayormente B2B/pro (tóner,
 # hardware de servidor, AV de integración tipo Crestron/CTouch, reacondicionados). NO nos vale
 # un blocklist (el 58% del catálogo ≥100€ es material profesional). Usamos ALLOWLIST de marcas

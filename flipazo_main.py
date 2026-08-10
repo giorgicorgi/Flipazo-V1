@@ -2403,7 +2403,7 @@ _TIENDAS_FEED_CONFIABLE = {
     "Decathlon", "Padel Market", "Adidas",
     # Tiendas AWIN con descuento detectado por NUESTRO histórico (price_drop) → ya verificado
     "ElCorteIngles", "Zalando", "Deporte Outlet", "Brico Depot", "Paco Perfumerias", "Bikila",
-    "OneBioShop", "Tiendanimal", "Carrefour", "ToysRus", "TodoConsolas",
+    "OneBioShop", "Tiendanimal", "Carrefour", "ToysRus", "TodoConsolas", "Bauhaus",
     # Foot Locker sí trae product_price_old real, pero su catálogo es Nike/Adidas/
     # Jordan/New Balance: marcas reconocidas de sobra, no necesita la exención.
     "Foot Locker",
@@ -2562,7 +2562,13 @@ _CAT_RE = {
         r'calefactor|radiador.*el[eé]ctrico|aire.*acondicionado|\bsplit\b|ventilador\b|'
         r'purificador.*aire|humidificador|deshumidificador|'
         r'placa.*inducci[oó]n|inducci[oó]n\b|vitrocer[aá]mic|\bhorno\b|'
-        r'colch[oó]n|l[aá]mpara|sill[oó]n|sof[aá]|escritorio|estanter[ií]a',
+        r'colch[oó]n|l[aá]mpara|sill[oó]n|sof[aá]|escritorio|estanter[ií]a|'
+        # Baño y reforma (catálogo Bauhaus): antes caían en "otras"
+        r'plato de ducha|mampara|cabina de ducha|\bgrifo\b|griber[ií]a|monomando|'
+        r'\blavabo\b|\bbid[eé]\b|\binodoro\b|\bcisterna\b|mueble de ba[ñn]o|'
+        r'columna de ducha|\bmampara\b|toallero|\bazulejo|\bbald[oó]sa|\bparquet\b|'
+        r'\btarima\b|c[eé]sped artificial|\bpérgola\b|\bpergola\b|\btoldo\b|'
+        r'armario\b|c[oó]moda\b|\bmesita\b|somier|canap[eé]',
         re.I),
     "mascotas":     re.compile(
         r'\bpienso\b|comida.*(?:perro|gato|mascota)|snack.*(?:perro|gato)|premios.*(?:perro|gato)|'
