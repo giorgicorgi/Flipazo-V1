@@ -7185,7 +7185,26 @@
   setTimeout(preloadStoresForBar, 1500);
 
   // Preferencias "Para ti": pinta la pestaña y la fila de Explorar si hay sesión
-  loadPrefs();
+  loadPrefs().then(() => {
+    // /?prefs=1 → abre el editor de intereses. Lo usa el enlace "Editar mis
+    // intereses" de Mi Cuenta, para no tener dos copias del mismo editor.
+    //
+    // Hay que esperar al DOM: este script va en mitad del body y el panel está
+    // más abajo, así que si loadPrefs() resuelve rápido (sin sesión, o con la
+    // respuesta cacheada) el elemento aún no existe y el editor no se abriría.
+    const abrir = () => {
+      try {
+        if (new URLSearchParams(location.search).get("prefs") !== "1") return;
+        openPrefsEditor();
+        history.replaceState({}, "", location.pathname);
+      } catch {}
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", abrir, { once: true });
+    } else {
+      abrir();
+    }
+  });
 
   setInterval(pollNew, POLL_MS);
   setInterval(() => {

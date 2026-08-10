@@ -2390,6 +2390,7 @@ def get_favorites(request: Request):
                    d.precio AS precio_actual, d.precio_original, d.descuento_pct,
                    d.imagen_url, d.url_afiliado AS url_affiliate,
                    d.precio_wallapop, d.beneficio_neto, d.publicado_en AS timestamp,
+                   COALESCE(d.expirado, 0) AS expirado,
                    f.created_at AS saved_at
             FROM favorites f
             JOIN deals_publicados d ON f.deal_id = d.deal_id

@@ -490,11 +490,37 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
+    .dash-fav-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .dash-fav-prices { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
+    /* Mismo criterio que las fichas de la home: el precio anterior tiene que
+       leerse, si no el precio actual no dice nada. */
     .dash-fav-orig {
-      font-family: var(--sans); font-size: 12px;
-      color: var(--text-dim); text-decoration: line-through;
+      font-family: var(--sans); font-size: 12px; font-weight: 700;
+      color: var(--ink); text-decoration: line-through;
+      text-decoration-color: var(--brand); text-decoration-thickness: 1.5px;
     }
+    /* El ahorro en euros pega más fuerte que el porcentaje: la gente piensa en dinero */
+    .dash-fav-ahorro {
+      align-self: flex-start;
+      font-family: var(--sans); font-size: 11px; font-weight: 800;
+      color: #0D7A6F; background: rgba(20,193,174,0.12);
+      padding: 3px 9px; border-radius: 9999px; margin-top: 3px;
+    }
+    .dash-fav-desde {
+      font-family: var(--sans); font-size: 10.5px; font-weight: 600;
+      color: var(--text-faint); margin-top: 2px;
+    }
+    .dash-fav-expirado {
+      font-family: var(--sans); font-size: 9.5px; font-weight: 800;
+      letter-spacing: .06em; text-transform: uppercase;
+      color: #fff; background: var(--text-mid);
+      padding: 2px 7px; border-radius: 9999px;
+    }
+    /* Expirada: se atenúa la tarjeta pero se deja legible y clicable — puede que
+       el producto siga estando, solo que ya no a ese precio. */
+    .dash-fav-card--expirado { opacity: .68; }
+    .dash-fav-card--expirado .dash-fav-img { filter: grayscale(100%); }
+    .dash-fav-card--expirado .dash-fav-now { color: var(--text-mid); }
     .dash-fav-now {
       font-family: var(--sans); font-weight: 900; font-size: 19px;
       color: #0581FC; line-height: 1;
@@ -505,6 +531,24 @@
       transition: color 0.15s, transform 0.15s;
     }
     .dash-fav-card:hover .dash-fav-arrow { color: var(--brand); transform: translateX(2px); }
+
+    /* ── Resumen de "Para ti" ────────────────────────────────────── */
+    .parati-box {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      padding: 16px; margin-bottom: 22px;
+      background: var(--paper); border: 1px solid var(--border); border-radius: 16px;
+    }
+    .parati-box__cuerpo { flex: 1 1 220px; min-width: 0; }
+    .parati-box__estado {
+      font-family: var(--sans); font-size: 13px; color: var(--text-mid); line-height: 1.45;
+    }
+    .parati-box__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .parati-box__chip {
+      font-family: var(--sans); font-size: 11.5px; font-weight: 700;
+      color: #0D7A6F; background: rgba(20,193,174,0.12);
+      padding: 4px 10px; border-radius: 9999px;
+    }
 
     .dash-empty {
       font-family: var(--sans);
@@ -763,6 +807,18 @@
         <button class="dash-btn dash-btn--danger" onclick="logout()">Cerrar sesión</button>
       </div>
 
+      <!-- Para ti -->
+      <p class="dash-section-title">✨ Para ti</p>
+      <div class="parati-box" id="dash-parati">
+        <div class="parati-box__cuerpo">
+          <p class="parati-box__estado" id="dash-parati-estado">Cargando tus intereses…</p>
+          <div class="parati-box__chips" id="dash-parati-chips"></div>
+        </div>
+        <!-- El editor vive en la home: se enlaza en vez de duplicarlo, para que
+             no haya dos versiones de las mismas preferencias que mantener. -->
+        <a class="dash-btn dash-btn--primary" href="/?prefs=1">Editar mis intereses</a>
+      </div>
+
       <!-- Favorites -->
       <p class="dash-section-title">Mis ofertas favoritas</p>
       <div id="dash-favs-cta" class="favs-cta" style="display:none">
@@ -935,6 +991,57 @@
         }
       } catch {}
 
+      /* Resumen de "Para ti". Las etiquetas se replican aquí (son 8 y estables);
+         la lógica de filtrado y el editor siguen viviendo solo en la home. */
+      const CAT_LABELS = {
+        tecnologia: 'Tecnología', hogar: 'Hogar', moda: 'Moda', calzado: 'Calzado',
+        deportes: 'Deportes', belleza: 'Cuidado Personal', juguetes: 'Juguetes',
+        mascotas: 'Mascotas', herramientas: 'Herramientas', low_cost: 'Menos de 25€',
+      };
+      (async function cargarParaTi() {
+        const estado = document.getElementById('dash-parati-estado');
+        const chips  = document.getElementById('dash-parati-chips');
+        if (!estado) return;
+        try {
+          const r = await fetch(`${API}/api/user/prefs`, { headers: { Authorization: `Bearer ${getToken()}` } });
+          if (!r.ok) throw new Error(r.status);
+          const p = await r.json();
+          const cats = Array.isArray(p.cats) ? p.cats : [];
+          if (!cats.length) {
+            estado.textContent = 'Aún no has elegido intereses. Configúralos y verás solo lo que te importa.';
+            chips.innerHTML = '';
+            return;
+          }
+          const partes = [];
+          if (p.stores && p.stores.length) partes.push(`${p.stores.length} tienda${p.stores.length > 1 ? 's' : ''}`);
+          const min = Number(p.precio_min) || 0, max = p.precio_max == null ? null : Number(p.precio_max);
+          if (min > 0 || max !== null) {
+            partes.push(max === null ? `desde ${min} €` : (min > 0 ? `${min}–${max} €` : `hasta ${max} €`));
+          }
+          if (p.tg_linked) partes.push('Telegram conectado');
+          estado.textContent = partes.length
+            ? `Filtrando por: ${partes.join(' · ')}`
+            : 'Recibes ofertas de estas categorías:';
+          chips.innerHTML = cats.map(c =>
+            `<span class="parati-box__chip">${CAT_LABELS[c] || c}</span>`).join('');
+        } catch {
+          estado.textContent = 'No hemos podido cargar tus intereses ahora mismo.';
+          chips.innerHTML = '';
+        }
+      })();
+
+      /* "hoy" / "ayer" / "hace N días" y, a partir de ahí, la fecha. Más útil que
+         una fecha suelta para saber cuánto lleva esperando un deal guardado. */
+      function fechaFavorito(iso) {
+        const t = new Date(iso);
+        if (isNaN(t)) return '';
+        const dias = Math.floor((Date.now() - t.getTime()) / 86400000);
+        if (dias <= 0) return 'hoy';
+        if (dias === 1) return 'ayer';
+        if (dias < 7)  return `hace ${dias} días`;
+        return t.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', ...(t.getFullYear() !== new Date().getFullYear() && { year: 'numeric' }) });
+      }
+
       try {
         const res  = await fetch(`${API}/api/user/favorites`, { headers: { Authorization: `Bearer ${getToken()}` } });
         const favs = await res.ok ? await res.json() : [];
@@ -952,22 +1059,31 @@
             const precio   = Number(d.precio_actual) || 0;
             const original = Number(d.precio_original) || 0;
             const desc     = Number(d.descuento_pct) || 0;
+            const ahorro   = original > precio ? original - precio : 0;
+            const expirado = !!d.expirado;
             const fmt = n => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
             return `
-            <a href="${d.url_affiliate || '#'}" target="_blank" rel="noopener sponsored" class="dash-fav-card">
+            <a href="${d.url_affiliate || '#'}" target="_blank" rel="noopener sponsored"
+               class="dash-fav-card${expirado ? ' dash-fav-card--expirado' : ''}">
               <div class="dash-fav-img-wrap">
                 ${d.imagen_url
                   ? `<img class="dash-fav-img" src="${d.imagen_url}" alt="" loading="lazy" onerror="this.style.display='none'">`
                   : `<div class="dash-fav-img"></div>`}
-                ${desc > 0 ? `<span class="dash-fav-disc">−${desc}%</span>` : ''}
+                ${desc > 0 && !expirado ? `<span class="dash-fav-disc">−${desc}%</span>` : ''}
               </div>
               <div class="dash-fav-info">
-                ${d.tienda ? `<span class="dash-fav-store">${d.tienda}</span>` : ''}
+                <div class="dash-fav-meta">
+                  ${d.tienda ? `<span class="dash-fav-store">${d.tienda}</span>` : ''}
+                  ${expirado ? `<span class="dash-fav-expirado">Oferta expirada</span>` : ''}
+                </div>
                 <p class="dash-fav-title">${d.titulo || ''}</p>
                 <div class="dash-fav-prices">
                   ${original > precio ? `<span class="dash-fav-orig">${fmt(original)}</span>` : ''}
                   <span class="dash-fav-now">${fmt(precio)}</span>
                 </div>
+                ${ahorro > 0 && !expirado
+                  ? `<span class="dash-fav-ahorro">Te ahorras ${fmt(ahorro)}</span>` : ''}
+                ${d.saved_at ? `<span class="dash-fav-desde">Favorito desde ${fechaFavorito(d.saved_at)}</span>` : ''}
               </div>
               <span class="dash-fav-arrow" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
