@@ -56,6 +56,11 @@ _last_fetch: datetime | None = None
 # tiendas enteras, no un aviso cosmético.
 ultimo_fetch_truncado: str | None = None
 
+# True si la última llamada se sirvió de caché en vez de bajar el feed. Quien quiera
+# hacer trabajo caro "una vez al día" debe mirarlo: la caché dura 23h pero la función
+# se llama cada ciclo, así que volver de caché NO es lo mismo que no llamarla.
+ultimo_fetch_cacheado: bool = False
+
 # merchant_name (tal cual viene en el feed) → nombre de tienda interno de Flipazo
 _MERCHANT_MAP = {
     "Padel Market":         "Padel Market",
@@ -156,10 +161,13 @@ def fetch_awin_productos(
     if not feeds:
         return []
 
+    global ultimo_fetch_cacheado
     ahora = datetime.now()
     if _last_fetch and (ahora - _last_fetch) < timedelta(hours=_CACHE_TTL_H):
+        ultimo_fetch_cacheado = True
         print(f"   📦 AWIN caché activa: {len(_cache)} deals")
         return _cache
+    ultimo_fetch_cacheado = False
 
     temporales: list[str] = []
     abiertos: list = []

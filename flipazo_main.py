@@ -2008,10 +2008,13 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         await asyncio.to_thread(vigilar_frescura_feeds, DB_PATH)
         # …y que ningún deal vivo siga anunciando un "antes" que ya caducó: el histórico
         # se mueve, y un -50% de hace tres semanas puede ser hoy el precio normal.
-        _caducados = await asyncio.to_thread(
-            revalidar_publicados, DB_PATH, sorted(awin_feed_mod._SOLO_HISTORICO))
-        if _caducados:
-            print(f"   ⌛ {_caducados} deal(s) retirados: su descuento ya no se sostiene")
+        # Solo cuando el feed se ha refrescado de verdad: recorrer el histórico entero
+        # es caro y volver de caché no aporta datos nuevos que juzgar.
+        if not awin_feed_mod.ultimo_fetch_cacheado:
+            _caducados = await asyncio.to_thread(
+                revalidar_publicados, DB_PATH, sorted(awin_feed_mod._SOLO_HISTORICO))
+            if _caducados:
+                print(f"   ⌛ {_caducados} deal(s) retirados: su descuento ya no se sostiene")
         # Barajar + tope por tienda: las publicables (Padel, Adidas) pueden traer
         # miles de deals; sin rotación se publicarían siempre los mismos y podrían
         # inundar el canal. Con shuffle + cap entran variados y acotados por ciclo.
