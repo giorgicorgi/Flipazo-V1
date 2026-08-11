@@ -5797,7 +5797,9 @@
     if (mh)   mh.style.display = _desktopDiscovery ? "block" : "";
     if (gw)   gw.style.display = "none";
     if (sh && !_desktopDiscovery) sh.style.display = "none";  // keep header on desktop
-    if (hero) hero.style.display = "none";
+    // El hero grande solo estorba en móvil; en desktop es el destacado de Explorar
+    // y lo gobierna updateHero() (llamado al final de renderMobileHome).
+    if (hero && _isMobileViewport()) hero.style.display = "none";
     if (back) back.style.display = "none";
     _cameFromMhome = false;
     _syncMobileViewToggle(true);
@@ -6389,7 +6391,6 @@
     _desktopDiscovery = (view === "explorar");
     const mh     = document.getElementById("js-mobile-home");
     const gw     = document.getElementById("js-grid-wrap");
-    const hero   = document.getElementById("js-hero");
     const zoom   = document.getElementById("js-zoom-control");
     const todosBtn   = document.getElementById("js-dvt-todos");
     const explorarBtn = document.getElementById("js-dvt-explorar");
@@ -6397,7 +6398,6 @@
     if (_desktopDiscovery) {
       if (mh) { mh.classList.add("mhome--desktop"); mh.style.display = "block"; }
       if (gw)   gw.style.display = "none";
-      if (hero) hero.style.display = "none";
       if (zoom) zoom.style.display = "none";
       if (todosBtn)   { todosBtn.classList.remove("dvt-btn--active"); todosBtn.setAttribute("aria-pressed","false"); }
       if (explorarBtn){ explorarBtn.classList.add("dvt-btn--active"); explorarBtn.setAttribute("aria-pressed","true"); }
@@ -6762,8 +6762,13 @@
 
     // El 'Deal del momento' y los cupones van DETRÁS del banner de bienvenida: solo
     // aparecen cuando el usuario cierra el banner (igual que el hero en desktop).
+    //
+    // El 'Deal del momento' SOLO en móvil: allí no hay hero grande y el whero es el
+    // único destacado. En desktop lo pinta el hero de arriba (updateHero) — pintarlo
+    // también aquí sacaba la misma oferta dos veces en la misma pantalla.
+    const esMovil = _isMobileViewport();
     const behindBanner = _introDismissed
-      ? ((featured ? renderWhero(featured) : "") + couponsSection)
+      ? ((esMovil && featured ? renderWhero(featured) : "") + couponsSection)
       : "";
 
     // Filas del feed. "Explorar" (tags de categorías) se coloca en el 8º lugar.
@@ -6781,6 +6786,10 @@
     rows.splice(7, 0, catSection);   // Explorar → 8º lugar del feed
 
     mh.innerHTML = behindBanner + rows.join("");
+
+    // Desktop: el destacado es el hero de arriba. Se re-evalúa en cada render para
+    // que salga siempre, no cuando pasa el primer pollNew/loadMore.
+    if (!esMovil) updateHero();
 
     requestAnimationFrame(_animarFilasExplorar);
   }
@@ -6964,13 +6973,11 @@
     _desktopDiscovery = true;
     const mh  = document.getElementById("js-mobile-home");
     const gw  = document.getElementById("js-grid-wrap");
-    const hero = document.getElementById("js-hero");
     const zoom = document.getElementById("js-zoom-control");
     const todosBtn   = document.getElementById("js-dvt-todos");
     const explorarBtn = document.getElementById("js-dvt-explorar");
     if (mh)  { mh.classList.add("mhome--desktop"); mh.style.display = "block"; }
     if (gw)   gw.style.display = "none";
-    if (hero) hero.style.display = "none";
     if (zoom) zoom.style.display = "none";
     if (todosBtn)    { todosBtn.classList.remove("dvt-btn--active"); todosBtn.setAttribute("aria-pressed","false"); }
     if (explorarBtn) { explorarBtn.classList.add("dvt-btn--active"); explorarBtn.setAttribute("aria-pressed","true"); }
