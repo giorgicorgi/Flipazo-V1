@@ -35,6 +35,19 @@ _TIENDA_LIMPIA = {
 }
 _MAX_POR_TIENDA = int(os.getenv("AWIN_PROMO_MAX_POR_TIENDA", "6"))
 
+# Tiendas que NO publicamos aunque AWIN nos dé sus cupones. Flipazo va del precio
+# real de las cosas; los marketplaces de dropshipping chino (Voghion, tipo Temu)
+# no encajan con eso por muy buen cupón que traigan.
+_TIENDAS_EXCLUIDAS = {
+    "voghion global", "voghion", "dhgate", "aliexpress", "temu",
+    "vapesourcing", "sourcemore",
+}
+
+
+def _excluida(tienda: str) -> bool:
+    t = (tienda or "").strip().lower()
+    return any(m in t for m in _TIENDAS_EXCLUIDAS)
+
 
 def _limpiar_tienda(nombre: str) -> str:
     return _TIENDA_LIMPIA.get(nombre, (nombre or "").replace(" ES", "").strip())
@@ -98,6 +111,8 @@ def fetch_awin_promociones() -> list[dict]:
             tienda = _limpiar_tienda((p.get("advertiser") or {}).get("name", ""))
             titulo = (p.get("title") or "").strip()
             if not tienda or not titulo:
+                continue
+            if _excluida(tienda):
                 continue
             clave = (tienda, titulo.lower())
             if clave in vistos:
