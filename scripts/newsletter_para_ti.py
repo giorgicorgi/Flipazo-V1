@@ -65,6 +65,18 @@ FORCE   = "--force"   in sys.argv
 
 DIAS_ES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
+# Algunas tiendas se guardan como vienen del feed, sin espacios ni acentos.
+# Mismo mapeo que _STORE_LABELS en index.html: en pantalla se escriben bien.
+_TIENDA_LABEL = {
+    "ElCorteIngles": "El Corte Inglés",
+    "Mammoth Bikes": "Mammoth",
+    "Eureka Electrodomésticos": "Eureka",
+}
+
+
+def tienda_label(t: str) -> str:
+    return _TIENDA_LABEL.get(t or "", t or "")
+
 
 def log(msg: str) -> None:
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
@@ -156,7 +168,7 @@ def construir_texto(nombre: str, deals: list, url_baja: str, cadencia: str,
         orig = f" (antes {fmt_precio(d['precio_original'])})" if (d["precio_original"] or 0) > (d["precio"] or 0) else ""
         lineas += [
             f"* {(d['titulo'] or '')[:80]}",
-            f"  {prec}{orig} -{pct}% en {d['tienda']}",
+            f"  {prec}{orig} -{pct}% en {tienda_label(d['tienda'])}",
             f"  {SITE}/r/{d['deal_id']}?canal=email_parati",
             "",
         ]
@@ -211,7 +223,7 @@ def construir_html(nombre: str, deals: list, url_baja: str, cadencia: str,
             <td valign="top">
               <div style="font-family:Nunito,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
                           font-size:10px;font-weight:800;color:#6B7280;text-transform:uppercase;
-                          letter-spacing:.08em;padding-bottom:5px">{_esc(d["tienda"])}</div>
+                          letter-spacing:.08em;padding-bottom:5px">{_esc(tienda_label(d["tienda"]))}</div>
               <a href="{url}" style="font-family:\'Playfair Display\',Georgia,serif;font-size:17px;
                  font-weight:700;color:#111827;text-decoration:none;line-height:1.25">{_esc((d["titulo"] or "")[:88])}</a>
               <div style="padding-top:9px">
