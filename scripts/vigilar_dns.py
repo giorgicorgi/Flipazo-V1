@@ -6,11 +6,15 @@ Un DNS mal editado es más caro que un dominio robado: si desaparece un MX, un
 CNAME o el DKIM, se cae el correo o la web y te enteras por un usuario. Esto lo
 caza en el siguiente ciclo.
 
-Lo comprueba TODO contra CADA servidor autoritativo por separado, no contra un
-resolutor cualquiera. Es la lección del 11-ago-2026: había dos registros DMARC
-(el de GoDaddy y uno que añadió Brevo), ns61 servía uno y ns62 servía dos, y
-consultando "el DNS" en general salía bien la mitad de las veces. Dos DMARC =
-permerror = Gmail rechaza la autenticación de todo el correo del dominio.
+Lo comprueba desde VARIOS sitios a la vez (los dos autoritativos + Google y
+Cloudflare), no contra "el DNS" en general. Es la lección del 11-ago-2026:
+había dos registros DMARC —el de GoDaddy y uno que añadió Brevo— y consultando
+de cualquier manera salía bien la mitad de las veces. Dos DMARC = permerror =
+Gmail rechaza la autenticación de todo el correo del dominio.
+
+Y ojo, que aún fue peor: los servidores de GoDaddy son ANYCAST. Preguntando los
+dos a la misma IP (97.74.101.32), el servidor de Alemania veía 1 registro y una
+máquina en España veía 2. Un solo punto de observación te miente sin avisar.
 
 Cron sugerido, una vez al día:
     15 7 * * *  /home/flipazo/app/venv/bin/python /home/flipazo/app/scripts/vigilar_dns.py \
@@ -47,6 +51,15 @@ DOMINIO = "flipazo.es"
 # Servidores autoritativos. Si esto cambia, es que alguien movió el dominio de
 # proveedor: se avisa igualmente porque el chequeo de NS lo detecta.
 AUTORITATIVOS = ["ns61.domaincontrol.com", "ns62.domaincontrol.com"]
+
+# Resolutores públicos. NO son un lujo: los servidores de GoDaddy son anycast, así
+# que la misma IP responde desde nodos distintos según desde dónde preguntes y
+# durante una propagación cada uno puede dar una cosa. El 11-ago-2026 el servidor
+# (Alemania) veía 1 registro DMARC y una máquina en España veía 2, preguntando los
+# dos a 97.74.101.32. Mirar solo desde aquí es un punto ciego; lo que decide si el
+# correo se autentica es lo que vea el resolutor de Google.
+RESOLUTORES = ["8.8.8.8", "1.1.1.1"]
+VANTAJAS = AUTORITATIVOS + RESOLUTORES
 
 
 def log(m: str) -> None:
@@ -122,7 +135,7 @@ def check_dmarc() -> tuple[bool, str]:
     """El que nos mordió. Se consulta servidor por servidor: con dos registros
     repartidos entre ellos, preguntar 'al DNS' acierta la mitad de las veces."""
     cuentas = {}
-    for srv in AUTORITATIVOS:
+    for srv in VANTAJAS:
         txts = _txt(dig("_dmarc." + DOMINIO, "TXT", srv))
         cuentas[srv] = [t for t in txts if t.lower().startswith("v=dmarc1")]
     total = {srv: len(v) for srv, v in cuentas.items()}
@@ -132,7 +145,7 @@ def check_dmarc() -> tuple[bool, str]:
         detalle = "; ".join(f"{s}: {n}" for s, n in total.items())
         return False, (f"DMARC DUPLICADO ({detalle}). Dos registros = permerror: "
                        f"Gmail rechaza la autenticación de TODO el correo del dominio")
-    pol = re.search(r"p=(\w+)", cuentas[AUTORITATIVOS[0]][0])
+    pol = re.search(r"p=(\w+)", cuentas[VANTAJAS[0]][0])
     return True, f"DMARC: 1 registro · p={pol.group(1) if pol else '?'}"
 
 
@@ -173,8 +186,8 @@ def main() -> int:
     log(f"Vigilando el DNS de {DOMINIO}…")
 
     # TXT de la raíz, por servidor: SPF y brevo-code salen de aquí
-    txt_por_servidor = {srv: _txt(dig(DOMINIO, "TXT", srv)) for srv in AUTORITATIVOS}
-    txt_raiz = txt_por_servidor.get(AUTORITATIVOS[0], [])
+    txt_por_servidor = {srv: _txt(dig(DOMINIO, "TXT", srv)) for srv in VANTAJAS}
+    txt_raiz = txt_por_servidor.get(VANTAJAS[0], [])
 
     resultados = [
         ("NS",         check_ns()),
