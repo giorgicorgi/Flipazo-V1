@@ -28,6 +28,7 @@ from scrapers.pss_email import get_pss_productos
 from scrapers.tradedoubler_feed import fetch_tradedoubler_productos, fetch_tradedoubler_historial
 from scrapers.awin_feed         import fetch_awin_productos
 import scrapers.awin_feed       as awin_feed_mod   # para leer ultimo_fetch_truncado
+from scrapers.price_drop        import revalidar_publicados
 from scrapers.awin_promotions   import fetch_awin_promociones
 from scrapers.tradedoubler_vouchers import fetch_td_vouchers
 from scrapers.decathlon_feed   import fetch_decathlon_productos
@@ -446,6 +447,9 @@ class Producto:
     stock_qty: int = 0       # unidades en stock; 0 = desconocido
     pocas_unidades: str = "" # "Pocas tallas" | "Últimas unidades" | ""
     tallas: str = ""         # tallas disponibles (Esdemarca/Desigual), ej. "S, M, L"
+    # Clave del producto en price_history — solo en deals detectados por bajada propia.
+    # Permite revalidar más tarde si el descuento anunciado sigue en pie (ver price_drop).
+    hist_pid: str = ""
     # ── Capa de discovery (poblada en Fase 4.5) ────────────────────────────
     deal_score:     int  = 0                          # 0-100 ranking discovery
     hook:           str  = ""                         # Titular emocional Haiku
@@ -2002,6 +2006,12 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
         # vigilar_frescura_feeds). Aquí porque el feed AWIN solo se refresca 1×/23h,
         # así que el chequeo queda naturalmente limitado a una vez al día.
         await asyncio.to_thread(vigilar_frescura_feeds, DB_PATH)
+        # …y que ningún deal vivo siga anunciando un "antes" que ya caducó: el histórico
+        # se mueve, y un -50% de hace tres semanas puede ser hoy el precio normal.
+        _caducados = await asyncio.to_thread(
+            revalidar_publicados, DB_PATH, sorted(awin_feed_mod._SOLO_HISTORICO))
+        if _caducados:
+            print(f"   ⌛ {_caducados} deal(s) retirados: su descuento ya no se sostiene")
         # Barajar + tope por tienda: las publicables (Padel, Adidas) pueden traer
         # miles de deals; sin rotación se publicarían siempre los mismos y podrían
         # inundar el canal. Con shuffle + cap entran variados y acotados por ciclo.
@@ -3126,6 +3136,10 @@ class DeduplicacionDB:
                 # Ficha de producto generada bajo demanda (Haiku) al abrir el detalle
                 "ALTER TABLE deals_publicados ADD COLUMN ficha_ia             TEXT    DEFAULT ''",
                 "ALTER TABLE deals_publicados ADD COLUMN ficha_generada_en    TEXT    DEFAULT NULL",
+                # Clave del producto en price_history (tiendas sin "precio antes" en el feed).
+                # Sin ella no podemos volver a preguntarle al histórico si el descuento que
+                # anunciamos sigue siendo cierto — y deja de serlo: la referencia envejece.
+                "ALTER TABLE deals_publicados ADD COLUMN hist_pid             TEXT    DEFAULT ''",
             ]:
                 try:
                     con.execute(col_sql)
@@ -3294,8 +3308,8 @@ class DeduplicacionDB:
                         precio_wallapop, beneficio_neto, razonamiento,
                         categoria, pros, contras,
                         deal_score, hook, social_context, emotional_tags,
-                        stock_qty, pocas_unidades, tallas, familia_key, precio_publicado)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                        stock_qty, pocas_unidades, tallas, familia_key, hist_pid, precio_publicado)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                         COALESCE((SELECT precio_publicado FROM deals_publicados WHERE deal_id = ?), ?))""",
                 (
                     _deal_hash(p), p.titulo, p.tienda, p.precio_actual, p.tipo,
@@ -3313,6 +3327,7 @@ class DeduplicacionDB:
                     p.pocas_unidades or "",
                     p.tallas or "",
                     _clave_familia(p.titulo),
+                    p.hist_pid or "",
                     # precio_publicado: preserva el 1er descuento si el deal ya existía,
                     # si no usa el precio actual de esta publicación.
                     _deal_hash(p), p.precio_actual,

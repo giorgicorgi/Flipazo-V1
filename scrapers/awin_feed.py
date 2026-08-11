@@ -269,6 +269,8 @@ def fetch_awin_productos(
                                         "descuento_pct":   res[1],
                                         "tienda":          tienda,
                                         "imagen_url":      (row.get("merchant_image_url") or row.get("aw_image_url") or "").strip(),
+                                        # Rastro al histórico: permite revalidar el descuento días después
+                                        "hist_pid":        pid,
                                     })
                                     detect_cnt[tienda] += 1
                 continue
