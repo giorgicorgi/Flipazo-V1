@@ -156,6 +156,7 @@ discovery/               ← scoring.py + emotional_layer.py (hooks con Haiku)
 - **Trigger semanal:** `trig_01Um43n8top2mkvYsiFqzVpM` — análisis estático de `flipazo_main.py`. Gestión: https://claude.ai/code/scheduled/trig_01Um43n8top2mkvYsiFqzVpM
 - **Skill `scraper-monitor`:** `.claude/skills/scraper-monitor/` — diagnóstico y reparación del pipeline. Invocar con `/scraper-monitor`
 - **Skill `ui-ux-pro-max`:** `.claude/skills/ui-ux-pro-max/` — sistemas de diseño UI/UX
+- **Agente `tiktok-guionista`:** `.claude/agents/tiktok-guionista.md` — guiones de TikTok/Reels listos para grabar, con estructura Hook · Clímax · Desenlace. Dos formatos: *vibe coding* (pantalla de flipazo.es + recorte del creador contando cómo se construyó con Claude) y *la oferta que me he encontrado*. Saca precios y cifras de la BD de producción: **nada inventado**. No publica, entrega el guion
 - **Agente `threads-storyteller`:** `.claude/agents/threads-storyteller.md` — redacta y publica HILOS narrativos (tuiteratura) en Threads @flipazo.es. Universo "el precio real de las cosas". Borrador → aprobación → publica encadenado. Las historias son a mano; los deals los publica el pipeline (`_threads_elegible`, score ≥70)
 
 ---
