@@ -53,7 +53,7 @@ JWT_SECRET = os.getenv("JWT_SECRET", "")
 
 # SMTP: proveedor de boletín si está configurado; si no, el Gmail de la verificación.
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))   # el 465 lo bloquea Hetzner
 SMTP_USER = os.getenv("SMTP_USER") or os.getenv("EMAIL_ADDRESS", "")
 SMTP_PASS = os.getenv("SMTP_PASS") or os.getenv("EMAIL_APP_PASSWORD", "")
 MAIL_FROM = os.getenv("MAIL_FROM", "Flipazo <hola@flipazo.es>")
@@ -143,6 +143,31 @@ def _esc(s) -> str:
             .replace(">", "&gt;").replace('"', "&quot;"))
 
 
+def construir_texto(nombre: str, deals: list, url_baja: str, cadencia: str) -> str:
+    """Versión en texto plano. No es un adorno: un multipart/alternative que solo
+    lleva HTML es una señal clásica de correo masivo, y los filtros lo puntúan
+    peor. Además es lo que se lee en relojes, lectores de pantalla y clientes
+    que bloquean el HTML."""
+    lineas = [f"Hola{', ' + nombre if nombre else ''}: esto es lo que ha salido de lo que te interesa.", ""]
+    for d in deals:
+        pct  = d["descuento_pct"] or 0
+        prec = fmt_precio(d["precio"] or 0)
+        orig = f" (antes {fmt_precio(d['precio_original'])})" if (d["precio_original"] or 0) > (d["precio"] or 0) else ""
+        lineas += [
+            f"* {(d['titulo'] or '')[:80]}",
+            f"  {prec}{orig} -{pct}% en {d['tienda']}",
+            f"  {SITE}/r/{d['deal_id']}?canal=email_parati",
+            "",
+        ]
+    lineas += [
+        "---",
+        f"Recibes este correo {cadencia} porque lo pediste en tu seccion 'Para ti'.",
+        f"Cambiar que recibo o cada cuanto: {SITE}/?prefs=1",
+        f"Darme de baja: {url_baja}",
+    ]
+    return "\n".join(lineas)
+
+
 def construir_html(nombre: str, deals: list, url_baja: str, cadencia: str) -> str:
     """HTML de correo: tablas y estilos en línea. Outlook y Gmail ignoran <style>
     y flexbox, así que todo va inline aunque sea más verboso."""
@@ -208,7 +233,7 @@ def construir_html(nombre: str, deals: list, url_baja: str, cadencia: str) -> st
 </td></tr></table></body></html>"""
 
 
-def enviar(to: str, asunto: str, html: str, url_baja: str) -> bool:
+def enviar(to: str, asunto: str, texto: str, html: str, url_baja: str) -> bool:
     if DRY_RUN:
         log(f"  [dry-run] → {to} · {asunto}")
         return True
@@ -224,6 +249,9 @@ def enviar(to: str, asunto: str, html: str, url_baja: str) -> bool:
         # sin esto, mucha gente usa el botón de spam en su lugar.
         msg["List-Unsubscribe"] = f"<{url_baja}>"
         msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
+        # Orden obligatorio en multipart/alternative: de peor a mejor. El cliente
+        # se queda con la ÚLTIMA que sepa mostrar, así que el HTML va al final.
+        msg.attach(MIMEText(texto, "plain", "utf-8"))
         msg.attach(MIMEText(html, "html", "utf-8"))
         if SMTP_PORT == 465:
             with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30) as srv:
@@ -312,9 +340,11 @@ def main() -> int:
         url_baja = f"{API}/api/newsletter/baja?t={token_baja(u['user_id'])}"
         asunto   = (f"{len(match)} ofertas para ti" if len(match) > 1
                     else f"Una oferta para ti: {(match[0]['titulo'] or '')[:48]}")
-        html     = construir_html(u["nombre"], match, url_baja, describir(freq, dias))
+        _cad     = describir(freq, dias)
+        texto    = construir_texto(u["nombre"], match, url_baja, _cad)
+        html     = construir_html(u["nombre"], match, url_baja, _cad)
 
-        if enviar(u["email"], asunto, html, url_baja):
+        if enviar(u["email"], asunto, texto, html, url_baja):
             enviados += 1
             if not DRY_RUN:
                 con.execute("UPDATE user_prefs SET email_last_sent = ? WHERE user_id = ?",
