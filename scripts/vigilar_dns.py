@@ -12,9 +12,12 @@ había dos registros DMARC —el de GoDaddy y uno que añadió Brevo— y consul
 de cualquier manera salía bien la mitad de las veces. Dos DMARC = permerror =
 Gmail rechaza la autenticación de todo el correo del dominio.
 
-Y ojo, que aún fue peor: los servidores de GoDaddy son ANYCAST. Preguntando los
-dos a la misma IP (97.74.101.32), el servidor de Alemania veía 1 registro y una
-máquina en España veía 2. Un solo punto de observación te miente sin avisar.
+Y ojo con dónde se ejecuta esto: muchas redes domésticas y de operador
+INTERCEPTAN el puerto 53 y responden desde su propia caché, incluso cuando le
+preguntas por IP al servidor autoritativo. Ese día una máquina en España veía
+2 registros y el servidor veía 1, preguntando los dos a 97.74.101.32. Se nota
+en la respuesta: sin flag `aa` y con el TTL descontado, hay una caché por medio
+y lo que lees no es la verdad. Por eso esto vive en el servidor, que no la tiene.
 
 Cron sugerido, una vez al día:
     15 7 * * *  /home/flipazo/app/venv/bin/python /home/flipazo/app/scripts/vigilar_dns.py \
@@ -52,12 +55,9 @@ DOMINIO = "flipazo.es"
 # proveedor: se avisa igualmente porque el chequeo de NS lo detecta.
 AUTORITATIVOS = ["ns61.domaincontrol.com", "ns62.domaincontrol.com"]
 
-# Resolutores públicos. NO son un lujo: los servidores de GoDaddy son anycast, así
-# que la misma IP responde desde nodos distintos según desde dónde preguntes y
-# durante una propagación cada uno puede dar una cosa. El 11-ago-2026 el servidor
-# (Alemania) veía 1 registro DMARC y una máquina en España veía 2, preguntando los
-# dos a 97.74.101.32. Mirar solo desde aquí es un punto ciego; lo que decide si el
-# correo se autentica es lo que vea el resolutor de Google.
+# Resolutores públicos, además de los autoritativos: lo que decide si el correo se
+# autentica no es lo que diga GoDaddy, sino lo que vea el resolutor de Google. Si
+# los dos coinciden, la propagación ha terminado de verdad.
 RESOLUTORES = ["8.8.8.8", "1.1.1.1"]
 VANTAJAS = AUTORITATIVOS + RESOLUTORES
 
