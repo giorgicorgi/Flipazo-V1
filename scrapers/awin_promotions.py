@@ -76,6 +76,13 @@ def fetch_awin_promociones() -> list[dict]:
         return []
 
     ahora = datetime.now(timezone.utc)
+
+    # Los que traen CÓDIGO van primero. El tope por tienda se aplica en orden de
+    # llegada, y AWIN devuelve los cupones al final de cada anunciante: con 19
+    # promos de Voghion, las 6 primeras (sin código) llenaban el cupo y sus 4
+    # cupones reales — los únicos con código de todo AWIN — se perdían siempre.
+    crudas.sort(key=lambda p: 0 if ((p.get("voucher") or {}).get("code") or "").strip() else 1)
+
     vistos: set = set()          # (tienda, titulo) → dedup
     por_tienda: dict = {}
     out: list[dict] = []

@@ -93,6 +93,13 @@ API_URL         = os.getenv("API_URL",          "https://api.flipazo.es")
 # ── Email (Gmail SMTP para verificación de cuentas) ────────────────────────────
 EMAIL_ADDRESS      = os.getenv("EMAIL_ADDRESS",      "")
 EMAIL_APP_PASSWORD = os.getenv("EMAIL_APP_PASSWORD", "")
+# Proveedor SMTP. Por defecto Gmail en 587 (el 465 lo bloquea Hetzner). Con un
+# proveedor de boletines basta cambiar el .env: Brevo → smtp-relay.brevo.com:587
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASS = os.getenv("SMTP_PASS", "")
+MAIL_FROM = os.getenv("MAIL_FROM", "")
 
 # ── WhatsApp Cloud API ─────────────────────────────────────────────────────────
 WA_PHONE_NUMBER_ID  = os.getenv("WA_PHONE_NUMBER_ID", "")
@@ -240,21 +247,38 @@ def _verify_password(password: str, stored: str) -> bool:
         return False
 
 def _send_email(to: str, subject: str, html: str) -> bool:
-    if not EMAIL_ADDRESS or not EMAIL_APP_PASSWORD:
+    """Envía por SMTP. Host, puerto y credenciales salen del .env para poder
+    cambiar de proveedor sin tocar código.
+
+    ⚠️ Puerto 587 con STARTTLS, no 465: Hetzner tiene bloqueada la salida por
+    465, así que la versión anterior (SMTP_SSL a smtp.gmail.com:465) se quedaba
+    esperando hasta el timeout y NINGÚN correo de verificación llegaba nunca.
+    El fallo era mudo porque el except solo imprimía en el log del servicio."""
+    host = SMTP_HOST or "smtp.gmail.com"
+    port = SMTP_PORT or 587
+    user = SMTP_USER or EMAIL_ADDRESS
+    pwd  = SMTP_PASS or EMAIL_APP_PASSWORD
+    if not user or not pwd:
         print("⚠️  Email no configurado — verificación omitida")
         return False
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"]    = f"Flipazo <{EMAIL_ADDRESS}>"
+        msg["From"]    = MAIL_FROM or f"Flipazo <{user}>"
         msg["To"]      = to
-        msg.attach(MIMEText(html, "html"))
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as srv:
-            srv.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
-            srv.sendmail(EMAIL_ADDRESS, to, msg.as_string())
+        msg.attach(MIMEText(html, "html", "utf-8"))
+        if port == 465:
+            with smtplib.SMTP_SSL(host, port, timeout=30) as srv:
+                srv.login(user, pwd)
+                srv.sendmail(user, to, msg.as_string())
+        else:
+            with smtplib.SMTP(host, port, timeout=30) as srv:
+                srv.starttls()
+                srv.login(user, pwd)
+                srv.sendmail(user, to, msg.as_string())
         return True
     except Exception as e:
-        print(f"❌ Email error: {e}")
+        print(f"❌ Email error ({host}:{port}): {e}")
         return False
 
 # ── OAuth state helpers ────────────────────────────────────────────────────────
