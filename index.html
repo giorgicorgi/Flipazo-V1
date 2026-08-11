@@ -939,138 +939,29 @@
       flex-wrap: wrap;
     }
 
-    /* ── EL RECORTABLE — cupones con lenguaje de recorte de periódico ──
-       Los cupones no son deals: no tienen precio ni foto, solo una promesa y un
-       código. Tratarlos como cards de producto los dejaba mudos, así que se les
-       da su propio soporte: una plancha de papel con cabecera, línea de corte
-       punteada y tijeras, y cada cupón como un recorte con borde de puntos y su
-       propio tono de papel. Mismo componente en el hero y en la fila de Explorar. */
+    /* ── Hero: 'Oferta del día' + carrusel de cupones a la derecha ── */
     .hero__grid { display: grid; grid-template-columns: 1fr; gap: 26px; }
     @media (min-width: 900px) { .hero__grid { grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); align-items: stretch; } }
-    /* La plancha se pega arriba y mide lo que miden los cupones: estirarla a la
-       altura de la 'Oferta del día' dejaba los recortes huecos por dentro. */
-    .hero-coupons { min-width: 0; position: relative; display: flex; flex-direction: column; justify-content: flex-start; }
-
-    .clipper {
-      --clip-paper: #EDF4F2;      /* el papel de fondo sobre el que van los recortes */
-      --clip-line:  #93B3AC;      /* línea de corte y flechas */
-      --clip-head:  #1F3A35;      /* tinta de la cabecera */
-      background: var(--clip-paper);
-      border-radius: 14px;
-      padding: 15px 0 16px;
-      display: flex; flex-direction: column; flex: 0 0 auto; min-width: 0;
-    }
-    /* Cabecera: la línea de puntos cruza de lado a lado y el rótulo se sienta encima */
-    .clipper__head { display: flex; align-items: center; gap: 11px; padding: 0 16px 13px; }
-    .clipper__rule { flex: 1; height: 0; border-top: 2px dashed var(--clip-line); }
-    .clipper__masthead {
-      font-family: var(--serif); font-size: 19px; font-weight: 900;
-      color: var(--clip-head); white-space: nowrap; flex-shrink: 0;
-      display: inline-flex; align-items: center; gap: 7px;
-    }
-    .clipper__scissors { font-size: 15px; transform: translateY(-1px); opacity: .85; }
-    .clipper__body { display: flex; align-items: stretch; gap: 2px; padding: 0 6px; min-width: 0; }
-
-    .hero-coupons__viewport { position: relative; flex: 1; display: flex; align-items: stretch; overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain; }
+    .hero-coupons { min-width: 0; position: relative; display: flex; flex-direction: column; border-left: 1px solid var(--border); padding-left: 28px; }
+    @media (max-width: 899px) { .hero-coupons { border-left: none; border-top: 1px solid var(--border); padding-left: 0; padding-top: 20px; } }
+    .hero-coupons__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .hero-coupons__label { display: flex; align-items: center; gap: 7px; font-family: var(--sans); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); }
+    .hero-coupons__label i { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+    .hero-coupons__nav { display: flex; gap: 6px; flex-shrink: 0; }
+    .hc-nav { width: 28px; height: 28px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--text-mid); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s, color .15s, border-color .15s, opacity .15s; }
+    .hc-nav:hover:not(:disabled) { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .hc-nav:disabled { opacity: .35; cursor: default; }
+    .hero-coupons__viewport { position: relative; flex: 1; display: flex; align-items: center; overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain; }
     .hero-coupons__viewport::-webkit-scrollbar { display: none; }
-    .hero-coupons__track { display: flex; gap: 10px; width: max-content; padding: 2px 4px 4px; }
-
-    /* Flechas al filo, sin caja: el papel manda, no los controles */
-    .hc-nav {
-      flex-shrink: 0; width: 24px; border: none; background: none; padding: 0;
-      color: var(--clip-line); cursor: pointer; display: flex; align-items: center;
-      justify-content: center; transition: color .15s, opacity .15s;
-    }
-    .hc-nav:hover:not(:disabled) { color: var(--clip-head); }
-    .hc-nav:disabled { opacity: .28; cursor: default; }
-
-    /* ── El recorte ─────────────────────────────────────────────── */
-    .clip {
-      flex: 0 0 auto; width: 198px; box-sizing: border-box; min-height: 146px;
-      scroll-snap-align: start; position: relative; text-decoration: none;
-      background: var(--clip-bg); border: 2px dashed var(--clip-edge);
-      border-radius: 3px; padding: 13px 14px 12px;
-      display: flex; flex-direction: column; gap: 8px;
-      transition: transform .16s ease, box-shadow .16s ease;
-    }
-    .clip:hover { transform: translateY(-3px) rotate(-.45deg); box-shadow: 0 7px 18px rgba(31,58,53,.17); }
-    .clip:active { transform: scale(.975); }
-    /* Tonos de papel rotativos: una plancha de cupones nunca es de un solo color */
-    .clip[data-tint="0"] { --clip-bg:#FCF2D9; --clip-edge:#C9A227; --clip-ink:#463714; --clip-accent:#B0431E; }
-    .clip[data-tint="1"] { --clip-bg:#E5F2EF; --clip-edge:#5FA396; --clip-ink:#123B36; --clip-accent:#0D7A6F; }
-    .clip[data-tint="2"] { --clip-bg:#E8EEF9; --clip-edge:#6B83BD; --clip-ink:#1E2A47; --clip-accent:#2C3E50; }
-    .clip[data-tint="3"] { --clip-bg:#FBE8E6; --clip-edge:#D6837E; --clip-ink:#4A1B1E; --clip-accent:#BC1F2B; }
-
-    .clip__store {
-      font-family: var(--serif); font-size: 10px; font-weight: 700;
-      letter-spacing: .15em; text-transform: uppercase; color: var(--clip-accent);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      padding-bottom: 7px; border-bottom: 1px solid var(--clip-edge);
-    }
-    .clip__title {
-      font-family: var(--serif); font-size: 17px; font-weight: 700; line-height: 1.16;
-      color: var(--clip-ink); display: -webkit-box; -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical; overflow: hidden;
-    }
-    /* El pie cierra la composición: la segunda línea de corte del cupón, con el
-       código y la llamada. Sin él la tarjeta se quedaba hueca por el medio. */
-    .clip__foot {
-      margin-top: auto; padding-top: 10px; border-top: 1px dashed var(--clip-edge);
-      display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
-    }
-    .clip__code {
-      font-family: var(--sans); font-size: 10px; font-weight: 800;
-      letter-spacing: .09em; text-transform: uppercase; color: var(--clip-ink);
-      background: rgba(255,255,255,.68); border: 1px dashed var(--clip-edge);
-      border-radius: 3px; padding: 4px 9px; cursor: pointer; user-select: none;
-      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      transition: background .15s, color .15s, border-color .15s;
-    }
-    .clip__code:hover { background: var(--clip-ink); color: var(--clip-bg); border-style: solid; }
-    .clip__code--copied, .clip__code--copied:hover { background:#0D7A6F; color:#fff; border:1px solid #0D7A6F; }
-    .clip__nocode {
-      font-family: var(--sans); font-size: 10px; font-weight: 700; letter-spacing: .04em;
-      color: var(--clip-ink); opacity: .62;
-    }
-    .clip__cta {
-      font-family: var(--sans); font-size: 11px; font-weight: 800;
-      letter-spacing: .03em; color: var(--clip-accent);
-    }
-    /* "Ver todo" en rojo de marca rompía la paleta de papel de esta sección */
-    .mhome__section--clipper .mhome__see-all { color: #0D7A6F; }
-    [data-theme="dark"] .mhome__section--clipper .mhome__see-all { color: #5FCBBB; }
-
-    /* La fila de Explorar: mismo papel, cabecera propia de la sección */
-    .mhome__section--clipper {
-      background: #EDF4F2; border-radius: 14px; margin-left: 16px; margin-right: 16px;
-      padding: 14px 0 12px;
-    }
-    .mhome__section--clipper .mhome__section-head { padding-left: 16px; padding-right: 16px; }
-    .mhome__section--clipper .mhome__section-title {
-      font-family: var(--serif); font-weight: 900; color: #1F3A35;
-    }
-    .mhome__section--clipper .mhome__scroll { padding-left: 16px; padding-right: 16px; }
-    /* La línea de corte, bajo la cabecera y a todo lo ancho de la plancha */
-    .mhome__section--clipper .mhome__section-head::after {
-      content: ""; flex: 1; height: 0; border-top: 2px dashed #93B3AC; margin: 0 4px;
-      order: 1;
-    }
-    .mhome__section--clipper .mhome__see-all,
-    .mhome__section--clipper .mhome__arrows { order: 2; }
-
-    @media (max-width: 767px) { .clip { width: 176px; min-height: 138px; } }
-
-    /* Modo oscuro: papel envejecido en vez de papel blanco apagado */
-    [data-theme="dark"] .clipper,
-    [data-theme="dark"] .mhome__section--clipper { background: #16201E; }
-    [data-theme="dark"] .clipper { --clip-line: #3D524D; --clip-head: #D9E8E4; }
-    [data-theme="dark"] .mhome__section--clipper .mhome__section-title { color: #D9E8E4; }
-    [data-theme="dark"] .mhome__section--clipper .mhome__section-head::after { border-top-color: #3D524D; }
-    [data-theme="dark"] .clip[data-tint="0"] { --clip-bg:#2B2413; --clip-edge:#8A7328; --clip-ink:#F2E6C6; --clip-accent:#E9A277; }
-    [data-theme="dark"] .clip[data-tint="1"] { --clip-bg:#152A26; --clip-edge:#3F7A6F; --clip-ink:#D6EDE8; --clip-accent:#5FCBBB; }
-    [data-theme="dark"] .clip[data-tint="2"] { --clip-bg:#181F30; --clip-edge:#47598C; --clip-ink:#DDE6F7; --clip-accent:#8FA9E0; }
-    [data-theme="dark"] .clip[data-tint="3"] { --clip-bg:#2C1718; --clip-edge:#8E4A48; --clip-ink:#F7DEDC; --clip-accent:#F08088; }
-    [data-theme="dark"] .clip__code { background: rgba(0,0,0,.28); }
+    .hero-coupons__track { display: flex; gap: 12px; width: max-content; padding: 2px 0; }
+    .hcoupon { flex: 0 0 auto; width: 188px; box-sizing: border-box; min-height: 118px; scroll-snap-align: start; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 15px; text-decoration: none; display: flex; flex-direction: column; gap: 6px; transition: border-color .15s, transform .15s, box-shadow .15s; }
+    .hcoupon:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: var(--card-shadow); }
+    .hcoupon__store { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hcoupon__title { font-family: var(--sans); font-size: 13px; font-weight: 800; color: var(--ink); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .hcoupon__code { font-family: var(--sans); font-size: 11px; font-weight: 800; color: var(--brand); background: rgba(245,40,52,0.07); border: 1px dashed var(--brand); border-radius: 6px; padding: 3px 8px; align-self: flex-start; letter-spacing: .03em; cursor: pointer; user-select: none; transition: background .15s, color .15s, border-color .15s; }
+    .hcoupon__code:hover { background: var(--brand); color: #fff; border-style: solid; }
+    .hcoupon__code--copied, .hcoupon__code--copied:hover { background: var(--teal-light); color: #0D7A6F; border: 1px solid #0D7A6F; }
+    .hcoupon__cta { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text-dim); margin-top: auto; }
 
     /* ── Sidebar deal (in hero) ──────────────────────────────────── */
     .sidebar-deal {
@@ -1126,6 +1017,36 @@
       border-bottom: 1px solid var(--border-faint);
     }
 
+    /* ── Promo card (fila de promos/cupones dentro de Explorar) ──── */
+    /* Mismo ancho que las hcards (148px móvil / 200px desktop) para alinear la fila. */
+    .promo-card {
+      display: flex; flex-direction: column; gap: 7px; width: 148px;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 14px; padding: 13px 14px; text-decoration: none;
+      box-shadow: var(--card-shadow);
+      transition: transform 150ms ease;
+    }
+    .promo-card:active { transform: scale(0.96); }
+    .mhome--desktop .promo-card { width: 200px; }
+    .mhome--desktop .promo-card:hover { transform: translateY(-2px); }
+    .promo-card__store {
+      font-family: var(--sans); font-size: 10px; font-weight: 800;
+      letter-spacing: .04em; text-transform: uppercase; color: var(--brand);
+    }
+    .promo-card__title {
+      font-family: var(--sans); font-size: 13px; font-weight: 600; line-height: 1.3;
+      color: var(--ink); display: -webkit-box; -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .promo-card__code {
+      align-self: flex-start; font-family: var(--sans); font-size: 11px; font-weight: 700;
+      color: #047857; background: rgba(16,185,129,0.12); border: 1px dashed rgba(16,185,129,0.5);
+      border-radius: 8px; padding: 2px 8px;
+    }
+    .promo-card__cta {
+      margin-top: auto; padding-top: 4px; font-family: var(--sans);
+      font-size: 12px; font-weight: 800; color: #0581FC;
+    }
     .section-header__title {
       font-family: var(--sans);
       font-size: 11px;
@@ -2886,6 +2807,33 @@
       display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 16px;
       scrollbar-width: none; -webkit-overflow-scrolling: touch;
     }
+    /* ── Acordeón de filtros ────────────────────────────────────────
+       Cada filtro es una fila que dice cómo está puesto y se abre al tocarla.
+       Solo una abierta a la vez: así el panel cabe en pantalla y se ve de un
+       vistazo qué filtros hay, en vez de tener que recorrer una lista larga. */
+    .fgroup { border-top: 1px solid var(--border-faint); }
+    .fgroup:first-child { border-top: none; }
+    .fgroup__btn {
+      width: 100%; display: flex; align-items: center; gap: 10px;
+      padding: 15px 16px; background: none; border: none; cursor: pointer;
+      font-family: var(--sans); text-align: left; -webkit-tap-highlight-color: transparent;
+    }
+    .fgroup__btn:active { background: var(--surface-hover); }
+    .fgroup__name { font-size: 14px; font-weight: 800; color: var(--ink); flex-shrink: 0; }
+    .fgroup__val {
+      margin-left: auto; font-size: 13px; font-weight: 700; color: var(--text-mid);
+      min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .fgroup__val--on { color: var(--brand); }
+    .fgroup__chev { width: 15px; height: 15px; flex-shrink: 0; color: var(--text-dim); transition: transform .2s ease; }
+    .fgroup--open .fgroup__chev { transform: rotate(180deg); }
+    .fgroup__body { display: none; padding-bottom: 10px; }
+    .fgroup--open .fgroup__body { display: block; animation: fgroup-in 180ms ease; }
+    @keyframes fgroup-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    /* Bloques de subtipo dentro del desplegable "Afinar" */
+    .fgroup__sub { padding: 0 16px; margin-bottom: 2px; font-size: 10px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); }
+
     /* Nivel 2 del panel de filtros: las subcategorías se sangran y se atan con
        una línea a la categoría de la que dependen (antes flotaban al mismo nivel). */
     .fpanel__nivel2 { margin: 2px 16px 4px; padding-left: 12px; border-left: 2px solid var(--border); }
@@ -4017,6 +3965,15 @@
     { tienda:"SharkNinja", titulo:"-15% de descuento en todos los productos", codigo:"SHARK15", url:"#" },
     { tienda:"El Corte Inglés", titulo:"Rebajas Verano'26", codigo:"", url:"#" },
   ];
+  function renderPromoCard(p) {
+    const code = p.codigo ? `<span class="promo-card__code">Código: ${esc(p.codigo)}</span>` : "";
+    return `<a class="promo-card" href="${p.url || '#'}" target="_blank" rel="noopener sponsored">
+        <span class="promo-card__store">${esc(p.tienda || "")}</span>
+        <span class="promo-card__title">${esc(p.titulo || "")}</span>
+        ${code}
+        <span class="promo-card__cta">Ver promoción →</span>
+      </a>`;
+  }
   // Promos cargadas (se muestran como una fila más en Explorar / mobile home)
   let _promos = [];
   async function loadPromos() {
@@ -4559,24 +4516,17 @@
     renderHeroCoupons();
   }
 
-  // ── El Recortable: cupones con forma de recorte de periódico ───
-  // El tono de papel se reparte por posición, no al azar: así el orden de la fila
-  // es estable entre renders y no parpadea de color al repintar.
-  function _heroCouponCard(p, i) {
-    const tint = (Number.isInteger(i) ? i : 0) % 4;
-    // Sin código el descuento se aplica solo: decirlo evita que el usuario busque
-    // uno que no existe, y de paso da pie al cupón en vez de dejar el hueco vacío.
+  // ── Carrusel de cupones (a la derecha de la 'Oferta del día') ──
+  function _heroCouponCard(p) {
     const code = p.codigo
-      ? `<span class="clip__code" role="button" tabindex="0" data-code="${esc(p.codigo)}" title="Copiar código"
-             onclick="_copyHeroCode(event, this)" onkeydown="if(event.key==='Enter'||event.key===' ')_copyHeroCode(event,this)">${esc(p.codigo)}</span>`
-      : `<span class="clip__nocode">Sin código · ya aplicado</span>`;
-    return `<a class="clip" data-tint="${tint}" href="${p.url || '#'}" target="_blank" rel="noopener sponsored">
-        <span class="clip__store">${esc(p.tienda || "")}</span>
-        <span class="clip__title">${esc(p.titulo || "")}</span>
-        <span class="clip__foot">
-          ${code}
-          <span class="clip__cta">Canjear ✂</span>
-        </span>
+      ? `<span class="hcoupon__code" role="button" tabindex="0" data-code="${esc(p.codigo)}" title="Copiar código"
+             onclick="_copyHeroCode(event, this)" onkeydown="if(event.key==='Enter'||event.key===' ')_copyHeroCode(event,this)">Código: ${esc(p.codigo)}</span>`
+      : "";
+    return `<a class="hcoupon" href="${p.url || '#'}" target="_blank" rel="noopener sponsored">
+        <span class="hcoupon__store">${esc(p.tienda || "")}</span>
+        <span class="hcoupon__title">${esc(p.titulo || "")}</span>
+        ${code}
+        <span class="hcoupon__cta">Ver cupón →</span>
       </a>`;
   }
 
@@ -4596,9 +4546,9 @@
     const done = () => {
       if (el._orig == null) el._orig = el.textContent;
       el.textContent = "¡Copiado! ✓";
-      el.classList.add("clip__code--copied");
+      el.classList.add("hcoupon__code--copied");
       clearTimeout(el._t);
-      el._t = setTimeout(() => { el.textContent = el._orig; el._orig = null; el.classList.remove("clip__code--copied"); }, 1500);
+      el._t = setTimeout(() => { el.textContent = el._orig; el._orig = null; el.classList.remove("hcoupon__code--copied"); }, 1500);
     };
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -4611,25 +4561,21 @@
     if (!wrap) return;
     const promos = (_promos || []).filter(p => p && (p.titulo || p.tienda));
     if (!promos.length) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
-    const cards = promos.map((p, i) => _heroCouponCard(p, i)).join("");
+    const cards = promos.map(_heroCouponCard).join("");
     wrap.innerHTML =
-      `<div class="clipper">
-         <div class="clipper__head">
-           <span class="clipper__rule"></span>
-           <span class="clipper__masthead">El Recortable<span class="clipper__scissors">✂</span></span>
-           <span class="clipper__rule"></span>
-         </div>
-         <div class="clipper__body">
+      `<div class="hero-coupons__head">
+         <span class="hero-coupons__label"><i></i>Cupones y códigos</span>
+         <div class="hero-coupons__nav">
            <button type="button" class="hc-nav" id="js-hc-prev" aria-label="Cupones anteriores" onclick="_hcScroll(-1)">
-             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
            </button>
-           <div class="hero-coupons__viewport" id="js-hc-vp">
-             <div class="hero-coupons__track">${cards}</div>
-           </div>
            <button type="button" class="hc-nav" id="js-hc-next" aria-label="Cupones siguientes" onclick="_hcScroll(1)">
-             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
            </button>
          </div>
+       </div>
+       <div class="hero-coupons__viewport" id="js-hc-vp">
+         <div class="hero-coupons__track">${cards}</div>
        </div>`;
     wrap.style.display = "";
     const vp = document.getElementById("js-hc-vp");
@@ -6610,7 +6556,7 @@
 
   // ── Section builder ───────────────────────────────────────────
 
-  function _mhSection(title, cards, seeAllJs, subtitle, extraClass) {
+  function _mhSection(title, cards, seeAllJs, subtitle) {
     if (!cards.trim()) return "";
     const seeAll = seeAllJs
       ? `<a class="mhome__see-all" href="#" onclick="event.preventDefault();${seeAllJs}">Ver todo</a>`
@@ -6620,7 +6566,7 @@
       <button class="mhome__arrow" onclick="this.closest('.mhome__section').querySelector('.mhome__scroll').scrollBy({left:-440,behavior:'smooth'})" aria-label="Anterior">‹</button>
       <button class="mhome__arrow" onclick="this.closest('.mhome__section').querySelector('.mhome__scroll').scrollBy({left:440,behavior:'smooth'})" aria-label="Siguiente">›</button>
     </div>`;
-    return `<section class="mhome__section${extraClass ? " " + extraClass : ""}">
+    return `<section class="mhome__section">
       <div class="mhome__section-head">
         <h2 class="mhome__section-title">${title}</h2>${seeAll}${arrows}
       </div>${sub}
@@ -6718,8 +6664,7 @@
     // Cupones y códigos: carrusel con las mismas tarjetas (copiar código al pulsarlo).
     const _cupones = (_promos || []).filter(p => p && (p.titulo || p.tienda));
     const couponsSection = _cupones.length
-      ? _mhSection("El Recortable ✂", _cupones.map((p, i) => _heroCouponCard(p, i)).join(""),
-                   "location.href='/cupones'", null, "mhome__section--clipper")
+      ? _mhSection("Cupones y códigos", _cupones.map(_heroCouponCard).join(""), "location.href='/cupones'")
       : "";
 
     // El 'Deal del momento' y los cupones van DETRÁS del banner de bienvenida: solo
@@ -7080,60 +7025,118 @@
 
   // ── Filter panel (FAB) ───────────────────────────────────────
 
-  function buildFilterPanel() {
-    const SORT_OPTS = [
-      { id: "recientes",  label: "Más recientes" },
-      { id: "descuento",  label: "Mayor descuento" },
-      { id: "votados",    label: "Más votados" },
-      // "Para revender" oculto: sin productos por ahora (reactivable para premium)
-    ];
-    const catEl  = document.getElementById("js-fpanel-cats");
-    const sortEl = document.getElementById("js-fpanel-sorts");
-    if (!catEl || !sortEl) return;
-
-    catEl.innerHTML = CATEGORIAS.filter(c => !c.hidden).map(c =>
-      `<button class="fpanel__pill${c.id === activeCategory ? ' fpanel__pill--active' : ''}"
-               onclick="fpanelSelectCat('${c.id}')">${c.label}</button>`
-    ).join("");
-
-    // Subcategorías por categoría — acceso directo desde el filtro móvil
-    const subPills = (list, catId, active) => list.filter(s => s.id !== "todas").map(s =>
-      `<button class="fpanel__pill${(activeCategory === catId && active === s.id) ? ' fpanel__pill--active' : ''}"
-               onclick="fpanelSelectSubcat('${catId}','${s.id}')">${s.label}</button>`
-    ).join("");
-    const techEl = document.getElementById("js-fpanel-tech");
-    const modaEl = document.getElementById("js-fpanel-moda");
-    const depEl  = document.getElementById("js-fpanel-deportes");
-    if (techEl) techEl.innerHTML = subPills(TECH_SUBCATS, "tecnologia", activeTechSubcat);
-    if (modaEl) modaEl.innerHTML = subPills(MODA_SUBCATS, "moda", activeModaSubcat);
-    if (depEl)  depEl.innerHTML  = subPills(DEPORTE_SUBCATS, "deportes", activeDeporteSubcat);
-
-    // Tiendas — mismas que la barra de escritorio (incluidas las que aún no han
-    // salido en el primer lote), acotadas a la categoría activa si la hay.
-    const storeEl = document.getElementById("js-fpanel-stores");
-    if (storeEl) {
-      let stores = [..._allStores()].filter(Boolean);
-      if (activeCategory !== "todas") {
-        const allowed = _storesForCategory(activeCategory);
-        if (allowed && allowed.size) stores = stores.filter(s => allowed.has(s));
-      }
-      stores.sort((a, b) => _storeLabel(a).localeCompare(_storeLabel(b), "es"));
-      storeEl.innerHTML =
-        `<button class="fpanel__pill${!activeStore ? ' fpanel__pill--active' : ''}"
-                 onclick="fpanelSelectStore('')">Todas</button>` +
-        stores.map(s =>
-          `<button class="fpanel__pill${activeStore === s ? ' fpanel__pill--active' : ''}"
-                   onclick="fpanelSelectStore('${s.replace(/'/g, "\\'")}')">${_storeLabel(s)}</button>`
-        ).join("");
+  // Qué desplegable del panel está abierto ("" = todos plegados). Solo uno a la vez.
+  let _fpanelAbierto = "";
+  function fpanelToggleGrupo(id) {
+    _fpanelAbierto = (_fpanelAbierto === id) ? "" : id;
+    buildFilterPanel();
+    // Al abrir, traer la fila a la vista: si estaba abajo del panel quedaba oculta.
+    if (_fpanelAbierto) {
+      const g = document.getElementById("js-fgroup-" + _fpanelAbierto);
+      if (g) requestAnimationFrame(() => g.scrollIntoView({ block: "nearest", behavior: "smooth" }));
     }
+  }
 
-    sortEl.innerHTML =
-      SORT_OPTS.map(s =>
+  const _SORT_OPTS = [
+    { id: "recientes",  label: "Más recientes" },
+    { id: "descuento",  label: "Mayor descuento" },
+    { id: "votados",    label: "Más votados" },
+    // "Para revender" oculto: sin productos por ahora (reactivable para premium)
+  ];
+
+  // Subcategoría activa de la categoría en curso, para el resumen de la fila "Afinar"
+  function _subcatActivaLabel() {
+    const pares = [
+      ["tecnologia", TECH_SUBCATS,    activeTechSubcat],
+      ["moda",       MODA_SUBCATS,    activeModaSubcat],
+      ["deportes",   DEPORTE_SUBCATS, activeDeporteSubcat],
+    ];
+    for (const [cat, list, act] of pares) {
+      if (activeCategory === cat && act && act !== "todas")
+        return (list.find(s => s.id === act) || {}).label || "";
+    }
+    return "";
+  }
+
+  function buildFilterPanel() {
+    const wrap = document.getElementById("js-fpanel-groups");
+    if (!wrap) return;
+
+    const chev = `<svg class="fgroup__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+    // Una fila del acordeón: nombre, a qué está puesta, y su contenido plegado.
+    const grupo = (id, nombre, valor, activo, cuerpo) => {
+      const abierto = _fpanelAbierto === id;
+      return `<div class="fgroup${abierto ? " fgroup--open" : ""}" id="js-fgroup-${id}">
+        <button class="fgroup__btn" onclick="fpanelToggleGrupo('${id}')"
+                aria-expanded="${abierto}" aria-controls="js-fbody-${id}">
+          <span class="fgroup__name">${nombre}</span>
+          <span class="fgroup__val${activo ? " fgroup__val--on" : ""}">${valor}</span>
+          ${chev}
+        </button>
+        <div class="fgroup__body" id="js-fbody-${id}">${cuerpo}</div>
+      </div>`;
+    };
+
+    // ── Categoría ──
+    const catCuerpo = `<div class="fpanel__scroll fpanel__scroll--wrap">` +
+      CATEGORIAS.filter(c => !c.hidden).map(c =>
+        `<button class="fpanel__pill${c.id === activeCategory ? ' fpanel__pill--active' : ''}"
+                 onclick="fpanelSelectCat('${c.id}')">${c.label}</button>`
+      ).join("") + `</div>`;
+    const catLabel = activeCategory === "todas"
+      ? "Todas" : ((CATEGORIAS.find(c => c.id === activeCategory) || {}).label || "Todas");
+
+    // ── Afinar (subcategorías) ──
+    // Con una categoría activa se muestra solo su subtipo; sin ella, los tres bloques
+    // etiquetados, para que se vea de qué categoría cuelga cada uno.
+    const subPills = (list, catId, active) =>
+      `<div class="fpanel__scroll fpanel__scroll--wrap">` + list.filter(s => s.id !== "todas").map(s =>
+        `<button class="fpanel__pill${(activeCategory === catId && active === s.id) ? ' fpanel__pill--active' : ''}"
+                 onclick="fpanelSelectSubcat('${catId}','${s.id}')">${s.label}</button>`
+      ).join("") + `</div>`;
+    const bloques = [
+      ["Tecnología", TECH_SUBCATS,    "tecnologia", activeTechSubcat],
+      ["Moda",       MODA_SUBCATS,    "moda",       activeModaSubcat],
+      ["Deportes",   DEPORTE_SUBCATS, "deportes",   activeDeporteSubcat],
+    ].filter(([, , cat]) => activeCategory === "todas" || activeCategory === cat);
+    const subCuerpo = bloques.map(([nombre, list, cat, act]) =>
+      (activeCategory === "todas" ? `<span class="fgroup__sub">${nombre}</span>` : "") + subPills(list, cat, act)
+    ).join("");
+    const subLabel = _subcatActivaLabel() || "Todos";
+
+    // ── Tienda ──
+    let stores = [..._allStores()].filter(Boolean);
+    if (activeCategory !== "todas") {
+      const allowed = _storesForCategory(activeCategory);
+      if (allowed && allowed.size) stores = stores.filter(s => allowed.has(s));
+    }
+    stores.sort((a, b) => _storeLabel(a).localeCompare(_storeLabel(b), "es"));
+    const storeCuerpo = `<div class="fpanel__scroll fpanel__scroll--wrap">` +
+      `<button class="fpanel__pill${!activeStore ? ' fpanel__pill--active' : ''}"
+               onclick="fpanelSelectStore('')">Todas</button>` +
+      stores.map(s =>
+        `<button class="fpanel__pill${activeStore === s ? ' fpanel__pill--active' : ''}"
+                 onclick="fpanelSelectStore('${s.replace(/'/g, "\\'")}')">${_storeLabel(s)}</button>`
+      ).join("") + `</div>`;
+
+    // ── Ordenar por ──
+    const sortCuerpo = `<div class="fpanel__scroll fpanel__scroll--wrap">` +
+      _SORT_OPTS.map(s =>
         `<button class="fpanel__pill${s.id === activeSort ? ' fpanel__pill--active' : ''}"
                  onclick="fpanelSelectSort('${s.id}')">${s.label}</button>`
       ).join("") +
       `<button class="fpanel__pill${activeLowCost ? ' fpanel__pill--active' : ''}"
-               onclick="fpanelToggleLowCost()">💸 Menos de 25€</button>`;
+               onclick="fpanelToggleLowCost()">💸 Menos de 25€</button>` + `</div>`;
+    const sortLabel = ((_SORT_OPTS.find(s => s.id === activeSort) || {}).label || "Más recientes")
+      + (activeLowCost ? " · −25€" : "");
+
+    wrap.innerHTML =
+      grupo("cats",   "Categoría",   catLabel,   activeCategory !== "todas", catCuerpo) +
+      (bloques.length ? grupo("subs", "Afinar",  subLabel,   !!_subcatActivaLabel(), subCuerpo) : "") +
+      grupo("stores", "Tienda",      activeStore ? _storeLabel(activeStore) : "Todas", !!activeStore, storeCuerpo) +
+      grupo("sorts",  "Ordenar por", sortLabel,  activeSort !== "recientes" || activeLowCost, sortCuerpo);
   }
 
   // La barra de controles (#js-mctrlbar) es position:sticky, así que no necesita
@@ -7251,6 +7254,7 @@
   function fpanelReset() {
     activeCategory = "todas";
     _resetSubcats();
+    _fpanelAbierto = "";      // vuelve a la vista de resumen, todo plegado
     activeStore = "";
     document.querySelectorAll(".store-pill").forEach(b =>
       b.classList.toggle("store-pill--active", !b.dataset.store));
@@ -7679,23 +7683,10 @@
   <div id="js-filter-backdrop" onclick="closeFilterPanel()"></div>
   <div id="js-filter-panel" role="dialog" aria-label="Filtrar ofertas">
     <span class="fpanel__handle" role="presentation"></span>
-    <span class="fpanel__label">Categoría</span>
-    <div class="fpanel__scroll" id="js-fpanel-cats"></div>
-    <!-- Subcategorías: sangradas bajo "Categoría" para que se vea que dependen de ella -->
-    <div class="fpanel__nivel2">
-      <span class="fpanel__label fpanel__label--sub" id="js-fpanel-tech-label">Tecnología · afinar</span>
-      <div class="fpanel__scroll" id="js-fpanel-tech"></div>
-      <span class="fpanel__label fpanel__label--sub" id="js-fpanel-moda-label">Moda · afinar</span>
-      <div class="fpanel__scroll" id="js-fpanel-moda"></div>
-      <span class="fpanel__label fpanel__label--sub" id="js-fpanel-deportes-label">Deportes · afinar</span>
-      <div class="fpanel__scroll" id="js-fpanel-deportes"></div>
-    </div>
-    <!-- Tienda: en wrap, no en scroll horizontal. Son 20+ y el scroll lateral
-         escondía casi todas — la gracia del filtro es ver qué tiendas hay. -->
-    <span class="fpanel__label" style="margin-top:4px">Tienda</span>
-    <div class="fpanel__scroll fpanel__scroll--wrap" id="js-fpanel-stores"></div>
-    <span class="fpanel__label" style="margin-top:4px">Ordenar por</span>
-    <div class="fpanel__scroll" id="js-fpanel-sorts"></div>
+    <!-- Acordeón: cada filtro es una fila plegada que dice a qué está puesto.
+         Desplegadas de golpe (categorías + 3 bloques de subtipo + 25 tiendas)
+         el panel era una lista interminable donde no se encontraba nada. -->
+    <div id="js-fpanel-groups"></div>
     <!-- El precio va el último: es un ajuste fino, no el punto de partida -->
     <span class="fpanel__label" style="margin-top:4px">Precio</span>
     <div class="price-filter price-filter--panel">
