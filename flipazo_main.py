@@ -366,6 +366,12 @@ _MARCAS_KBEAUTY_BIO = frozenset([
 # Marcas cosméticas aceptables en OneBioShop = dermo + droguería + natural/K-beauty.
 _MARCAS_COSMETICA_OK = _MARCAS_DERMO | _MARCAS_DROGUERIA | _MARCAS_KBEAUTY_BIO
 
+# Tope de deals por tienda y ciclo en los feeds Tradedoubler (los de AWIN ya tienen
+# el suyo, _AWIN_CAP). Solo para catálogos que rebajan a lo bestia y monotema: Toni
+# Pons son 9.000 pares de alpargatas y sin tope se come el canal. Las tiendas que no
+# estén aquí no llevan límite.
+_TD_CAP_POR_TIENDA = {"Toni Pons": 5}
+
 # Recambios y componentes de bicicleta — bloqueados solo para Mammoth Bikes
 # (términos demasiado especializados; no aplica globalmente porque en otros contextos
 # "cassette" puede ser electrónica, "freno" puede ser pieza de coche, etc.)
@@ -1892,6 +1898,14 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             fetch_tradedoubler_productos, DESCUENTO_MINIMO, PRECIO_MINIMO_LC, PRECIO_MAXIMO,
             _descuento_minimo_para,
         )
+        # Barajar + tope por tienda, igual que en AWIN. Toni Pons tiene 9.000 pares y
+        # muchísimos rebajados a la vez: sin tope, bajar su umbral al 50% llena el canal
+        # de alpargatas. El 60% de antes hacía de tope encubierto (y de paso lo apagaba
+        # del todo: cero deals en 100 días). Mejor separar las dos cosas — el umbral
+        # decide la CALIDAD del descuento, el tope decide CUÁNTAS caben por ciclo.
+        # El barajado es lo que evita que con tope salgan siempre las mismas.
+        random.shuffle(td_raw)
+        _td_por_tienda: dict[str, int] = {}
         for d in td_raw:
             _registrar_observacion_precio(d)
             # MediaMarkt y PCBox usan PreviousPrice = MSRP fabricante → si descuento >60% suele ser ficticio.
@@ -1900,6 +1914,9 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             _p_act = d.get("precio_actual", 0)
             _p_ori = d.get("precio_original", 0)
             _tienda = d.get("tienda", "")
+            _cap = _TD_CAP_POR_TIENDA.get(_tienda)
+            if _cap is not None and _td_por_tienda.get(_tienda, 0) >= _cap:
+                continue
             if _tienda in ("MediaMarkt", "PCBox") and _p_act > 0 and _p_ori > _p_act * 2.5:
                 continue
             # OneBioShop (112k productos): solo marcas cosméticas reconocidas — bloquea
@@ -1915,6 +1932,14 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             if clave not in vistos:
                 vistos.add(clave)
                 todos.append(p)
+                # Cuenta solo lo que entra de verdad: si un producto se cae por el
+                # filtro no debe gastar cupo, o el tope se agotaría sin publicar nada.
+                _td_por_tienda[_tienda] = _td_por_tienda.get(_tienda, 0) + 1
+        if _td_por_tienda:
+            _topadas = [f"{t} {n}/{_TD_CAP_POR_TIENDA[t]}" for t, n in _td_por_tienda.items()
+                        if t in _TD_CAP_POR_TIENDA]
+            if _topadas:
+                print(f"   🧢 TD con tope por ciclo: {', '.join(_topadas)}")
     except Exception as e:
         print(f"   ❌ Error en Tradedoubler feeds: {e}")
         alertar_admin("Error en Tradedoubler feeds", str(e))
