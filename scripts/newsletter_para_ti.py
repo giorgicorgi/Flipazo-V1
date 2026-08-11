@@ -143,7 +143,8 @@ def _esc(s) -> str:
             .replace(">", "&gt;").replace('"', "&quot;"))
 
 
-def construir_texto(nombre: str, deals: list, url_baja: str, cadencia: str) -> str:
+def construir_texto(nombre: str, deals: list, url_baja: str, cadencia: str,
+                    primer_envio: bool = False) -> str:
     """Versión en texto plano. No es un adorno: un multipart/alternative que solo
     lleva HTML es una señal clásica de correo masivo, y los filtros lo puntúan
     peor. Además es lo que se lee en relojes, lectores de pantalla y clientes
@@ -159,6 +160,9 @@ def construir_texto(nombre: str, deals: list, url_baja: str, cadencia: str) -> s
             f"  {SITE}/r/{d['deal_id']}?canal=email_parati",
             "",
         ]
+    if primer_envio:
+        lineas += ["Un favor para no perderte nada: arrastra este correo a la pestana Principal",
+                   "y anade hola@flipazo.es a tus contactos.", ""]
     lineas += [
         "---",
         f"Recibes este correo {cadencia} porque lo pediste en tu seccion 'Para ti'.",
@@ -168,61 +172,115 @@ def construir_texto(nombre: str, deals: list, url_baja: str, cadencia: str) -> s
     return "\n".join(lineas)
 
 
-def construir_html(nombre: str, deals: list, url_baja: str, cadencia: str) -> str:
-    """HTML de correo: tablas y estilos en línea. Outlook y Gmail ignoran <style>
-    y flexbox, así que todo va inline aunque sea más verboso."""
+def construir_html(nombre: str, deals: list, url_baja: str, cadencia: str,
+                   primer_envio: bool = False) -> str:
+    """HTML de correo con el mismo lenguaje visual que flipazo.es: rojo de marca
+    #F52834, precio en azul #0581FC, ahorro en verde agua #14C1AE, papel #FEFEF8,
+    títulos en Playfair Display y el resto en Nunito.
+
+    Todo va en tablas y con estilos EN LÍNEA: Gmail descarta <style> y no entiende
+    flexbox ni grid. Las webfonts solo cargan en Apple Mail y similares, así que
+    cada font-family lleva su alternativa del sistema (Georgia para el serif)."""
     filas = []
     for d in deals:
         pct   = d["descuento_pct"] or 0
-        prec  = fmt_precio(d["precio"] or 0)
-        orig  = (f'<span style="color:#9CA3AF;text-decoration:line-through;font-size:14px">'
-                 f'{fmt_precio(d["precio_original"])}</span> ') if (d["precio_original"] or 0) > (d["precio"] or 0) else ""
+        precio = d["precio"] or 0
+        p_ori  = d["precio_original"] or 0
+        prec  = fmt_precio(precio)
+        # Precio anterior tachado en rojo, como en la web (efecto anclaje)
+        orig  = (f'<span style="color:#6B7280;font-size:15px;text-decoration:line-through;'
+                 f'text-decoration-color:#F52834">{fmt_precio(p_ori)}</span>&nbsp;'
+                 ) if p_ori > precio else ""
+        ahorro = p_ori - precio
+        pill = (f'<div style="padding-top:8px"><span style="background:#E6F9F7;color:#0D7A6F;'
+                f'font-size:12px;font-weight:800;padding:4px 10px;border-radius:9999px;'
+                f'font-family:Nunito,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">'
+                f'Ahorras {fmt_precio(ahorro)}</span></div>') if ahorro > 0 else ""
         url   = f'{SITE}/r/{d["deal_id"]}?canal=email_parati'
         img   = d["imagen_url"] or ""
-        imgtd = (f'<td width="96" style="padding:0 14px 0 0" valign="top">'
-                 f'<img src="{_esc(img)}" width="96" alt="" '
-                 f'style="width:96px;height:96px;object-fit:contain;border-radius:8px;'
-                 f'background:#fff;border:1px solid #E5E7EB"></td>') if img else ""
+        imgtd = (f'<td width="104" style="padding:0 16px 0 0" valign="top">'
+                 f'<a href="{url}"><img src="{_esc(img)}" width="104" alt="" '
+                 f'style="width:104px;height:104px;object-fit:contain;border-radius:12px;'
+                 f'background:#FFFFFF;border:1px solid #E5E7EB;display:block"></a></td>') if img else ""
         filas.append(f"""
-        <tr><td style="padding:0 0 18px">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <tr><td style="padding:0 0 8px">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                 style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:14px;padding:16px">
+            <tr>
             {imgtd}
             <td valign="top">
-              <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;
-                          letter-spacing:.06em;padding-bottom:4px">{_esc(d["tienda"])}</div>
-              <a href="{url}" style="font-size:16px;font-weight:700;color:#111827;
-                 text-decoration:none;line-height:1.3">{_esc((d["titulo"] or "")[:95])}</a>
-              <div style="padding-top:7px">
-                {orig}<span style="font-size:20px;font-weight:800;color:#0581FC">{prec}</span>
-                <span style="background:#F52834;color:#fff;font-size:12px;font-weight:800;
-                      padding:2px 7px;border-radius:5px;margin-left:6px">−{pct}%</span>
+              <div style="font-family:Nunito,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+                          font-size:10px;font-weight:800;color:#6B7280;text-transform:uppercase;
+                          letter-spacing:.08em;padding-bottom:5px">{_esc(d["tienda"])}</div>
+              <a href="{url}" style="font-family:\'Playfair Display\',Georgia,serif;font-size:17px;
+                 font-weight:700;color:#111827;text-decoration:none;line-height:1.25">{_esc((d["titulo"] or "")[:88])}</a>
+              <div style="padding-top:9px">
+                {orig}<span style="font-family:Nunito,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+                      font-size:23px;font-weight:800;color:#0581FC">{prec}</span>
+                <span style="background:#F52834;color:#FFFFFF;font-size:12px;font-weight:800;
+                      padding:3px 8px;border-radius:6px;margin-left:8px;
+                      font-family:Nunito,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">&minus;{pct}%</span>
               </div>
-              <a href="{url}" style="display:inline-block;margin-top:10px;background:#F52834;
-                 color:#fff;font-size:13px;font-weight:700;text-decoration:none;
-                 padding:8px 16px;border-radius:9999px">Ver oferta</a>
+              {pill}
+              <a href="{url}" style="display:inline-block;margin-top:12px;background:#F52834;
+                 color:#FFFFFF;font-size:13px;font-weight:800;text-decoration:none;
+                 padding:10px 22px;border-radius:9999px;
+                 font-family:Nunito,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">Ver oferta</a>
             </td>
           </tr></table>
         </td></tr>""")
 
+    # Solo en el primer correo: pedir que lo muevan a Principal. Es lo único que
+    # de verdad mueve la clasificación de Gmail, y repetirlo cada vez cansaría.
+    bienvenida = (f"""
+    <tr><td style="padding:0 0 18px">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"
+             style="background:#E6F9F7;border-radius:12px;padding:14px 16px">
+        <tr><td style="font-family:Nunito,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+                       font-size:13px;color:#0D7A6F;line-height:1.55">
+          <b>Un favor para no perderte nada:</b> arrastra este correo a la pestaña
+          <b>Principal</b> y añade <b>hola@flipazo.es</b> a tus contactos. Así los
+          siguientes te llegan ahí y no entre la publicidad.
+        </td></tr>
+      </table>
+    </td></tr>""") if primer_envio else ""
+
     saludo = f"Hola{', ' + _esc(nombre) if nombre else ''}"
     return f"""<!doctype html><html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F3F4F6">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:#F3F4F6;-webkit-font-smoothing:antialiased">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">
+  {len(deals)} ofertas con descuento verificado de lo que te interesa.
+</div>
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F3F4F6;padding:24px 12px">
 <tr><td align="center">
   <table width="100%" cellpadding="0" cellspacing="0" border="0"
-         style="max-width:560px;background:#FEFEF8;border-radius:14px;padding:28px 24px;
-                font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
-    <tr><td style="padding-bottom:4px">
-      <span style="font-size:22px;font-weight:800;color:#F52834">Flipazo</span>
-      <span style="font-size:13px;color:#6B7280;padding-left:8px">· Para ti</span>
+         style="max-width:580px;background:#FEFEF8;border-radius:16px;padding:26px 22px;
+                font-family:Nunito,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+    <tr><td style="padding-bottom:16px;border-bottom:1px solid #E5E7EB">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td valign="middle">
+          <a href="{SITE}"><img src="https://www.flipazo.es/flipazo-logo.png" height="34" alt="Flipazo"
+             style="height:34px;display:block;border:0"></a>
+        </td>
+        <td valign="middle" align="right" style="font-size:11px;font-weight:800;color:#F52834;
+            text-transform:uppercase;letter-spacing:.1em">Para ti</td>
+      </tr></table>
     </td></tr>
-    <tr><td style="padding:10px 0 20px;font-size:15px;color:#374151;line-height:1.5">
+    <tr><td style="padding:20px 0 18px;font-size:16px;color:#374151;line-height:1.5">
       {saludo}: esto es lo que ha salido de lo que te interesa.
     </td></tr>
+    {bienvenida}
     {''.join(filas)}
-    <tr><td style="padding-top:6px;border-top:1px solid #E5E7EB">
-      <div style="font-size:12px;color:#9CA3AF;line-height:1.6;padding-top:14px">
+    <tr><td align="center" style="padding:14px 0 4px">
+      <a href="{SITE}" style="display:inline-block;border:1.5px solid #2C3E50;color:#2C3E50;
+         font-size:13px;font-weight:800;text-decoration:none;padding:11px 26px;border-radius:9999px">
+         Ver todas las ofertas</a>
+    </td></tr>
+    <tr><td style="padding-top:18px;border-top:1px solid #E5E7EB">
+      <div style="font-size:12px;color:#9CA3AF;line-height:1.7;padding-top:14px">
         Recibes este correo {cadencia} porque lo pediste en tu sección «Para ti».<br>
         <a href="{SITE}/?prefs=1" style="color:#6B7280">Cambiar qué recibo o cada cuánto</a>
         &nbsp;·&nbsp;
@@ -230,6 +288,10 @@ def construir_html(nombre: str, deals: list, url_baja: str, cadencia: str) -> st
       </div>
     </td></tr>
   </table>
+  <div style="font-size:11px;color:#9CA3AF;padding:14px 0 0;
+       font-family:Nunito,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+    Flipazo &middot; ofertas con descuento real verificado
+  </div>
 </td></tr></table></body></html>"""
 
 
@@ -341,8 +403,11 @@ def main() -> int:
         asunto   = (f"{len(match)} ofertas para ti" if len(match) > 1
                     else f"Una oferta para ti: {(match[0]['titulo'] or '')[:48]}")
         _cad     = describir(freq, dias)
-        texto    = construir_texto(u["nombre"], match, url_baja, _cad)
-        html     = construir_html(u["nombre"], match, url_baja, _cad)
+        # Primer correo de este suscriptor: lleva la petición de moverlo a
+        # Principal. Solo una vez — repetirlo en cada envío cansaría.
+        primero  = not (u["email_last_sent"] or "")
+        texto    = construir_texto(u["nombre"], match, url_baja, _cad, primero)
+        html     = construir_html(u["nombre"], match, url_baja, _cad, primero)
 
         if enviar(u["email"], asunto, texto, html, url_baja):
             enviados += 1
