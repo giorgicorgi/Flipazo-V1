@@ -1953,19 +1953,36 @@ async def scrape_todas_las_tiendas(context: BrowserContext) -> list[Producto]:
             fetch_tradedoubler_historial, PRECIO_MINIMO_LC, PRECIO_MAXIMO, DB_PATH,
         )
         _registrar_observaciones_batch(hist_obs)
+        # Contamos qué pasa con cada bajada detectada. Sin esto, una tienda puede
+        # detectar 38 bajadas en cada ciclo y publicar CERO durante meses sin que
+        # nadie se entere: le pasó a Suunto (sus rebajas son correas y cables, que
+        # están prohibidos con razón) y no había forma de saberlo sin depurar a mano.
+        _hist_pasa: dict[str, int] = {}
+        _hist_prod: dict[str, int] = {}   # descartados por filtro de producto
+        _hist_prec: dict[str, int] = {}   # descartados por precio/descuento
         for d in hist_pub:
             _tienda = d.get("tienda", "")
             if not _es_producto_valido(d["titulo"], d["descuento_pct"], tienda=_tienda, precio=d.get("precio_actual", 0)):
+                _hist_prod[_tienda] = _hist_prod.get(_tienda, 0) + 1
                 continue
             if not _precio_aceptable(d["precio_actual"], d["descuento_pct"], tienda=_tienda, titulo=d["titulo"]):
+                _hist_prec[_tienda] = _hist_prec.get(_tienda, 0) + 1
                 continue
             p = Producto(**d)
             clave = f"{p.tienda}:{p.titulo[:40].lower()}"
             if clave not in vistos:
                 vistos.add(clave)
                 todos.append(p)
+                _hist_pasa[_tienda] = _hist_pasa.get(_tienda, 0) + 1
         if hist_obs:
             print(f"   🗂️  TD historial: {len(hist_obs)} obs · {len(hist_pub)} bajadas reales detectadas")
+        # Solo se listan las tiendas que detectan bajadas y no publican ninguna:
+        # es la señal de que su catálogo rebajado choca con los filtros.
+        for _t in sorted(set(_hist_prod) | set(_hist_prec)):
+            if _hist_pasa.get(_t):
+                continue
+            print(f"      ⓘ {_t}: {_hist_prod.get(_t,0)+_hist_prec.get(_t,0)} bajadas detectadas y 0 publicadas "
+                  f"({_hist_prod.get(_t,0)} por filtro de producto, {_hist_prec.get(_t,0)} por precio)")
     except Exception as e:
         print(f"   ❌ Error en TD historial: {e}")
 
