@@ -68,7 +68,12 @@ discovery/               ← scoring.py + emotional_layer.py (hooks con Haiku)
 
 ## Pipeline — Constantes clave en flipazo_main.py (~líneas 36-180)
 
-- `DESCUENTO_MINIMO = 40` — % mínimo para cualquier deal
+- `DESCUENTO_MINIMO = 40` — % mínimo para cualquier deal. **Innegociable: nunca se baja de 40.**
+  Única excepción: gran electrodoméstico (≥300€, `_GRAN_ELECTRO_RE`) desde el 30%, y solo porque
+  la card lleva la nota *"No llega al −40%, pero en un electrodoméstico así es un buen ahorro"*.
+  Subirlo por encima de 40 sí vale (Esdemarca/Desigual/Toni Pons al 50%). Para limitar el VOLUMEN
+  de una tienda se usa un tope por ciclo (`_TD_CAP_POR_TIENDA`, `_AWIN_CAP`), **nunca el umbral**:
+  confundirlos tuvo a Toni Pons 100 días apagada (le pusieron 60% para que no inundara el canal)
 - `PRECIO_MINIMO = 25.0` / `PRECIO_MAXIMO = 800.0` (bici: 3500)
 - `BENEFICIO_NETO_MINIMO = 20.0` — € mínimo para reventa
 - `DEDUP_TTL_HORAS = 96` — TTL deduplicación (4 días)
