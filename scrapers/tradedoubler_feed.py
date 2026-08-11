@@ -40,6 +40,37 @@ _last_fetch: datetime | None = None
 # (timeout/429), reutilizamos su último resultado en vez de dejar la tienda fuera 23h.
 _feed_cache: dict[str, list[dict]] = {}
 
+# ── Reintento POR FEED ────────────────────────────────────────────────────────
+# Antes esto era todo o nada: si UN feed de veinte fallaba, no se activaba la caché
+# de 23h y el ciclo siguiente volvía a descargar los veinte. Con Tradedoubler
+# limitándonos ("Request Quota exceeded"), el límite provocaba reintentos y los
+# reintentos sostenían el límite: de ~1 descarga completa al día pasamos a una cada
+# 60-90 min (10-ago-2026: 16 errores 429; al día siguiente, 109).
+# Ahora cada feed lleva su propio reloj: el que va bien no se vuelve a pedir en 23h,
+# y el que falla se reintenta con espera creciente sin arrastrar a los demás.
+_feed_next:   dict[str, datetime] = {}   # fid → no volver a pedirlo antes de…
+_feed_fallos: dict[str, int]      = {}   # fid → fallos seguidos
+_BACKOFF_H = [1, 2, 4, 8, 23]
+
+
+def _toca_feed(fid: str) -> bool:
+    prox = _feed_next.get(fid)
+    return prox is None or datetime.now() >= prox
+
+
+def _feed_ok(fid: str) -> None:
+    _feed_fallos.pop(fid, None)
+    _feed_next[fid] = datetime.now() + timedelta(hours=_CACHE_TTL_H)
+
+
+def _feed_fallo(fid: str) -> int:
+    """Marca el fallo y devuelve dentro de cuántas horas se reintentará."""
+    n = _feed_fallos.get(fid, 0)
+    horas = _BACKOFF_H[min(n, len(_BACKOFF_H) - 1)]
+    _feed_fallos[fid] = n + 1
+    _feed_next[fid] = datetime.now() + timedelta(hours=horas)
+    return horas
+
 # ---------------------------------------------------------------------------
 # Constantes Esdemarca
 # ---------------------------------------------------------------------------
@@ -740,7 +771,9 @@ def fetch_tradedoubler_historial(precio_minimo: float = 8.0, precio_maximo: floa
     if not TRADEDOUBLER_TOKEN:
         return [], []
     ahora = datetime.now()
-    if _last_fetch_hist and (ahora - _last_fetch_hist) < timedelta(hours=_CACHE_TTL_H):
+    # Mismo criterio por feed que en fetch_tradedoubler_productos: son otros ~11 feeds
+    # contra la misma cuota, y aquí estaba el mismo bucle de reintentos.
+    if _last_fetch_hist and not any(_toca_feed(f["fid"]) for f in _FEEDS_HISTORIAL):
         return _cache_hist, _cache_hist_pub
 
     # Referencias de histórico propio (precio máx sostenido por producto) → detectar bajadas.
@@ -753,11 +786,16 @@ def fetch_tradedoubler_historial(precio_minimo: float = 8.0, precio_maximo: floa
     fallos = 0
     for feed in _FEEDS_HISTORIAL:
         tienda, fid = feed["tienda"], feed["fid"]
+        if not _toca_feed(fid):
+            obs.extend(_feed_cache_hist.get(fid, []))
+            continue
         raw = _fetch_unlimited(fid)
         total_raw += len(raw)
         if not raw:
             prev = _feed_cache_hist.get(fid, [])
             fallos += 1
+            horas = _feed_fallo(fid)
+            print(f"   🗂️  TD historial: {tienda} (fid={fid}) falló → reintento en {horas}h")
             obs.extend(prev)
             continue
         feed_obs = []
@@ -783,6 +821,7 @@ def fetch_tradedoubler_historial(precio_minimo: float = 8.0, precio_maximo: floa
                 })
                 feed_pub += 1
         _feed_cache_hist[fid] = feed_obs
+        _feed_ok(fid)
         print(f"   🗂️  TD historial: {tienda} (fid={fid}) → {len(raw)} prod, {len(feed_obs)} obs, {feed_pub} bajadas")
         obs.extend(feed_obs)
 
@@ -790,8 +829,7 @@ def fetch_tradedoubler_historial(precio_minimo: float = 8.0, precio_maximo: floa
         return _cache_hist, _cache_hist_pub
     _cache_hist = obs
     _cache_hist_pub = pub
-    if fallos == 0:
-        _last_fetch_hist = ahora
+    _last_fetch_hist = ahora   # los feeds caídos ya tienen su propio reintento
     return obs, pub
 
 
@@ -813,9 +851,13 @@ def fetch_tradedoubler_productos(
         return []
 
     ahora = datetime.now()
-    if _last_fetch and (ahora - _last_fetch) < timedelta(hours=_CACHE_TTL_H):
-        h_rest = _CACHE_TTL_H - int((ahora - _last_fetch).total_seconds() / 3600)
-        print(f"   📦 TD caché activa: {len(_cache)} deals (siguiente descarga en ~{h_rest}h)")
+    # Si a ningún feed le toca todavía, se sirve la caché sin tocar la red. Se mira
+    # feed a feed (no un reloj global): así el que está en backoff puede reintentarse
+    # cuando le corresponda sin arrastrar a los otros diecinueve.
+    if _last_fetch and not any(_toca_feed(f["fid"]) for f in _FEEDS):
+        prox = min((_feed_next[f["fid"]] for f in _FEEDS if f["fid"] in _feed_next), default=None)
+        cuando = f" (siguiente en ~{max(0, int((prox - ahora).total_seconds() // 3600))}h)" if prox else ""
+        print(f"   📦 TD caché activa: {len(_cache)} deals{cuando}")
         return _cache
 
     todos: list[dict] = []
@@ -824,6 +866,11 @@ def fetch_tradedoubler_productos(
     for feed in _FEEDS:
         tienda, fid = feed["tienda"], feed["fid"]
         filtrar_fn = feed.get("filtrar_fn")
+        # Feed aún en espera (fue bien hace poco, o falló y está en backoff):
+        # se sirve de su última descarga buena sin gastar una petición.
+        if not _toca_feed(fid):
+            todos.extend(_feed_cache.get(fid, []))
+            continue
         print(f"   📡 TD feed: {tienda} (fid={fid})...")
         raw = _fetch_unlimited(fid)
         total_raw += len(raw)
@@ -835,7 +882,9 @@ def fetch_tradedoubler_productos(
             # último resultado bueno de ESTE feed para no dejar la tienda fuera 23h.
             prev = _feed_cache.get(fid, [])
             fallos += 1
-            print(f"      ⚠️  0 descargados (fallo de red) → reutilizando caché previa de {tienda}: {len(prev)} deals")
+            horas = _feed_fallo(fid)
+            print(f"      ⚠️  0 descargados (fallo/429) → reintento en {horas}h · "
+                  f"usando caché previa de {tienda}: {len(prev)} deals")
             todos.extend(prev)
             continue
         if filtrar_fn is not None:
@@ -843,6 +892,7 @@ def fetch_tradedoubler_productos(
         else:
             filtrados = _filtrar(raw, tienda, descuento_minimo, precio_minimo, precio_maximo, descuento_minimo_fn)
         _feed_cache[fid] = filtrados  # guardar último resultado bueno por feed
+        _feed_ok(fid)
         print(f"      → {len(raw)} descargados, {len(filtrados)} con ≥{desc_min}% descuento")
         todos.extend(filtrados)
 
@@ -854,12 +904,12 @@ def fetch_tradedoubler_productos(
         return _cache
 
     _cache = todos
-    # Solo fijamos la caché de 23h si TODOS los feeds cargaron. Si alguno falló (y se
-    # rellenó con su caché previa), NO marcamos _last_fetch → se reintenta el próximo
-    # ciclo hasta que todos carguen, evitando dejar una tienda ausente 23h.
-    if fallos == 0:
-        _last_fetch = ahora
-    else:
-        print(f"   ⚠️  {fallos} feed(s) fallaron — no se fija caché 23h, se reintentará el próximo ciclo")
+    # La caché global se fija SIEMPRE. Los feeds que fallaron ya llevan su propio
+    # reintento con espera creciente (_feed_fallo), así que no hace falta —ni conviene—
+    # volver a descargarlos todos: eso era justo el bucle que nos puso en 429.
+    _last_fetch = ahora
+    if fallos:
+        print(f"   ⚠️  {fallos} feed(s) fallaron — cada uno se reintenta por su cuenta, "
+              f"el resto no se vuelve a pedir en {_CACHE_TTL_H}h")
     print(f"   ✅ TD total: {len(todos)} deals de {len(_FEEDS)} tiendas")
     return todos
