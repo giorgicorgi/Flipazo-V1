@@ -48,7 +48,7 @@ import requests as _http
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
 load_dotenv()
@@ -802,6 +802,20 @@ def _ensure_schema():
         """)
         con.execute("CREATE INDEX IF NOT EXISTS idx_prefs_tg   ON user_prefs(tg_chat_id)")
         con.execute("CREATE INDEX IF NOT EXISTS idx_prefs_code ON user_prefs(tg_code)")
+
+        # Boletín "Para ti" por correo. La frecuencia la elige el usuario:
+        #   diario | semanal | alternos | dias   (dias → email_dias, 0=lunes … 6=domingo)
+        # 'semanal' usa el primer día de email_dias como día de envío.
+        for col_def in [
+            "email_enabled   INTEGER DEFAULT 0",
+            "email_freq      TEXT    DEFAULT 'semanal'",
+            "email_dias      TEXT    DEFAULT '[0]'",
+            "email_last_sent TEXT    DEFAULT ''",
+        ]:
+            try:
+                con.execute(f"ALTER TABLE user_prefs ADD COLUMN {col_def}")
+            except Exception:
+                pass
 
         # Blog posts
         con.execute("""
@@ -2465,16 +2479,23 @@ _PREFS_DEFAULT = {
     "cats": [], "subcats": {}, "stores": [],
     "precio_min": 0, "precio_max": None,
     "tg_enabled": True, "tg_linked": False,
+    "email_enabled": False, "email_freq": "semanal", "email_dias": [0],
 }
+
+# Frecuencias válidas del boletín. 'dias' = el usuario marca los días concretos.
+_EMAIL_FREQS = ("diario", "semanal", "alternos", "dias")
 
 
 class PrefsBody(BaseModel):
-    cats:       Optional[list]  = None
-    subcats:    Optional[dict]  = None
-    stores:     Optional[list]  = None
-    precio_min: Optional[float] = None
-    precio_max: Optional[float] = None
-    tg_enabled: Optional[bool]  = None
+    cats:          Optional[list]  = None
+    subcats:       Optional[dict]  = None
+    stores:        Optional[list]  = None
+    precio_min:    Optional[float] = None
+    precio_max:    Optional[float] = None
+    tg_enabled:    Optional[bool]  = None
+    email_enabled: Optional[bool]  = None
+    email_freq:    Optional[str]   = None
+    email_dias:    Optional[list]  = None
 
 
 def _normalizar_subcats(raw) -> dict:
@@ -2517,7 +2538,32 @@ def _prefs_row_to_dict(row) -> dict:
         "precio_max": row["precio_max"],
         "tg_enabled": bool(row["tg_enabled"]),
         "tg_linked":  bool(row["tg_chat_id"]),
+        "email_enabled": bool(_col(row, "email_enabled", 0)),
+        "email_freq":    (_col(row, "email_freq", "semanal") or "semanal"),
+        "email_dias":    _normalizar_dias(_j(_col(row, "email_dias", "[0]"), [])),
     }
+
+
+def _col(row, nombre, defecto):
+    """Lee una columna que puede no existir aún (instalación sin migrar)."""
+    try:
+        v = row[nombre]
+    except (IndexError, KeyError):
+        return defecto
+    return defecto if v is None else v
+
+
+def _normalizar_dias(raw) -> list:
+    """Días de la semana como enteros 0-6 (0 = lunes), ordenados y sin repetir."""
+    out = []
+    for x in (raw if isinstance(raw, list) else []):
+        try:
+            n = int(x)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= n <= 6:
+            out.append(n)
+    return sorted(dict.fromkeys(out))
 
 
 def _get_prefs(user_id: str) -> dict:
@@ -2549,6 +2595,19 @@ def put_user_prefs(body: PrefsBody, request: Request):
     pmin    = body.precio_min if body.precio_min is not None else cur["precio_min"]
     pmax    = body.precio_max if body.precio_max is not None else cur["precio_max"]
     tg_en   = body.tg_enabled if body.tg_enabled is not None else cur["tg_enabled"]
+    mail_on = body.email_enabled if body.email_enabled is not None else cur["email_enabled"]
+    freq    = body.email_freq    if body.email_freq    is not None else cur["email_freq"]
+    dias    = body.email_dias    if body.email_dias    is not None else cur["email_dias"]
+
+    freq = freq if freq in _EMAIL_FREQS else "semanal"
+    dias = _normalizar_dias(dias)
+    # 'semanal' manda un solo día y 'dias' necesita al menos uno: sin esto el
+    # boletín quedaría activado pero no le tocaría nunca, que es peor que no tenerlo.
+    if freq == "semanal":
+        dias = dias[:1] or [0]
+    elif freq == "dias" and not dias:
+        freq = "semanal"
+        dias = [0]
 
     # Saneado: listas de strings cortas, precios no negativos y coherentes
     cats    = [str(c)[:40] for c in cats   if isinstance(c, (str, int))][:40]
@@ -2564,16 +2623,56 @@ def put_user_prefs(body: PrefsBody, request: Request):
 
     with _get_db() as con:
         con.execute("""
-            INSERT INTO user_prefs (user_id, cats, subcats, stores, precio_min, precio_max, tg_enabled, updated_at)
-            VALUES (?,?,?,?,?,?,?,?)
+            INSERT INTO user_prefs (user_id, cats, subcats, stores, precio_min, precio_max,
+                                    tg_enabled, email_enabled, email_freq, email_dias, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(user_id) DO UPDATE SET
                 cats=excluded.cats, subcats=excluded.subcats, stores=excluded.stores,
                 precio_min=excluded.precio_min, precio_max=excluded.precio_max,
-                tg_enabled=excluded.tg_enabled, updated_at=excluded.updated_at
+                tg_enabled=excluded.tg_enabled, email_enabled=excluded.email_enabled,
+                email_freq=excluded.email_freq, email_dias=excluded.email_dias,
+                updated_at=excluded.updated_at
         """, (uid, json.dumps(cats, ensure_ascii=False), json.dumps(subcats, ensure_ascii=False),
-              json.dumps(stores, ensure_ascii=False), pmin, pmax, 1 if tg_en else 0, ahora))
+              json.dumps(stores, ensure_ascii=False), pmin, pmax, 1 if tg_en else 0,
+              1 if mail_on else 0, freq, json.dumps(dias), ahora))
         con.commit()
     return _get_prefs(uid)
+
+
+# ── Boletín: baja en un clic ──────────────────────────────────────────────────
+# El enlace va en cada correo y NO puede pedir iniciar sesión: quien quiere darse
+# de baja no va a loguearse para conseguirlo, marca el correo como spam. El token
+# es un HMAC del user_id, así que no se puede dar de baja a otro adivinando su id.
+
+def firmar_baja(user_id: str) -> str:
+    firma = _hmac.new(JWT_SECRET.encode(), f"baja:{user_id}".encode(), hashlib.sha256).hexdigest()[:32]
+    return f"{user_id}.{firma}"
+
+
+@app.get("/api/newsletter/baja")
+def baja_newsletter(t: str = ""):
+    uid, _, firma = (t or "").partition(".")
+    esperada = _hmac.new(JWT_SECRET.encode(), f"baja:{uid}".encode(), hashlib.sha256).hexdigest()[:32]
+    if not uid or not _hmac.compare_digest(firma, esperada):
+        return HTMLResponse(_pagina_baja("Este enlace no es válido.", ok=False), status_code=400)
+    with _get_db() as con:
+        con.execute("UPDATE user_prefs SET email_enabled = 0, updated_at = ? WHERE user_id = ?",
+                    (datetime.now(timezone.utc).isoformat(), uid))
+        con.commit()
+    return HTMLResponse(_pagina_baja("Listo. No volverás a recibir el boletín «Para ti»."))
+
+
+def _pagina_baja(mensaje: str, ok: bool = True) -> str:
+    return f"""<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Boletín · Flipazo</title>
+<style>body{{font-family:system-ui,sans-serif;background:#FEFEF8;color:#111827;display:flex;
+min-height:100vh;align-items:center;justify-content:center;margin:0;padding:24px}}
+.c{{max-width:420px;text-align:center}}h1{{font-size:20px;margin:0 0 10px}}
+p{{color:#6B7280;line-height:1.5;margin:0 0 20px}}
+a{{display:inline-block;background:#F52834;color:#fff;text-decoration:none;font-weight:700;
+padding:11px 20px;border-radius:9999px}}</style></head><body><div class="c">
+<h1>{'👋 Hasta luego' if ok else '⚠️ Enlace no válido'}</h1><p>{mensaje}</p>
+<a href="https://flipazo.es">Volver a Flipazo</a></div></body></html>"""
 
 
 # ── Telegram: vinculación por código ──────────────────────────────────────────

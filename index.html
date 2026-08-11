@@ -2698,6 +2698,27 @@
     }
     .prefs__chip--on::before { content: "✓ "; font-weight: 900; }
 
+    /* ── Frecuencia del boletín ─────────────────────────────────── */
+    .prefs__freqs { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 0 0; }
+    .prefs__freqs .prefs__chip { padding: 7px 13px; font-size: 12px; }
+    /* Los siete días como una sola fila de teclas: se lee de un vistazo cuáles
+       están marcados, cosa que una lista de casillas no consigue. */
+    .prefs__dias { display: flex; gap: 6px; padding: 12px 0 0; }
+    .prefs__dia {
+      flex: 1 1 0; min-width: 0; aspect-ratio: 1 / 1; max-height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--sans); font-size: 13px; font-weight: 800;
+      border-radius: 10px; cursor: pointer;
+      border: 1.5px solid var(--border); background: var(--surface); color: var(--text-mid);
+      transition: background .12s, border-color .12s, color .12s;
+    }
+    .prefs__dia--on {
+      background: var(--teal, #0D7A6F); border-color: var(--teal, #0D7A6F); color: #fff;
+    }
+    .prefs__dias-hint {
+      margin: 8px 0 2px; font-family: var(--sans); font-size: 11.5px; color: var(--text-dim);
+    }
+
     .parati-tg { padding: 4px 16px 8px; }
     .parati-tg__hint, .parati-tg__ok {
       font-family: var(--sans); font-size: 12.5px; color: var(--text-mid);
@@ -5857,7 +5878,8 @@
 
   function _prefsVacias() {
     return { cats: [], subcats: {}, stores: [], precio_min: 0, precio_max: null,
-             tg_enabled: true, tg_linked: false, local: true };
+             tg_enabled: true, tg_linked: false, local: true,
+             email_enabled: false, email_freq: "semanal", email_dias: [0] };
   }
 
   async function loadPrefs() {
@@ -5998,6 +6020,9 @@
       precio_min: (_prefs && _prefs.precio_min) || 0,
       precio_max: (_prefs && _prefs.precio_max) ?? null,
       tg_enabled: _prefs ? _prefs.tg_enabled !== false : true,
+      email_enabled: !!(_prefs && _prefs.email_enabled),
+      email_freq:    (_prefs && _prefs.email_freq) || "semanal",
+      email_dias:    [...((_prefs && _prefs.email_dias) || [0])],
     };
     buildPrefsEditor();
     document.getElementById("js-prefs-panel")?.classList.add("open");
@@ -6056,6 +6081,31 @@
     _prefsTrasCambio();
   }
 
+  // ── Frecuencia del boletín ────────────────────────────────────────
+  // Solo repintan el editor: la cadencia no cambia qué deals se ven en la web,
+  // así que no hace falta pasar por _prefsTrasCambio (que refiltra el feed).
+  function _prefsSetFreq(freq) {
+    _prefsDraft.email_freq = freq;
+    // "Semanal" es un solo día: si venía de marcar varios, se queda el primero.
+    if (freq === "semanal") _prefsDraft.email_dias = _prefsDraft.email_dias.slice(0, 1);
+    if (!_prefsDraft.email_dias.length) _prefsDraft.email_dias = [0];
+    buildPrefsEditor();
+  }
+
+  function _prefsToggleDia(n) {
+    const d = _prefsDraft;
+    if (d.email_freq === "semanal") {
+      d.email_dias = [n];                       // uno y solo uno
+    } else {
+      const i = d.email_dias.indexOf(n);
+      if (i >= 0) d.email_dias.splice(i, 1); else d.email_dias.push(n);
+      d.email_dias.sort((a, b) => a - b);
+      // Quedarse sin ningún día dejaría el boletín activo pero mudo para siempre.
+      if (!d.email_dias.length) d.email_dias = [n];
+    }
+    buildPrefsEditor();
+  }
+
   // Deja el editor como al principio: sin categorías, sin tiendas y sin límite
   // de precio. Con sesión afecta solo al borrador (Cancelar aún lo deshace).
   function restaurarPrefs() {
@@ -6108,6 +6158,48 @@
       `<button class="prefs__chip${d.stores.includes(s) ? " prefs__chip--on" : ""}"
                onclick="_prefsToggleStore('${s.replace(/'/g, "\\'")}')">${_storeLabel(s)}</button>`).join("");
 
+    // ── Boletín por correo ──
+    // La frecuencia es lo primero que decide quien se suscribe: si no puede
+    // elegirla, o no se apunta o se da de baja al tercer correo diario.
+    const DIAS_CORTO = ["L", "M", "X", "J", "V", "S", "D"];
+    const FREQS = [
+      { id: "diario",   label: "Diario" },
+      { id: "alternos", label: "Días alternos" },
+      { id: "semanal",  label: "Resumen semanal" },
+      { id: "dias",     label: "Días concretos" },
+    ];
+    // En 'semanal' se elige UN día; en 'dias', los que quiera. Con "diario" o
+    // "alternos" no hay día que elegir, así que la fila ni aparece.
+    const diasFila = (d.email_freq === "semanal" || d.email_freq === "dias")
+      ? `<div class="prefs__dias" role="group" aria-label="Días de envío">
+           ${DIAS_CORTO.map((ini, n) =>
+             `<button class="prefs__dia${d.email_dias.includes(n) ? " prefs__dia--on" : ""}"
+                      onclick="_prefsToggleDia(${n})" aria-pressed="${d.email_dias.includes(n)}"
+                      title="${["lunes","martes","miércoles","jueves","viernes","sábado","domingo"][n]}">${ini}</button>`
+           ).join("")}
+         </div>
+         <p class="prefs__dias-hint">${d.email_freq === "semanal"
+             ? "Elige el día que quieres recibirlo." : "Marca todos los días que quieras."}</p>`
+      : "";
+
+    const mailBloque = !_haySesion() ? "" : `
+      <div class="prefs__section-head" style="margin-top:14px">
+        <span class="fpanel__label" style="padding:0">4 · Boletín por correo</span>
+      </div>
+      <div class="parati-tg">
+        <label class="parati-tg__switch">
+          <input type="checkbox" ${d.email_enabled ? "checked" : ""}
+                 onchange="_prefsDraft.email_enabled = this.checked; buildPrefsEditor()">
+          <span>Enviarme mis ofertas por correo</span>
+        </label>
+        ${d.email_enabled ? `
+          <div class="prefs__freqs">
+            ${FREQS.map(f => `<button class="prefs__chip${d.email_freq === f.id ? " prefs__chip--on" : ""}"
+                      onclick="_prefsSetFreq('${f.id}')">${f.label}</button>`).join("")}
+          </div>
+          ${diasFila}` : ""}
+      </div>`;
+
     const tgLinked = _prefs && _prefs.tg_linked;
     // Sin sesión el bloque de Telegram se convierte en la invitación a registrarse:
     // es exactamente lo que se gana al crear la cuenta.
@@ -6121,7 +6213,7 @@
          </div>`
       : `
       <div class="prefs__section-head" style="margin-top:14px">
-        <span class="fpanel__label" style="padding:0">4 · Resumen diario por Telegram</span>
+        <span class="fpanel__label" style="padding:0">5 · Resumen diario por Telegram</span>
       </div>
       <div class="parati-tg">
         ${tgLinked
@@ -6173,6 +6265,7 @@
           </div>
         </div>
       </div>
+      ${mailBloque}
       ${tgBloque}`;
 
     // Pie: con sesión, Cancelar + Guardar. Sin sesión no hay nada que guardar
