@@ -144,6 +144,7 @@ discovery/               ← scoring.py + emotional_layer.py (hooks con Haiku)
 | Afiliados Amazon + TD | ✅ |
 | Afiliados Awin | ⚠️ Solo MediaMarkt fallback activo |
 | Threads (@flipazo.es) | ✅ Auto-publica cada deal; token auto-renovado 24h |
+| Boletín "Para ti" por correo | ⚠️ Código y cron listos (`scripts/newsletter_para_ti.py`, `0 8 * * *`). Frecuencia a elección: diario/alternos/semanal/días concretos. **Falta el proveedor SMTP**: sale por el Gmail de la verificación, que no sirve para boletines (≈500/día, sin bajas ni rebotes → spam). Configurar `SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS` (Brevo: `smtp-relay.brevo.com:587`) y no hay que tocar código |
 | Canal premium Telegram | 🔲 Pendiente |
 | Bot Telegram + Stripe | 🔲 Pendiente |
 | WhatsApp | ⚠️ Código listo, faltan credenciales WA_TOKEN |
