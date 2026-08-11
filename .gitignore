@@ -32,3 +32,6 @@ debug_*.png
 .idea/
 *.swp
 *.swo
+
+# Estado de descarga de los feeds TD (horario por feed) — no va a git
+.td_feeds.json

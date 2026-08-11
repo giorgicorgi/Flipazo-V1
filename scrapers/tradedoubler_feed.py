@@ -12,10 +12,13 @@ Tiendas desactivadas:
   Beep ES        fid=51903  PreviousPrice = MSRP fabricante → migrado a beep_feed.py (historial propio)
   ToysRus ES     fid=21529  sin campo precio original → descuento incalculable
 
-Descarga una vez al día (caché 23h). Devuelve list[dict] con los campos de Producto
+Cada feed tiene su HORA asignada del día (18 feeds, uno cada ~80 min) y su estado
+se guarda en disco, así que ni los reinicios ni un feed caído provocan una ráfaga de
+peticiones — que es lo que nos puso en 429. Devuelve list[dict] con los campos de Producto
 listos para que flipazo_main los convierta y filtre con _es_producto_valido.
 """
 
+import json
 import os
 import re
 import urllib.parse
@@ -53,14 +56,85 @@ _feed_fallos: dict[str, int]      = {}   # fid → fallos seguidos
 _BACKOFF_H = [1, 2, 4, 8, 23]
 
 
+# ── Horario: un feed por franja ───────────────────────────────────────────────
+# Los 18 feeds se reparten a lo largo del día, uno cada ~80 min, en vez de pedirlos
+# todos de golpe. Los datos del 11-ago-2026 son claros: en un ciclo se lanzaron 20
+# peticiones en 6 segundos y solo pasaron las DOS primeras; de la tercera en adelante,
+# 429. No es que la cuenta esté limitada — es que la ametrallábamos.
+# La hora de cada feed sale de su posición, así que es fija y no hace falta mantenerla.
+_HORA_SLOT: dict[str, int] = {}
+_MIN_ENTRE_H  = 20    # nunca repetir un feed antes de esto, aunque su hora vuelva
+_MAX_SIN_BAJAR_H = 26  # red de seguridad: si se perdió su turno (caída, reinicio), va igual
+
+# Estado en DISCO. Sin esto el horario no sirve de nada: cada reinicio del servicio
+# vaciaba la memoria y volvían a tocar los 18 a la vez, que es justo lo que pasó hoy
+# (6 reinicios → 70 peticiones y 109 errores 429).
+_ESTADO_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".td_feeds.json")
+_feed_last: dict[str, datetime] = {}
+
+
+def _asignar_slots() -> None:
+    todos = _FEEDS + _FEEDS_HISTORIAL
+    for i, f in enumerate(todos):
+        _HORA_SLOT[f["fid"]] = (i * 24) // len(todos)
+
+
+def _cargar_estado() -> None:
+    """Recupera de disco cuándo se bajó cada feed y los deals de la última vez."""
+    try:
+        with open(_ESTADO_PATH, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return
+    for fid, d in (data.get("feeds") or {}).items():
+        try:
+            _feed_last[fid] = datetime.fromisoformat(d["last"])
+        except (KeyError, ValueError):
+            continue
+        if d.get("deals"):
+            _feed_cache[fid] = d["deals"]
+
+
+def _guardar_estado() -> None:
+    """Solo se persisten los deals de _FEEDS (los que publican). Las observaciones
+    de los feeds de histórico van directas a la BD, no hace falta guardarlas aquí."""
+    publicables = {f["fid"] for f in _FEEDS}
+    data = {"feeds": {
+        fid: {"last": ts.isoformat(),
+              **({"deals": _feed_cache.get(fid, [])} if fid in publicables else {})}
+        for fid, ts in _feed_last.items()
+    }}
+    try:
+        tmp = _ESTADO_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(data, fh, ensure_ascii=False)
+        os.replace(tmp, _ESTADO_PATH)      # atómico: nunca deja el fichero a medias
+    except OSError as e:
+        print(f"   ⚠️  no se pudo guardar el estado de feeds TD: {e}")
+
+
 def _toca_feed(fid: str) -> bool:
+    ahora = datetime.now()
     prox = _feed_next.get(fid)
-    return prox is None or datetime.now() >= prox
+    if prox is not None:                       # en espera tras un fallo: manda el backoff
+        return ahora >= prox
+    last = _feed_last.get(fid)
+    if last is None:
+        return ahora.hour == _HORA_SLOT.get(fid, 0)     # estreno: espera a su turno
+    desde = ahora - last
+    if desde < timedelta(hours=_MIN_ENTRE_H):
+        return False
+    if desde >= timedelta(hours=_MAX_SIN_BAJAR_H):
+        return True                            # se perdió su turno; que no se quede colgado
+    return ahora.hour == _HORA_SLOT.get(fid, 0)
 
 
 def _feed_ok(fid: str) -> None:
     _feed_fallos.pop(fid, None)
-    _feed_next[fid] = datetime.now() + timedelta(hours=_CACHE_TTL_H)
+    _feed_next.pop(fid, None)
+    _feed_last[fid] = datetime.now()
+    _guardar_estado()
 
 
 def _feed_fallo(fid: str) -> int:
@@ -719,6 +793,10 @@ _FEEDS_HISTORIAL = [
 _cache_hist: list[dict] = []
 _cache_hist_pub: list[dict] = []   # bajadas reales detectadas por histórico propio → publicables
 _last_fetch_hist: "datetime | None" = None
+
+# Los slots y el estado en disco se preparan una vez, ya con las dos listas definidas.
+_asignar_slots()
+_cargar_estado()
 _feed_cache_hist: dict[str, list[dict]] = {}
 
 
