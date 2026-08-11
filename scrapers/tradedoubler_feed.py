@@ -5,7 +5,7 @@ Tiendas activas:
   MediaMarkt ES  fid=24915  strike_price = MSRP/precio ref. regulado
   PCBox ES       fid=50247  PreviousPrice = precio ref. regulado (monitores, cajas, componentes)
   Esdemarca ES   fid=116972 PreviousPRICE = precio ref. — solo marcas premium, descuento ≥60%
-  Toni Pons ES   fid=118025 PreviousPRICE = precio ref. — alpargatas/calzado mujer, descuento ≥40%
+  Toni Pons ES   fid=118025 PreviousPRICE = precio ref. — alpargatas/calzado mujer, descuento ≥50%
   Desigual ES    fid=256429 estructura INVERTIDA: priceHistory[0] = precio original, fields["Sale price"] = precio rebajado
 
 Tiendas desactivadas:
@@ -508,7 +508,10 @@ def _filtrar_esdemarca(raw: list[dict], precio_minimo: float, precio_maximo: flo
 # Constantes Toni Pons
 # ---------------------------------------------------------------------------
 
-_TONI_PONS_DESCUENTO_MIN = 60
+# 50%, igual que sus vecinas de moda (Esdemarca, Desigual). Estuvo en 60 y con
+# 9.003 productos daba CERO resultados 100 días seguidos: eso no era un filtro de
+# calidad, era un apagado. Decisión del 11-ago-2026.
+_TONI_PONS_DESCUENTO_MIN = 50
 _TONI_PONS_PRECIO_MIN    = 25.0
 _TONI_PONS_PRECIO_MAX    = 200.0   # alpargatas raramente superan los 200€
 
