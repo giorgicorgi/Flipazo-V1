@@ -1411,7 +1411,7 @@ async def scrape_pccomponentes(context: BrowserContext) -> list[Producto]:
                 if DEBUG_SCREENSHOTS:
                     await page.screenshot(path="debug_pccomponentes.png")
 
-                items = await page.evaluate("""
+                items = await page.evaluate(r"""
                     () => {
                         const BASE = 'https://www.pccomponentes.com';
                         const resultados = [];

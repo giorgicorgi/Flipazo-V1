@@ -34,12 +34,26 @@ _MOCKS = [
     "scrapers.awin_feed",
     "scrapers.awin_promotions",
     "scrapers.tradedoubler_vouchers",
-    "scrapers.decathlon_feed",
-    "scrapers.toysrus_feed",
-    "scrapers.beep_feed",
     "discovery",
 ]
-for _m in _MOCKS:
+
+# Los submódulos de scrapers/ NO se listan a mano. Como `scrapers` es un
+# MagicMock y no un paquete real, un `from scrapers.X import ...` que no esté
+# mockeado no falla con "no module named X" sino con "'scrapers' is not a
+# package" — un error que no señala al culpable. Pasó al añadir
+# scrapers.price_drop: el CI se puso rojo y el mensaje no decía por qué.
+# Ahora se leen los imports del propio flipazo_main, así que añadir un scraper
+# nuevo nunca vuelve a romper este test.
+_RAIZ = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+try:
+    import re as _re
+    _fuente = open(os.path.join(_RAIZ, "flipazo_main.py"), encoding="utf-8").read()
+    _MOCKS += _re.findall(r'^\s*(?:from|import)\s+(scrapers\.\w+|affiliate\.\w+|discovery\.\w+)',
+                          _fuente, _re.M)
+except OSError:
+    pass
+
+for _m in dict.fromkeys(_MOCKS):
     sys.modules.setdefault(_m, MagicMock())
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
