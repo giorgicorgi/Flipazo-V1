@@ -148,6 +148,73 @@ def _to_float(s) -> float:
         return 0.0
 
 
+# ── Tallas ────────────────────────────────────────────────────────────────────
+# El feed repite el MISMO modelo una fila por talla, así que las filas que quedan
+# son las tallas que quedan. Es el criterio que ya se usa con Esdemarca y Desigual.
+# `size_stock_amount` viene vacío en las 6.001 filas de Foot Locker que medí, así
+# que no hay unidades reales: contar tallas es lo único honesto que tenemos.
+_TALLA_EN_TITULO_RE = re.compile(r"\s*[-–]\s*talla\s+.*$", re.I)
+
+# Tallas que NO significan escasez. "One Size" es que el producto no tiene tallas
+# (limpiador de zapatillas), y los rangos tipo "39-42" son de calcetines, donde
+# tres rangos SON el surtido completo. Decir "últimas unidades" ahí sería mentir.
+_TALLA_NO_ESCASEZ_RE = re.compile(
+    r"^\s*(one size|talla\s+[uú]nica|[uú]nica|os|u|n/?a)\s*$|^\s*\d{2}\s*[-–]\s*\d{2}\s*$", re.I)
+
+_MAX_TALLAS_ESCASEZ = 3     # con más de esto no es escasez, es surtido normal
+
+
+def _clave_modelo(titulo: str) -> str:
+    """Quita la talla del título para que las filas del mismo modelo se agrupen."""
+    return _TALLA_EN_TITULO_RE.sub("", titulo or "").strip().lower()[:70]
+
+
+def _ordenar_tallas(tallas) -> list:
+    """Numéricas por valor (37.5 antes que 44), de letra por su orden natural."""
+    orden = {"XXS": 0, "XS": 1, "S": 2, "M": 3, "L": 4, "XL": 5, "XXL": 6, "3XL": 7, "4XL": 8}
+    def _key(t):
+        t = t.strip().upper()
+        if t in orden:
+            return (1, orden[t], "")
+        try:
+            return (0, float(t.replace(",", ".").split()[0]), "")
+        except (ValueError, IndexError):
+            return (2, 0, t)
+    return sorted({t.strip() for t in tallas if t and t.strip()}, key=_key)
+
+
+def _agrupar_por_talla(publicables: list[dict]) -> list[dict]:
+    """Un modelo repetido por talla pasa a ser UN deal con sus tallas.
+
+    Solo se anuncian las tallas cuando quedan POCAS (≤3): con el surtido completo
+    no aportan nada y llenarían la card. Sin tallas útiles, el deal sale igual pero
+    sin la etiqueta — un modelo sin tallas no es un modelo agotándose."""
+    por_modelo: dict[str, list[dict]] = {}
+    sueltos: list[dict] = []
+    for d in publicables:
+        clave = d.pop("_modelo", "")
+        talla = d.pop("_talla", "")
+        if not clave:
+            sueltos.append(d)
+            continue
+        d["_t"] = talla
+        por_modelo.setdefault(f"{d['tienda']}|{clave}", []).append(d)
+
+    fuera = list(sueltos)
+    for grupo in por_modelo.values():
+        # Nos quedamos con el más barato del modelo: es el que merece el clic.
+        grupo.sort(key=lambda x: x.get("precio_actual", 0))
+        rep = grupo[0]
+        tallas = _ordenar_tallas([g.pop("_t", "") for g in grupo])
+        utiles = [t for t in tallas if not _TALLA_NO_ESCASEZ_RE.match(t)]
+        rep.pop("_t", None)
+        if utiles and len(utiles) <= _MAX_TALLAS_ESCASEZ:
+            rep["tallas"] = ", ".join(utiles)
+            rep["pocas_unidades"] = "Última talla" if len(utiles) == 1 else "Pocas tallas"
+        fuera.append(rep)
+    return fuera
+
+
 def fetch_awin_productos(
     descuento_minimo: int = 40,
     precio_minimo: float = 25.0,
@@ -286,7 +353,7 @@ def fetch_awin_productos(
                                     detect_cnt[tienda] += 1
                 continue
 
-            # ── Tiendas publicables (Padel Market): requieren precio de referencia ──
+            # ── Tiendas publicables (Padel Market, Foot Locker): requieren precio ref. ──
             if tienda in _PUBLICABLE:
                 ref = _to_float(row.get("product_price_old"))
                 in_stock = (row.get("in_stock") or "").strip().lower() in ("1", "yes", "true", "y")
@@ -307,6 +374,9 @@ def fetch_awin_productos(
                     "descuento_pct":   desc,
                     "tienda":          tienda,
                     "imagen_url":      (row.get("merchant_image_url") or row.get("aw_image_url") or "").strip(),
+                    # Campos internos, se consumen en _agrupar_por_talla y desaparecen
+                    "_talla":  (row.get("Fashion:size") or "").strip(),
+                    "_modelo": _clave_modelo(titulo),
                 })
 
         # ── Registrar histórico ECI/Brico + podar antiguo ──────────────────────
@@ -328,6 +398,15 @@ def fetch_awin_productos(
                 print(f"   📈 AWIN histórico ECI/Brico: {len(obs)} observaciones registradas")
             except Exception as e:
                 print(f"   ⚠️  AWIN histórico error: {e}")
+
+        # Un modelo repetido por talla pasa a ser UN deal con sus tallas. Además de
+        # dar el dato, evita que Foot Locker publique doce veces el mismo zapato.
+        antes = len(publicables)
+        publicables = _agrupar_por_talla(publicables)
+        con_tallas = sum(1 for d in publicables if d.get("tallas"))
+        if antes != len(publicables):
+            print(f"   👟 AWIN tallas: {antes} filas → {len(publicables)} modelos · "
+                  f"{con_tallas} con pocas tallas")
 
         _cache = publicables
         _last_fetch = ahora

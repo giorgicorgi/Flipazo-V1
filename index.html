@@ -185,8 +185,14 @@
     .deal__stock-tag {
       display: inline-block; font-size: 10px; font-weight: 600;
       color: #6B7280; background: #F3F4F6; border: 1px solid #E5E7EB;
-      border-radius: 4px; padding: 1px 6px; letter-spacing: .02em;
+      border-radius: 4px; padding: 2px 7px; letter-spacing: .02em;
     }
+    /* Dentro de la card, .deal es flex-column: sin align-self el inline-block se
+       estira a TODO el ancho y "Últimas unidades" salía como una barra gris de lado
+       a lado. Y hay que meterlo a los 16px del resto de la card (título, precios,
+       botón), que era la otra mitad del desajuste. */
+    .deal > .deal__stock-tag { align-self: flex-start; margin: 2px 16px 0; }
+    .deal > .deal__sizes { padding: 0 16px; }
     [data-theme="dark"] .deal__stock-tag {
       color: #9CA3AF; background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.10);
     }
