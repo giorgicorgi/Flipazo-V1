@@ -67,7 +67,10 @@ _MERCHANT_MAP = {
     "adidas ES":            "Adidas",            # product_price_old == precio (no es "antes") → histórico
     "El Corte Ingles ES":   "ElCorteIngles",
     "BRICO DEPÔT_ES":       "Brico Depot",
-    "Privé by Zalando ES":  "Zalando",
+    # Privé by Zalando: programa de AWIN dado de baja. Dejó de aparecer en el feed el
+    # 28-jun-2026 y no publicó un solo deal en toda su vida. Se retira para que el
+    # vigilante de frescura no la siga contando como tienda muda — una alerta que avisa
+    # de algo que no tiene arreglo acaba haciendo que se ignoren todas las demás.
     "Deporte Outlet ES":    "Deporte Outlet",
     "Paco Perfumerias ES":  "Paco Perfumerias",  # perfumería, sin "precio antes"
     "BIKILA ES":            "Bikila",            # running/trail, sin "precio antes"
@@ -86,7 +89,7 @@ _PUBLICABLE = {"Padel Market", "Foot Locker"}
 # TodoConsolas: las 24.596 filas traen product_price_old VACÍO. Tiene rrp_price en
 # 2.087, pero con mediana de solo -15% y siendo PVP de fabricante (la misma trampa
 # que Beep) → no sirve como "precio antes". Histórico propio.
-_SOLO_HISTORICO = {"ElCorteIngles", "Brico Depot", "Zalando", "Deporte Outlet",
+_SOLO_HISTORICO = {"ElCorteIngles", "Brico Depot", "Deporte Outlet",
                    "Paco Perfumerias", "Bikila", "Adidas", "Carrefour", "TodoConsolas",
                    "Bauhaus"}
 # Carrefour "Supermercado Online" es en realidad un marketplace mayormente B2B/pro (tóner,
