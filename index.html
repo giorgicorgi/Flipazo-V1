@@ -6795,12 +6795,13 @@
     // El 'Deal del momento' y los cupones van DETRÁS del banner de bienvenida: solo
     // aparecen cuando el usuario cierra el banner (igual que el hero en desktop).
     //
-    // El 'Deal del momento' SOLO en móvil: allí no hay hero grande y el whero es el
-    // único destacado. En desktop lo pinta el hero de arriba (updateHero) — pintarlo
-    // también aquí sacaba la misma oferta dos veces en la misma pantalla.
+    // Y SOLO en móvil: en desktop las dos cosas las pinta el hero de arriba (oferta
+    // del día + carrusel de cupones a su derecha). Repetirlas aquí sacaba la misma
+    // oferta y los mismos cupones dos veces en la misma pantalla. La entrada a
+    // /cupones en desktop sigue estando en el chip 'Cupones' de la barra de filtros.
     const esMovil = _isMobileViewport();
-    const behindBanner = _introDismissed
-      ? ((esMovil && featured ? renderWhero(featured) : "") + couponsSection)
+    const behindBanner = (_introDismissed && esMovil)
+      ? ((featured ? renderWhero(featured) : "") + couponsSection)
       : "";
 
     // Filas del feed. "Explorar" (tags de categorías) se coloca en el 8º lugar.
