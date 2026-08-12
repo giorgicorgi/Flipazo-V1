@@ -962,6 +962,8 @@
     .hcoupon__code:hover { background: var(--brand); color: #fff; border-style: solid; }
     .hcoupon__code--copied, .hcoupon__code--copied:hover { background: var(--teal-light); color: #0D7A6F; border: 1px solid #0D7A6F; }
     .hcoupon__cta { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--text-dim); margin-top: auto; }
+    .hcoupon__vig { font-family: var(--sans); font-size: 10.5px; font-weight: 600; color: var(--text-dim); letter-spacing: .01em; }
+    .hcoupon__vig--urge { color: var(--brand); font-weight: 800; }
 
     /* ── Sidebar deal (in hero) ──────────────────────────────────── */
     .sidebar-deal {
@@ -3979,12 +3981,14 @@
   }
 
   // ── Promos y cupones (AWIN) ───────────────────────────────────
+  // Fechas relativas para que el mock no caduque y se vea la vigencia real de la tarjeta.
+  const _mockFecha = dias => new Date(Date.now() + dias * 864e5).toISOString();
   const MOCK_PROMOS = [
-    { tienda:"El Corte Inglés", titulo:"3x2 en Maquillaje · Ofertas Verano'26", codigo:"", url:"#" },
-    { tienda:"Privé by Zalando", titulo:"Hasta -75% de descuento", codigo:"", url:"#" },
-    { tienda:"Padel Market", titulo:"SUMMER DAYS — EXTRA 20% OFF", codigo:"20EXTRA", url:"#" },
-    { tienda:"SharkNinja", titulo:"-15% de descuento en todos los productos", codigo:"SHARK15", url:"#" },
-    { tienda:"El Corte Inglés", titulo:"Rebajas Verano'26", codigo:"", url:"#" },
+    { tienda:"El Corte Inglés", titulo:"3x2 en Maquillaje · Ofertas Verano'26", codigo:"", url:"#", start_date:_mockFecha(-9),  end_date:_mockFecha(14) },
+    { tienda:"Privé by Zalando", titulo:"Hasta -75% de descuento", codigo:"", url:"#",             start_date:_mockFecha(-3),  end_date:_mockFecha(4)  },
+    { tienda:"Padel Market", titulo:"SUMMER DAYS — EXTRA 20% OFF", codigo:"20EXTRA", url:"#",      start_date:_mockFecha(-40), end_date:_mockFecha(9)  },
+    { tienda:"SharkNinja", titulo:"-15% de descuento en todos los productos", codigo:"SHARK15", url:"#", start_date:_mockFecha(-2), end_date:_mockFecha(0.3) },
+    { tienda:"El Corte Inglés", titulo:"Rebajas Verano'26", codigo:"", url:"#",                    start_date:"", end_date:"" },
   ];
   function renderPromoCard(p) {
     const code = p.codigo ? `<span class="promo-card__code">Código: ${esc(p.codigo)}</span>` : "";
@@ -4538,15 +4542,43 @@
   }
 
   // ── Carrusel de cupones (a la derecha de la 'Oferta del día') ──
+
+  // Vigencia de un cupón en texto: "Del 7 al 19 ago", "Hasta el 19 ago", "Termina hoy".
+  //
+  // Las redes cierran a medianoche y lo mandan como las 00:00 del día SIGUIENTE
+  // (TD: "19/08/2026 00:00" = último día válido, el 18). Por eso se resta 1 s antes
+  // de formatear: si no, anunciaríamos un día de más en cada cupón.
+  function _vigenciaCupon(p) {
+    const D = s => { const d = s ? new Date(s) : null; return (d && !isNaN(d)) ? d : null; };
+    const ini = D(p.start_date);
+    let   fin = D(p.end_date);
+    if (fin) fin = new Date(fin.getTime() - 1000);
+    const dia   = d => d.toLocaleDateString("es-ES", { day: "numeric", month: "short" }).replace(".", "");
+    const corto = d => d.toLocaleDateString("es-ES", { day: "numeric" });
+    const hoy = new Date();
+    const mismoDia = (a, b) => a.toDateString() === b.toDateString();
+    if (fin) {
+      if (mismoDia(fin, hoy)) return { txt: "Termina hoy", urge: true };
+      if (mismoDia(fin, new Date(hoy.getTime() + 864e5))) return { txt: "Termina mañana", urge: true };
+    }
+    if (ini && ini > hoy)  return { txt: "Disponible desde el " + dia(ini), urge: false };
+    if (ini && fin)        return { txt: `Del ${ini.getMonth() === fin.getMonth() ? corto(ini) : dia(ini)} al ${dia(fin)}`, urge: false };
+    if (fin)               return { txt: "Hasta el " + dia(fin), urge: false };
+    if (ini)               return { txt: "Desde el " + dia(ini), urge: false };
+    return { txt: "", urge: false };
+  }
+
   function _heroCouponCard(p) {
     const code = p.codigo
       ? `<span class="hcoupon__code" role="button" tabindex="0" data-code="${esc(p.codigo)}" title="Copiar código"
              onclick="_copyHeroCode(event, this)" onkeydown="if(event.key==='Enter'||event.key===' ')_copyHeroCode(event,this)">Código: ${esc(p.codigo)}</span>`
       : "";
+    const vig = _vigenciaCupon(p);
     return `<a class="hcoupon" href="${p.url || '#'}" target="_blank" rel="noopener sponsored">
         <span class="hcoupon__store">${esc(p.tienda || "")}</span>
         <span class="hcoupon__title">${esc(p.titulo || "")}</span>
         ${code}
+        ${vig.txt ? `<span class="hcoupon__vig${vig.urge ? " hcoupon__vig--urge" : ""}">${esc(vig.txt)}</span>` : ""}
         <span class="hcoupon__cta">Ver cupón →</span>
       </a>`;
   }

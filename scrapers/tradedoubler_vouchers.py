@@ -79,15 +79,29 @@ def fetch_td_vouchers() -> list[dict]:
         return []
 
     ahora = datetime.now(timezone.utc)
+
+    # Los que traen CÓDIGO primero: el tope por tienda se aplica en orden de llegada
+    # y no queremos que 6 promos sin código dejen fuera al único cupón canjeable
+    # (le pasó a AWIN con Voghion — ver awin_promotions.py).
+    crudas.sort(key=lambda v: 0 if (v.get("code") or "").strip() else 1)
+
     vistos: set = set()
     por_tienda: dict = {}
     out: list[dict] = []
+    no_iniciados = expirados = 0
     for v in crudas:
         try:
             end_iso   = _ms_to_iso(v.get("endDate"))
             start_iso = _ms_to_iso(v.get("startDate"))
             if end_iso and datetime.fromisoformat(end_iso) < ahora:
-                continue  # expirada
+                expirados += 1
+                continue  # caducada
+            # "NO INICIADO" en el panel de TD: el cupón existe pero aún no vale. Publicarlo
+            # es mandar al usuario a una tienda donde el código no funciona todavía. Vuelve
+            # solo: el fetch corre cada ciclo y lo recoge el día que arranca.
+            if start_iso and datetime.fromisoformat(start_iso) > ahora:
+                no_iniciados += 1
+                continue
             tienda = _limpiar(v.get("programName", ""))
             titulo = (v.get("title") or v.get("shortDescription") or "").strip()
             if not tienda or not titulo:
@@ -112,5 +126,6 @@ def fetch_td_vouchers() -> list[dict]:
             })
         except Exception:
             continue
-    print(f"   🎟️  TD vouchers: {len(out)} activos curados (de {len(crudas)} crudos)")
+    print(f"   🎟️  TD vouchers: {len(out)} activos curados (de {len(crudas)} crudos · "
+          f"{no_iniciados} aún no empiezan · {expirados} caducados)")
     return out

@@ -1217,16 +1217,24 @@ def get_count():
 
 @app.get("/api/promociones")
 def get_promociones(limit: int = Query(default=40, ge=1, le=100)):
-    """Promos/cupones de tienda activos (AWIN). No expiradas, las que tienen código primero."""
+    """Promos/cupones de tienda VIGENTES HOY (AWIN + Tradedoubler), con código primero.
+
+    El filtro va por fecha, no por el `estado` guardado: un cupón que empieza el día 16
+    está en la tabla desde antes y se vuelve válido solo, sin depender de que el pipeline
+    lo vuelva a capturar. Publicar uno que aún no ha empezado manda al usuario a una
+    tienda donde el código todavía no funciona.
+    """
     try:
+        ahora = datetime.now(timezone.utc).isoformat()
         with _get_db() as con:
             rows = con.execute(
-                "SELECT promo_id, tienda, titulo, descripcion, codigo, url, end_date, estado "
+                "SELECT promo_id, tienda, titulo, descripcion, codigo, url, start_date, end_date, estado "
                 "FROM promociones "
-                "WHERE end_date = '' OR end_date >= ? "
+                "WHERE (end_date   = '' OR end_date   >= ?) "
+                "  AND (start_date = '' OR start_date <= ?) "
                 "ORDER BY (codigo != '') DESC, tienda, capturada_en DESC "
                 "LIMIT ?",
-                (datetime.now(timezone.utc).isoformat(), limit),
+                (ahora, ahora, limit),
             ).fetchall()
     except Exception:
         return JSONResponse(content=[])

@@ -108,6 +108,15 @@ def fetch_awin_promociones() -> list[dict]:
                         continue  # expirada
                 except ValueError:
                     pass
+            # Aún no ha empezado: existe en la API pero el código todavía no funciona
+            # en la tienda. Se recoge solo en el ciclo del día que arranca.
+            ini = p.get("startDate")
+            if ini:
+                try:
+                    if datetime.fromisoformat(ini.replace("Z", "+00:00")) > ahora:
+                        continue
+                except ValueError:
+                    pass
             tienda = _limpiar_tienda((p.get("advertiser") or {}).get("name", ""))
             titulo = (p.get("title") or "").strip()
             if not tienda or not titulo:

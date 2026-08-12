@@ -76,6 +76,14 @@
     .coupon__store { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); }
     .coupon__title { font-size: 16px; font-weight: 700; color: var(--ink); line-height: 1.35; }
     .coupon__desc { font-size: 12.5px; color: var(--text-mid); line-height: 1.5; }
+    /* Vigencia: fecha en la que el cupón se puede usar de verdad */
+    .coupon__vig {
+      display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+      font-size: 11.5px; font-weight: 700; color: var(--text-dim);
+    }
+    .coupon__vig::before { content: "🗓"; font-size: 11px; }
+    .coupon__vig--urge { color: var(--brand); }
+    .coupon__vig--urge::before { content: "⏳"; }
     /* Talón derecho, separado por perforación con muescas */
     .coupon__stub {
       position: relative; flex-shrink: 0; width: 148px;
@@ -196,15 +204,41 @@
     }
     window.copyCode = copyCode;
 
+    // Vigencia en texto: "Válido del 7 al 19 ago", "Termina hoy"…
+    //
+    // Las redes cierran a medianoche y mandan el fin como las 00:00 del día SIGUIENTE
+    // (TD: "19/08/2026 00:00" = último día válido, el 18) → se resta 1 s antes de
+    // formatear para no anunciar un día de más.
+    function vigencia(p){
+      var D = function(s){ var d = s ? new Date(s) : null; return (d && !isNaN(d)) ? d : null; };
+      var ini = D(p.start_date), fin = D(p.end_date);
+      if (fin) fin = new Date(fin.getTime() - 1000);
+      var dia   = function(d){ return d.toLocaleDateString("es-ES", { day:"numeric", month:"short" }).replace(".", ""); };
+      var corto = function(d){ return d.toLocaleDateString("es-ES", { day:"numeric" }); };
+      var hoy = new Date();
+      var mismoDia = function(a,b){ return a.toDateString() === b.toDateString(); };
+      if (fin) {
+        if (mismoDia(fin, hoy)) return { txt:"Termina hoy", urge:true };
+        if (mismoDia(fin, new Date(hoy.getTime() + 864e5))) return { txt:"Termina mañana", urge:true };
+      }
+      if (ini && ini > hoy) return { txt:"Disponible desde el " + dia(ini), urge:false };
+      if (ini && fin) return { txt:"Válido del " + (ini.getMonth() === fin.getMonth() ? corto(ini) : dia(ini)) + " al " + dia(fin), urge:false };
+      if (fin) return { txt:"Válido hasta el " + dia(fin), urge:false };
+      if (ini) return { txt:"Válido desde el " + dia(ini), urge:false };
+      return { txt:"", urge:false };
+    }
+
     function renderCoupon(p){
       var code = p.codigo ? '<button class="coupon__code" onclick="copyCode(this,\'' + esc(p.codigo).replace(/'/g,"\\'") + '\')" title="Copiar código">' + esc(p.codigo) + ' 📋</button>' : "";
       var disc = (p.descuento && String(p.descuento).trim()) ? '<span class="coupon__discount">' + esc(p.descuento) + '</span>' : "";
       var desc = (p.descripcion && String(p.descripcion).trim()) ? '<span class="coupon__desc">' + esc(p.descripcion) + '</span>' : "";
+      var vig  = vigencia(p);
+      var vigHtml = vig.txt ? '<span class="coupon__vig' + (vig.urge ? ' coupon__vig--urge' : '') + '">' + esc(vig.txt) + '</span>' : "";
       var cta = '<a class="coupon__cta" href="' + esc(p.url || '#') + '" target="_blank" rel="noopener sponsored">Ir a la tienda →</a>';
       return '<article class="coupon">' +
         '<div class="coupon__main">' +
           '<span class="coupon__store">' + esc(p.tienda || "") + '</span>' +
-          '<h3 class="coupon__title">' + esc(p.titulo || "") + '</h3>' + desc +
+          '<h3 class="coupon__title">' + esc(p.titulo || "") + '</h3>' + desc + vigHtml +
         '</div>' +
         '<div class="coupon__stub">' + disc + code + cta + '</div>' +
       '</article>';

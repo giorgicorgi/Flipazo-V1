@@ -3539,9 +3539,16 @@ def actualizar_promociones():
             ph = ",".join("?" * len(ids))
             con.execute(f"DELETE FROM promociones WHERE promo_id NOT IN ({ph})", ids)
         # Postear en Telegram las NUEVAS accionables (con código o % en el título), cap 5/ciclo
+        # Solo las vigentes HOY: un cupón que aún no ha empezado (o que caducó esperando
+        # turno en la cola de 5/ciclo) manda al usuario a una tienda donde el código no
+        # funciona. Los fetchers ya no traen no-iniciados; esto lo blinda en el envío.
         nuevas = con.execute(
             "SELECT promo_id, tienda, titulo, codigo, url FROM promociones "
-            "WHERE publicada_tg = 0 ORDER BY capturada_en LIMIT 20"
+            "WHERE publicada_tg = 0 "
+            "  AND (start_date = '' OR start_date <= ?) "
+            "  AND (end_date   = '' OR end_date   >= ?) "
+            "ORDER BY capturada_en LIMIT 20",
+            (ahora, ahora),
         ).fetchall()
         posteadas = 0
         for pid, tienda, titulo, codigo, url in nuevas:
