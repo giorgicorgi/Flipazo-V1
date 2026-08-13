@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-vigilar_dns.py — Comprueba que el DNS de flipazo.es sigue en pie y avisa si no.
+vigilar_dns.py — Chequeo diario de salud: DNS de flipazo.es + espacio en disco.
 
 Un DNS mal editado es más caro que un dominio robado: si desaparece un MX, un
 CNAME o el DKIM, se cae el correo o la web y te enteras por un usuario. Esto lo
@@ -48,6 +48,8 @@ TELEGRAM_TOKEN    = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_ADMIN    = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")
 ESTADO_PATH       = os.path.join(BASE_DIR, ".dns_watch.json")
 RE_AVISO_DIAS     = 3
+DISCO_MIN_PCT     = 20    # % libre por debajo del cual avisar
+DISCO_MIN_GB      = 5     # …o si quedan menos de estos GB, lo que ocurra antes
 DRY_RUN           = "--dry-run" in sys.argv
 
 DOMINIO = "flipazo.es"
@@ -167,6 +169,25 @@ def check_brevo_code(txts_raiz: list[str]) -> tuple[bool, str]:
     return False, "Falta el TXT brevo-code: Brevo puede desautenticar el dominio"
 
 
+def check_disco() -> tuple[bool, str]:
+    """La base ya no crece sin freno (`_HIST_DIAS = 45` poda el histórico), pero
+    añadir una tienda grande sí mueve la aguja: El Corte Inglés solo aporta 16 M
+    de filas ≈ 4 GB. Nadie miraba el disco, y quedarse sin espacio con SQLite es
+    corrupción, no un aviso."""
+    try:
+        st = os.statvfs("/")
+    except OSError as e:
+        return True, f"disco: no se pudo leer ({e})"     # no bloquear por esto
+    libre = st.f_bavail * st.f_frsize
+    total = st.f_blocks * st.f_frsize
+    pct = libre / total * 100 if total else 100
+    txt = f"Disco: {libre/2**30:.0f} GB libres de {total/2**30:.0f} ({pct:.0f}%)"
+    if pct < DISCO_MIN_PCT or libre < DISCO_MIN_GB * 2**30:
+        return False, (f"{txt} — por debajo del umbral ({DISCO_MIN_PCT}% / {DISCO_MIN_GB} GB). "
+                       f"Con SQLite, quedarse sin espacio corrompe la base")
+    return True, txt
+
+
 def check_http() -> tuple[bool, str]:
     fallos = []
     for url, esperado in (("https://flipazo.es", (200, 301, 302, 307, 308)),
@@ -197,6 +218,7 @@ def main() -> int:
         ("DMARC",      check_dmarc()),
         ("DKIM",       check_dkim()),
         ("brevo-code", check_brevo_code(txt_raiz)),
+        ("Disco",      check_disco()),
         ("HTTP",       check_http()),
     ]
 
