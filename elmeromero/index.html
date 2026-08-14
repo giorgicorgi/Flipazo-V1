@@ -92,6 +92,11 @@
     .stat-card__label { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
     .stat-card__value { font-family: var(--serif); font-size: 30px; font-weight: 700; line-height: 1; }
     .stat-card__sub { font-size: 10px; color: var(--muted); margin-top: 6px; }
+    /* Contenedor genérico para la página de Precios, con el mismo lenguaje que .stat-card */
+    .card { background: var(--surface); border: 1px solid var(--border); padding: 16px 18px; }
+    .card h3 { font-family: var(--serif); font-weight: 700; }
+    #precios-resultados tbody tr:hover { background: var(--surface2); }
+    @media (max-width: 900px) { #precios-paneles { grid-template-columns: 1fr !important; } }
 
     /* ── Table ── */
     .table-wrap { overflow-x: auto; }
@@ -310,6 +315,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>
         Votos
       </div>
+      <div class="nav-item" id="nav-precios" onclick="showPage('precios')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Precios
+      </div>
       <div class="nav-item" id="nav-usuarios" onclick="showPage('usuarios')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
         Usuarios
@@ -498,6 +507,35 @@
     </div>
 
     <!-- USUARIOS -->
+    <!-- ── PRECIOS ─────────────────────────────────────────────────────────
+         Los 22,6 M de precios guardados no se veían por ningún sitio. Aquí se
+         busca un producto y se ve su serie con LA MISMA referencia que usa el
+         pipeline para decidir si algo es oferta (se importa, no se recalcula). -->
+    <div class="page" id="page-precios">
+      <div class="page-header">
+        <div><h2>Precios</h2><p>Histórico real de cada producto</p></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="precios-q" type="text" placeholder="Buscar producto por nombre…"
+            style="padding:6px 10px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--fg);font-size:12px;width:260px"
+            oninput="debouncePrecios(this.value)" />
+          <select id="precios-dias" onchange="if(_serieActual)cargarSerie(_serieActual)"
+            style="padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--fg);font-size:12px">
+            <option value="30">30 días</option>
+            <option value="90" selected>90 días</option>
+            <option value="365">Todo</option>
+          </select>
+        </div>
+      </div>
+      <div id="precios-resultados"></div>
+      <div id="precios-grafica" style="margin-bottom:18px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="precios-paneles">
+        <div class="card"><h3 style="font-size:12px;margin:0 0 8px">Salud por tienda</h3>
+          <div id="precios-salud" class="loading-msg">Cargando&#8230;</div></div>
+        <div class="card"><h3 style="font-size:12px;margin:0 0 8px">Cobertura para publicar</h3>
+          <div id="precios-cobertura" class="loading-msg">Cargando&#8230;</div></div>
+      </div>
+    </div>
+
     <div class="page" id="page-usuarios">
       <div class="page-header">
         <div><h2>Usuarios</h2><p>Cuentas registradas</p></div>
@@ -594,6 +632,121 @@
     if(name==='analytics') loadAnalytics();
     if(name==='votos')     loadVotos();
     if(name==='usuarios')  loadUsuarios();
+    if(name==='precios')   loadPreciosPaneles();
+  }
+
+  // ══ PRECIOS ══════════════════════════════════════════════════════════════
+  var _preciosT = null, _serieActual = null;
+  function debouncePrecios(q){ clearTimeout(_preciosT); _preciosT = setTimeout(function(){ buscarPrecios(q); }, 300); }
+
+  function _eur(v){ return (v==null?'—':Number(v).toFixed(2).replace('.',',')+' €'); }
+
+  async function buscarPrecios(q){
+    var cont = document.getElementById('precios-resultados');
+    if(!q || q.trim().length < 2){ cont.innerHTML=''; return; }
+    cont.innerHTML = '<div class="loading-msg">Buscando&#8230;</div>';
+    try{
+      var r = await fetch(API+'/admin/precios/buscar?q='+encodeURIComponent(q), {headers:h(), credentials:'include'});
+      var d = await r.json();
+      if(!Array.isArray(d) || !d.length){ cont.innerHTML='<div class="loading-msg">Sin resultados. Solo se puede buscar por nombre en Decathlon, ToysRus y deals publicados.</div>'; return; }
+      cont.innerHTML = '<div class="table-wrap" style="margin-bottom:14px;max-height:260px;overflow-y:auto"><table><thead><tr>'+
+        '<th>Producto</th><th>Tienda</th><th style="text-align:right">Hoy</th><th style="text-align:right">Días</th></tr></thead><tbody>'+
+        d.map(function(x){
+          var arg = JSON.stringify({fuente:x.fuente,id:x.id,tienda:x.tienda}).replace(/"/g,'&quot;');
+          return '<tr style="cursor:pointer" onclick="cargarSerie('+arg+')">'+
+            '<td>'+esc(x.titulo||'')+'</td><td>'+esc(x.tienda||'')+'</td>'+
+            '<td style="text-align:right">'+_eur(x.precio)+'</td>'+
+            '<td style="text-align:right;color:var(--muted)">'+(x.dias||0)+'</td></tr>';
+        }).join('')+'</tbody></table></div>';
+    }catch(e){ cont.innerHTML='<div class="loading-msg">Error al buscar</div>'; }
+  }
+
+  async function cargarSerie(ref){
+    _serieActual = ref;
+    var dias = document.getElementById('precios-dias').value || 90;
+    var g = document.getElementById('precios-grafica');
+    g.innerHTML = '<div class="loading-msg">Cargando serie&#8230;</div>';
+    try{
+      var u = API+'/admin/precios/serie?fuente='+encodeURIComponent(ref.fuente)+
+              '&id='+encodeURIComponent(ref.id)+'&tienda='+encodeURIComponent(ref.tienda)+'&dias='+dias;
+      var r = await fetch(u, {headers:h(), credentials:'include'});
+      g.innerHTML = dibujarSerie(await r.json());
+    }catch(e){ g.innerHTML='<div class="loading-msg">Error al cargar la serie</div>'; }
+  }
+
+  // Gráfica en SVG a mano: sin librerías, sin CDN, y así no hay nada que cargar.
+  function dibujarSerie(s){
+    var pts = s.puntos||[];
+    if(!pts.length) return '<div class="card"><div class="loading-msg">Sin datos en esta ventana</div></div>';
+    var W=920, H=260, ML=54, MR=14, MT=16, MB=28;
+    var precios = pts.map(function(p){return p.precio;});
+    var lo = Math.min.apply(null, precios), hi = Math.max.apply(null, precios);
+    if(s.referencia){ lo=Math.min(lo,s.referencia); hi=Math.max(hi,s.referencia); }
+    if(hi===lo){ hi=lo*1.1||1; lo=lo*0.9; }
+    var pad=(hi-lo)*0.12; lo-=pad; hi+=pad;
+    var X=function(i){ return ML + (pts.length<2?0:i*(W-ML-MR)/(pts.length-1)); };
+    var Y=function(v){ return MT + (hi-v)*(H-MT-MB)/(hi-lo); };
+    // Escalón, no línea recta: un precio se mantiene hasta que cambia, y
+    // dibujarlo en diagonal sugiere una bajada gradual que no ocurrió.
+    var d=''; pts.forEach(function(p,i){ d += (i?'L'+X(i)+' '+Y(pts[i-1].precio)+'L':'M')+X(i)+' '+Y(p.precio); });
+    var ejeY=''; for(var k=0;k<=3;k++){ var v=lo+(hi-lo)*k/3, y=Y(v);
+      ejeY += '<line x1="'+ML+'" y1="'+y+'" x2="'+(W-MR)+'" y2="'+y+'" stroke="var(--border)" stroke-dasharray="2 3"/>'+
+              '<text x="'+(ML-8)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="var(--muted)">'+v.toFixed(2)+'</text>'; }
+    var refL = s.referencia ? '<line x1="'+ML+'" y1="'+Y(s.referencia)+'" x2="'+(W-MR)+'" y2="'+Y(s.referencia)+
+      '" stroke="#F52834" stroke-width="1.5" stroke-dasharray="6 4"/>'+
+      '<text x="'+(W-MR)+'" y="'+(Y(s.referencia)-5)+'" text-anchor="end" font-size="9" fill="#F52834">referencia '+_eur(s.referencia)+'</text>' : '';
+    var marcas = (s.publicaciones||[]).map(function(p){
+      var i = pts.findIndex(function(x){return x.fecha===p.fecha;}); if(i<0) return '';
+      return '<g><line x1="'+X(i)+'" y1="'+MT+'" x2="'+X(i)+'" y2="'+(H-MB)+'" stroke="#0581FC" stroke-width="1" opacity=".5"/>'+
+             '<circle cx="'+X(i)+'" cy="'+Y(p.precio)+'" r="4" fill="#0581FC"/>'+
+             '<title>Publicado '+p.fecha+' · '+_eur(p.precio)+' (-'+(p.descuento_pct||0)+'%)</title></g>';
+    }).join('');
+    var fechas = '<text x="'+ML+'" y="'+(H-8)+'" font-size="9" fill="var(--muted)">'+pts[0].fecha+'</text>'+
+                 '<text x="'+(W-MR)+'" y="'+(H-8)+'" text-anchor="end" font-size="9" fill="var(--muted)">'+pts[pts.length-1].fecha+'</text>';
+    var min=Math.min.apply(null,precios), max=Math.max.apply(null,precios);
+    var caida = max>0 ? Math.round((1-min/max)*100) : 0;
+    return '<div class="card">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px">'+
+        '<h3 style="font-size:13px;margin:0">'+esc(s.titulo||'')+'</h3>'+
+        '<span style="font-size:11px;color:var(--muted)">'+esc(s.tienda||'')+' · '+pts.length+' días · recorrido '+_eur(min)+'–'+_eur(max)+' (-'+caida+'%)</span>'+
+      '</div>'+
+      '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+ejeY+refL+
+        '<path d="'+d+'" fill="none" stroke="#0581FC" stroke-width="2"/>'+marcas+fechas+'</svg>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px">'+
+        (s.referencia ? 'Línea roja: el precio <b>habitual</b> que calcula el pipeline ('+s.dias_datos+' días de datos). '
+                      : 'Sin referencia: no hay histórico suficiente o la serie es demasiado irregular. ')+
+        ((s.publicaciones||[]).length ? 'Los puntos azules son los días que lo publicamos.' : '')+
+      '</div></div>';
+  }
+
+  async function loadPreciosPaneles(){
+    try{
+      var r = await fetch(API+'/admin/precios/salud', {headers:h(), credentials:'include'});
+      var d = await r.json();
+      document.getElementById('precios-salud').innerHTML =
+        '<div class="table-wrap"><table><thead><tr><th>Tienda</th><th style="text-align:right">Productos</th>'+
+        '<th style="text-align:right">Días</th><th style="text-align:right">Se mueven</th><th>Última</th></tr></thead><tbody>'+
+        d.map(function(x){
+          return '<tr><td>'+esc(x.tienda)+'</td>'+
+            '<td style="text-align:right">'+(x.productos||0).toLocaleString('es')+'</td>'+
+            '<td style="text-align:right">'+x.dias+'</td>'+
+            '<td style="text-align:right;color:'+(x.con_movimiento?'inherit':'#F52834')+'">'+(x.con_movimiento||0).toLocaleString('es')+'</td>'+
+            '<td style="color:'+(x.al_dia?'var(--muted)':'#F52834')+'">'+esc(x.ultima||'—')+'</td></tr>';
+        }).join('')+'</tbody></table></div>';
+    }catch(e){ document.getElementById('precios-salud').innerHTML='<div class="loading-msg">Error</div>'; }
+    try{
+      var r2 = await fetch(API+'/admin/precios/cobertura', {headers:h(), credentials:'include'});
+      var d2 = await r2.json();
+      document.getElementById('precios-cobertura').innerHTML =
+        '<div class="table-wrap"><table><thead><tr><th>Tienda</th><th style="text-align:right">Listos</th>'+
+        '<th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead><tbody>'+
+        d2.map(function(x){
+          return '<tr><td>'+esc(x.tienda)+'</td>'+
+            '<td style="text-align:right">'+(x.listos||0).toLocaleString('es')+'</td>'+
+            '<td style="text-align:right;color:var(--muted)">'+(x.total||0).toLocaleString('es')+'</td>'+
+            '<td style="text-align:right;color:'+(x.pct>=50?'inherit':'#F52834')+'">'+x.pct+'%</td></tr>';
+        }).join('')+'</tbody></table></div>';
+    }catch(e){ document.getElementById('precios-cobertura').innerHTML='<div class="loading-msg">Error</div>'; }
   }
 
   // ── Overview ─────────────────────────────────────────

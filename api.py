@@ -49,6 +49,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+
+# La regla de 'precio habitual' vive en el pipeline: el panel la importa en vez
+# de reimplementarla, para que admin y producción no puedan divergir.
+from scrapers.price_drop import referencia_de_serie
 from pydantic import BaseModel
 
 load_dotenv()
@@ -1913,6 +1917,165 @@ def admin_patch_deal(deal_id: str, body: PatchDealBody, request: Request):
     if updated == 0:
         return JSONResponse(status_code=404, content={"error": "Deal no encontrado"})
     return {"updated": True, "deal_id": deal_id, **updates}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PRECIOS — panel de admin
+#
+# Los 22,6 M de precios que guardamos no se veían por ningún sitio: el endpoint
+# /api/price-history existía y no lo llamaba nadie. Esto los hace mirables.
+#
+# Solo se puede buscar por NOMBRE lo que tiene nombre guardado: Decathlon y
+# ToysRus (tablas propias, ~175 k productos) y los deals publicados con hist_pid.
+# En price_history nunca guardamos el título, así que sus 1,5 M de productos solo
+# son accesibles por id. Es una limitación real, no una decisión de diseño.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_FUENTES_PRECIO = {
+    # fuente → (tabla_productos, col_id, col_nombre, tabla_precios, tienda_fija)
+    "decathlon": ("decathlon_productos", "model_id", "nombre", "decathlon_precios", "Decathlon"),
+    "toysrus":   ("toysrus_productos",   "ean",     "nombre", "toysrus_precios",   "ToysRus"),
+}
+
+
+@app.get("/admin/precios/buscar")
+def admin_precios_buscar(request: Request, q: str = Query(default="", max_length=80)):
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    q = (q or "").strip()
+    if len(q) < 2:
+        return JSONResponse(content=[])
+    like = f"%{q}%"
+    out = []
+    with _get_db() as con:
+        for fuente, (tprod, cid, cnom, tprec, tienda) in _FUENTES_PRECIO.items():
+            try:
+                filas = con.execute(f"""
+                    SELECT p.{cid} AS id, p.{cnom} AS titulo,
+                           (SELECT precio FROM {tprec} x WHERE x.{cid} = p.{cid}
+                             ORDER BY x.fecha DESC LIMIT 1) AS precio,
+                           (SELECT COUNT(DISTINCT fecha) FROM {tprec} x WHERE x.{cid} = p.{cid}) AS dias
+                    FROM {tprod} p WHERE p.{cnom} LIKE ? LIMIT 25
+                """, (like,)).fetchall()
+            except Exception:
+                continue
+            for f in filas:
+                if f["precio"] is None:
+                    continue
+                out.append({"fuente": fuente, "id": str(f["id"]), "titulo": f["titulo"],
+                            "tienda": tienda, "precio": f["precio"], "dias": f["dias"] or 0})
+        # Deals publicados que dejaron rastro al histórico general
+        filas = con.execute("""
+            SELECT hist_pid AS id, titulo, tienda, precio,
+                   (SELECT COUNT(DISTINCT fecha) FROM price_history x
+                     WHERE x.asin = d.hist_pid AND x.tienda = d.tienda) AS dias
+            FROM deals_publicados d
+            WHERE COALESCE(hist_pid,'') != '' AND titulo LIKE ? LIMIT 25
+        """, (like,)).fetchall()
+        for f in filas:
+            out.append({"fuente": "historico", "id": str(f["id"]), "titulo": f["titulo"],
+                        "tienda": f["tienda"], "precio": f["precio"], "dias": f["dias"] or 0})
+    out.sort(key=lambda x: -x["dias"])
+    return JSONResponse(content=out[:40])
+
+
+@app.get("/admin/precios/serie")
+def admin_precios_serie(request: Request, fuente: str = Query(default="historico"),
+                        id: str = Query(default=""), tienda: str = Query(default=""),
+                        dias: int = Query(default=90, ge=7, le=400)):
+    """Serie + la referencia que calcula el pipeline + los días que publicamos."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    if not id:
+        return JSONResponse(status_code=400, content={"error": "falta id"})
+    desde = (datetime.now(timezone.utc) - timedelta(days=dias)).strftime("%Y-%m-%d")
+
+    with _get_db() as con:
+        if fuente in _FUENTES_PRECIO:
+            _, cid, cnom, tprec, tienda_fija = _FUENTES_PRECIO[fuente]
+            tprod = _FUENTES_PRECIO[fuente][0]
+            puntos = con.execute(
+                f"SELECT fecha, precio FROM {tprec} WHERE {cid} = ? AND fecha >= ? ORDER BY fecha",
+                (id, desde)).fetchall()
+            row = con.execute(f"SELECT {cnom} AS titulo FROM {tprod} WHERE {cid} = ?", (id,)).fetchone()
+            titulo, tienda = (row["titulo"] if row else id), tienda_fija
+        else:
+            puntos = con.execute(
+                "SELECT fecha, precio FROM price_history WHERE asin = ? AND tienda = ? "
+                "AND fecha >= ? ORDER BY fecha", (id, tienda, desde)).fetchall()
+            row = con.execute("SELECT titulo FROM deals_publicados WHERE hist_pid = ? AND tienda = ? "
+                              "ORDER BY publicado_en DESC LIMIT 1", (id, tienda)).fetchone()
+            titulo = row["titulo"] if row else id
+
+        # Días en que publicamos este producto: la marca que dice si acertamos
+        pubs = con.execute("""
+            SELECT substr(publicado_en,1,10) AS fecha, precio, precio_original, descuento_pct
+            FROM deals_publicados
+            WHERE tienda = ? AND (COALESCE(hist_pid,'') = ? OR ? = '')
+              AND substr(publicado_en,1,10) >= ?
+            ORDER BY publicado_en
+        """, (tienda, id, "" if fuente in _FUENTES_PRECIO else id, desde)).fetchall() \
+            if fuente == "historico" else []
+
+    serie = [{"fecha": p["fecha"], "precio": p["precio"]} for p in puntos]
+    ref = referencia_de_serie([(p["fecha"], p["precio"]) for p in puntos])
+    return JSONResponse(content={
+        "titulo": titulo, "tienda": tienda, "fuente": fuente, "id": id,
+        "puntos": serie,
+        "referencia": ref[0] if ref else None,
+        "dias_datos": ref[1] if ref else len({p["fecha"] for p in puntos}),
+        "publicaciones": [dict(p) for p in pubs],
+    })
+
+
+@app.get("/admin/precios/salud")
+def admin_precios_salud(request: Request):
+    """Por tienda: cuánto seguimos, desde cuándo, y si lleva días sin moverse."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    with _get_db() as con:
+        filas = con.execute("""
+            SELECT tienda, COUNT(*) AS obs, COUNT(DISTINCT asin) AS productos,
+                   COUNT(DISTINCT fecha) AS dias, MAX(fecha) AS ultima
+            FROM price_history GROUP BY tienda ORDER BY obs DESC
+        """).fetchall()
+        # ¿se mueven los precios? un catálogo congelado no da ofertas jamás
+        movidos = {r["tienda"]: r["n"] for r in con.execute("""
+            SELECT tienda, COUNT(*) AS n FROM (
+              SELECT tienda, asin FROM price_history
+              WHERE fecha >= date('now','-14 day')
+              GROUP BY tienda, asin HAVING COUNT(DISTINCT precio) > 1
+            ) GROUP BY tienda
+        """).fetchall()}
+    hoy = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return JSONResponse(content=[{
+        "tienda": r["tienda"], "obs": r["obs"], "productos": r["productos"],
+        "dias": r["dias"], "ultima": r["ultima"],
+        "al_dia": r["ultima"] == hoy,
+        "con_movimiento": movidos.get(r["tienda"], 0),
+    } for r in filas])
+
+
+@app.get("/admin/precios/cobertura")
+def admin_precios_cobertura(request: Request):
+    """Cuántos productos tienen ya histórico suficiente para poder generar un deal."""
+    if not _require_admin(request):
+        return JSONResponse(status_code=401, content={"error": "No autorizado"})
+    with _get_db() as con:
+        filas = con.execute("""
+            SELECT tienda,
+                   COUNT(*) AS total,
+                   SUM(CASE WHEN dias >= 7 THEN 1 ELSE 0 END) AS listos
+            FROM (
+              SELECT tienda, asin, COUNT(DISTINCT fecha) AS dias
+              FROM price_history WHERE fecha >= date('now','-30 day')
+              GROUP BY tienda, asin
+            ) GROUP BY tienda ORDER BY total DESC
+        """).fetchall()
+    return JSONResponse(content=[{
+        "tienda": r["tienda"], "total": r["total"], "listos": r["listos"] or 0,
+        "pct": round((r["listos"] or 0) * 100 / r["total"]) if r["total"] else 0,
+    } for r in filas])
 
 
 @app.get("/admin/stats")

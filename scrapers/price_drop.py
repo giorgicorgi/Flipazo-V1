@@ -50,6 +50,45 @@ REF_CUOTA_MIN = float(os.getenv("PRICE_DROP_REF_CUOTA", "0.40"))
 CAP_DESCUENTO = int(os.getenv("PRICE_DROP_CAP_PCT", "85"))
 
 
+def referencia_de_niveles(niveles: dict, min_dias: int = MIN_DIAS,
+                          min_dias_ref: int = MIN_DIAS_REF,
+                          ref_cuota_min: float = REF_CUOTA_MIN):
+    """El corazón de la regla, aislado para que NADIE la reimplemente.
+
+    `niveles` = {precio: (dias, primera_fecha, ultima_fecha)}.
+    Devuelve `(precio_referencia, dias_totales)` o None. Lo usan tanto el pipeline
+    (vía cargar_referencias) como el panel de admin: si algún día se cambia el
+    criterio, los dos cambian a la vez o no cambia ninguno."""
+    if not niveles:
+        return None
+    total = sum(d for d, _, _ in niveles.values())   # 1 precio por día → total = días distintos
+    if total < min_dias:
+        return None
+    minimo_dias = max(min_dias_ref, total * ref_cuota_min)
+    sostenidos = [(p, ult) for p, (d, _, ult) in niveles.items() if d >= minimo_dias]
+    if not sostenidos:
+        return None
+    pref, pref_ultimo_dia = max(sostenidos)          # max por precio
+    # Yoyó: si un precio lo bastante bajo como para ser "oferta" ya se había visto
+    # ANTES de que la referencia dejara de estar vigente, el precio oscila y no hay bajada.
+    tope = pref * (1 - DESC_MIN / 100.0)
+    if any(pri < pref_ultimo_dia for p, (_, pri, _) in niveles.items() if p <= tope):
+        return None
+    return (pref, total)
+
+
+def referencia_de_serie(puntos, **kw):
+    """Igual, pero desde una serie cruda `[(fecha, precio), …]` — lo que tiene a
+    mano quien dibuja una gráfica."""
+    niveles: dict = {}
+    for fecha, precio in puntos:
+        if not precio or precio <= 0:
+            continue
+        d, pri, ult = niveles.get(precio, (0, fecha, fecha))
+        niveles[precio] = (d + 1, min(pri, fecha), max(ult, fecha))
+    return referencia_de_niveles(niveles, **kw)
+
+
 def cargar_referencias(db_path: str, tiendas, ventana_dias: int = VENTANA_DIAS,
                        min_dias: int = MIN_DIAS, min_dias_ref: int = MIN_DIAS_REF,
                        ref_cuota_min: float = REF_CUOTA_MIN) -> dict:
@@ -77,20 +116,9 @@ def cargar_referencias(db_path: str, tiendas, ventana_dias: int = VENTANA_DIAS,
         """niveles = {precio: (dias, primera_fecha, ultima_fecha)}"""
         if not key or not niveles:
             return
-        total = sum(d for d, _, _ in niveles.values())  # 1 precio por día → total = días distintos
-        if total < min_dias:
-            return
-        minimo_dias = max(min_dias_ref, total * ref_cuota_min)
-        sostenidos = [(p, ult) for p, (d, _, ult) in niveles.items() if d >= minimo_dias]
-        if not sostenidos:
-            return
-        pref, pref_ultimo_dia = max(sostenidos)         # max por precio
-        # Yoyó: si un precio lo bastante bajo como para ser "oferta" ya se había visto
-        # ANTES de que la referencia dejara de estar vigente, el precio oscila y no hay bajada.
-        tope = pref * umbral_bajo
-        if any(pri < pref_ultimo_dia for p, (_, pri, _) in niveles.items() if p <= tope):
-            return
-        out[key] = (pref, total)
+        res = referencia_de_niveles(niveles, min_dias, min_dias_ref, ref_cuota_min)
+        if res:
+            out[key] = res
 
     try:
         with sqlite3.connect(db_path) as con:
