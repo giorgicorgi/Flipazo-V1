@@ -2742,6 +2742,137 @@ def _tg_send(chat_id: str, texto: str, markup: dict | None = None) -> bool:
         return False
 
 
+# ── Categorías elegibles desde el bot ─────────────────────────────────────────
+# Mismos ids que CATEGORIAS en index.html: las preferencias son las MISMAS que las
+# de la web, así que lo que elija aquí se ve allí y al revés. "herramientas" está
+# oculta en la web y "todas" no es una categoría, así que no salen.
+_CATS_BOT = [
+    ("tecnologia", "Tecnología"), ("moda", "Moda"), ("deportes", "Deportes"),
+    ("hogar", "Hogar"), ("belleza", "Cuidado personal"), ("juguetes", "Juguetes"),
+    ("mascotas", "Mascotas"),
+]
+_CATS_VALIDAS = {c for c, _ in _CATS_BOT}
+_CAT_LABEL = dict(_CATS_BOT)
+
+# El pipeline guarda algunas categorías con más detalle del que la web enseña
+# (1.083 deals son "calzado" y 361 "low_cost"). Sin esto, quien elija Moda no
+# vería ni una zapatilla, que es justo lo que más publicamos.
+_CAT_ALIAS = {"calzado": {"moda", "deportes"}, "low_cost": set(), "otras": set()}
+
+
+def _cat_encaja(cat_deal: str, elegidas: list) -> bool:
+    if not elegidas:
+        return True                       # sin filtro = todo
+    cat = (cat_deal or "").strip()
+    if cat in _CAT_ALIAS:
+        return bool(_CAT_ALIAS[cat] & set(elegidas))
+    return cat in elegidas
+
+
+def _teclado_categorias(elegidas: list) -> dict:
+    """Dos columnas de interruptores + fila de acciones. El estado se ve en el
+    propio botón, así que no hace falta explicar nada."""
+    filas, fila = [], []
+    for cid, label in _CATS_BOT:
+        marca = "✅" if cid in elegidas else "▫️"
+        fila.append({"text": f"{marca} {label}", "callback_data": f"c:{cid}"})
+        if len(fila) == 2:
+            filas.append(fila); fila = []
+    if fila:
+        filas.append(fila)
+    filas.append([
+        {"text": "🔄 Todas", "callback_data": "c:_todas"},
+        {"text": "✔️ Listo", "callback_data": "c:_fin"},
+    ])
+    return {"inline_keyboard": filas}
+
+
+def _texto_intereses(elegidas: list) -> str:
+    if elegidas:
+        nombres = ", ".join(_CAT_LABEL.get(c, c) for c in elegidas)
+        cuerpo = f"Ahora mismo te mando: <b>{nombres}</b>."
+    else:
+        cuerpo = "Ahora mismo te mando <b>todas las categorías</b>."
+    return (f"⚙️ <b>Tus intereses</b>\n\n{cuerpo}\n\n"
+            f"Toca una categoría para activarla o quitarla.")
+
+
+def _prefs_de_chat(chat_id: str):
+    """Devuelve (user_id, prefs) del chat vinculado, o (None, None)."""
+    with _get_db() as con:
+        row = con.execute("SELECT user_id FROM user_prefs WHERE tg_chat_id = ? "
+                          "AND COALESCE(tg_chat_id,'') != ''", (chat_id,)).fetchone()
+    if not row:
+        return None, None
+    return row["user_id"], _get_prefs(row["user_id"])
+
+
+def _guardar_cats(user_id: str, cats: list) -> None:
+    with _get_db() as con:
+        con.execute("UPDATE user_prefs SET cats = ?, updated_at = ? WHERE user_id = ?",
+                    (json.dumps(cats, ensure_ascii=False),
+                     datetime.now(timezone.utc).isoformat(), user_id))
+        con.commit()
+
+
+def _tg_editar(chat_id: str, message_id: int, texto: str, markup: dict | None = None) -> None:
+    try:
+        data = {"chat_id": chat_id, "message_id": message_id, "text": texto,
+                "parse_mode": "HTML", "disable_web_page_preview": True}
+        if markup:
+            data["reply_markup"] = json.dumps(markup)
+        _http.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/editMessageText",
+                   data=data, timeout=12)
+    except Exception:
+        pass
+
+
+def _tg_responder_boton(cb_id: str, texto: str = "") -> None:
+    """Telegram deja el botón 'cargando' hasta que se contesta al callback."""
+    try:
+        _http.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/answerCallbackQuery",
+                   data={"callback_query_id": cb_id, "text": texto}, timeout=8)
+    except Exception:
+        pass
+
+
+def _ofertas_para(prefs: dict, limite: int = 5) -> list:
+    """Los mejores chollos vivos que encajan con sus preferencias."""
+    cats   = prefs.get("cats") or []
+    stores = prefs.get("stores") or []
+    pmin   = prefs.get("precio_min") or 0
+    pmax   = prefs.get("precio_max")
+    with _get_db() as con:
+        filas = con.execute("""
+            SELECT deal_id, titulo, tienda, precio, precio_original, descuento_pct,
+                   COALESCE(categoria,'') AS categoria
+            FROM deals_publicados
+            WHERE COALESCE(expirado,0) = 0
+              AND publicado_en > datetime('now','-7 day')
+            ORDER BY descuento_pct DESC, publicado_en DESC
+            LIMIT 400
+        """).fetchall()
+    out = []
+    for d in filas:
+        if not _cat_encaja(d["categoria"], cats):
+            continue
+        if stores and d["tienda"] not in stores:
+            continue
+        p = d["precio"] or 0
+        if pmin and p < pmin:
+            continue
+        if pmax is not None and p > pmax:
+            continue
+        out.append(d)
+        if len(out) >= limite:
+            break
+    return out
+
+
+def _fmt_eur(v) -> str:
+    return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") + " €"
+
+
 @app.post("/api/user/telegram/link")
 def telegram_link(request: Request):
     """Genera (o reutiliza) el código de vinculación y devuelve el deep link del bot."""
@@ -2789,6 +2920,37 @@ async def telegram_webhook(secret: str, request: Request):
     except Exception:
         return {"ok": True}
 
+    # ── Pulsaciones de botón (selector de categorías) ─────────────────────────
+    cb = upd.get("callback_query")
+    if cb:
+        cb_id   = cb.get("id", "")
+        chat_id = str(((cb.get("message") or {}).get("chat") or {}).get("id") or "")
+        msg_id  = (cb.get("message") or {}).get("message_id")
+        dato    = (cb.get("data") or "")
+        if not chat_id or not dato.startswith("c:"):
+            _tg_responder_boton(cb_id)
+            return {"ok": True}
+        uid, prefs = _prefs_de_chat(chat_id)
+        if not uid:
+            _tg_responder_boton(cb_id, "Vincula tu cuenta primero")
+            return {"ok": True}
+        cats = [c for c in (prefs.get("cats") or []) if c in _CATS_VALIDAS]
+        accion = dato[2:]
+        if accion == "_fin":
+            _tg_responder_boton(cb_id, "Guardado")
+            _tg_editar(chat_id, msg_id, _texto_intereses(cats).replace(
+                "Toca una categoría para activarla o quitarla.",
+                "Cambia esto cuando quieras con /intereses."))
+            return {"ok": True}
+        if accion == "_todas":
+            cats = []
+        elif accion in _CATS_VALIDAS:
+            cats = [c for c in cats if c != accion] if accion in cats else cats + [accion]
+        _guardar_cats(uid, cats)
+        _tg_responder_boton(cb_id)
+        _tg_editar(chat_id, msg_id, _texto_intereses(cats), _teclado_categorias(cats))
+        return {"ok": True}
+
     msg     = upd.get("message") or upd.get("edited_message") or {}
     chat_id = str((msg.get("chat") or {}).get("id") or "")
     texto   = (msg.get("text") or "").strip()
@@ -2830,8 +2992,57 @@ async def telegram_webhook(secret: str, request: Request):
         _tg_send(chat_id, "🔕 Listo, no te mando más resúmenes. Escribe /start para volver a activarlos.")
         return {"ok": True}
 
-    _tg_send(chat_id, "Comandos: /stop para dejar de recibir avisos.\n"
-                      "Tus intereses se editan en flipazo.es → Para ti.")
+    # ── /intereses — elegir categorías sin salir de Telegram ──────────────────
+    if texto.startswith("/intereses") or texto.startswith("/categorias"):
+        uid, prefs = _prefs_de_chat(chat_id)
+        if not uid:
+            _tg_send(chat_id, "Primero vincula tu cuenta desde <b>flipazo.es → Para ti</b>.")
+            return {"ok": True}
+        cats = [c for c in (prefs.get("cats") or []) if c in _CATS_VALIDAS]
+        _tg_send(chat_id, _texto_intereses(cats), _teclado_categorias(cats))
+        return {"ok": True}
+
+    # ── /ofertas — lo suyo, bajo demanda ──────────────────────────────────────
+    if texto.startswith("/ofertas") or texto.startswith("/chollos"):
+        uid, prefs = _prefs_de_chat(chat_id)
+        if not uid:
+            _tg_send(chat_id, "Primero vincula tu cuenta desde <b>flipazo.es → Para ti</b>.")
+            return {"ok": True}
+        deals = _ofertas_para(prefs)
+        if not deals:
+            _tg_send(chat_id, "Ahora mismo no hay nada que encaje con lo tuyo.\n\n"
+                              "Prueba a ampliar categorías con /intereses.")
+            return {"ok": True}
+        partes = ["🔥 <b>Lo tuyo de esta semana</b>\n"]
+        for d in deals:
+            pct  = d["descuento_pct"] or 0
+            ori  = (f" <s>{_fmt_eur(d['precio_original'])}</s>"
+                    if (d["precio_original"] or 0) > (d["precio"] or 0) else "")
+            partes.append(
+                f"<b>−{pct}%</b> · {(d['titulo'] or '')[:70]}\n"
+                f"<b>{_fmt_eur(d['precio'] or 0)}</b>{ori} · {d['tienda']}\n"
+                f"https://flipazo.es/r/{d['deal_id']}?canal=telegram_ofertas\n")
+        _tg_send(chat_id, "\n".join(partes))
+        return {"ok": True}
+
+    # ── /pausar — parar sin darse de baja ─────────────────────────────────────
+    if texto.startswith("/pausar"):
+        with _get_db() as con:
+            con.execute("UPDATE user_prefs SET tg_enabled=0, updated_at=? WHERE tg_chat_id=?",
+                        (ahora, chat_id))
+            con.commit()
+        _tg_send(chat_id, "⏸️ Pausado. No te mando el resumen diario.\n\n"
+                          "Sigues vinculado y con tus intereses guardados: escribe "
+                          "/start cuando quieras retomarlo, o /ofertas para mirar sin esperar.")
+        return {"ok": True}
+
+    _tg_send(chat_id,
+             "Puedo hacer esto:\n\n"
+             "/ofertas — lo tuyo de esta semana, ahora mismo\n"
+             "/intereses — elegir qué categorías te mando\n"
+             "/pausar — parar el resumen sin darte de baja\n"
+             "/stop — dejar de recibir\n\n"
+             "El resto de filtros (tiendas y precio) están en flipazo.es → Para ti.")
     return {"ok": True}
 
 
