@@ -1425,8 +1425,12 @@
       color: #fff;
       width: 100%;
       font-size: 14px;
-      padding: 11px 20px;
+      /* Relleno lateral corto: el botón ya ocupa todo el ancho y el texto va
+         centrado, así que esos 20px solo servían para recortar "Ver en Paco
+         Perfumerias →". Y si aun así no cabe, se recorta antes que romper la caja. */
+      padding: 11px 12px;
       border-radius: 12px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .btn--primary:hover { background: var(--brand-hover); opacity: 1; }
 
@@ -3145,6 +3149,16 @@
     .wb__title { font-family: var(--serif); font-weight: 900; color: var(--ink); font-size: clamp(28px,3.4vw,42px); line-height: 1.1; letter-spacing: -.01em; margin: 16px 0 0; }
     .wb__title em { font-style: italic; color: var(--brand); }
     .wb__lede { font-family: var(--sans); color: var(--text-mid); font-size: 15px; line-height: 1.6; max-width: 42ch; margin: 12px 0 0; }
+    /* "No somos una tienda": va en verde agua y no en rojo de marca porque no es
+       una alerta, es tranquilizar. Y pegada al lede, antes del buscador. */
+    .wb__nota {
+      display: flex; align-items: flex-start; gap: 9px; margin: 14px 0 0; max-width: 46ch;
+      font-family: var(--sans); font-size: 13.5px; line-height: 1.5; color: #0D7A6F;
+      background: var(--teal-light, #E6F9F7); border-radius: 10px; padding: 10px 13px;
+    }
+    .wb__nota svg { width: 17px; height: 17px; flex-shrink: 0; margin-top: 1px; }
+    .wb__nota b { font-weight: 800; }
+    [data-theme="dark"] .wb__nota { background: rgba(20,193,174,.10); color: #5FCBBB; }
     .wb__search { display: flex; gap: 10px; margin-top: 22px; max-width: 480px; }
     .wb__search-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; transition: border-color .2s, box-shadow .2s; }
     .wb__search-field:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(245,40,52,0.08); }
@@ -3194,6 +3208,13 @@
         <div class="wb__eyebrow"><i></i>Compara · Ahorra · Flipa</div>
         <h2 class="wb__title">Ofertas que <em>sí</em> son ofertas.</h2>
         <p class="wb__lede">Flipazo analiza millones de precios cada día en todas las grandes tiendas y te enseña solo las rebajas de verdad. Gratis y sin registro.</p>
+        <!-- Nadie compra en una web que no conoce. Decir dónde se compra de verdad
+             quita la duda antes de que llegue: aquí no se vende nada, se llevan a
+             Amazon, MediaMarkt o El Corte Inglés, que sí conocen. -->
+        <p class="wb__nota">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          <span><b>No somos una tienda.</b> Encontramos las ofertas y compras directamente en Amazon, MediaMarkt, El Corte Inglés y el resto de tiendas oficiales.</span>
+        </p>
         <form class="wb__search" id="js-ih-search-form" onsubmit="return _ihSearch(event)" role="search">
           <span class="wb__search-field">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -4225,7 +4246,10 @@
         ${tallasHtml}
         ${razonHtml}
         <div class="deal__cta">
-          <a href="${buyUrl}" data-track="${dealId}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver deal →</a>
+          <!-- El nombre de la tienda va EN el botón, que es el momento exacto de la
+               decisión: "Ver deal" no dice a dónde te lleva y en una web que no
+               conocen se lee como "comprar aquí". El hero ya lo hacía así. -->
+          <a href="${buyUrl}" data-track="${dealId}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver en ${esc(_storeLabel(d.tienda || "la tienda"))} →</a>
         </div>
         ${votesHtml}
         <div class="deal__bottom">
