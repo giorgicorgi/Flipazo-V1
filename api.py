@@ -1088,6 +1088,50 @@ def get_deals(
     return JSONResponse(content=deals)
 
 
+@app.get("/api/deals/buscar")
+def buscar_deals(q: str = Query(default="", max_length=80),
+                 limit: int = Query(default=30, ge=1, le=60)):
+    """Busca en TODO el catálogo, incluidos los expirados.
+
+    El buscador de la web era client-side sobre los 600 deals más recientes, así
+    que dos cosas quedaban fuera: lo publicado hace tiempo (hay 4.900 vivos) y
+    todo lo expirado, porque /api/deals filtra expirado=0. Buscar «zig dynamica»
+    no daba nada aunque el producto estuviera publicado el 11 de agosto.
+
+    Los expirados salen marcados: quien busca un producto concreto quiere saber
+    que existió y a qué precio, aunque la oferta ya no valga."""
+    q = (q or "").strip()
+    if len(q) < 2:
+        return JSONResponse(content=[])
+    # Cada palabra debe aparecer en el título: "zig dynamica" encuentra
+    # "Zig Dynamica 6 ZapatillasHombre" aunque el orden no sea el mismo.
+    palabras = [p for p in _re.split(r"\s+", q) if p][:6]
+    cond = " AND ".join(["lower(titulo) LIKE ?"] * len(palabras))
+    params = [f"%{p.lower()}%" for p in palabras]
+    sql = f"""
+        SELECT deal_id AS id, titulo, tienda, tipo,
+               precio AS precio_actual, precio_original, descuento_pct, imagen_url,
+               url_afiliado AS url_affiliate,
+               COALESCE(categoria,'') AS categoria,
+               COALESCE(votes_up,0) AS votes_up, COALESCE(votes_down,0) AS votes_down,
+               COALESCE(expirado,0) AS expirado,
+               COALESCE(pocas_unidades,'') AS pocas_unidades,
+               COALESCE(tallas,'') AS tallas,
+               publicado_en AS timestamp
+        FROM deals_publicados
+        WHERE {cond}
+        ORDER BY COALESCE(expirado,0) ASC, publicado_en DESC
+        LIMIT ?
+    """
+    try:
+        with _get_db() as con:
+            rows = con.execute(sql, params + [limit]).fetchall()
+    except Exception as e:
+        print(f"⚠️  buscar_deals: {e}")
+        return JSONResponse(content=[])
+    return JSONResponse(content=[_normalize_deal_row(r) for r in rows])
+
+
 # ── Normalizer compartido entre /api/deals y /api/sections/* ──────────────────
 
 def _normalize_deal_row(r) -> dict:

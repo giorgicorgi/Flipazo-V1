@@ -4919,6 +4919,26 @@
   let _searchLoadPromise = null;
   let _reventaLoaded     = false;
 
+  // Busca en TODO el catálogo (servidor), no solo en lo que hay cargado.
+  // El buscador miraba los 600 deals más recientes que tenía en memoria, así que
+  // ni lo publicado hace semanas ni lo expirado aparecía nunca. Los resultados se
+  // fusionan en allDeals para que el resto del buscador funcione igual que antes.
+  const _buscadoYa = new Set();
+  async function _buscarEnServidor(query) {
+    const q = (query || "").trim();
+    if (q.length < 2 || _buscadoYa.has(q)) return;
+    _buscadoYa.add(q);
+    try {
+      const r = await fetch(`${API_BASE}/api/deals/buscar?q=${encodeURIComponent(q)}`);
+      if (!r.ok) return;
+      const nuevos = await r.json();
+      if (!Array.isArray(nuevos) || !nuevos.length) return;
+      const yaEstan = new Set(allDeals.map(d => d.id));
+      const frescos = nuevos.filter(d => !yaEstan.has(d.id));
+      if (frescos.length) allDeals = allDeals.concat(frescos);
+    } catch { _buscadoYa.delete(q); }   // permitir reintento si falla la red
+  }
+
   async function ensureSearchData() {
     if (_searchAllLoaded) return;
     if (_searchLoadPromise) return _searchLoadPromise;
@@ -4968,7 +4988,7 @@
   async function applySearch(query, scrollToId) {
     if (_isMobileViewport()) _showRegularGrid();
     if (_desktopDiscovery) setDesktopView("todos");
-    await ensureSearchData();
+    await Promise.all([ensureSearchData(), _buscarEnServidor(query)]);
     const dd = document.getElementById("js-search-dropdown");
     dd.hidden = true;
     searchQuery = query;
@@ -5590,7 +5610,7 @@
           dd.innerHTML = `<div class="search-empty">Buscando…</div>`;
           dd.hidden = false;
         }
-        await ensureSearchData();
+        await Promise.all([ensureSearchData(), _buscarEnServidor(q)]);
         if (input.value.trim() !== q) return;
         const results = searchDeals(q);
         renderSearchDropdown(results, q);
@@ -5622,7 +5642,7 @@
       if (!q || q.length < 2) { dd.hidden = true; return; }
       _ihSearchTimeout = setTimeout(async () => {
         if (!_searchAllLoaded) { dd.innerHTML = `<div class="search-empty">Buscando…</div>`; dd.hidden = false; }
-        await ensureSearchData();
+        await Promise.all([ensureSearchData(), _buscarEnServidor(q)]);
         if (input.value.trim() !== q) return;
         renderSearchDropdown(searchDeals(q), q, "js-ih-dropdown", "js-ih-input");
       }, 180);
