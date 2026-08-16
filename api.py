@@ -2074,51 +2074,44 @@ def admin_precios_serie(request: Request, fuente: str = Query(default="historico
 
 @app.get("/admin/precios/salud")
 def admin_precios_salud(request: Request):
-    """Por tienda: cuánto seguimos, desde cuándo, y si lleva días sin moverse."""
+    """Por tienda: cuánto seguimos, desde cuándo, y si sus precios se mueven.
+
+    Lee de `precios_resumen`, que calcula el cron de las 6:45. Calcularlo aquí
+    tardaba 130 s sobre los 22,6 M de filas y el panel moría por timeout."""
     if not _require_admin(request):
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
-    with _get_db() as con:
-        filas = con.execute("""
-            SELECT tienda, COUNT(*) AS obs, COUNT(DISTINCT asin) AS productos,
-                   COUNT(DISTINCT fecha) AS dias, MAX(fecha) AS ultima
-            FROM price_history GROUP BY tienda ORDER BY obs DESC
-        """).fetchall()
-        # ¿se mueven los precios? un catálogo congelado no da ofertas jamás
-        movidos = {r["tienda"]: r["n"] for r in con.execute("""
-            SELECT tienda, COUNT(*) AS n FROM (
-              SELECT tienda, asin FROM price_history
-              WHERE fecha >= date('now','-14 day')
-              GROUP BY tienda, asin HAVING COUNT(DISTINCT precio) > 1
-            ) GROUP BY tienda
-        """).fetchall()}
     hoy = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    try:
+        with _get_db() as con:
+            filas = con.execute(
+                "SELECT * FROM precios_resumen ORDER BY obs DESC").fetchall()
+    except Exception:
+        return JSONResponse(content=[])          # aún no se ha calculado nunca
     return JSONResponse(content=[{
         "tienda": r["tienda"], "obs": r["obs"], "productos": r["productos"],
         "dias": r["dias"], "ultima": r["ultima"],
         "al_dia": r["ultima"] == hoy,
-        "con_movimiento": movidos.get(r["tienda"], 0),
+        "con_movimiento": r["con_movimiento"],
+        "calculado_en": r["calculado_en"],
     } for r in filas])
 
 
 @app.get("/admin/precios/cobertura")
 def admin_precios_cobertura(request: Request):
-    """Cuántos productos tienen ya histórico suficiente para poder generar un deal."""
+    """Cuántos productos tienen ya histórico suficiente para generar un deal."""
     if not _require_admin(request):
         return JSONResponse(status_code=401, content={"error": "No autorizado"})
-    with _get_db() as con:
-        filas = con.execute("""
-            SELECT tienda,
-                   COUNT(*) AS total,
-                   SUM(CASE WHEN dias >= 7 THEN 1 ELSE 0 END) AS listos
-            FROM (
-              SELECT tienda, asin, COUNT(DISTINCT fecha) AS dias
-              FROM price_history WHERE fecha >= date('now','-30 day')
-              GROUP BY tienda, asin
-            ) GROUP BY tienda ORDER BY total DESC
-        """).fetchall()
+    try:
+        with _get_db() as con:
+            filas = con.execute(
+                "SELECT tienda, total_30d, listos, calculado_en FROM precios_resumen "
+                "ORDER BY total_30d DESC").fetchall()
+    except Exception:
+        return JSONResponse(content=[])
     return JSONResponse(content=[{
-        "tienda": r["tienda"], "total": r["total"], "listos": r["listos"] or 0,
-        "pct": round((r["listos"] or 0) * 100 / r["total"]) if r["total"] else 0,
+        "tienda": r["tienda"], "total": r["total_30d"] or 0, "listos": r["listos"] or 0,
+        "pct": round((r["listos"] or 0) * 100 / r["total_30d"]) if r["total_30d"] else 0,
+        "calculado_en": r["calculado_en"],
     } for r in filas])
 
 
