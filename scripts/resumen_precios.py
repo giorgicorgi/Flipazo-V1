@@ -32,6 +32,12 @@ def log(m: str) -> None:
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {m}", flush=True)
 
 
+# Tiendas que llevan su propio histórico en vez de price_history: {tienda: (tabla, clave)}
+TABLAS_PROPIAS = {
+    "Decathlon": ("decathlon_precios", "model_id"),
+    "ToysRus":   ("toysrus_precios",   "ean"),
+}
+
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS precios_resumen (
     tienda          TEXT PRIMARY KEY,
@@ -97,16 +103,62 @@ def main() -> int:
         total, listos = cobertura.get(tienda, (0, 0))
         filas.append((tienda, b["obs"], b["productos"], b["dias"], b["ultima"],
                       movidos.get(tienda, 0), total, listos, ahora))
+
+    # Tiendas con histórico propio: no escriben en price_history, así que mirar
+    # solo ahí las declara "congeladas" siendo mentira. Decathlon salió el
+    # 16-ago-2026 en la lista de congeladas con datos muertos del 10-ago (960
+    # filas del scraper viejo) mientras su tabla real crecía a diario; ToysRus
+    # directamente no aparecía. Se calculan igual, pero desde su tabla.
+    for tienda, (tabla, clave) in TABLAS_PROPIAS.items():
+        try:
+            b = con.execute(f"""
+                SELECT COUNT(*) obs, COUNT(DISTINCT {clave}) productos,
+                       COUNT(DISTINCT fecha) dias, MAX(fecha) ultima FROM {tabla}
+            """).fetchone()
+            if not b or not b["obs"]:
+                continue
+            mov = con.execute(f"""
+                SELECT COUNT(*) FROM (
+                  SELECT {clave} FROM {tabla} WHERE fecha >= date('now','-14 day')
+                  GROUP BY {clave} HAVING COUNT(DISTINCT precio) > 1)
+            """).fetchone()[0]
+            cob = con.execute(f"""
+                SELECT COUNT(*) total, SUM(CASE WHEN dias >= 7 THEN 1 ELSE 0 END) listos
+                FROM (SELECT {clave}, COUNT(DISTINCT fecha) dias FROM {tabla}
+                      WHERE fecha >= date('now','-30 day') GROUP BY {clave})
+            """).fetchone()
+            filas = [f for f in filas if f[0] != tienda]      # quitar la fila falsa
+            filas.append((tienda, b["obs"], b["productos"], b["dias"], b["ultima"],
+                          mov, cob["total"], cob["listos"] or 0, ahora))
+            log(f"   {tienda}: desde su tabla propia ({tabla}) — "
+                f"{b['obs']} obs, {mov} con movimiento")
+        except sqlite3.OperationalError as e:
+            log(f"   ⚠️  {tienda}: no se pudo leer {tabla}: {e}")
     con.execute("DELETE FROM precios_resumen")
     con.executemany(
         "INSERT INTO precios_resumen (tienda,obs,productos,dias,ultima,"
         "con_movimiento,total_30d,listos,calculado_en) VALUES (?,?,?,?,?,?,?,?,?)", filas)
     con.commit()
 
-    congeladas = [f[0] for f in filas if f[5] == 0 and f[3] >= 7]
+    # "Congelada" y "dejó de registrar" son averías distintas y pedían leerse
+    # distinto: Beep llevaba desde el 30-may sin una sola fila y salía en la misma
+    # lista que tiendas que sí escriben a diario pero nunca cambian de precio.
+    hoy = datetime.now().date()
+    def _dias_desde(ultima):
+        try:
+            return (hoy - datetime.strptime(ultima[:10], "%Y-%m-%d").date()).days
+        except Exception:
+            return 999
+
+    mudas      = sorted(f[0] for f in filas if _dias_desde(f[4]) > 3)
+    congeladas = sorted(f[0] for f in filas
+                        if f[0] not in mudas and f[5] == 0 and f[3] >= 7)
     log(f"✅ {len(filas)} tiendas resumidas en {time.time() - t0:.0f}s")
+    if mudas:
+        log(f"   ⚠️  sin registrar precios desde hace >3 días: {', '.join(mudas)}")
     if congeladas:
-        log(f"   ⚠️  sin ningún cambio de precio en 14 días: {', '.join(congeladas)}")
+        log(f"   ⚠️  registran a diario pero sin ningún cambio de precio en 14 días: "
+            f"{', '.join(congeladas)}")
     con.close()
     return 0
 
