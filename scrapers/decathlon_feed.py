@@ -284,10 +284,41 @@ def _cargar_referencias_historico() -> dict[str, float]:
     return ref
 
 
+def _dias_de_historico() -> int:
+    """Días distintos de histórico utilizable (la ventana excluye hoy)."""
+    hoy      = datetime.utcnow().strftime("%Y-%m-%d")
+    hace_30d = (datetime.utcnow() - timedelta(days=_DIAS_HISTORIAL)).strftime("%Y-%m-%d")
+    try:
+        with sqlite3.connect(DB_PATH) as con:
+            _init_tablas(con)
+            return con.execute(
+                "SELECT COUNT(DISTINCT fecha) FROM decathlon_precios "
+                "WHERE fecha >= ? AND fecha < ?", (hace_30d, hoy)).fetchone()[0]
+    except Exception:
+        return -1
+
+
 def _detectar_deals(modelos: dict[str, dict]) -> list[dict]:
     """Bajada REAL: precio de hoy vs máximo sostenido de NUESTRO histórico propio
     (no el PVP del feed, que es RRP inflado). Solo descuentos verificados por nosotros."""
     ref = _cargar_referencias_historico()
+
+    # Sin referencias no es que no haya ofertas: es que NO SE PUEDEN detectar, y en
+    # el log las dos cosas se leen igual ("0 deals detectados"). Pasó del 10 al
+    # 16-ago-2026: al cambiar a id=107 el histórico empezó de cero y hasta que no
+    # acumuló _MIN_DIAS_DATOS días la detección fue imposible — 7 noches mudas sin
+    # que nada pareciera roto. Es el mismo fallo silencioso que tuvo la tienda un
+    # mes con id=98. Si no hay referencias, decir por qué.
+    if not ref:
+        dias = _dias_de_historico()
+        if 0 <= dias < _MIN_DIAS_DATOS:
+            faltan = _MIN_DIAS_DATOS - dias
+            print(f"   ⚠️  Decathlon: {dias}/{_MIN_DIAS_DATOS} días de histórico — "
+                  f"detección imposible hasta dentro de {faltan} día(s), no es que no haya ofertas")
+        else:
+            print(f"   ⚠️  Decathlon: 0 referencias con {dias} días de histórico — "
+                  f"revisar si los precios están congelados")
+
     deals = []
     for m in modelos.values():
         pa   = m["precio_actual"]
