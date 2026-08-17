@@ -3694,6 +3694,12 @@
   // Excluyentes para evitar contaminación cruzada (autoritativos sobre la categoría del servidor)
   const _RX_APPAREL = /camiseta|\bcamisa\b|camis[oó]n|pantal[oó]n|pantalones|\bshort|bermuda|sudadera|\bpolo\b|jersey|jers[eé]y|jersei|abrigo|chaqueta|chaquet[oó]n|cazadora|b[oó]mber|parka|anorak|chubasquero|impermeable|vestido|falda|blusa|\btop\b|leggins?|\bmallas?\b|tights?\b|calcet[ií]n|calcetines|ba[ñn]ador|bikini|biquini|ch[aá]ndal|forro polar|plum[ií]fero|\bplumas\b|americana|blazer|\btraje\b|gabardina|sujetador|\bbra\b|sports?\s*bra|braga[s]?|calzoncillo|boxer|cardigan|c[aá]rdigan|sun top|arm guard|manguito|\bbody\b|\bpant\b|panty|\bmono\b|chaleco|sobrecamisa|\bpeto\b/i;
   const _RX_CONSOLE = /\bps[345]\b|playstation|\bxbox\b|nintendo|\bswitch\b|\bwii\b/i;
+  // "Muñeca" es un juguete… y también la parte del cuerpo donde va el reloj: los
+  // deportivos anuncian "FC en la muñeca" y acababan en Juguetes (Polar Ignite 3,
+  // Polar Pacer). Se descarta el sentido anatómico por la FRASE, nunca por la palabra
+  // suelta: "BANDAI Lady Bug Muñeca Dragon Bug" o "casa de muñecas" siguen siendo
+  // juguetes. Sin lookbehind a propósito — revienta el script entero en Safari viejo.
+  const _RX_MUNECA_CUERPO = /(?:en|sobre|para)\s+(?:la\s+|tu\s+|su\s+)?mu[ñn]eca\b|(?:reloj|smartwatch|puls[oó]metro|pulsera)\b.*mu[ñn]eca\b/i;
   const _RX_KITCHEN = /freidora|airfryer|air.?fryer|microondas|\bhorno\b|cafetera|thermomix|robot.*cocina|batidora/i;
   // Calzado: para excluir zapatos de moda/belleza (un zapato solo va a Calzado)
   const _RX_FOOTWEAR = /zapatilla[s]?|zapato[s]?|deportiva[s]?\b|\bbotas?\b|\bbot[ií]n\b|\bbotines?\b|sandalia[s]?|chancla[s]?|mocas[ií]n|sneaker[s]?|alpargata[s]?|espadrille[s]?|zuecos?\b|bailarina[s]?|merceditas|n[aá]uticos?\b/i;
@@ -3728,7 +3734,7 @@
     { id: "deportes",     label: "Deportes",      test: d => !_esCalzadoModa(d) && (_esCalzadoDeportivo(d) || _scat(d,"deportes") || _RX.deportes.test(d.titulo) || _DEPORTE_STORES.has(d.tienda)) },
     { id: "hogar",        label: "Hogar",         test: d => !_RX_APPAREL.test(d.titulo) && !_RX_PELO.test(d.titulo) && !_DEPORTE_STORES.has(d.tienda) && (_scat(d,"hogar") || _RX.hogar.test(d.titulo)) },
     { id: "belleza",      label: "Cuidado Personal", test: d => !_RX_APPAREL.test(d.titulo) && !_RX_KITCHEN.test(d.titulo) && !_RX_FOOTWEAR.test(d.titulo) && (d.tienda === "Paco Perfumerias" || _scat(d,"belleza") || _RX.belleza.test(d.titulo)) },
-    { id: "juguetes",     label: "Juguetes",      test: d => !_RX_CONSOLE.test(d.titulo) && (_scat(d,"juguetes") || _RX.juguetes.test(d.titulo)) },
+    { id: "juguetes",     label: "Juguetes",      test: d => !_RX_CONSOLE.test(d.titulo) && !_RX_MUNECA_CUERPO.test(d.titulo) && (_scat(d,"juguetes") || _RX.juguetes.test(d.titulo)) },
     { id: "mascotas",     label: "Mascotas",      test: d => _scat(d,"mascotas") || _RX.mascotas.test(d.titulo) || d.tienda === "Tiendanimal" },
     { id: "moda",         label: "Moda",          test: d => {
         if (_esCalzadoDeportivo(d)) return false;          // calzado deportivo → Deportes
