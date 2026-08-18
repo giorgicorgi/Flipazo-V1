@@ -2,6 +2,12 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "flipazo.es" }],
+      "destination": "https://www.flipazo.es/$1",
+      "permanent": true
+    },
     { "source": "/index-v2",      "destination": "/", "permanent": true },
     { "source": "/index-v2.html", "destination": "/", "permanent": true }
   ],
