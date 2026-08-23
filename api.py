@@ -53,6 +53,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 # La regla de 'precio habitual' vive en el pipeline: el panel la importa en vez
 # de reimplementarla, para que admin y producción no puedan divergir.
 from scrapers.price_drop import referencia_de_serie
+from analytics.bots import es_bot as _es_bot
 from pydantic import BaseModel
 
 load_dotenv()
@@ -770,6 +771,15 @@ def _ensure_schema():
             )
         """)
         con.execute("CREATE INDEX IF NOT EXISTS idx_clicks_deal ON clicks(deal_id)")
+        # El User-Agent es lo único que distingue de verdad a un bot de una
+        # persona: sin él, el contador de /mis-links contaba como visitantes los
+        # 207 rangos del crawler de Meta. Los clics anteriores a hoy lo tienen
+        # vacío y se siguen filtrando por rango de IP (ver analytics/bots.py).
+        try:
+            con.execute("ALTER TABLE clicks ADD COLUMN user_agent TEXT DEFAULT ''")
+        except Exception:
+            pass  # columna ya existe
+        con.execute("CREATE INDEX IF NOT EXISTS idx_clicks_ip_ts ON clicks(ip, ts)")
 
         # Usuarios (OAuth + email)
         con.execute("""
@@ -1604,8 +1614,9 @@ def redirect_afiliado(deal_id: str, request: Request, canal: str = "web", beacon
         ip = request.headers.get("X-Forwarded-For", "")
         ip = (ip.split(",")[0].strip() if ip else (request.client.host if request.client else "unknown"))
         con.execute(
-            "INSERT INTO clicks (deal_id, canal, ip, ts) VALUES (?, ?, ?, ?)",
-            (deal_id, canal, ip[:64], datetime.now(timezone.utc).isoformat()),
+            "INSERT INTO clicks (deal_id, canal, ip, ts, user_agent) VALUES (?, ?, ?, ?, ?)",
+            (deal_id, canal, ip[:64], datetime.now(timezone.utc).isoformat(),
+             (request.headers.get("User-Agent") or "")[:300]),
         )
         con.commit()
     if beacon:
@@ -1627,43 +1638,75 @@ _BIO_LINKS = {
 
 @app.get("/go/{slug}")
 def go_bio(slug: str, request: Request):
-    """Enlace de bio contable: registra el click y redirige a flipazo.es con UTM."""
+    """Enlace de bio contable: registra el click y redirige a flipazo.es con UTM.
+
+    Solo se REGISTRAN los slugs de `_BIO_LINKS`. Antes se registraba cualquier
+    cosa, así que un escáner pidiendo `/go/aboutphp` creaba un "enlace" que salía
+    en /mis-links — y con 2 peticiones desde localhost lucía un 100% de
+    conversión. La redirección sí sigue funcionando para cualquier slug: quien
+    llegue con un enlace viejo o mal escrito acaba en la home igualmente.
+    """
     slug = "".join(c for c in (slug or "").lower() if c.isalnum() or c in "-_")[:32]
+    conocido = slug in _BIO_LINKS
     destino = _BIO_LINKS.get(slug) or (
         f"https://www.flipazo.es/?utm_source={slug or 'bio'}&utm_medium=bio&utm_campaign=perfil"
     )
-    ip = request.headers.get("X-Forwarded-For", "")
-    ip = (ip.split(",")[0].strip() if ip else (request.client.host if request.client else "unknown"))
-    try:
-        with _get_db() as con:
-            con.execute(
-                "INSERT INTO clicks (deal_id, canal, ip, ts) VALUES (?, ?, ?, ?)",
-                ("bio:" + slug, "bio:" + slug, ip[:64], datetime.now(timezone.utc).isoformat()),
-            )
-            con.commit()
-    except Exception:
-        pass  # nunca bloquear la redirección por un fallo de logging
+    if conocido:
+        ip = request.headers.get("X-Forwarded-For", "")
+        ip = (ip.split(",")[0].strip() if ip else (request.client.host if request.client else "unknown"))
+        try:
+            with _get_db() as con:
+                con.execute(
+                    "INSERT INTO clicks (deal_id, canal, ip, ts, user_agent) VALUES (?, ?, ?, ?, ?)",
+                    ("bio:" + slug, "bio:" + slug, ip[:64],
+                     datetime.now(timezone.utc).isoformat(),
+                     (request.headers.get("User-Agent") or "")[:300]),
+                )
+                con.commit()
+        except Exception:
+            pass  # nunca bloquear la redirección por un fallo de logging
+    elif slug:
+        # Si un día se añade un enlace nuevo y se olvida darlo de alta aquí, esto
+        # lo delata en el log en vez de perder los clics en silencio.
+        print(f"⚠️  /go/{slug}: slug no registrado en _BIO_LINKS — clic no contabilizado")
     return RedirectResponse(url=destino, status_code=302)
+
+
+# Ventana para atribuir una conversión. Antes no había ninguna: valía cualquier
+# clic en un deal POSTERIOR al de la bio, aunque fuera semanas después. Las dos
+# "conversiones" que mostraba el panel ocurrieron a 8,5 h y 23,4 h — eso no es
+# atribución, es coincidencia.
+_CONV_VENTANA_MIN = 30
+
+
+def _clics_bio(con, key: str) -> tuple[list, int]:
+    """Clics humanos de un enlace de bio y cuántos se descartaron por ser bots."""
+    filas = con.execute(
+        "SELECT ip, ts, COALESCE(user_agent,'') ua FROM clicks WHERE deal_id = ?",
+        (key,)).fetchall()
+    humanos = [r for r in filas if not _es_bot(r["ip"], r["ua"])]
+    return humanos, len(filas) - len(humanos)
 
 
 @app.get("/go-stats/{slug}")
 def go_bio_stats(slug: str):
-    """Clicks de un enlace de bio: total, IPs únicas y desglose por día."""
+    """Clicks de un enlace de bio: total, IPs únicas y desglose por día.
+
+    Solo cuenta personas — ver analytics/bots.py."""
     slug = "".join(c for c in (slug or "").lower() if c.isalnum() or c in "-_")[:32]
     key = "bio:" + slug
     with _get_db() as con:
-        total  = con.execute("SELECT COUNT(*) FROM clicks WHERE deal_id = ?", (key,)).fetchone()[0]
-        unicos = con.execute("SELECT COUNT(DISTINCT ip) FROM clicks WHERE deal_id = ?", (key,)).fetchone()[0]
-        dias   = con.execute(
-            "SELECT substr(ts,1,10) d, COUNT(*) n FROM clicks WHERE deal_id = ? GROUP BY d ORDER BY d DESC LIMIT 60",
-            (key,),
-        ).fetchall()
+        humanos, descartados = _clics_bio(con, key)
+    por_dia: dict = {}
+    for r in humanos:
+        por_dia[r["ts"][:10]] = por_dia.get(r["ts"][:10], 0) + 1
     return {
         "slug": slug,
         "destino": _BIO_LINKS.get(slug),
-        "clicks_total": total,
-        "clicks_unicos_ip": unicos,
-        "por_dia": {d: n for d, n in dias},
+        "clicks_total": len(humanos),
+        "clicks_unicos_ip": len({r["ip"] for r in humanos if r["ip"]}),
+        "clicks_bots_descartados": descartados,
+        "por_dia": dict(sorted(por_dia.items(), reverse=True)[:60]),
     }
 
 
@@ -1725,11 +1768,45 @@ def go_bio_detail(slug: str):
     slug = "".join(c for c in (slug or "").lower() if c.isalnum() or c in "-_")[:32]
     key = "bio:" + slug
     with _get_db() as con:
-        rows = con.execute("SELECT ip, ts FROM clicks WHERE deal_id = ?", (key,)).fetchall()
-        conv = con.execute(
-            "SELECT COUNT(DISTINCT b.ip) FROM clicks b "
-            "JOIN clicks d ON d.ip = b.ip AND d.deal_id NOT LIKE 'bio:%' AND d.ts >= b.ts "
-            "WHERE b.deal_id = ?", (key,)).fetchone()[0]
+        rows, bots_descartados = _clics_bio(con, key)
+        # Conversión: de las personas que llegaron por este enlace, cuántas
+        # clicaron un deal DENTRO de la ventana. Se resuelve en Python porque
+        # son cientos de filas y así el criterio queda legible y auditable.
+        ips_humanas = {r["ip"] for r in rows if r["ip"]}
+        deal_por_ip: dict = {}
+        if ips_humanas:
+            ph = ",".join("?" * len(ips_humanas))
+            for d in con.execute(
+                f"SELECT ip, ts FROM clicks WHERE deal_id NOT LIKE 'bio:%' AND ip IN ({ph})",
+                tuple(ips_humanas),
+            ):
+                deal_por_ip.setdefault(d["ip"], []).append(d["ts"])
+
+    def _dt(s: str):
+        try:
+            return datetime.fromisoformat(s)
+        except Exception:
+            return None
+
+    bio_por_ip: dict = {}
+    for r in rows:
+        if r["ip"]:
+            bio_por_ip.setdefault(r["ip"], []).append(r["ts"])
+    convertidas = set()
+    for ip, bio_ts in bio_por_ip.items():
+        for bts in bio_ts:
+            b = _dt(bts)
+            if not b:
+                continue
+            for dts in deal_por_ip.get(ip, []):
+                d = _dt(dts)
+                if d and 0 <= (d - b).total_seconds() <= _CONV_VENTANA_MIN * 60:
+                    convertidas.add(ip)
+                    break
+            if ip in convertidas:
+                break
+    conv = len(convertidas)
+
     total = len(rows)
     ips = [r["ip"] for r in rows if r["ip"]]
     geo_map = _geolocalizar_ips(ips)
@@ -1770,10 +1847,12 @@ def go_bio_detail(slug: str):
         "heatmap": heat,
         "por_hora": por_hora,
         "por_dow": por_dow,
+        "bots_descartados": bots_descartados,
         "conversion": {
             "visitantes": visitantes,
             "con_clic_deal": conv,
             "tasa": round(100 * conv / visitantes) if visitantes else 0,
+            "ventana_min": _CONV_VENTANA_MIN,
         },
     }
 

@@ -148,9 +148,9 @@
         <div class="section">
           <h2>Resumen · ${slug}</h2>
           <div class="kpis">
-            <div class="kpi"><b class="brand">${(d.clicks_total||0).toLocaleString("es-ES")}</b><span>clics totales</span></div>
-            <div class="kpi"><b>${(d.clicks_unicos_ip||0).toLocaleString("es-ES")}</b><span>IPs únicas</span></div>
-            <div class="kpi"><b class="teal">${c.tasa||0}%</b><span>conversión<br><small>${c.con_clic_deal||0} de ${c.visitantes||0} clicaron un deal</small></span></div>
+            <div class="kpi"><b class="brand">${(d.clicks_total||0).toLocaleString("es-ES")}</b><span>clics de personas${d.bots_descartados?`<br><small>${d.bots_descartados.toLocaleString("es-ES")} de bots descartados</small>`:""}</span></div>
+            <div class="kpi"><b>${(d.clicks_unicos_ip||0).toLocaleString("es-ES")}</b><span>visitantes únicos</span></div>
+            <div class="kpi"><b class="teal">${c.tasa||0}%</b><span>conversión<br><small>${c.con_clic_deal||0} de ${c.visitantes||0} clicaron un deal<br>en ${c.ventana_min||30} min</small></span></div>
           </div>
           <div class="link"><code>${esc(link)}</code><button onclick="copiar('https://${esc(link)}',this)">Copiar</button></div>
         </div>

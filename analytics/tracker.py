@@ -40,15 +40,28 @@ def _get_url_afiliado(deal_id: str) -> str | None:
         return None
 
 
-def _registrar_click(deal_id: str, canal: str, ip: str):
-    """Inserta un registro en la tabla clicks."""
+def _registrar_click(deal_id: str, canal: str, ip: str, user_agent: str = ""):
+    """Inserta un registro en la tabla clicks.
+
+    El User-Agent es lo que permite separar personas de bots al leer las
+    estadísticas (ver analytics/bots.py). Si la columna todavía no existe
+    —este servicio puede arrancar antes que el _ensure_schema de api.py— se
+    reintenta sin ella para no perder el clic."""
+    ts = datetime.now(timezone.utc).isoformat()
     try:
         with sqlite3.connect(DB_PATH) as con:
-            con.execute(
-                """INSERT INTO clicks (deal_id, canal, ip, ts)
-                   VALUES (?, ?, ?, ?)""",
-                (deal_id, canal[:32], ip[:64], datetime.now(timezone.utc).isoformat()),
-            )
+            try:
+                con.execute(
+                    """INSERT INTO clicks (deal_id, canal, ip, ts, user_agent)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (deal_id, canal[:32], ip[:64], ts, (user_agent or "")[:300]),
+                )
+            except sqlite3.OperationalError:
+                con.execute(
+                    """INSERT INTO clicks (deal_id, canal, ip, ts)
+                       VALUES (?, ?, ?, ?)""",
+                    (deal_id, canal[:32], ip[:64], ts),
+                )
             con.commit()
     except Exception:
         pass  # nunca bloquear la redirección por un fallo de logging
@@ -64,7 +77,7 @@ async def redirect_click(deal_id: str, request: Request, canal: str = "directo")
         raise HTTPException(status_code=404, detail="Deal no encontrado o expirado")
 
     ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "desconocida")
-    _registrar_click(deal_id, canal, ip)
+    _registrar_click(deal_id, canal, ip, request.headers.get("User-Agent", ""))
 
     return RedirectResponse(url=url, status_code=302)
 
