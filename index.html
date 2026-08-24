@@ -1232,11 +1232,22 @@
        de ser un destacado; a 1 columna no significa nada. El umbral lo calcula
        _calcularUmbralDestacado() por percentil, no por constante. */
     @media (min-width: 1000px) {
-      .deal--featured { grid-column: span 2; }
-      .deal--featured .deal__image-wrap { aspect-ratio: 16 / 10; }
-      .deal--featured .deal__title { font-size: clamp(18px, 2vw, 22px); }
-      .deal--featured .deal__current { font-size: clamp(26px, 3vw, 32px); }
-      .deal--featured .deal__teaser-txt { font-size: 13.5px; }
+      /* Doble ancho por dos motivos distintos que comparten aspecto:
+           .deal--featured → la franja alta del feed, fija mientras dure el lote.
+           .deal--open     → la card que acabas de abrir, mientras esté abierta.
+         Al cerrarla se le cae la clase y vuelve sola a su tamaño: si además era
+         destacada se queda grande, y si no, encoge. No hace falta recordar el
+         tamaño anterior en ningún sitio. */
+      .deal--featured,
+      .deal--open { grid-column: span 2; }
+      .deal--featured .deal__image-wrap,
+      .deal--open .deal__image-wrap { aspect-ratio: 16 / 10; }
+      .deal--featured .deal__title,
+      .deal--open .deal__title { font-size: clamp(18px, 2vw, 22px); }
+      .deal--featured .deal__current,
+      .deal--open .deal__current { font-size: clamp(26px, 3vw, 32px); }
+      .deal--featured .deal__teaser-txt,
+      .deal--open .deal__teaser-txt { font-size: 13.5px; }
     }
 
     /* ── Deal card ───────────────────────────────────────────────── */
