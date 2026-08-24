@@ -1505,6 +1505,59 @@
       display: flex; gap: 6px; flex-wrap: wrap;
     }
 
+    /* ── Card expandible ───────────────────────────────────────────
+       La card cerrada ya no lleva botón rojo: termina en un teaser que dice
+       qué hay dentro. El botón aparece al abrirla, que es cuando la persona
+       ya ha mostrado interés. La foto sigue enlazando a la tienda, así que
+       el camino directo a comprar no se pierde por el camino. */
+    .deal { cursor: pointer; }
+    .deal:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
+
+    .deal__teaser {
+      margin-top: auto; display: flex; align-items: center; gap: 8px;
+      padding: 9px 16px 12px; border-top: 1px dashed var(--line-2);
+      margin-left: 16px; margin-right: 16px; padding-left: 0; padding-right: 0;
+    }
+    .deal__teaser-txt {
+      font-family: var(--sans); font-weight: 800; font-size: 12.5px;
+      color: var(--text-mid); line-height: 1.3;
+    }
+    .deal__teaser-plus {
+      margin-left: auto; font-family: var(--sans); font-weight: 800;
+      font-size: 15px; color: var(--red-ink); line-height: 1; flex: none;
+      transition: transform .18s ease;
+    }
+    .deal:hover .deal__teaser-txt { color: var(--ink); }
+    .deal:hover .deal__teaser-plus { transform: scale(1.15); }
+    .deal--open .deal__teaser { border-bottom: 0; }
+    .deal--open .deal__teaser-plus { transform: rotate(45deg); }
+
+    .deal__panel { display: flex; flex-direction: column; gap: 10px; padding: 2px 16px 14px; }
+    .deal__panel[hidden] { display: none; }
+    .deal__panel.fzrise { animation: fzrise .28s ease both; }
+    .deal__panel .deal__votes { padding-left: 0; padding-right: 0; }
+    .deal__panel .deal__bottom { padding-left: 0; padding-right: 0; }
+    .deal__buy { width: 100%; padding: 13px 14px; font-size: 14.5px; border-radius: var(--r-md); }
+
+    .deal__thermo {
+      padding: 12px 13px; border-radius: var(--r-md);
+      background: var(--panel); border: 1px solid var(--line);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    [data-theme="dark"] .deal__thermo { background: rgba(255,255,255,.04); }
+    .deal__thermo-head { display: flex; align-items: center; gap: 10px; }
+    .deal__thermo-label {
+      font-family: var(--sans); font-weight: 700; font-size: 10px;
+      letter-spacing: .13em; text-transform: uppercase; color: var(--text-dim);
+    }
+    .deal__thermo-n { margin-left: auto; font-family: var(--sans); font-weight: 900; font-size: 15px; }
+    .deal__thermo-n i { font-style: normal; font-weight: 700; font-size: 11px; opacity: .55; }
+    .deal__thermo-bar { height: 9px; border-radius: 99px; background: var(--tint); overflow: hidden; }
+    .deal__thermo-bar i {
+      display: block; height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--teal), var(--amber), var(--red));
+    }
+
     .btn {
       display: inline-flex;
       align-items: center;
@@ -4332,8 +4385,39 @@
         </button>
       </div>`;
 
+    // ── Expandir en el sitio ──────────────────────────────────────
+    // El botón rojo sale de la card cerrada y aparece al abrirla. La card cerrada
+    // termina en un teaser que dice qué vas a encontrar dentro. El estado vive en
+    // _openDeals (memoria, no localStorage): al recargar todo vuelve a estar
+    // cerrado, que es lo que se espera de un feed.
+    const isOpen = _openDeals.has(dealId);
+
+    // Termómetro con el deal_score que ya calcula el backend. Sin score no se
+    // pinta: una barra a 0 leería como "chollazo pésimo" en vez de "no lo sabemos".
+    const termometroHtml = _score > 0 ? `
+        <div class="deal__thermo">
+          <div class="deal__thermo-head">
+            <span class="deal__thermo-label">Termómetro de chollazo</span>
+            <span class="deal__thermo-n" style="color:${_score >= 80 ? "var(--red-ink)" : _score >= 60 ? "#D98200" : "var(--teal-ink)"}">${_score}<i>/100</i></span>
+          </div>
+          <div class="deal__thermo-bar"><i style="width:${Math.max(0, Math.min(100, _score))}%"></i></div>
+        </div>` : "";
+
+    const teaserTxt = _score >= 60
+      ? `Por qué es un chollazo ${_score}/100`
+      : (ahorro > 1 ? `Cuánto ahorras y por qué es real` : `Ver por qué es una oferta real`);
+    const teaserHtml = isExpired ? "" : `
+        <div class="deal__teaser">
+          <span class="deal__teaser-txt">🔍 ${teaserTxt}</span>
+          <span class="deal__teaser-plus" aria-hidden="true">＋</span>
+        </div>`;
+
     return `
-      <article class="deal${hotClass}${isExpired ? ' deal--expirado' : ''}">
+      <article class="deal${hotClass}${isExpired ? ' deal--expirado' : ''}${isOpen ? ' deal--open' : ''}"
+               data-id="${dealId}" role="button" tabindex="0"
+               aria-expanded="${isOpen ? "true" : "false"}"
+               onclick="toggleDealCard(event, '${dealId}')"
+               onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===event.currentTarget){event.preventDefault();toggleDealCard(event,'${dealId}');}">
         ${imgHtml}
         ${tagsHtml}
         <p class="deal__store">${d.tienda || ""}</p>
@@ -4344,7 +4428,6 @@
           <div class="deal__price-row">
             <span class="deal__price-meta">
               <span class="deal__price-label">Precio original</span>
-              ${d.descuento_pct > 0 && !isExpired ? `<span class="deal__pct">−${d.descuento_pct}%</span>` : ""}
             </span>
             <span class="deal__original">${fmtPrice(d.precio_original)}</span>
           </div>` : ""}
@@ -4362,18 +4445,46 @@
         ${applianceNoteHtml}
         ${stockBadge}
         ${tallasHtml}
-        ${razonHtml}
-        <div class="deal__cta">
+        ${teaserHtml}
+        <div class="deal__panel"${isOpen ? "" : " hidden"}>
+          ${termometroHtml}
+          ${razonHtml}
+          ${votesHtml}
+          <div class="deal__bottom">
+            <p class="deal__time" data-ts="${d.timestamp || ""}">${timeAgo(d.timestamp)}</p>
+          </div>
           <!-- El nombre de la tienda va EN el botón, que es el momento exacto de la
                decisión: "Ver deal" no dice a dónde te lleva y en una web que no
                conocen se lee como "comprar aquí". El hero ya lo hacía así. -->
-          <a href="${buyUrl}" data-track="${dealId}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver en ${esc(_storeLabel(d.tienda || "la tienda"))} →</a>
-        </div>
-        ${votesHtml}
-        <div class="deal__bottom">
-          <p class="deal__time" data-ts="${d.timestamp || ""}">${timeAgo(d.timestamp)}</p>
+          <a href="${buyUrl}" data-track="${dealId}" target="_blank" rel="noopener sponsored"
+             class="btn btn--primary deal__buy" onclick="event.stopPropagation()">Ver en ${esc(_storeLabel(d.tienda || "la tienda"))} →</a>
         </div>
       </article>`;
+  }
+
+  // Cards abiertas. En memoria a propósito: al recargar, el feed vuelve a estar
+  // cerrado. Sobrevive a renderGrid() y al pollNew() de 5 min porque renderDeal
+  // lee de aquí, no del DOM.
+  const _openDeals = new Set();
+
+  function toggleDealCard(ev, id) {
+    if (!id) return;
+    // Un clic en algo interactivo de dentro (votar, comentar, comprar, una talla)
+    // no debe abrir ni cerrar la card.
+    const t = ev && ev.target;
+    if (t && t.closest && t.closest("a,button,input,select,textarea,[role='button']:not(.deal)")) return;
+    const card = document.querySelector(`.deal[data-id="${CSS.escape(id)}"]`);
+    if (!card) return;
+    const abrir = !_openDeals.has(id);
+    if (abrir) _openDeals.add(id); else _openDeals.delete(id);
+    card.classList.toggle("deal--open", abrir);
+    card.setAttribute("aria-expanded", abrir ? "true" : "false");
+    const panel = card.querySelector(".deal__panel");
+    if (panel) {
+      if (abrir) { panel.hidden = false; panel.classList.remove("fzrise"); void panel.offsetWidth; panel.classList.add("fzrise"); }
+      else panel.hidden = true;
+    }
+    if (abrir && typeof _mosaicoRefrescar === "function") _mosaicoRefrescar();
   }
 
   // ── Sort ──────────────────────────────────────────────────────
