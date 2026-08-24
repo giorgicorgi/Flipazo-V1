@@ -97,23 +97,62 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     /* ── Variables — light mode ──────────────────────────────────── */
+    /* ── Tokens del rediseño 2026 ──────────────────────────────────────────
+       NO se pegan "al inicio" como decía el handoff: cuatro nombres (--bg,
+       --ink, --surface, --teal) ya existían con otro valor, y como el :root
+       viejo venía después, habría ganado él y los tokens nuevos no habrían
+       hecho nada. Un sistema, no dos: aquí abajo los nombres nuevos y los
+       antiguos mapeados encima, para que el tema oscuro alcance TODA la
+       página y no solo lo que se rediseñe.
+
+       El rojo pasa a #ED1C24 (el del handoff) porque está más cerca del
+       #FA0027 del logo que el #F52834 que había (distancia 31 vs 42).
+       Courier Prime NO vuelve: ya se probó en el rediseño V2 de mayo-2026 y
+       se retiró a propósito (ver el comentario de --mono más abajo). */
     :root {
+      /* Rediseño: superficies y texto */
+      --panel:          #FAFAF8;
+      --hero:           #FFFFFF;
+      --ink-2:          rgba(22,33,58,.66);
+      --ink-3:          rgba(22,33,58,.45);
+      --line:           rgba(22,33,58,.10);
+      --line-2:         rgba(22,33,58,.15);
+      --tint:           rgba(22,33,58,.06);
+
+      /* Rediseño: marca y datos */
+      --red:            #ED1C24;
+      --red-ink:        #ED1C24;
+      --red-dark:       #C9151C;
+      --red-soft:       rgba(237,28,36,.08);
+      --blue:           #0581FC;   /* azul de precio ya establecido en la marca */
+      --teal-ink:       #0B7A6E;
+      --teal-soft:      rgba(15,158,143,.08);
+      --amber:          #FFB300;
+      --footer-bg:      #16213A;
+      --footer-ink:     rgba(255,255,255,.72);
+
+      /* Rediseño: sombras y radios */
+      --shadow-s:       0 2px 8px rgba(22,33,58,.05);
+      --shadow-m:       0 10px 32px rgba(22,33,58,.08);
+      --shadow-l:       0 18px 46px rgba(22,33,58,.14);
+      --r-sm:8px; --r-md:14px; --r-lg:20px; --r-xl:22px; --r-2xl:24px; --r-pill:999px;
+
       /* Brand palette */
-      --brand:          #F52834;
-      --brand-hover:    #D41F2A;
+      --brand:          #ED1C24;
+      --brand-hover:    #C9151C;
       --navy:           #2C3E50;
-      --teal:           #14C1AE;
+      --teal:           #0F9E8F;
       --teal-light:     #E6F9F7;
       --slate:          #B5CCD7;
 
       /* Semantic aliases — keeps JS-generated HTML compatible */
-      --ink:            #111827;
+      --ink:            #16213A;
       --ink-light:      #4B5563;
       --rule:           #E5E7EB;
-      --bg:             #FEFEF8;
-      --accent:         #F52834;
-      --badge-rev:      #14C1AE;
-      --accent-green:   #14C1AE;
+      --bg:             #FFFFFF;
+      --accent:         #ED1C24;
+      --badge-rev:      #0F9E8F;
+      --accent-green:   #0F9E8F;
 
       /* Typography */
       --serif:          'Playfair Display', Georgia, serif;
@@ -152,6 +191,20 @@
       --grid-gap:       26px;
     }
 
+    html { background: var(--bg); }
+    body { transition: background .25s ease, color .25s ease; }
+
+    @keyframes fzblink { 0%,100%{opacity:1} 50%{opacity:.25} }
+    @keyframes fzrise  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
     /* ── Dark mode ───────────────────────────────────────────────── */
     [data-theme="dark"] {
       color-scheme:   dark;
@@ -173,6 +226,35 @@
       --reventa-bg:   #0D2420;
       --downvote-bg:  #1F1010;
       --paper:        #1F2937;
+
+      /* Tokens del rediseño 2026. Van aquí dentro, no en un bloque aparte:
+         el tema oscuro ya existía y funcionaba, y dos sistemas en paralelo
+         (data-theme y data-fz-theme) habrían dejado media página en claro. */
+      --panel:        #1B2434;
+      --hero:         #161E2E;
+      --ink-2:        rgba(249,250,251,.68);
+      --ink-3:        rgba(249,250,251,.45);
+      --line:         rgba(255,255,255,.10);
+      --line-2:       rgba(255,255,255,.17);
+      --tint:         rgba(255,255,255,.07);
+      --red:          #FF3B43;
+      --red-ink:      #FF6A70;
+      --red-dark:     #FF5A61;
+      --red-soft:     rgba(255,59,67,.14);
+      --blue:         #78B4FF;
+      --teal:         #35C9B8;
+      --teal-ink:     #3FD6C4;
+      --teal-soft:    rgba(53,201,184,.13);
+      --teal-light:   rgba(53,201,184,.13);
+      --brand:        #FF3B43;
+      --brand-hover:  #FF5A61;
+      --accent:       #ED4C52;
+      --accent-green: #35C9B8;
+      --footer-bg:    #0A0F18;
+      --footer-ink:   rgba(249,250,251,.72);
+      --shadow-s:     0 2px 8px rgba(0,0,0,.4);
+      --shadow-m:     0 10px 32px rgba(0,0,0,.45);
+      --shadow-l:     0 18px 46px rgba(0,0,0,.55);
     }
 
     [data-theme="dark"] .deal__image-wrap { background: #fff; }
