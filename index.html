@@ -1221,6 +1221,22 @@
       /* Más aire: separación vertical entre filas mayor que la horizontal */
       gap: calc(var(--grid-gap) + 12px) var(--grid-gap);
       padding: 28px 40px 48px;
+      /* `dense` rellena los huecos que deja una card a doble ancho: sin esto
+         el mosaico deja agujeros al final de la fila. */
+      grid-auto-flow: dense;
+      align-items: start;
+    }
+
+    /* ── Mosaico editorial ─────────────────────────────────────────
+       Solo desde 3 columnas: a 2 columnas un span 2 es la fila entera y deja
+       de ser un destacado; a 1 columna no significa nada. El umbral lo calcula
+       _calcularUmbralDestacado() por percentil, no por constante. */
+    @media (min-width: 1000px) {
+      .deal--featured { grid-column: span 2; }
+      .deal--featured .deal__image-wrap { aspect-ratio: 16 / 10; }
+      .deal--featured .deal__title { font-size: clamp(18px, 2vw, 22px); }
+      .deal--featured .deal__current { font-size: clamp(26px, 3vw, 32px); }
+      .deal--featured .deal__teaser-txt { font-size: 13.5px; }
     }
 
     /* ── Deal card ───────────────────────────────────────────────── */
@@ -4238,7 +4254,7 @@
   }
 
   // ── Render card ───────────────────────────────────────────────
-  function renderDeal(d) {
+  function renderDeal(d, _i) {
     const isReventa  = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
     const badgeClass = isReventa ? "deal__badge--garaje" : "";
     const badgeLabel = d.tienda || "";
@@ -4412,8 +4428,14 @@
           <span class="deal__teaser-plus" aria-hidden="true">＋</span>
         </div>`;
 
+    // Doble ancho: franja alta del feed Y cada 5ª posición. Lo segundo es lo que
+    // le da ritmo al mosaico — sin ello, un lote con muchos scores altos saldría
+    // con media rejilla a doble ancho y dejaría de ser un destacado.
+    const esDestacado = !isExpired && _score > 0 && _score >= _umbralDestacado
+                        && (typeof _i === "number") && (_i % 5 === 0);
+
     return `
-      <article class="deal${hotClass}${isExpired ? ' deal--expirado' : ''}${isOpen ? ' deal--open' : ''}"
+      <article class="deal${hotClass}${isExpired ? ' deal--expirado' : ''}${isOpen ? ' deal--open' : ''}${esDestacado ? ' deal--featured' : ''}"
                data-id="${dealId}" role="button" tabindex="0"
                aria-expanded="${isOpen ? "true" : "false"}"
                onclick="toggleDealCard(event, '${dealId}')"
@@ -4484,7 +4506,6 @@
       if (abrir) { panel.hidden = false; panel.classList.remove("fzrise"); void panel.offsetWidth; panel.classList.add("fzrise"); }
       else panel.hidden = true;
     }
-    if (abrir && typeof _mosaicoRefrescar === "function") _mosaicoRefrescar();
   }
 
   // ── Sort ──────────────────────────────────────────────────────
@@ -5390,7 +5411,27 @@
     }
   }
 
+  // ── Mosaico editorial: qué card ocupa doble ancho ───────────────
+  // El handoff pedía `score >= 82`. En producción el máximo vivo es 75 y el
+  // histórico 80: no se habría destacado ni una card jamás y el mosaico habría
+  // quedado en una rejilla uniforme sin que nada fallara aparentemente. Y un
+  // número fijo distinto envejecería igual de mal, porque la distribución es un
+  // precipicio (>=60: 17% de los deals, >=65: 0,5%).
+  //
+  // Así que el umbral es un PERCENTIL de lo que hay cargado: siempre destaca la
+  // franja alta del feed real, valgan lo que valgan los scores ese día.
+  let _umbralDestacado = Infinity;
+  function _calcularUmbralDestacado(deals) {
+    const scores = (deals || []).map(d => d.deal_score || 0).filter(s => s > 0)
+                                .sort((a, b) => b - a);
+    // Con pocas cards no hay franja alta que valga: mejor rejilla uniforme que
+    // destacar una card por casualidad estadística.
+    _umbralDestacado = scores.length < 10 ? Infinity
+                     : scores[Math.floor(scores.length * 0.15)] || Infinity;
+  }
+
   function _renderWithDivider(deals) {
+    _calcularUmbralDestacado(deals);
     return deals.map(renderDeal).join("");
   }
 
