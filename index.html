@@ -1557,8 +1557,16 @@
     .deal--featured .deal__pricing--compacto .deal__current { font-size: clamp(24px, 2.6vw, 29px); }
 
     .deal__teaser {
-      margin: 0 14px; display: flex; align-items: center; justify-content: flex-end;
-      padding: 8px 0 10px; border-top: 1px dashed var(--line-2);
+      margin: 0 14px; display: flex; align-items: center; gap: 8px;
+      padding: 9px 0 11px; border-top: 1px dashed var(--line-2);
+    }
+    /* El CTA se lleva el ancho que sobre y el "+" se queda fijo al final. El
+       relleno lateral es corto a propósito: hay tiendas de nombre largo
+       ("Paco Perfumerias", "Padel Market") y con 20px se recortaba el texto. */
+    .deal__cta-mini {
+      flex: 1; min-width: 0; padding: 9px 10px; font-size: 12.5px;
+      border-radius: 10px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; display: block; text-align: center;
     }
     .deal__teaser-plus {
       display: grid; place-items: center;
@@ -4450,9 +4458,16 @@
     // han ido a la card abierta — eran lo que la estiraba a lo alto.
     // El texto del teaser ("Cuánto ahorras y por qué es real") ocupaba dos
     // líneas en casi todas: se queda el "+" a secas.
+    // Pie de la card: el CTA a la tienda y el "+" para ver más. El nombre de la
+    // tienda va EN el botón porque es el momento exacto de la decisión — "Ver
+    // deal" no dice a dónde te lleva, y en una web que no conocen se lee como
+    // "comprar aquí".
     const teaserHtml = isExpired ? "" : `
         <div class="deal__teaser">
-          <span class="deal__teaser-plus" aria-hidden="true">＋</span>
+          <a href="${buyUrl}" data-track="${dealId}" target="_blank" rel="noopener sponsored"
+             class="btn btn--primary deal__cta-mini" onclick="event.stopPropagation()"
+             >Ver en ${esc(_storeLabel(d.tienda || "la tienda"))} →</a>
+          <span class="deal__teaser-plus" aria-label="Más información" title="Más información">＋</span>
         </div>`;
 
     // Doble ancho: franja alta del feed Y cada 5ª posición. Lo segundo es lo que
