@@ -97,62 +97,23 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     /* ── Variables — light mode ──────────────────────────────────── */
-    /* ── Tokens del rediseño 2026 ──────────────────────────────────────────
-       NO se pegan "al inicio" como decía el handoff: cuatro nombres (--bg,
-       --ink, --surface, --teal) ya existían con otro valor, y como el :root
-       viejo venía después, habría ganado él y los tokens nuevos no habrían
-       hecho nada. Un sistema, no dos: aquí abajo los nombres nuevos y los
-       antiguos mapeados encima, para que el tema oscuro alcance TODA la
-       página y no solo lo que se rediseñe.
-
-       El rojo pasa a #ED1C24 (el del handoff) porque está más cerca del
-       #FA0027 del logo que el #F52834 que había (distancia 31 vs 42).
-       Courier Prime NO vuelve: ya se probó en el rediseño V2 de mayo-2026 y
-       se retiró a propósito (ver el comentario de --mono más abajo). */
     :root {
-      /* Rediseño: superficies y texto */
-      --panel:          #FAFAF8;
-      --hero:           #FFFFFF;
-      --ink-2:          rgba(22,33,58,.66);
-      --ink-3:          rgba(22,33,58,.45);
-      --line:           rgba(22,33,58,.10);
-      --line-2:         rgba(22,33,58,.15);
-      --tint:           rgba(22,33,58,.06);
-
-      /* Rediseño: marca y datos */
-      --red:            #ED1C24;
-      --red-ink:        #ED1C24;
-      --red-dark:       #C9151C;
-      --red-soft:       rgba(237,28,36,.08);
-      --blue:           #0581FC;   /* azul de precio ya establecido en la marca */
-      --teal-ink:       #0B7A6E;
-      --teal-soft:      rgba(15,158,143,.08);
-      --amber:          #FFB300;
-      --footer-bg:      #16213A;
-      --footer-ink:     rgba(255,255,255,.72);
-
-      /* Rediseño: sombras y radios */
-      --shadow-s:       0 2px 8px rgba(22,33,58,.05);
-      --shadow-m:       0 10px 32px rgba(22,33,58,.08);
-      --shadow-l:       0 18px 46px rgba(22,33,58,.14);
-      --r-sm:8px; --r-md:14px; --r-lg:20px; --r-xl:22px; --r-2xl:24px; --r-pill:999px;
-
       /* Brand palette */
-      --brand:          #ED1C24;
-      --brand-hover:    #C9151C;
+      --brand:          #F52834;
+      --brand-hover:    #D41F2A;
       --navy:           #2C3E50;
-      --teal:           #0F9E8F;
+      --teal:           #14C1AE;
       --teal-light:     #E6F9F7;
       --slate:          #B5CCD7;
 
       /* Semantic aliases — keeps JS-generated HTML compatible */
-      --ink:            #16213A;
+      --ink:            #111827;
       --ink-light:      #4B5563;
       --rule:           #E5E7EB;
-      --bg:             #FFFFFF;
-      --accent:         #ED1C24;
-      --badge-rev:      #0F9E8F;
-      --accent-green:   #0F9E8F;
+      --bg:             #FEFEF8;
+      --accent:         #F52834;
+      --badge-rev:      #14C1AE;
+      --accent-green:   #14C1AE;
 
       /* Typography */
       --serif:          'Playfair Display', Georgia, serif;
@@ -191,20 +152,6 @@
       --grid-gap:       26px;
     }
 
-    html { background: var(--bg); }
-    body { transition: background .25s ease, color .25s ease; }
-
-    @keyframes fzblink { 0%,100%{opacity:1} 50%{opacity:.25} }
-    @keyframes fzrise  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: .01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: .01ms !important;
-      }
-    }
-
     /* ── Dark mode ───────────────────────────────────────────────── */
     [data-theme="dark"] {
       color-scheme:   dark;
@@ -226,35 +173,6 @@
       --reventa-bg:   #0D2420;
       --downvote-bg:  #1F1010;
       --paper:        #1F2937;
-
-      /* Tokens del rediseño 2026. Van aquí dentro, no en un bloque aparte:
-         el tema oscuro ya existía y funcionaba, y dos sistemas en paralelo
-         (data-theme y data-fz-theme) habrían dejado media página en claro. */
-      --panel:        #1B2434;
-      --hero:         #161E2E;
-      --ink-2:        rgba(249,250,251,.68);
-      --ink-3:        rgba(249,250,251,.45);
-      --line:         rgba(255,255,255,.10);
-      --line-2:       rgba(255,255,255,.17);
-      --tint:         rgba(255,255,255,.07);
-      --red:          #FF3B43;
-      --red-ink:      #FF6A70;
-      --red-dark:     #FF5A61;
-      --red-soft:     rgba(255,59,67,.14);
-      --blue:         #78B4FF;
-      --teal:         #35C9B8;
-      --teal-ink:     #3FD6C4;
-      --teal-soft:    rgba(53,201,184,.13);
-      --teal-light:   rgba(53,201,184,.13);
-      --brand:        #FF3B43;
-      --brand-hover:  #FF5A61;
-      --accent:       #ED4C52;
-      --accent-green: #35C9B8;
-      --footer-bg:    #0A0F18;
-      --footer-ink:   rgba(249,250,251,.72);
-      --shadow-s:     0 2px 8px rgba(0,0,0,.4);
-      --shadow-m:     0 10px 32px rgba(0,0,0,.45);
-      --shadow-l:     0 18px 46px rgba(0,0,0,.55);
     }
 
     [data-theme="dark"] .deal__image-wrap { background: #fff; }
@@ -309,12 +227,8 @@
     [data-theme="dark"] .filter-block { background: #111827; border-color: #1F2937; }
 
     /* ── Base ────────────────────────────────────────────────────── */
-    /* `overflow-x: clip` y no `hidden`: hidden convierte a html/body en contenedor
-       de scroll y eso anula el `position: sticky` del header — llevaba puesto desde
-       siempre y el header nunca se quedó arriba (medido: top=-1396 al bajar 1400).
-       clip recorta igual el desbordamiento horizontal sin crear ese contenedor. */
-    html { scroll-behavior: smooth; overflow-x: clip; }
-    body { overflow-x: clip; max-width: 100%; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
+    body { overflow-x: hidden; max-width: 100%; }
 
     body {
       background: var(--bg);
@@ -363,22 +277,6 @@
       flex: 1;
       max-width: 480px;
       position: relative;
-    }
-    /* Un solo buscador a la vista. Había dos —el del header y el del hero— y
-       competían por la misma intención. En vez de borrar uno (el del header hace
-       falta al filtrar o al bajar), el del header se repliega mientras el hero
-       está en pantalla y aparece al perderlo de vista. El relevo lo da un
-       IntersectionObserver sobre el hero, no el scroll: así funciona igual
-       aunque el hero esté oculto por un filtro. */
-    .header-search-wrap.is-tucked {
-      opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-4px);
-      transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
-    }
-    .header-search-wrap {
-      transition: opacity .18s ease, transform .18s ease, visibility 0s;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .header-search-wrap, .header-search-wrap.is-tucked { transition: none; }
     }
 
     /* ── Header nav ──────────────────────────────────────────────── */
@@ -1221,24 +1119,6 @@
       /* Más aire: separación vertical entre filas mayor que la horizontal */
       gap: calc(var(--grid-gap) + 12px) var(--grid-gap);
       padding: 28px 40px 48px;
-      /* `dense` rellena los huecos que deja una card a doble ancho: sin esto
-         el mosaico deja agujeros al final de la fila. */
-      grid-auto-flow: dense;
-      align-items: start;
-    }
-
-    /* ── Mosaico editorial ─────────────────────────────────────────
-       Solo desde 3 columnas: a 2 columnas un span 2 es la fila entera y deja
-       de ser un destacado; a 1 columna no significa nada. El umbral lo calcula
-       _calcularUmbralDestacado() por percentil, no por constante. */
-    @media (min-width: 1000px) {
-      /* Doble ancho SOLO para la franja alta del feed. Abrir una card ya no
-         toca la rejilla: la card abierta se pinta flotando encima y el grid se
-         queda exactamente como estaba, sin recolocarse bajo el cursor. */
-      .deal--featured { grid-column: span 2; }
-      .deal--featured .deal__image-wrap { aspect-ratio: 16 / 10; }
-      .deal--featured .deal__title { font-size: clamp(17px, 1.8vw, 20px); }
-      .deal--featured .deal__current { font-size: clamp(24px, 2.6vw, 29px); }
     }
 
     /* ── Deal card ───────────────────────────────────────────────── */
@@ -1289,10 +1169,7 @@
     .deal__image-wrap {
       position: relative;
       width: 100%;
-      /* 16/10 en vez de 4/3: la foto era lo que más alto sumaba. Con el
-         contenido recortado a lo esencial y los precios en una línea, la
-         tarjeta entera queda cerca del cuadrado en vez de alargada. */
-      aspect-ratio: 16 / 10;
+      aspect-ratio: 4 / 3;
       overflow: hidden;
       background: #fff;
       display: flex;
@@ -1336,12 +1213,14 @@
     }
 
     /* ── Discount badge (top-right of image) ─────────────────────── */
-    /* Sello de descuento. La forma es un clip-path de 11 puntas (radio exterior
-       50%, interior 39%) en vez de un SVG: así el número es texto de verdad —
-       lo lee un lector de pantalla, escala con la tipografía y no hay que
-       generar una imagen por cada porcentaje. */
+    /* Sello de descuento en forma de estrella de 11 puntas. Es un clip-path y
+       no un SVG a propósito: así el "−NN%" sigue siendo texto de verdad — lo
+       lee un lector de pantalla, escala con la tipografía y no hace falta
+       generar una imagen por cada porcentaje.
+       El clip recorta la caja, así que necesita ancho y alto fijos en vez de
+       padding, y el número se centra con grid. */
     .deal__discount-badge {
-      position: absolute; top: 8px; right: 8px; z-index: 2;
+      position: absolute; top: 8px; right: 8px; z-index: 1;
       display: grid; place-items: center;
       width: 58px; height: 58px;
       background: var(--brand); color: #fff;
@@ -1351,8 +1230,6 @@
       pointer-events: none;
       clip-path: polygon(50.0% 0.0%, 61.0% 12.6%, 77.0% 7.9%, 79.5% 24.5%, 95.5% 29.2%, 88.6% 44.4%, 99.5% 57.1%, 85.5% 66.2%, 87.8% 82.7%, 71.1% 82.8%, 64.1% 98.0%, 50.0% 89.0%, 35.9% 98.0%, 28.9% 82.8%, 12.2% 82.7%, 14.5% 66.2%, 0.5% 57.1%, 11.4% 44.4%, 4.5% 29.2%, 20.5% 24.5%, 23.0% 7.9%, 39.0% 12.6%);
     }
-    .deal--featured .deal__discount-badge,
-    .deal--open .deal__discount-badge { width: 68px; height: 68px; font-size: 17px; }
 
     /* ── Reventa badge (icon button on image) ────────────────────── */
     .deal__reventa-badge {
@@ -1534,136 +1411,6 @@
       margin-top: auto; padding: 0 16px 12px;
       display: flex; gap: 6px; flex-wrap: wrap;
     }
-
-    /* ── Card expandible ───────────────────────────────────────────
-       La card cerrada ya no lleva botón rojo: termina en un teaser que dice
-       qué hay dentro. El botón aparece al abrirla, que es cuando la persona
-       ya ha mostrado interés. La foto sigue enlazando a la tienda, así que
-       el camino directo a comprar no se pierde por el camino. */
-    .deal { cursor: pointer; }
-    .deal:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
-
-    /* El teaser se queda en el "+" a secas: el texto ("Cuánto ahorras y por qué
-       es real") ocupaba dos líneas en casi todas las cards y era lo que más las
-       estiraba a lo alto. El "+" solo ya dice que hay más debajo. */
-    /* Precios en una línea: original tachado + precio de ahora, alineados por
-       la base para que el grande mande. */
-    .deal__pricing--compacto {
-      display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-      padding: 0 14px; margin: 6px 0 0;
-    }
-    .deal__pricing--compacto .deal__original { font-size: 13px; }
-    .deal__pricing--compacto .deal__current { font-size: 26px; line-height: 1; }
-    .deal--featured .deal__pricing--compacto .deal__current { font-size: clamp(24px, 2.6vw, 29px); }
-
-    .deal__teaser {
-      margin: 0 14px; display: flex; align-items: center; gap: 8px;
-      padding: 9px 0 11px; border-top: 1px dashed var(--line-2);
-    }
-    /* El CTA se lleva el ancho que sobre y el "+" se queda fijo al final. El
-       relleno lateral es corto a propósito: hay tiendas de nombre largo
-       ("Paco Perfumerias", "Padel Market") y con 20px se recortaba el texto. */
-    .deal__cta-mini {
-      flex: 1; min-width: 0; padding: 9px 10px; font-size: 12.5px;
-      border-radius: 10px; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis; display: block; text-align: center;
-    }
-    .deal__teaser-plus {
-      display: grid; place-items: center;
-      width: 26px; height: 26px; border-radius: 50%;
-      background: var(--red-soft); color: var(--red-ink);
-      font-family: var(--sans); font-weight: 800; font-size: 15px; line-height: 1;
-      transition: transform .18s ease, background .18s ease;
-    }
-    .deal:hover .deal__teaser-plus { transform: scale(1.12); background: var(--red); color: #fff; }
-
-    /* ── Card abierta: flota sobre el grid ─────────────────────────
-       El grid NO se recompone. La card se pinta encima, centrada, y el fondo
-       queda apenas oscurecido: la rejilla sigue reconocible detrás, que es lo
-       que hace que se lea como "esta card se ha levantado" y no como "he
-       entrado en otra pantalla". Sin blur, que además es caro de pintar. */
-    .deal-modal {
-      position: fixed; inset: 0; z-index: 120;
-      display: grid; place-items: center;
-      padding: clamp(14px, 4vh, 44px) clamp(14px, 4vw, 40px);
-      animation: fzfade .16s ease both;
-    }
-    .deal-modal[hidden] { display: none; }
-    .deal-modal__backdrop { position: absolute; inset: 0; background: rgba(16,24,40,.20); }
-    [data-theme="dark"] .deal-modal__backdrop { background: rgba(0,0,0,.42); }
-    @keyframes fzfade { from { opacity: 0 } to { opacity: 1 } }
-
-    .deal-modal__card {
-      position: relative; z-index: 1;
-      width: min(680px, 100%); max-height: 100%; overflow-y: auto;
-      background: var(--card-bg); border: 1px solid var(--line);
-      border-radius: var(--r-2xl); box-shadow: var(--shadow-l);
-      animation: fzpop .2s cubic-bezier(.2,.9,.3,1.1) both;
-    }
-    @keyframes fzpop { from { opacity: 0; transform: scale(.96) translateY(8px) } to { opacity: 1; transform: none } }
-
-    .deal-modal__close {
-      position: absolute; top: 12px; right: 12px; z-index: 3;
-      width: 34px; height: 34px; border-radius: 50%;
-      border: 1px solid var(--line-2); background: var(--card-bg); color: var(--ink);
-      font-family: var(--sans); font-weight: 800; font-size: 19px; line-height: 1;
-      cursor: pointer; display: grid; place-items: center;
-      transition: border-color .16s, color .16s;
-    }
-    .deal-modal__close:hover { border-color: var(--red); color: var(--red-ink); }
-
-    .deal-modal__img {
-      position: relative; aspect-ratio: 16 / 10; background: var(--surface);
-      display: flex; align-items: center; justify-content: center; overflow: hidden;
-      border-radius: var(--r-2xl) var(--r-2xl) 0 0;
-    }
-    .deal-modal__img img { width: 100%; height: 100%; object-fit: contain; padding: 18px; }
-    /* El sello baja a la esquina contraria: arriba a la derecha choca con el
-       botón de cerrar y quedaba el "−" pintado encima de la estrella. */
-    .deal-modal__img .deal__discount-badge {
-      top: auto; right: auto; left: 16px; bottom: 16px;
-      width: 70px; height: 70px; font-size: 18px;
-    }
-    [data-theme="dark"] .deal-modal__img { background: #fff; }
-    .deal-modal__body { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 13px; }
-    .deal-modal__store {
-      font-family: var(--sans); font-size: 11px; font-weight: 800;
-      letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim);
-    }
-    .deal-modal__title {
-      font-family: var(--serif); font-weight: 700; font-size: clamp(19px, 2.4vw, 25px);
-      line-height: 1.22; color: var(--ink); margin: 0;
-    }
-    .deal-modal__buy { width: 100%; padding: 14px; font-size: 15px; border-radius: var(--r-md); }
-    .deal-modal__extras { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
-
-    /* ── Comparativa de precio ─────────────────────────────────────
-       Sustituye al termómetro. No inventa ninguna escala: son los dos precios
-       que ya se enseñan, dibujados a la misma referencia para que se vea el
-       hueco. Imposible que mienta, y no se parece a un medidor de grados. */
-    .deal-cmp {
-      padding: 15px 16px; border-radius: var(--r-md);
-      background: var(--panel); border: 1px solid var(--line);
-      display: flex; flex-direction: column; gap: 11px;
-    }
-    [data-theme="dark"] .deal-cmp { background: rgba(255,255,255,.04); }
-    .deal-cmp__row { display: flex; flex-direction: column; gap: 5px; }
-    .deal-cmp__head { display: flex; align-items: baseline; gap: 10px; }
-    .deal-cmp__label {
-      font-family: var(--sans); font-weight: 700; font-size: 11.5px;
-      color: var(--text-mid); letter-spacing: .01em;
-    }
-    .deal-cmp__val { margin-left: auto; font-family: var(--sans); font-weight: 800; font-size: 13.5px; color: var(--text-mid); }
-    .deal-cmp__val--now { font-weight: 900; font-size: 17px; color: var(--blue); }
-    .deal-cmp__bar { height: 12px; border-radius: 99px; background: var(--tint); overflow: hidden; }
-    .deal-cmp__bar i { display: block; height: 100%; border-radius: 99px; }
-    .deal-cmp__bar--was i { background: var(--line-2); }
-    .deal-cmp__bar--now i { background: linear-gradient(90deg, var(--blue), #35B0FF); }
-    .deal-cmp__save {
-      align-self: flex-start; font-family: var(--sans); font-weight: 800; font-size: 13px;
-      color: var(--teal-ink); background: var(--teal-light); border-radius: 9px; padding: 7px 12px;
-    }
-    [data-theme="dark"] .deal-cmp__save { background: rgba(53,201,184,.13); color: #5FCBBB; }
 
     .btn {
       display: inline-flex;
@@ -2160,7 +1907,9 @@
 
       /* Imagen: cuadrada → más área útil con el mismo ancho de columna */
       .deals-grid--mosaic .deal__image-wrap { aspect-ratio: 1 / 1; }
-      .deals-grid--mosaic .deal__discount-badge { font-size: 11px; padding: 3px 7px; }
+      /* En el modo compacto el sello encoge de tamaño, no de padding: con
+         clip-path el padding no hace nada, la caja es la que manda. */
+      .deals-grid--mosaic .deal__discount-badge { width: 40px; height: 40px; font-size: 11px; }
 
       /* Redundante o prescindible a este tamaño */
       .deals-grid--mosaic .deal__store,
@@ -3448,13 +3197,6 @@
     [data-theme="dark"] .wb__feat-price b { color: #4FA8FF; }
     .wb__feat-price s { font-family: var(--sans); font-size: 14px; color: var(--text-mid); text-decoration-color: var(--brand); text-decoration-thickness: 2px; }
     .wb__feat-store { font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--text-dim); }
-    .wb__feat-score { display: flex; align-items: center; gap: 9px; margin-top: 12px; }
-    .wb__feat-score-bar { flex: 1; height: 8px; border-radius: 99px; background: var(--tint); overflow: hidden; }
-    .wb__feat-score-bar i { display: block; height: 100%; border-radius: 99px; width: 0;
-      background: linear-gradient(90deg, var(--teal), var(--amber), var(--red));
-      transition: width .45s cubic-bezier(.2,.8,.2,1); }
-    .wb__feat-score-n { font-family: var(--sans); font-size: 12px; font-weight: 800; color: var(--red-ink); white-space: nowrap; }
-    .wb__feat-score-n b { font-weight: 900; }
     .wb-in { animation: wbIn .45s cubic-bezier(.22,1,.36,1); }
     @keyframes wbIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
     @media (max-width: 880px) {
@@ -3470,6 +3212,9 @@
   </style>
   <section class="wb" id="js-intro-hero" style="display:none" aria-label="Bienvenido a Flipazo">
     <div class="wb__card">
+      <button class="wb__close" id="js-ih-close" onclick="dismissIntroHero()" aria-label="Cerrar banner de bienvenida" title="Cerrar">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
       <div class="wb__left">
         <div class="wb__eyebrow"><i></i>Compara · Ahorra · Flipa</div>
         <h2 class="wb__title">Ofertas que <em>sí</em> son ofertas.</h2>
@@ -3502,7 +3247,7 @@
       <a class="wb__feat" id="js-ih-deal" href="#" target="_blank" rel="noopener sponsored" aria-live="polite" style="visibility:hidden">
         <span class="wb__feat-img" id="js-ih-imgwrap"><img id="js-ih-img" src="" alt="" loading="lazy" onerror="this.style.display='none'" /></span>
         <span class="wb__feat-body">
-          <span class="wb__feat-label">El chollazo de ahora</span>
+          <span class="wb__feat-label">Ahora mismo</span>
           <div class="wb__feat-pct">−<span id="js-ih-pct">0</span>%</div>
           <div class="wb__feat-name" id="js-ih-name"></div>
           <div class="wb__feat-price">
@@ -3510,12 +3255,6 @@
             <s id="js-ih-orig" style="display:none"></s>
             <span class="wb__feat-store" id="js-ih-store"></span>
           </div>
-          <!-- Termómetro de chollazo: el mismo deal_score que ya calcula el
-               backend. Se oculta entero si el deal no lo trae. -->
-          <span class="wb__feat-score" id="js-ih-scorewrap" style="display:none">
-            <span class="wb__feat-score-bar"><i id="js-ih-scorefill"></i></span>
-            <span class="wb__feat-score-n"><b id="js-ih-score">0</b>/100</span>
-          </span>
         </span>
       </a>
     </div>
@@ -3605,10 +3344,6 @@
   <!-- ── LOAD MORE ─────────────────────────────────────────────── -->
   <div id="js-load-indicator" style="display:none">Cargando más ofertas…</div>
   <div id="js-sentinel" style="height:1px;"></div>
-
-  <!-- Card abierta. Vive fuera del grid a propósito: así la rejilla no se
-       recompone al abrir una oferta. -->
-  <div class="deal-modal" id="js-deal-modal" hidden></div>
 
   <!-- ── SEO INTRO (contenido estático rastreable: las deals son JS) ── -->
   <style>
@@ -4349,7 +4084,7 @@
   }
 
   // ── Render card ───────────────────────────────────────────────
-  function renderDeal(d, _i) {
+  function renderDeal(d) {
     const isReventa  = d.tipo === "REVENTA" || d.tipo === "ARBITRAJE";
     const badgeClass = isReventa ? "deal__badge--garaje" : "";
     const badgeLabel = d.tienda || "";
@@ -4434,12 +4169,16 @@
       return horasDrop < 48 ? `<span class="deal__tag deal__tag--drop">📉 Precio bajado</span>` : "";
     })();
     const meaningfulTags = tags.filter(t => !t.includes("Worth Watching"));
-    // Estos tags ya no van en la card cerrada (la estiraban a lo alto): se
-    // guardan para pintarlos en la card abierta, donde hay sitio.
-    const tagsParaModal = [...meaningfulTags.slice(0, 1).map(t =>
+    const allTagsHtml = [...meaningfulTags.slice(0, 1).map(t =>
       `<span class="deal__tag ${tagClassFor(t)}">${t}</span>`
     ), rebajadoTagHtml, dropTagHtml, stockTagHtml].filter(Boolean).join("");
-    _tagsCache[d.id || ""] = isExpired ? "" : tagsParaModal;
+    const tagsHtml = (allTagsHtml && !isExpired) ? `
+      <div class="deal__tags">${allTagsHtml}</div>` : "";
+
+    const stockBadge = (d.pocas_unidades && !isExpired)
+      ? `<span class="deal__stock-tag">${d.pocas_unidades}</span>` : "";
+
+    const tallasHtml = _tallasHtml(d, isExpired);
 
     const cleanedTitle = esc(marcaPrimero(d.titulo || ""));
     // En el título grande va SOLO marca + producto. El "hook" que generaba Haiku
@@ -4451,65 +4190,17 @@
     // blockifica su display:-webkit-box.
     const titleBlock   = `<h2 class="deal__title"><span>${cleanedTitle}</span></h2>`;
 
-    const dealId = d.id || "";
+    // social_context ("volvió a bajar tras semanas", "el precio más bajo en meses")
+    // era la otra línea de copy generado. Fuera también: en la ficha van marca,
+    // producto, precio y descuento, y nada más.
+    const socialHtml   = "";
 
-    // La card cerrada lleva SOLO lo esencial: descuento, tienda, marca+producto,
-    // los dos precios, cuánto ahorras y el "+". Tags, tallas, stock y votos se
-    // han ido a la card abierta — eran lo que la estiraba a lo alto.
-    // El texto del teaser ("Cuánto ahorras y por qué es real") ocupaba dos
-    // líneas en casi todas: se queda el "+" a secas.
-    // Pie de la card: el CTA a la tienda y el "+" para ver más. El nombre de la
-    // tienda va EN el botón porque es el momento exacto de la decisión — "Ver
-    // deal" no dice a dónde te lleva, y en una web que no conocen se lee como
-    // "comprar aquí".
-    const teaserHtml = isExpired ? "" : `
-        <div class="deal__teaser">
-          <a href="${buyUrl}" data-track="${dealId}" target="_blank" rel="noopener sponsored"
-             class="btn btn--primary deal__cta-mini" onclick="event.stopPropagation()"
-             >Ver en ${esc(_storeLabel(d.tienda || "la tienda"))} →</a>
-          <span class="deal__teaser-plus" aria-label="Más información" title="Más información">＋</span>
-        </div>`;
-
-    // Doble ancho: franja alta del feed Y cada 5ª posición. Lo segundo es lo que
-    // le da ritmo al mosaico — sin ello, un lote con muchos scores altos saldría
-    // con media rejilla a doble ancho y dejaría de ser un destacado.
-    const esDestacado = !isExpired && _score > 0 && _score >= _umbralDestacado
-                        && (typeof _i === "number") && (_i % 5 === 0);
-
-    return `
-      <article class="deal${hotClass}${isExpired ? ' deal--expirado' : ''}${esDestacado ? ' deal--featured' : ''}"
-               data-id="${dealId}" role="button" tabindex="0"
-               onclick="toggleDealCard(event, '${dealId}')"
-               onkeydown="if((event.key==='Enter'||event.key===' ')&&event.target===event.currentTarget){event.preventDefault();toggleDealCard(event,'${dealId}');}">
-        ${imgHtml}
-        <p class="deal__store">${d.tienda || ""}</p>
-        ${titleBlock}
-        <!-- Los dos precios en una sola línea. Antes eran dos filas con etiqueta
-             ("Precio original" / "Ahora por"), y esas dos etiquetas sumaban ~60px
-             de alto por card sin decir nada que el tachado no diga ya. -->
-        <div class="deal__pricing deal__pricing--compacto">
-          ${d.precio_original > 0 ? `<span class="deal__original">${fmtPrice(d.precio_original)}</span>` : ""}
-          <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
-        </div>
-        ${ahorroHtml}
-        ${applianceNoteHtml}
-        ${teaserHtml}
-      </article>`;
-  }
-
-  // Tags calculados al pintar la rejilla, para reusarlos en la card abierta sin
-  // recalcularlos: la clave es el id del deal.
-  const _tagsCache = {};
-
-  // Votar / reportar expirada / comentar. Vive fuera de renderDeal porque ahora
-  // solo se pinta en la card abierta.
-  function _votesHtml(d) {
     const dealId    = d.id || "";
-    const isExpired = !!d.expirado;
     const flagCount = d.flags_expirado || 0;
     const likeCount = d.votes_up || 0;
     const isFlagged = !!(_getFlagged()[dealId]);
-    return `
+
+    const votesHtml = `
       <div class="deal__votes" id="votes-${dealId}">
         <button class="vote-btn vote-btn--like deal__fav" data-id="${dealId}"
                 onclick="toggleFavorite(this,'${dealId}')"
@@ -4539,131 +4230,49 @@
           <span style="font-size:8px;letter-spacing:.12em">Comentarios</span>
         </button>
       </div>`;
-  }
 
-  // ── Card abierta: capa flotante sobre el grid ───────────────────
-  // La rejilla no se recompone: se pinta la card encima, centrada, con el fondo
-  // apenas oscurecido para que siga reconociéndose lo que hay detrás.
-  // Se cierra al hacer scroll, con el "−", con Escape o tocando fuera.
-  function _dealPorId(id) {
-    // Ojo: allDeals y compañía se declaran con `let`, y un `let` de nivel
-    // superior NO cuelga de window en un script clásico. Buscarlas por
-    // window.* devolvía undefined siempre y la card no llegaba a abrirse.
-    const pools = [];
-    try { if (Array.isArray(allDeals))    pools.push(allDeals); }    catch (e) {}
-    try { if (Array.isArray(_mhomeDeals)) pools.push(_mhomeDeals); } catch (e) {}
-    try { if (Array.isArray(_ihPool))     pools.push(_ihPool); }     catch (e) {}
-    for (const p of pools) {
-      const d = p.find(x => x && String(x.id) === String(id));
-      if (d) return d;
-    }
-    return null;
-  }
-
-  // Comparativa de precio: sustituye al termómetro. No inventa ninguna escala —
-  // dibuja los dos precios que ya se enseñan a la misma referencia, así que el
-  // hueco entre las barras ES el descuento. Imposible que mienta.
-  function _comparativaHtml(d) {
-    const ahora = d.precio_actual || 0;
-    const antes = d.precio_original || 0;
-    if (!(antes > ahora && ahora > 0)) return "";
-    const pctNow = Math.max(6, Math.round((ahora / antes) * 100));
-    const ahorras = antes - ahora;
     return `
-      <div class="deal-cmp">
-        <div class="deal-cmp__row">
-          <div class="deal-cmp__head">
-            <span class="deal-cmp__label">Lo que suele costar</span>
-            <span class="deal-cmp__val">${fmtPrice(antes)}</span>
+      <article class="deal${hotClass}${isExpired ? ' deal--expirado' : ''}">
+        ${imgHtml}
+        ${tagsHtml}
+        <p class="deal__store">${d.tienda || ""}</p>
+        ${titleBlock}
+        ${socialHtml}
+        <div class="deal__pricing">
+          ${d.precio_original > 0 ? `
+          <div class="deal__price-row">
+            <span class="deal__price-meta">
+              <span class="deal__price-label">Precio original</span>
+              ${d.descuento_pct > 0 && !isExpired ? `<span class="deal__pct">−${d.descuento_pct}%</span>` : ""}
+            </span>
+            <span class="deal__original">${fmtPrice(d.precio_original)}</span>
+          </div>` : ""}
+          ${(d.mas_rebajado && d.precio_publicado > 0 && d.precio_publicado > (d.precio_actual || 0)) ? `
+          <div class="deal__price-row">
+            <span class="deal__price-label deal__price-label--first">Primer descuento</span>
+            <span class="deal__first-price">${fmtPrice(d.precio_publicado)}</span>
+          </div>` : ""}
+          <div class="deal__price-row deal__price-row--now">
+            <span class="deal__price-label deal__price-label--now">Ahora por</span>
+            <span class="deal__current">${fmtPrice(d.precio_actual || 0)}</span>
           </div>
-          <div class="deal-cmp__bar deal-cmp__bar--was"><i style="width:100%"></i></div>
         </div>
-        <div class="deal-cmp__row">
-          <div class="deal-cmp__head">
-            <span class="deal-cmp__label">Lo que cuesta ahora</span>
-            <span class="deal-cmp__val deal-cmp__val--now">${fmtPrice(ahora)}</span>
-          </div>
-          <div class="deal-cmp__bar deal-cmp__bar--now"><i style="width:${pctNow}%"></i></div>
+        ${ahorroHtml}
+        ${applianceNoteHtml}
+        ${stockBadge}
+        ${tallasHtml}
+        ${razonHtml}
+        <div class="deal__cta">
+          <!-- El nombre de la tienda va EN el botón, que es el momento exacto de la
+               decisión: "Ver deal" no dice a dónde te lleva y en una web que no
+               conocen se lee como "comprar aquí". El hero ya lo hacía así. -->
+          <a href="${buyUrl}" data-track="${dealId}" target="_blank" rel="noopener sponsored" class="btn btn--primary">Ver en ${esc(_storeLabel(d.tienda || "la tienda"))} →</a>
         </div>
-        <span class="deal-cmp__save">Te ahorras ${fmtPrice(ahorras)}</span>
-      </div>`;
-  }
-
-  let _modalDealId = null;
-  let _modalScrollY = 0;
-
-  function abrirDealModal(id) {
-    const d = _dealPorId(id);
-    if (!d) return;
-    const cont = document.getElementById("js-deal-modal");
-    if (!cont) return;
-    const isExpired = !!d.expirado;
-    const tienda = esc(_storeLabel(d.tienda || "la tienda"));
-
-    // Lo que se fue de la card cerrada reaparece aquí, donde hay sitio.
-    const extras = [
-      _tagsCache[String(id)] || "",
-      (d.pocas_unidades && !isExpired) ? `<span class="deal__stock-tag">${esc(d.pocas_unidades)}</span>` : "",
-      _tallasHtml(d, isExpired),
-    ].filter(Boolean).join("");
-
-    cont.innerHTML = `
-      <div class="deal-modal__backdrop" onclick="cerrarDealModal()"></div>
-      <div class="deal-modal__card" role="dialog" aria-modal="true" aria-label="${esc(d.titulo || "Oferta")}">
-        <button class="deal-modal__close" onclick="cerrarDealModal()" aria-label="Cerrar" title="Cerrar">−</button>
-        <div class="deal-modal__img">
-          ${d.descuento_pct > 0 && !isExpired ? `<span class="deal__discount-badge">−${d.descuento_pct}%</span>` : ""}
-          ${d.imagen_url ? `<img src="${esc(d.imagen_url)}" alt="" onerror="this.style.display='none'" />`
-                         : `<span class="deal__image-placeholder">sin imagen</span>`}
+        ${votesHtml}
+        <div class="deal__bottom">
+          <p class="deal__time" data-ts="${d.timestamp || ""}">${timeAgo(d.timestamp)}</p>
         </div>
-        <div class="deal-modal__body">
-          <span class="deal-modal__store">${esc(d.tienda || "")}</span>
-          <h2 class="deal-modal__title">${esc(marcaPrimero(d.titulo || ""))}</h2>
-          ${_comparativaHtml(d)}
-          ${extras ? `<div class="deal-modal__extras">${extras}</div>` : ""}
-          ${_votesHtml(d)}
-          <a href="${d.url_affiliate || "#"}" data-track="${esc(String(d.id || ""))}"
-             target="_blank" rel="noopener sponsored"
-             class="btn btn--primary deal-modal__buy">Ver en ${tienda} →</a>
-        </div>
-      </div>`;
-    cont.hidden = false;
-    _modalDealId = String(id);
-    _modalScrollY = window.scrollY;
-    // Cerrar al hacer scroll: se pide expresamente. Se apunta la posición al
-    // abrir y solo se cierra si el movimiento es intencionado (>40px), para que
-    // el rebote de iOS o un trackpad sensible no la cierren sola.
-    window.addEventListener("scroll", _modalOnScroll, { passive: true });
-    document.addEventListener("keydown", _modalOnKey);
-    const btn = cont.querySelector(".deal-modal__close");
-    if (btn) btn.focus();
-  }
-
-  function cerrarDealModal() {
-    const cont = document.getElementById("js-deal-modal");
-    if (!cont || cont.hidden) return;
-    cont.hidden = true;
-    cont.innerHTML = "";
-    window.removeEventListener("scroll", _modalOnScroll);
-    document.removeEventListener("keydown", _modalOnKey);
-    const card = _modalDealId && document.querySelector(`.deal[data-id="${CSS.escape(_modalDealId)}"]`);
-    if (card) card.focus({ preventScroll: true });
-    _modalDealId = null;
-  }
-
-  function _modalOnScroll() {
-    if (Math.abs(window.scrollY - _modalScrollY) > 40) cerrarDealModal();
-  }
-  function _modalOnKey(e) { if (e.key === "Escape") cerrarDealModal(); }
-
-  function toggleDealCard(ev, id) {
-    if (!id) return;
-    // Un clic en algo interactivo de dentro (la foto, que lleva a la tienda) no
-    // debe abrir la card.
-    const t = ev && ev.target;
-    if (t && t.closest && t.closest("a,button,input,select,textarea")) return;
-    if (String(id) === _modalDealId) cerrarDealModal();
-    else abrirDealModal(id);
+      </article>`;
   }
 
   // ── Sort ──────────────────────────────────────────────────────
@@ -5094,13 +4703,8 @@
   let _ihTimer = null, _ihIdx = 0, _ihPool = [], _introShown = false, _ihHasReal = false;
   let _introDismissed = (() => { try { return sessionStorage.getItem("flipazo_intro_closed") === "1"; } catch { return false; } })();
 
-  // El hero deja de ser un banner que se cierra: es la landing. Antes se podía
-  // descartar y entonces reaparecía el hero antiguo (#js-hero) con OTRA oferta
-  // destacada — la duplicación de destacados que ya costó un arreglo en agosto.
-  // Ahora hay uno solo, y updateHero() se calla mientras este esté puesto.
-  // Sigue ocultándose al filtrar o buscar, que es cuando estorba.
   function _shouldShowIntro() {
-    return activeCategory === "todas" && !searchQuery && !activeStore && !activeLowCost;
+    return !_introDismissed && activeCategory === "todas" && !searchQuery && !activeStore && !activeLowCost;
   }
 
   function dismissIntroHero() {
@@ -5116,9 +4720,7 @@
     else updateHero();  // desktop 'Todos': restaura el hero nativo
   }
 
-  // El chollazo de ahora: manda el deal_score, no el descuento a secas. Un −70%
-  // sobre algo que nadie quiere no es un chollazo; el score ya pondera descuento,
-  // precio, frescura y tipo. La frescura sigue desempatando y el descuento cierra.
+  // Mejores + más recientes: precio decente, descuento fuerte, con imagen y no expirado.
   function _ihEligible() {
     const src = (allDeals && allDeals.length) ? allDeals : _mhomeDeals;
     const now = Date.now();
@@ -5127,8 +4729,6 @@
       (d.precio_actual || 0) >= 25 && (d.descuento_pct || 0) >= 40
     );
     pool.sort((a, b) => {
-      const sc = (b.deal_score || 0) - (a.deal_score || 0);
-      if (sc) return sc;
       const recA = (now - new Date(a.timestamp || 0).getTime()) < 6 * 3600 * 1000 ? 1 : 0;
       const recB = (now - new Date(b.timestamp || 0).getTime()) < 6 * 3600 * 1000 ? 1 : 0;
       if (recA !== recB) return recB - recA;
@@ -5176,18 +4776,6 @@
     }
     const link = document.getElementById("js-ih-deal");
     if (link) link.href = d.url_affiliate || "#";
-    // Termómetro: solo si el deal trae score. Sin dato no se pinta una barra a 0,
-    // que leería como "chollazo pésimo" en vez de "no lo sabemos".
-    const sw = document.getElementById("js-ih-scorewrap");
-    const sc = Number(d.deal_score) || 0;
-    if (sw) {
-      sw.style.display = sc > 0 ? "" : "none";
-      if (sc > 0) {
-        set("js-ih-score", sc);
-        const fill = document.getElementById("js-ih-scorefill");
-        if (fill) requestAnimationFrame(() => { fill.style.width = Math.max(0, Math.min(100, sc)) + "%"; });
-      }
-    }
     if (animate && link) { link.classList.remove("wb-in"); void link.offsetWidth; link.classList.add("wb-in"); _ihAnimatePct(d.descuento_pct || 0); }
     else { set("js-ih-pct", d.descuento_pct || 0); }
   }
@@ -5232,33 +4820,6 @@
       _introShown = false;
       _ihStop();
     }
-    _initSearchRelay();
-    _syncSearchRelay();
-  }
-
-  // Relevo del buscador: mientras el hero se ve, el del header se repliega, y
-  // aparece en cuanto el hero sale de pantalla. Un IntersectionObserver y no el
-  // scroll, para que también acierte cuando un filtro oculta el hero.
-  let _searchRelay = null;
-  function _initSearchRelay() {
-    if (_searchRelay || typeof IntersectionObserver === "undefined") return;
-    const hero = document.getElementById("js-intro-hero");
-    if (!hero) return;
-    _searchRelay = new IntersectionObserver(entradas => {
-      const bar = document.getElementById("js-search-bar");
-      if (!bar) return;
-      for (const e of entradas) bar.classList.toggle("is-tucked", e.isIntersecting);
-    }, { threshold: 0, rootMargin: "-56px 0px 0px 0px" });  // 56px ≈ alto del header sticky
-    _searchRelay.observe(hero);
-  }
-  // Estado inicial: el observer no dispara hasta el siguiente frame y sin esto
-  // los dos buscadores se ven a la vez durante el primer pintado.
-  function _syncSearchRelay() {
-    const bar = document.getElementById("js-search-bar");
-    const hero = document.getElementById("js-intro-hero");
-    if (!bar || !hero) return;
-    const visible = hero.style.display !== "none" && hero.getBoundingClientRect().bottom > 56;
-    bar.classList.toggle("is-tucked", visible);
   }
 
   function _ihSearch(e) {
@@ -5569,27 +5130,7 @@
     }
   }
 
-  // ── Mosaico editorial: qué card ocupa doble ancho ───────────────
-  // El handoff pedía `score >= 82`. En producción el máximo vivo es 75 y el
-  // histórico 80: no se habría destacado ni una card jamás y el mosaico habría
-  // quedado en una rejilla uniforme sin que nada fallara aparentemente. Y un
-  // número fijo distinto envejecería igual de mal, porque la distribución es un
-  // precipicio (>=60: 17% de los deals, >=65: 0,5%).
-  //
-  // Así que el umbral es un PERCENTIL de lo que hay cargado: siempre destaca la
-  // franja alta del feed real, valgan lo que valgan los scores ese día.
-  let _umbralDestacado = Infinity;
-  function _calcularUmbralDestacado(deals) {
-    const scores = (deals || []).map(d => d.deal_score || 0).filter(s => s > 0)
-                                .sort((a, b) => b - a);
-    // Con pocas cards no hay franja alta que valga: mejor rejilla uniforme que
-    // destacar una card por casualidad estadística.
-    _umbralDestacado = scores.length < 10 ? Infinity
-                     : scores[Math.floor(scores.length * 0.15)] || Infinity;
-  }
-
   function _renderWithDivider(deals) {
-    _calcularUmbralDestacado(deals);
     return deals.map(renderDeal).join("");
   }
 
@@ -7318,16 +6859,17 @@
       ? _mhSection("Cupones y códigos", _cupones.map(_heroCouponCard).join(""), "location.href='/cupones'")
       : "";
 
-    // Los cupones van SOLO en móvil: en desktop los pinta el hero de arriba, y
-    // repetirlos aquí sacaba el mismo carrusel dos veces en la misma pantalla. La
-    // entrada en desktop sigue en el chip 'Cupones' de la barra de filtros.
+    // El 'Deal del momento' y los cupones van DETRÁS del banner de bienvenida: solo
+    // aparecen cuando el usuario cierra el banner (igual que el hero en desktop).
     //
-    // El 'Deal del momento' (whero) ya NO se pinta. Antes aparecía al cerrar el
-    // banner de bienvenida; desde que el hero es permanente no hay cierre, así que
-    // los cupones se quedarían sin salir nunca y el whero sería un segundo
-    // destacado debajo del primero. Un destacado por pantalla: el hero.
+    // Y SOLO en móvil: en desktop las dos cosas las pinta el hero de arriba (oferta
+    // del día + carrusel de cupones a su derecha). Repetirlas aquí sacaba la misma
+    // oferta y los mismos cupones dos veces en la misma pantalla. La entrada a
+    // /cupones en desktop sigue estando en el chip 'Cupones' de la barra de filtros.
     const esMovil = _isMobileViewport();
-    const behindBanner = esMovil ? couponsSection : "";
+    const behindBanner = (_introDismissed && esMovil)
+      ? ((featured ? renderWhero(featured) : "") + couponsSection)
+      : "";
 
     // Filas del feed. "Explorar" (tags de categorías) se coloca en el 8º lugar.
     // "Para ti" va la primera: es lo que el usuario ha pedido ver.
