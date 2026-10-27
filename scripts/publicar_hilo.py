@@ -5,9 +5,15 @@ publicar_hilo.py — Publica en Threads el hilo que toque hoy.
 Lee la cola de `scripts/hilos_programados.json` (un hilo por fecha) y publica
 el de HOY encadenado: cada post es respuesta al anterior vía `reply_to_id`.
 
-Cron:
+Cron (dos franjas; cada hilo lleva la suya en el JSON):
+    0 10 * * *  cd /home/flipazo/app && ./venv/bin/python scripts/publicar_hilo.py \
+                >> /home/flipazo/app/hilos.log 2>&1
     0 18 * * *  cd /home/flipazo/app && ./venv/bin/python scripts/publicar_hilo.py \
                 >> /home/flipazo/app/hilos.log 2>&1
+
+La franja importa: 16-19h da mediana 18.026 views y la noche 20-23h solo 9.447.
+La mañana queda en medio (15.490) y es donde van los que se recuperan de un día
+perdido, nunca a las 20h o más tarde.
 
 Decisiones que importan:
 
@@ -81,16 +87,23 @@ def main() -> int:
         log("❌ faltan THREADS_TOKEN o THREADS_USER_ID en .env")
         return 1
 
+    # La franja la decide el JSON, no el cron: así un mismo día puede llevar dos
+    # hilos (p. ej. uno de recuperación a las 10 y el del día a las 18) sin que
+    # el cron de una hora se lleve el hilo de la otra.
+    ahora = os.getenv("HILO_HORA") or datetime.now().strftime("%H:%M")
+    franja = "10:00" if ahora < "14:00" else "18:00"
+
     cola = json.load(open(COLA, encoding="utf-8"))
-    hilo = next((h for h in cola if h["fecha"] == hoy), None)
+    hilo = next((h for h in cola
+                 if h["fecha"] == hoy and h.get("hora", "18:00") == franja), None)
     if not hilo:
-        log(f"no hay hilo programado para {hoy} — nada que hacer")
+        log(f"no hay hilo programado para {hoy} en la franja de las {franja} — nada que hacer")
         return 0
     if hilo.get("publicado_en"):
         log(f"«{hilo['titulo']}» ya se publicó el {hilo['publicado_en']} — no se repite")
         return 0
 
-    log(f"publicando «{hilo['titulo']}» ({len(hilo['posts'])} posts)")
+    log(f"publicando «{hilo['titulo']}» ({len(hilo['posts'])} posts) · franja {franja}")
     base, prev, ids = f"https://graph.threads.net/v1.0/{uid}", None, []
     for i, texto in enumerate(hilo["posts"], 1):
         pid = publicar_post(base, token, texto, prev)

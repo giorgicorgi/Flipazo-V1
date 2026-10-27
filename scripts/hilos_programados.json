@@ -1,6 +1,7 @@
 [
  {
-  "fecha": "2026-10-27",
+  "fecha": "2026-10-28",
+  "hora": "10:00",
   "tema": "madre",
   "titulo": "Los dos botes",
   "posts": [
@@ -15,6 +16,7 @@
  },
  {
   "fecha": "2026-10-28",
+  "hora": "18:00",
   "tema": "trabajo",
   "titulo": "Febrero",
   "posts": [
@@ -29,6 +31,7 @@
  },
  {
   "fecha": "2026-10-29",
+  "hora": "18:00",
   "tema": "oficio",
   "titulo": "Los martes",
   "posts": [
@@ -43,6 +46,7 @@
  },
  {
   "fecha": "2026-10-30",
+  "hora": "18:00",
   "tema": "suegros",
   "titulo": "El plato",
   "posts": [
@@ -57,6 +61,7 @@
  },
  {
   "fecha": "2026-10-31",
+  "hora": "18:00",
   "tema": "pareja",
   "titulo": "La lista",
   "posts": [
@@ -71,6 +76,7 @@
  },
  {
   "fecha": "2026-11-01",
+  "hora": "18:00",
   "tema": "colegio",
   "titulo": "La de mates",
   "posts": [
@@ -85,6 +91,7 @@
  },
  {
   "fecha": "2026-11-02",
+  "hora": "18:00",
   "tema": "hermano",
   "titulo": "El bautizo",
   "posts": [
@@ -99,6 +106,7 @@
  },
  {
   "fecha": "2026-11-03",
+  "hora": "18:00",
   "tema": "segunda mano",
   "titulo": "La cuna",
   "posts": [
@@ -113,6 +121,7 @@
  },
  {
   "fecha": "2026-11-04",
+  "hora": "18:00",
   "tema": "abuelo",
   "titulo": "El banco de la plaza",
   "posts": [
@@ -127,6 +136,7 @@
  },
  {
   "fecha": "2026-11-05",
+  "hora": "18:00",
   "tema": "amistad",
   "titulo": "El último en llegar",
   "posts": [
@@ -141,6 +151,7 @@
  },
  {
   "fecha": "2026-11-06",
+  "hora": "18:00",
   "tema": "farmacia",
   "titulo": "La cola",
   "posts": [
@@ -155,6 +166,7 @@
  },
  {
   "fecha": "2026-11-07",
+  "hora": "18:00",
   "tema": "padre",
   "titulo": "Las cintas",
   "posts": [
@@ -169,6 +181,7 @@
  },
  {
   "fecha": "2026-11-08",
+  "hora": "18:00",
   "tema": "vecindario",
   "titulo": "La del rellano",
   "posts": [
@@ -183,6 +196,7 @@
  },
  {
   "fecha": "2026-11-09",
+  "hora": "18:00",
   "tema": "primo",
   "titulo": "El maletero",
   "posts": [
@@ -197,6 +211,7 @@
  },
  {
   "fecha": "2026-11-10",
+  "hora": "18:00",
   "tema": "polideportivo",
   "titulo": "La calle lenta",
   "posts": [
@@ -211,6 +226,7 @@
  },
  {
   "fecha": "2026-11-11",
+  "hora": "18:00",
   "tema": "tia",
   "titulo": "El sobre",
   "posts": [
@@ -225,6 +241,7 @@
  },
  {
   "fecha": "2026-11-12",
+  "hora": "18:00",
   "tema": "mudanza",
   "titulo": "El de enfrente",
   "posts": [
@@ -239,6 +256,7 @@
  },
  {
   "fecha": "2026-11-13",
+  "hora": "18:00",
   "tema": "hijos",
   "titulo": "El recordatorio",
   "posts": [
@@ -254,6 +272,7 @@
  },
  {
   "fecha": "2026-11-14",
+  "hora": "18:00",
   "tema": "barrio",
   "titulo": "El del quiosco",
   "posts": [
@@ -268,6 +287,7 @@
  },
  {
   "fecha": "2026-11-15",
+  "hora": "18:00",
   "tema": "trabajo",
   "titulo": "El ascenso",
   "posts": [
