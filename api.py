@@ -1310,6 +1310,51 @@ def get_price_history(asin: str):
     return JSONResponse(content=[dict(r) for r in rows])
 
 
+@app.get("/api/deals/vitrina")
+def get_deals_vitrina(n: int = Query(default=4, ge=1, le=8)):
+    """N deals activos con mejor score, diversificados por tienda, cada uno con
+    su histórico de precio muestreado. Pensado para la landing de redes (prueba
+    visual de "precio real" para tráfico que llega sin intención de compra)."""
+    with _get_db() as con:
+        candidatos = con.execute("""
+            SELECT deal_id AS id, hist_pid, titulo, tienda, precio AS precio_actual,
+                   precio_original, descuento_pct, imagen_url, url_afiliado AS url_affiliate,
+                   deal_score
+            FROM deals_publicados
+            WHERE COALESCE(expirado, 0) = 0
+              AND hist_pid IS NOT NULL AND hist_pid != ''
+              AND descuento_pct >= 40
+              AND precio_original > 0
+            ORDER BY deal_score DESC, descuento_pct DESC
+            LIMIT 200
+        """).fetchall()
+
+        elegidos, vistos_tienda = [], {}
+        for row in candidatos:
+            if len(elegidos) >= n:
+                break
+            tienda = row["tienda"]
+            if vistos_tienda.get(tienda, 0) >= 1 and len(vistos_tienda) < n:
+                continue  # primero cubrir tiendas distintas antes de repetir una
+            hist = con.execute(
+                "SELECT fecha, precio FROM price_history WHERE asin = ? ORDER BY fecha ASC",
+                (row["hist_pid"],),
+            ).fetchall()
+            if len(hist) < 5:
+                continue
+            # muestrea a máx. 24 puntos para un payload ligero
+            paso = max(1, len(hist) // 24)
+            serie = [{"fecha": h["fecha"], "precio": h["precio"]} for h in hist[::paso]]
+            if serie[-1]["fecha"] != hist[-1]["fecha"]:
+                serie.append({"fecha": hist[-1]["fecha"], "precio": hist[-1]["precio"]})
+            d = dict(row)
+            d["historico"] = serie
+            elegidos.append(d)
+            vistos_tienda[tienda] = vistos_tienda.get(tienda, 0) + 1
+
+    return JSONResponse(content=elegidos)
+
+
 @app.post("/api/deals/{deal_id}/vote")
 def vote_deal(deal_id: str, body: VoteBody):
     """Registra o retira un voto (up/down/remove). Anti-spam client-side via localStorage."""
@@ -1629,7 +1674,7 @@ def redirect_afiliado(deal_id: str, request: Request, canal: str = "web", beacon
 # de cookies ni Google Analytics) y redirige a flipazo.es con UTM (para que GA
 # también atribuya a quienes consienten). Ver clicks en /go-stats/{slug}.
 _BIO_LINKS = {
-    "threads":   "https://www.flipazo.es/?utm_source=threads&utm_medium=bio&utm_campaign=perfil",
+    "threads":   "https://www.flipazo.es/desde-threads?utm_source=threads&utm_medium=bio&utm_campaign=perfil",
     "instagram": "https://www.flipazo.es/?utm_source=instagram&utm_medium=bio&utm_campaign=perfil",
     "tiktok":    "https://www.flipazo.es/?utm_source=tiktok&utm_medium=bio&utm_campaign=perfil",
     "youtube":   "https://www.flipazo.es/?utm_source=youtube&utm_medium=bio&utm_campaign=perfil",

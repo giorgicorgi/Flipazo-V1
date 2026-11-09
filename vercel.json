@@ -48,6 +48,7 @@
     { "source": "/cupones",     "destination": "/cupones.html" },
     { "source": "/cuenta",      "destination": "/cuenta.html" },
     { "source": "/mis-links",   "destination": "/mis-links.html" },
+    { "source": "/desde-threads", "destination": "/desde-threads.html" },
     { "source": "/3b1fa13b0f80cf697ef930ea6046de01.html", "destination": "/awin-verify" },
     { "source": "/3b1fa13b0f80cf697ef930ea6046de01",      "destination": "/awin-verify" }
   ]

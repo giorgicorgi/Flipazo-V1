@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, follow" />
+  <title>Flipazo — el precio real de las cosas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --brand: #F52834; --brand-soft: rgba(245,40,52,.08);
+      --bg: #FEFEF8; --card: #FFFFFF; --border: #E5E7EB; --surface: #F3F4F6;
+      --ink: #111827; --mid: #6B7280; --dim: #9CA3AF; --blue: #0581FC;
+      --serif: 'Playfair Display', Georgia, serif; --sans: 'Nunito', system-ui, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#111827; --card:#1F2937; --border:#374151; --surface:#1b2230;
+              --ink:#F9FAFB; --mid:#9CA3AF; --dim:#6B7280; --blue:#4FA8FF; --brand-soft: rgba(245,40,52,.16); }
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 44px 16px 64px; }
+
+    .brand-row { display:flex; align-items:center; gap:10px; margin-bottom: 36px; }
+    .brand-row .dot { width:10px; height:10px; border-radius:50%; background:var(--brand); }
+    .brand-row span { font-weight:900; font-size:15px; letter-spacing:-0.01em; }
+
+    .hero { margin-bottom: 40px; }
+    .hero h1 {
+      font-family: var(--serif); font-weight:900; letter-spacing:-0.01em;
+      font-size: clamp(26px, 5.5vw, 38px); line-height:1.15; margin: 0 0 14px;
+    }
+    .hero p { font-size: 16px; line-height:1.55; color: var(--mid); margin: 0; max-width: 56ch; }
+    .hero .accent { color: var(--ink); font-weight: 700; }
+
+    .section-label {
+      font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--dim); margin: 0 0 16px;
+    }
+
+    .grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 44px;
+    }
+    @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .card-top { display: flex; gap: 12px; }
+    .card-img {
+      width: 64px; height: 64px; border-radius: 10px; object-fit: contain;
+      background: var(--surface); border: 1px solid var(--border); flex-shrink: 0; padding: 4px;
+    }
+    .card-info { min-width: 0; flex: 1; }
+    .card-tienda { font-size: 11px; font-weight: 800; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
+    .card-titulo {
+      font-size: 13.5px; font-weight: 700; line-height: 1.3; margin: 2px 0 0;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    .price-row { display: flex; align-items: baseline; gap: 8px; }
+    .price-now { font-family: var(--serif); font-weight: 900; font-size: 22px; color: var(--blue); }
+    .price-old { font-size: 13px; color: var(--dim); text-decoration: line-through; }
+    .price-pct {
+      margin-left: auto; font-size: 12px; font-weight: 800; color: var(--brand);
+      background: var(--brand-soft); padding: 3px 8px; border-radius: 999px;
+    }
+
+    .chart-wrap { margin: 2px 0 0; }
+    .chart-caption { font-size: 10.5px; color: var(--dim); margin-top: 2px; }
+
+    .card-cta {
+      display: block; text-align: center; text-decoration: none;
+      font-weight: 800; font-size: 13px; color: #fff; background: var(--ink);
+      border-radius: 10px; padding: 10px; margin-top: 2px;
+    }
+    .card-cta:active { transform: translateY(1px); }
+
+    .final-cta {
+      text-align: center; padding: 32px 20px; background: var(--surface);
+      border-radius: 18px; border: 1px solid var(--border);
+    }
+    .final-cta p { color: var(--mid); font-size: 14px; margin: 0 0 16px; }
+    .final-cta a {
+      display: inline-block; text-decoration: none; font-weight: 800; font-size: 15px;
+      color: #fff; background: var(--brand); padding: 13px 28px; border-radius: 999px;
+    }
+
+    .empty-state { text-align:center; color: var(--mid); padding: 40px 0; font-size: 14px; }
+    .skeleton { opacity: .5; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand-row"><span class="dot"></span><span>FLIPAZO</span></div>
+
+    <div class="hero">
+      <h1>Si llegaste hasta aquí por una historia,<br>esto es lo que hacemos de verdad.</h1>
+      <p>No tachamos un número porque sí. Antes de llamar <span class="accent">chollo</span> a algo, miramos lo que ha costado de verdad, día a día. <span class="accent">Esto es el precio real</span> de cuatro cosas que hoy están más baratas que nunca:</p>
+    </div>
+
+    <p class="section-label">Comprobado con el histórico, no con el cartel</p>
+    <div class="grid" id="grid">
+      <div class="empty-state">Cargando ofertas verificadas…</div>
+    </div>
+
+    <div class="final-cta">
+      <p>Esto es solo una muestra. Cada día verificamos cientos de precios para separar los chollos reales de los inflados.</p>
+      <a href="https://www.flipazo.es/?utm_source=threads&utm_medium=landing&utm_campaign=historias" id="cta-final">Ver todos los chollos reales →</a>
+    </div>
+  </div>
+
+  <script>
+    const API = "https://api.flipazo.es";
+
+    function fmtEUR(n) {
+      return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €';
+    }
+
+    // Mini gráfico de histórico: línea de 2px + área al 10%, sin ejes duros.
+    // Una sola serie por tarjeta -> sin leyenda (la cifra ya la lleva la propia card).
+    function sparkline(serie, w, h) {
+      if (!serie || serie.length < 2) return '';
+      const vals = serie.map(p => p.precio);
+      const min = Math.min(...vals), max = Math.max(...vals);
+      const range = (max - min) || 1;
+      const padY = 4;
+      const x = i => (w * i) / (serie.length - 1);
+      const y = v => padY + (h - padY * 2) * (1 - (v - min) / range);
+
+      const pts = serie.map((p, i) => `${x(i).toFixed(1)},${y(p.precio).toFixed(1)}`).join(' ');
+      const areaPts = `0,${h} ` + pts + ` ${w},${h}`;
+      const lastX = x(serie.length - 1), lastY = y(serie[serie.length - 1].precio);
+
+      return `
+        <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="display:block;overflow:visible">
+          <polygon points="${areaPts}" fill="var(--blue)" opacity="0.10" />
+          <polyline points="${pts}" fill="none" stroke="var(--blue)" stroke-width="2"
+                     stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+          <circle cx="${lastX}" cy="${lastY}" r="4" fill="var(--blue)" stroke="var(--card)" stroke-width="2" />
+        </svg>`;
+    }
+
+    function fechaCorta(iso) {
+      const d = new Date(iso + 'T00:00:00');
+      return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    }
+
+    function cardHTML(deal) {
+      const hist = deal.historico || [];
+      const desde = hist.length ? fechaCorta(hist[0].fecha) : '';
+      const hasta = hist.length ? fechaCorta(hist[hist.length - 1].fecha) : '';
+      const link = `${API}/r/${encodeURIComponent(deal.id)}?canal=threads_landing`;
+      const imgFallback = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3C/svg%3E";
+
+      return `
+        <div class="card">
+          <div class="card-top">
+            <img class="card-img" src="${deal.imagen_url || imgFallback}" alt="" loading="lazy"
+                 onerror="this.src='${imgFallback}'" />
+            <div class="card-info">
+              <div class="card-tienda">${deal.tienda || ''}</div>
+              <div class="card-titulo">${deal.titulo || ''}</div>
+            </div>
+          </div>
+          <div class="price-row">
+            <span class="price-now">${fmtEUR(deal.precio_actual)}</span>
+            <span class="price-old">${fmtEUR(deal.precio_original)}</span>
+            <span class="price-pct">−${deal.descuento_pct}%</span>
+          </div>
+          <div class="chart-wrap">
+            ${sparkline(hist, 300, 46)}
+            ${hist.length ? `<div class="chart-caption">Precio real desde ${desde} hasta ${hasta}</div>` : ''}
+          </div>
+          <a class="card-cta" href="${link}" target="_blank" rel="noopener">Ver oferta en ${deal.tienda || 'la tienda'}</a>
+        </div>`;
+    }
+
+    fetch(`${API}/api/deals/vitrina?n=4`)
+      .then(r => r.json())
+      .then(deals => {
+        const grid = document.getElementById('grid');
+        if (!Array.isArray(deals) || deals.length === 0) {
+          grid.innerHTML = '<div class="empty-state">Ahora mismo no tenemos muestra lista — pero las ofertas verificadas siguen ahí.</div>';
+          return;
+        }
+        grid.innerHTML = deals.map(cardHTML).join('');
+      })
+      .catch(() => {
+        document.getElementById('grid').innerHTML =
+          '<div class="empty-state">No se pudo cargar la muestra. Las ofertas verificadas te esperan en el botón de abajo.</div>';
+      });
+  </script>
+</body>
+</html>
