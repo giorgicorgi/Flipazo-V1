@@ -35,3 +35,7 @@ debug_*.png
 
 # Estado de descarga de los feeds TD (horario por feed) — no va a git
 .td_feeds.json
+
+# Estado vivo del cron de Threads: lo escribe el servidor en cada publicación,
+# un git pull/reset lo pisaria con una version vieja y el cron duplicaria posts
+scripts/hilos_programados.json
