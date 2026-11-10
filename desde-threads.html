@@ -144,6 +144,20 @@
         </svg>`;
     }
 
+    const STORE_LABELS = { ElCorteIngles: 'El Corte Inglés', PcComponentes: 'PcComponentes', MediaMarkt: 'MediaMarkt' };
+    function tiendaLabel(t) { return STORE_LABELS[t] || t || ''; }
+
+    // El SVG se dibuja al ancho real de su tarjeta (y se redibuja al girar el móvil),
+    // en vez de un ancho fijo que dejaba media card vacía.
+    let DEALS = [];
+    function drawSparks() {
+      document.querySelectorAll('.spark').forEach(el => {
+        const d = DEALS.find(x => x.id === el.dataset.id);
+        if (d) el.innerHTML = sparkline(d.historico || [], el.clientWidth || 300, 46);
+      });
+    }
+    let _rt; window.addEventListener('resize', () => { clearTimeout(_rt); _rt = setTimeout(drawSparks, 150); });
+
     function fechaCorta(iso) {
       const d = new Date(iso + 'T00:00:00');
       return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
@@ -163,7 +177,7 @@
             <img class="card-img" src="${deal.imagen_url || imgFallback}" alt="" loading="lazy"
                  onerror="this.src='${imgFallback}'" />
             <div class="card-info">
-              <div class="card-tienda">${deal.tienda || ''}</div>
+              <div class="card-tienda">${tiendaLabel(deal.tienda)}</div>
               <div class="card-titulo">${deal.titulo || ''}</div>
             </div>
           </div>
@@ -173,10 +187,10 @@
             <span class="price-pct">−${pct}%</span>
           </div>
           <div class="chart-wrap">
-            ${sparkline(hist, 300, 46)}
-            <div class="chart-caption">Su precio más bajo desde ${desde} · lo normal era ${fmtEUR(ref)}</div>
+            <div class="spark" data-id="${deal.id}"></div>
+            <div class="chart-caption">Hoy, su precio más bajo desde que lo seguimos (${desde}) · lo normal: ${fmtEUR(ref)}</div>
           </div>
-          <a class="card-cta" href="${link}" target="_blank" rel="noopener">Ver oferta en ${deal.tienda || 'la tienda'}</a>
+          <a class="card-cta" href="${link}" target="_blank" rel="noopener">Ver oferta en ${tiendaLabel(deal.tienda) || 'la tienda'}</a>
         </div>`;
     }
 
@@ -188,7 +202,9 @@
           grid.innerHTML = '<div class="empty-state">Ahora mismo no tenemos muestra lista — pero las ofertas verificadas siguen ahí.</div>';
           return;
         }
+        DEALS = deals;
         grid.innerHTML = deals.map(cardHTML).join('');
+        drawSparks();
       })
       .catch(() => {
         document.getElementById('grid').innerHTML =
