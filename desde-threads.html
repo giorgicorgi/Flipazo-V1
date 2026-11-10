@@ -74,7 +74,7 @@
 
     .card-cta {
       display: block; text-align: center; text-decoration: none;
-      font-weight: 800; font-size: 13px; color: #fff; background: var(--ink);
+      font-weight: 800; font-size: 13px; color: var(--bg); background: var(--ink);
       border-radius: 10px; padding: 10px; margin-top: 2px;
     }
     .card-cta:active { transform: translateY(1px); }
@@ -99,7 +99,7 @@
 
     <div class="hero">
       <h1>Si llegaste hasta aquí por una historia,<br>esto es lo que hacemos de verdad.</h1>
-      <p>No tachamos un número porque sí. Antes de llamar <span class="accent">chollo</span> a algo, miramos lo que ha costado de verdad, día a día. <span class="accent">Esto es el precio real</span> de cuatro cosas que hoy están más baratas que nunca:</p>
+      <p>No tachamos un número porque sí. Antes de llamar <span class="accent">chollo</span> a algo, miramos lo que ha costado de verdad, día a día. Estas cosas están hoy <span class="accent">más baratas que nunca</span>, y el gráfico es su precio real:</p>
     </div>
 
     <p class="section-label">Comprobado con el histórico, no con el cartel</p>
@@ -151,8 +151,9 @@
 
     function cardHTML(deal) {
       const hist = deal.historico || [];
-      const desde = hist.length ? fechaCorta(hist[0].fecha) : '';
-      const hasta = hist.length ? fechaCorta(hist[hist.length - 1].fecha) : '';
+      const desde = fechaCorta(deal.historico_desde || (hist[0] && hist[0].fecha));
+      const ref = deal.precio_referencia;
+      const pct = deal.descuento_real;
       const link = `${API}/r/${encodeURIComponent(deal.id)}?canal=threads_landing`;
       const imgFallback = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3C/svg%3E";
 
@@ -168,18 +169,18 @@
           </div>
           <div class="price-row">
             <span class="price-now">${fmtEUR(deal.precio_actual)}</span>
-            <span class="price-old">${fmtEUR(deal.precio_original)}</span>
-            <span class="price-pct">−${deal.descuento_pct}%</span>
+            <span class="price-old">${fmtEUR(ref)}</span>
+            <span class="price-pct">−${pct}%</span>
           </div>
           <div class="chart-wrap">
             ${sparkline(hist, 300, 46)}
-            ${hist.length ? `<div class="chart-caption">Precio real desde ${desde} hasta ${hasta}</div>` : ''}
+            <div class="chart-caption">Su precio más bajo desde ${desde} · lo normal era ${fmtEUR(ref)}</div>
           </div>
           <a class="card-cta" href="${link}" target="_blank" rel="noopener">Ver oferta en ${deal.tienda || 'la tienda'}</a>
         </div>`;
     }
 
-    fetch(`${API}/api/deals/vitrina?n=4`)
+    fetch(`${API}/api/deals/vitrina?n=8`)
       .then(r => r.json())
       .then(deals => {
         const grid = document.getElementById('grid');

@@ -1310,48 +1310,102 @@ def get_price_history(asin: str):
     return JSONResponse(content=[dict(r) for r in rows])
 
 
+_VITRINA_CACHE: dict = {"ts": 0.0, "n": 0, "data": []}
+
+
 @app.get("/api/deals/vitrina")
-def get_deals_vitrina(n: int = Query(default=4, ge=1, le=8)):
-    """N deals activos con mejor score, diversificados por tienda, cada uno con
-    su histórico de precio muestreado. Pensado para la landing de redes (prueba
-    visual de "precio real" para tráfico que llega sin intención de compra)."""
+def get_deals_vitrina(n: int = Query(default=8, ge=1, le=12)):
+    """Escaparate de la landing de redes: SOLO deals cuyo histórico demuestra el chollo.
+
+    Un deal entra únicamente si, según NUESTRO `price_history` (nunca el "antes" del feed):
+      · el precio de hoy es el mínimo registrado (±1 %)          → "más barato que nunca"
+      · el último dato tiene ≤3 días                             → producto actualizado
+      · hay ≥10 días observados                                  → el gráfico dice algo
+      · un precio ≥5 % más alto fue el DOMINANTE (≥40 % de días) → la referencia no es un pico
+      · y hoy está ≥40 % por debajo de esa referencia (mediana)  → flipazo de verdad
+    Así el gráfico SIEMPRE acaba en su punto más bajo y el % sale del histórico.
+    (Antes se elegía por deal_score: salían productos en su precio más ALTO o con
+    la línea plana, y el −50 % era del cartel del feed.)
+    """
+    import statistics
+    import time as _t
+    if _VITRINA_CACHE["n"] == n and _t.time() - _VITRINA_CACHE["ts"] < 600:
+        return JSONResponse(content=_VITRINA_CACHE["data"])
+
+    hoy = datetime.now().date()
     with _get_db() as con:
         candidatos = con.execute("""
             SELECT deal_id AS id, hist_pid, titulo, tienda, precio AS precio_actual,
-                   precio_original, descuento_pct, imagen_url, url_afiliado AS url_affiliate,
-                   deal_score
+                   imagen_url, url_afiliado AS url_affiliate, deal_score
             FROM deals_publicados
             WHERE COALESCE(expirado, 0) = 0
               AND hist_pid IS NOT NULL AND hist_pid != ''
-              AND descuento_pct >= 40
-              AND precio_original > 0
-            ORDER BY deal_score DESC, descuento_pct DESC
-            LIMIT 200
+              AND url_afiliado IS NOT NULL AND url_afiliado != ''
+            ORDER BY deal_score DESC
+            LIMIT 2000
         """).fetchall()
 
-        elegidos, vistos_tienda = [], {}
+        validos = []
         for row in candidatos:
-            if len(elegidos) >= n:
-                break
-            tienda = row["tienda"]
-            if vistos_tienda.get(tienda, 0) >= 1 and len(vistos_tienda) < n:
-                continue  # primero cubrir tiendas distintas antes de repetir una
             hist = con.execute(
-                "SELECT fecha, precio FROM price_history WHERE asin = ? ORDER BY fecha ASC",
+                "SELECT fecha, precio FROM price_history WHERE asin = ? AND precio > 0 ORDER BY fecha ASC",
                 (row["hist_pid"],),
             ).fetchall()
-            if len(hist) < 5:
+            if len(hist) < 10:
                 continue
-            # muestrea a máx. 24 puntos para un payload ligero
-            paso = max(1, len(hist) // 24)
-            serie = [{"fecha": h["fecha"], "precio": h["precio"]} for h in hist[::paso]]
-            if serie[-1]["fecha"] != hist[-1]["fecha"]:
-                serie.append({"fecha": hist[-1]["fecha"], "precio": hist[-1]["precio"]})
+            try:
+                ultimo = datetime.fromisoformat(hist[-1]["fecha"][:10]).date()
+            except ValueError:
+                continue
+            if (hoy - ultimo).days > 3:
+                continue
+            precios = [h["precio"] for h in hist]
+            ahora = precios[-1]
+            if ahora > min(precios) * 1.01:
+                continue
+            altos = [p for p in precios if p > ahora * 1.05]
+            if len(altos) < 0.4 * len(precios):
+                continue
+            ref = statistics.median(altos)
+            desc = 1 - ahora / ref
+            if desc < 0.40:
+                continue
+            paso = max(1, len(hist) // 30)
+            serie = [{"fecha": h["fecha"][:10], "precio": h["precio"]} for h in hist[::paso]]
+            if serie[-1]["fecha"] != hist[-1]["fecha"][:10]:
+                serie.append({"fecha": hist[-1]["fecha"][:10], "precio": ahora})
             d = dict(row)
-            d["historico"] = serie
-            elegidos.append(d)
-            vistos_tienda[tienda] = vistos_tienda.get(tienda, 0) + 1
+            d.update({
+                "precio_actual": ahora,
+                "precio_referencia": round(ref, 2),
+                "descuento_real": round(desc * 100),
+                "historico_desde": hist[0]["fecha"][:10],
+                "historico": serie,
+            })
+            validos.append(d)
 
+    # Mejores primero (descuento real), sin repetir marca y sin que una tienda copa todo.
+    validos.sort(key=lambda d: (-d["descuento_real"], -(d["deal_score"] or 0)))
+    tope_tienda = max(3, -(-n * 6 // 10))   # ≤60 % de las cards por tienda
+    elegidos, por_tienda, marcas = [], {}, set()
+    # Se relaja por fases: primero el tope por tienda, y SOLO al final se permite
+    # repetir marca (dos barras Panasonic seguidas parecen spam, no variedad).
+    for fase in ("marca+tienda", "marca", "nada"):
+        for d in validos:
+            if len(elegidos) >= n:
+                break
+            if d in elegidos:
+                continue
+            marca = (d["titulo"] or "").split(" - ")[0].split()[0].lower() if d["titulo"] else ""
+            if fase != "nada" and marca in marcas:
+                continue
+            if fase == "marca+tienda" and por_tienda.get(d["tienda"], 0) >= tope_tienda:
+                continue
+            elegidos.append(d)
+            marcas.add(marca)
+            por_tienda[d["tienda"]] = por_tienda.get(d["tienda"], 0) + 1
+
+    _VITRINA_CACHE.update({"ts": _t.time(), "n": n, "data": elegidos})
     return JSONResponse(content=elegidos)
 
 
