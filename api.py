@@ -1370,6 +1370,14 @@ def get_deals_vitrina(n: int = Query(default=8, ge=1, le=12)):
             desc = 1 - ahora / ref
             if desc < 0.40:
                 continue
+            # ¿Bate su mínimo o lo repite? Se mira el tramo final en que lleva a este
+            # precio: si ANTES de ese tramo ya había estado igual de barato, lo repite.
+            # Sin esto la card decía "nunca había estado tan barato" de un producto
+            # que ya costaba eso el primer día que lo vimos.
+            i = len(precios) - 1
+            while i > 0 and precios[i - 1] <= ahora * 1.01:
+                i -= 1
+            primera_vez = all(p > ahora * 1.01 for p in precios[:i])
             paso = max(1, len(hist) // 30)
             serie = [{"fecha": h["fecha"][:10], "precio": h["precio"]} for h in hist[::paso]]
             if serie[-1]["fecha"] != hist[-1]["fecha"][:10]:
@@ -1380,12 +1388,14 @@ def get_deals_vitrina(n: int = Query(default=8, ge=1, le=12)):
                 "precio_referencia": round(ref, 2),
                 "descuento_real": round(desc * 100),
                 "historico_desde": hist[0]["fecha"][:10],
+                "minimo_desde": hist[i]["fecha"][:10],   # desde cuándo está a este precio
+                "bate_minimo": primera_vez,               # True = nunca lo habíamos visto tan barato
                 "historico": serie,
             })
             validos.append(d)
 
     # Mejores primero (descuento real), sin repetir marca y sin que una tienda copa todo.
-    validos.sort(key=lambda d: (-d["descuento_real"], -(d["deal_score"] or 0)))
+    validos.sort(key=lambda d: (not d["bate_minimo"], -d["descuento_real"], -(d["deal_score"] or 0)))
     tope_tienda = max(3, -(-n * 6 // 10))   # ≤60 % de las cards por tienda
     elegidos, por_tienda, marcas = [], {}, set()
     # Se relaja por fases: primero el tope por tienda, y SOLO al final se permite
