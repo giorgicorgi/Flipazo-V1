@@ -128,48 +128,76 @@ WALLAPOP_COSTES_FIJOS   = WALLAPOP_ENVIO + WALLAPOP_EMBALAJE  # 7€
 # CLAVE: Amazon topa cada búsqueda en ~400 resultados. Una query multi-marca
 # (`k=samsung+lg+sony+...`) colapsa todas esas marcas en 400 resultados totales; UNA query
 # por marca da a CADA marca su propio universo de ~400 → separar marcas multiplica la
-# cobertura del catálogo. El descuento se filtra en la URL (`_AMAZON_DISCOUNT_NODE`).
+# cobertura del catálogo.
+# ⚠️ `_AMAZON_DISCOUNT_NODE` YA NO filtra ≥40% (comprobado 16-nov-2026): devuelve una mezcla
+# ordenada por popularidad (Ninja: −41%, −37%… −14%). El ≥40% lo aplica `_precio_aceptable`.
+# Que una búsqueda dé "16 resultados → 0 nuevos" es normal: ninguno de los populares llega al 40%.
 _AMAZON_DISCOUNT_NODE = "p_n_pct-off-with-tax%3A2388626011"
 _AMAZON_SORT          = "exact-aware-popularity-rank"
 
-# categoría i= de Amazon → marcas (cada par es una búsqueda propia)
+# categoría i= de Amazon → marcas (cada par es una búsqueda propia).
+# ⚠️ El `i=` tiene que ser un alias REAL de amazon.es (desplegable del buscador). Con un alias
+# inexistente, o SIN `i=`, el filtro de descuento hace que Amazon responda "No hay resultados":
+# así estuvieron muertas desde el principio "sports" (el bueno es "sporting"), "photo" (no existe,
+# la foto va en electronics) y las 8 búsquedas globales (Royal Canin, Yamaha, HP impresora…).
+# Antes de añadir un departamento nuevo, comprobar que devuelve tarjetas con el filtro puesto.
 _AMAZON_MARCAS = {
     "electronics": ["samsung", "lg", "sony", "xiaomi", "philips", "panasonic", "tcl", "hisense",
                     "jbl", "bose", "marshall", "anker", "sonos", "tp-link", "logitech", "sandisk",
                     "kingston", "seagate", "western digital", "crucial", "huawei", "echo dot",
-                    "fire tv", "airpods", "quietcomfort", "sennheiser", "jabra", "hyperx"],
+                    "fire tv", "airpods", "quietcomfort", "sennheiser", "jabra", "hyperx",
+                    "apple", "beats", "kindle", "ring", "tapo", "google pixel", "motorola",
+                    "oneplus", "audio-technica", "soundcore", "edifier", "denon", "yamaha",
+                    # foto (amazon.es no tiene departamento propio: va en Electrónica)
+                    "canon", "nikon", "gopro", "fujifilm", "dji", "insta360", "instax", "manfrotto"],
     "computers":   ["lenovo", "hp", "dell", "asus", "acer", "msi", "gigabyte", "corsair", "razer",
-                    "logitech", "steelseries", "netgear", "microsoft surface", "aoc", "benq"],
+                    "logitech", "steelseries", "netgear", "microsoft surface", "aoc", "benq",
+                    "apple macbook", "asus rog", "elgato", "synology", "lexar", "keychron", "ugreen"],
     "videogames":  ["nintendo switch", "playstation 5", "xbox", "ps5", "ps4", "juego switch",
-                    "mando gaming", "turtle beach"],
+                    "mando gaming", "turtle beach", "meta quest", "8bitdo", "nacon", "thrustmaster"],
     "shoes":       ["nike", "adidas", "new balance", "asics", "puma", "reebok", "vans", "converse",
-                    "skechers", "timberland", "salomon", "brooks", "saucony", "hoka"],
+                    "skechers", "timberland", "salomon", "brooks", "saucony", "hoka",
+                    "on running", "mizuno", "merrell", "birkenstock", "dr. martens", "ugg",
+                    "clarks", "geox", "camper", "crocs"],
     "beauty":      ["perfume", "eau de parfum", "colonia", "la roche posay", "isdin", "cerave",
                     "avene", "vichy", "eucerin", "bioderma", "sesderma", "l'oreal", "garnier",
-                    "nivea", "maybelline", "rituals", "dyson airwrap"],
+                    "nivea", "maybelline", "rituals", "dyson airwrap", "clinique", "estee lauder",
+                    "lancome", "shiseido", "kerastase", "olaplex", "the ordinary",
+                    "carolina herrera", "paco rabanne"],
     "kitchen":     ["nespresso", "delonghi", "cecotec", "tefal", "kenwood", "kitchenaid", "krups",
-                    "moulinex", "russell hobbs", "taurus", "braun", "instant pot", "sage", "oster"],
+                    "moulinex", "russell hobbs", "taurus", "braun", "instant pot", "sage", "oster",
+                    "ninja", "cosori", "philips airfryer", "smeg", "jura", "melitta", "bialetti",
+                    "wmf", "zwilling", "fissler", "le creuset", "lékué"],
     "appliances":  ["dyson", "samsung", "lg", "bosch", "siemens", "balay", "whirlpool", "haier",
-                    "beko", "candy", "aeg", "hisense", "teka", "rowenta", "shark", "irobot roomba"],
+                    "beko", "candy", "aeg", "hisense", "teka", "rowenta", "shark", "irobot roomba",
+                    "roborock", "dreame", "ecovacs", "tineco", "levoit", "miele", "electrolux",
+                    "de'longhi"],
     "hpc":         ["braun", "philips", "oral-b", "remington", "wahl", "cecotec", "gillette",
-                    "babyliss", "xiaomi", "ghd"],
+                    "babyliss", "xiaomi", "ghd", "oral-b io", "foreo", "laifen", "panasonic"],
     "toys":        ["playmobil", "hasbro", "mattel", "hot wheels", "funko", "nerf", "barbie", "lego",
                     "fisher-price", "ravensburger", "schleich", "vtech", "clementoni", "spin master",
-                    "bandai", "bruder", "famosa", "play-doh", "monopoly"],
+                    "bandai", "bruder", "famosa", "play-doh", "monopoly", "pokemon", "star wars",
+                    "little tikes", "geomag", "magformers"],
     "watches":     ["casio", "seiko", "g-shock", "citizen", "fossil", "garmin", "polar", "suunto",
-                    "amazfit", "festina", "tissot", "michael kors"],
-    "photo":       ["canon", "nikon", "sony", "gopro", "fujifilm", "dji", "insta360"],
-    "sports":      ["garmin", "fitbit", "polar", "amazfit", "under armour", "salomon",
-                    "the north face", "columbia", "wilson", "head"],
+                    "amazfit", "festina", "tissot", "michael kors", "apple watch",
+                    "samsung galaxy watch", "swatch"],
+    "sporting":    ["garmin", "fitbit", "polar", "amazfit", "under armour", "salomon",
+                    "the north face", "columbia", "wilson", "head", "patagonia", "helly hansen",
+                    "osprey", "shimano", "hydro flask", "therabody"],
     "diy":         ["bosch", "dewalt", "makita", "milwaukee", "karcher", "stanley", "black decker",
-                    "einhell", "worx", "ryobi", "gardena", "bahco"],
-    "luggage":     ["samsonite", "american tourister", "eastpak", "delsey", "roncato", "gabol"],
-    "baby":        ["chicco", "maxi-cosi", "cybex", "jane", "philips avent", "nuk", "suavinex"],
-    "automotive":  ["michelin", "bosch coche", "castrol", "osram", "xiaomi patinete", "garmin gps"],
+                    "einhell", "worx", "ryobi", "gardena", "bahco", "dremel", "metabo", "hikoki",
+                    "festool", "ego power", "greenworks"],
+    "luggage":     ["samsonite", "american tourister", "eastpak", "delsey", "roncato", "gabol",
+                    "cabin max"],
+    "baby":        ["chicco", "maxi-cosi", "cybex", "jane", "philips avent", "nuk", "suavinex",
+                    "bugaboo", "stokke", "joie", "britax romer", "tommee tippee"],
+    "automotive":  ["michelin", "bosch coche", "castrol", "osram", "xiaomi patinete", "garmin gps",
+                    "nextbase", "70mai", "noco", "ctek"],
+    # Antes eran búsquedas "globales" sin i= → 0 resultados siempre. Ahora en su departamento.
+    "pets":        ["royal canin", "purina", "hill's", "advance", "kong", "furminator"],
+    "mi":          ["yamaha", "fender", "roland", "korg", "boss", "casio teclado"],
+    "office-products": ["hp impresora", "epson impresora", "brother impresora", "canon impresora"],
 }
-# Categorías sin i= fiable → búsqueda de marca en todo el catálogo (igual de válida)
-_AMAZON_MARCAS_GLOBAL = ["yamaha", "fender", "roland teclado", "hp impresora", "epson impresora",
-                         "brother impresora", "royal canin", "purina"]
 
 def _build_amazon_urls() -> list[str]:
     base = "https://www.amazon.es/s?{cat}k={k}&rh=" + _AMAZON_DISCOUNT_NODE + "&s=" + _AMAZON_SORT
@@ -177,11 +205,9 @@ def _build_amazon_urls() -> list[str]:
     for cat, marcas in _AMAZON_MARCAS.items():
         for m in marcas:
             urls.append(base.format(cat=f"i={cat}&", k=urllib.parse.quote_plus(m)))
-    for m in _AMAZON_MARCAS_GLOBAL:
-        urls.append(base.format(cat="", k=urllib.parse.quote_plus(m)))
     return urls
 
-AMAZON_SEARCH_URLS = _build_amazon_urls()   # ~230 búsquedas (categoría × marca)
+AMAZON_SEARCH_URLS = _build_amazon_urls()   # ~340 búsquedas (categoría × marca)
 
 # Nº de búsquedas por ciclo (rotación) — barre todo el catálogo en varios ciclos sin
 # martillear Amazon de golpe (limita CAPTCHA y tiempo de ciclo). Env-ajustable.
