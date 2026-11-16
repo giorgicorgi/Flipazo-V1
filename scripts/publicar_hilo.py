@@ -5,11 +5,12 @@ publicar_hilo.py — Publica en Threads el hilo que toque hoy.
 Lee la cola de `scripts/hilos_programados.json` (un hilo por fecha) y publica
 el de HOY encadenado: cada post es respuesta al anterior vía `reply_to_id`.
 
-Cron (dos franjas; cada hilo lleva la suya en el JSON):
+Cron (una línea por franja; cada hilo lleva la suya en el JSON, campo "hora"):
     0 10 * * *  cd /home/flipazo/app && ./venv/bin/python scripts/publicar_hilo.py \
                 >> /home/flipazo/app/hilos.log 2>&1
-    0 18 * * *  cd /home/flipazo/app && ./venv/bin/python scripts/publicar_hilo.py \
+    0 19 * * *  cd /home/flipazo/app && ./venv/bin/python scripts/publicar_hilo.py \
                 >> /home/flipazo/app/hilos.log 2>&1
+    (Hasta el 16-nov-2026 la franja de tarde era las 18:00; desde el 17, las 19:00.)
 
 La franja importa: 16-19h da mediana 18.026 views y la noche 20-23h solo 9.447.
 La mañana queda en medio (15.490) y es donde van los que se recuperan de un día
@@ -90,8 +91,10 @@ def main() -> int:
     # La franja la decide el JSON, no el cron: así un mismo día puede llevar dos
     # hilos (p. ej. uno de recuperación a las 10 y el del día a las 18) sin que
     # el cron de una hora se lleve el hilo de la otra.
+    # Franja = la hora en punto en que corre el cron (10:00, 18:00, 19:00…). Para
+    # añadir una franja basta con poner esa hora en el JSON y un cron a esa hora.
     ahora = os.getenv("HILO_HORA") or datetime.now().strftime("%H:%M")
-    franja = "10:00" if ahora < "14:00" else "18:00"
+    franja = f"{ahora[:2]}:00"
 
     cola = json.load(open(COLA, encoding="utf-8"))
     hilo = next((h for h in cola
