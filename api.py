@@ -1273,6 +1273,27 @@ def get_count():
     return {"total": total, "historico": historico, "desde": desde[:10]}
 
 
+@app.get("/api/deals/tiendas")
+def get_tiendas():
+    """Tiendas con ofertas publicadas y cuántas tiene cada una.
+
+    Para el panel de Filtros de la web: antes la lista salía de una constante del
+    HTML (`_KNOWN_STORES`) más una muestra de 500 ofertas, y cualquier tienda que no
+    estuviera en ninguna de las dos no aparecía (The Beauty Corner, Roxy, Braun y
+    Suunto, nov-2026). Con esto la lista es siempre la real.
+    """
+    with _get_db() as con:
+        rows = con.execute(
+            "SELECT tienda, COUNT(*) FROM deals_publicados "
+            "WHERE tienda IS NOT NULL AND tienda != '' "
+            "GROUP BY tienda ORDER BY COUNT(*) DESC"
+        ).fetchall()
+    return JSONResponse(
+        content=[{"tienda": t, "n": n} for t, n in rows],
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
 @app.get("/api/promociones")
 def get_promociones(limit: int = Query(default=40, ge=1, le=100)):
     """Promos/cupones de tienda VIGENTES HOY (AWIN + Tradedoubler), con código primero.
