@@ -190,8 +190,9 @@ discovery/               ← scoring.py + emotional_layer.py (hooks con Haiku)
    fallos aislados y ningún comercio desplaza a otro. La apikey **nunca** va a git.
 4. **Cablear:** `_MERCHANT_MAP` + `_PUBLICABLE`/`_SOLO_HISTORICO` en `awin_feed.py`;
    `_TIENDAS_FEED_CONFIABLE` en `flipazo_main.py` si el descuento lo verificamos nosotros.
-5. **Web:** añadir la tienda a `_KNOWN_STORES` en `index.html` (si no, solo aparece en el
-   filtro cuando casualmente tenga deals en el primer lote) y a `_STORE_LABELS` si el
+5. **Web:** el panel de Filtros saca las tiendas de `/api/deals/tiendas` (todas las que tienen
+   ofertas), así que aparece sola. Añadirla igualmente a `_KNOWN_STORES` en `index.html`
+   (respaldo si la API falla, y lo usa el editor de "Para ti") y a `_STORE_LABELS` si el
    nombre del feed no es presentable. Opcional: `_MH_STORES` para el carrusel de Explorar.
 6. **Verificar de verdad:** ejecutar el feed, comprobar categoría asignada
    (`_inferir_categoria`), que el enlace de afiliado sea el `aw_deep_link`, que

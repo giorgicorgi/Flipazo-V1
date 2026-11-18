@@ -2907,10 +2907,10 @@
     .fpanel__pill:active:not(.fpanel__pill--active) { opacity: 0.72; }
 
     /* ── Panel de filtros con el lenguaje del editor de "Para ti" ──────
-       Reutiliza .prefs__cat / .prefs__chip / .prefs__subpill. Lo propio: la
-       categoría es de selección ÚNICA (círculo con ✓ en vez de interruptor, que
-       sugeriría poder encender varias), el número de filtros activos y el botón
-       pegado abajo para que "Ver ofertas" esté siempre a mano en el móvil. */
+       Reutiliza .prefs__cat / .prefs__switch / .prefs__chip / .prefs__subpill: se
+       comporta igual que "Para ti" (varias categorías, subcategorías y tiendas).
+       Lo propio: el número de filtros activos, las tiendas plegadas con "Ver todas"
+       y el botón pegado abajo para que "Ver ofertas" esté siempre a mano. */
     #js-filter-panel { max-height: 88vh; padding-bottom: 0; }
     #js-filter-panel .prefs__cat-row { padding: 11px 14px; }
     @media (min-width: 768px) {
@@ -2933,15 +2933,16 @@
       font-size: 11px; font-weight: 900; vertical-align: 2px;
     }
     .fsel__badge[hidden] { display: none; }
-    .fsel__radio {
-      position: relative; flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
-      border: 2px solid var(--border); transition: border-color .15s, background .15s;
+    /* Tiendas: chips más pequeños para que quepan más por fila; plegadas a ~3 filas */
+    .fsel__tiendas { gap: 5px; }
+    .fsel__tiendas .prefs__chip { padding: 6px 11px; font-size: 12px; }
+    .fsel__vermas {
+      font-family: var(--sans); font-size: 12px; font-weight: 800; cursor: pointer;
+      padding: 6px 11px; border-radius: 9999px; background: none;
+      border: 1.5px dashed var(--teal); color: #0D7A6F;
     }
-    .prefs__cat--on .fsel__radio { border-color: var(--teal); background: var(--teal); }
-    .prefs__cat--on .fsel__radio::after {
-      content: ""; position: absolute; left: 5.5px; top: 2px; width: 5px; height: 10px;
-      border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
-    }
+    [data-theme="dark"] .fsel__vermas { color: #5FCBBB; }
+    .fsel__vermas:active { opacity: .7; }
     .fsel__price { margin-top: 10px; }
     .fsel__footer {
       position: sticky; bottom: 0; z-index: 2; background: var(--paper);
@@ -4055,9 +4056,16 @@
     if (p.precio_min > 0 && precio < p.precio_min) return false;
     if (p.precio_max !== null && p.precio_max !== undefined && precio > p.precio_max) return false;
     if (p.stores && p.stores.length && !p.stores.includes(deal.tienda)) return false;
-    return p.cats.some(catId => {
+    return _encajaEnCats(deal, p);
+  }
+
+  // ¿Encaja en alguna de las categorías elegidas (y, si se afinó, en alguna de sus
+  // subcategorías)? La comparten "Para ti" y el panel de Filtros: así filtrar a mano
+  // y "Para ti" dan exactamente lo mismo con la misma selección.
+  function _encajaEnCats(deal, sel) {
+    return sel.cats.some(catId => {
       if (!dealInCategory(deal, catId)) return false;
-      const elegidas = _subcatsDe(p, catId);
+      const elegidas = _subcatsDe(sel, catId);
       if (!elegidas.length) return true;               // sin afinar → toda la categoría
       const sd = _SUBCAT_DEFS[catId];
       if (!sd) return true;
@@ -4067,6 +4075,19 @@
         return sc ? sc.test(deal) : false;
       });
     });
+  }
+
+  // ── Selección del panel de Filtros: VARIAS categorías, subcategorías y tiendas ──
+  // Mismo formato que las preferencias de "Para ti" ({cats, subcats, stores}). Es la
+  // fuente de verdad mientras está activa: al usarla, activeCategory/activeStore se
+  // quedan neutros ("todas"/""), y cualquier otra navegación (home móvil, pestañas,
+  // logo…) la limpia con _fselLimpiar().
+  let _fsel = { cats: [], subcats: {}, stores: [] };
+  function _fselActivo() { return _fsel.cats.length > 0 || _fsel.stores.length > 0; }
+  function _fselLimpiar() { _fsel = { cats: [], subcats: {}, stores: [] }; }
+  function _dealMatchesSel(deal) {
+    if (_fsel.stores.length && !_fsel.stores.includes(deal.tienda)) return false;
+    return !_fsel.cats.length || _encajaEnCats(deal, _fsel);
   }
 
   // Las subcategorías se guardan como {categoria: [id, ...]}. Se acepta el
@@ -4079,6 +4100,7 @@
 
   function dealMatchesFilters(deal) {
     if (_paraTiView && !dealMatchesPrefs(deal)) return false;
+    if (_fselActivo() && !_dealMatchesSel(deal)) return false;
     if (activeLowCost && (deal.precio_actual || 0) >= 25) return false;
     const p = deal.precio_actual || 0;
     if (activePriceMin > 0 && p < activePriceMin) return false;
@@ -4180,6 +4202,7 @@
 
     activeCategory   = "todas";
     _resetSubcats();
+    _fselLimpiar();
     document.querySelectorAll('.cat-pill').forEach(b =>
       b.classList.toggle('cat-pill--active', b.dataset.cat === 'todas'));
 
@@ -4499,7 +4522,7 @@
   }
 
   function shouldShowHero() {
-    return activeSort === "recientes" && activeCategory === "todas" && !searchQuery && !activeStore && !activeLowCost;
+    return activeSort === "recientes" && activeCategory === "todas" && !searchQuery && !activeStore && !activeLowCost && !_fselActivo();
   }
 
   function getDealOfDay(deals) {
@@ -4930,7 +4953,7 @@
   }
 
   function _shouldShowIntro() {
-    return !_introDismissed && activeCategory === "todas" && !searchQuery && !activeStore && !activeLowCost;
+    return !_introDismissed && activeCategory === "todas" && !searchQuery && !activeStore && !activeLowCost && !_fselActivo();
   }
 
   function dismissIntroHero() {
@@ -5529,7 +5552,7 @@
     showLoading(true);
 
     try {
-      const isCatFilter = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo() || _paraTiView;
+      const isCatFilter = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo() || _paraTiView || _fselActivo();
       const limit = isCatFilter ? 200 : PAGE_SIZE;
       const batch = await fetchDeals(limit, currentOffset);
       if (batch.length < limit) hasMore = false;
@@ -5552,7 +5575,7 @@
       if (emptyEl) emptyEl.remove();
 
       const sorted    = sortDeals(newDeals.filter(d => dealMatchesFilters(d)));
-      const gridDeals = (currentOffset <= PAGE_SIZE && heroMode && activeCategory === "todas" && !activeStore)
+      const gridDeals = (currentOffset <= PAGE_SIZE && heroMode && activeCategory === "todas" && !activeStore && !_fselActivo())
         ? sortDeals(allDeals.filter(d => dealMatchesFilters(d))).filter(d => d.id !== _heroId)
         : sorted;
 
@@ -5567,7 +5590,7 @@
 
       // Con filtro activo (categoría/tienda/sort) cargamos TODAS las páginas para
       // mostrar absolutamente todo lo que cae en esa categoría, no solo la 1ª página.
-      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo() || _paraTiView;
+      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo() || _paraTiView || _fselActivo();
       if (hasMore && (_wantAll || grid.querySelectorAll(".deal").length < 8)) {
         showLoading(false); isLoading = false; loadMore(); return;
       }
@@ -5680,6 +5703,7 @@
         if (activeCategory === btn.dataset.cat) return;
         activeCategory = btn.dataset.cat;
         _resetSubcats();
+        _fselLimpiar();
         _lowCostOff();   // elegir categoría te saca del filtro "Menos de 25€"
         bar.querySelectorAll(".cat-pill").forEach(b => b.classList.remove("cat-pill--active"));
         btn.classList.add("cat-pill--active");
@@ -5708,6 +5732,7 @@
     let t = activeCategory !== "todas"
       ? (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Clasificados")
       : (titles[activeSort] || "Clasificados");
+    if (_fselActivo()) t = _fselTitulo();
     if (activeLowCost) t = (activeCategory !== "todas") ? (t + " · −25€") : "Menos de 25€";
     const el = document.getElementById("js-section-title");
     if (el) el.textContent = t;
@@ -5725,7 +5750,7 @@
       renderGrid();
       // Con un filtro que exige TODAS las páginas (low-cost/categoría/tienda), seguir
       // cargando el resto en vez de quedarse con lo ya cargado en memoria.
-      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo() || _paraTiView;
+      const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo() || _paraTiView || _fselActivo();
       if (_wantAll && hasMore && !isLoading) loadMore();
     } else {
       allDeals = []; currentOffset = 0; hasMore = true;
@@ -5858,7 +5883,9 @@
     "Paco Perfumerias", "OneBioShop", "Carrefour",
     "Foot Locker", "TodoConsolas", "Bauhaus",
     // Tenían ofertas vivas y aun así no aparecían en el filtro
-    "Quiksilver", "Tefal", "Element", "DC Shoes", "Eureka Electrodomésticos"
+    "Quiksilver", "Tefal", "Element", "DC Shoes", "Eureka Electrodomésticos",
+    // Respaldo si /api/deals/tiendas no responde (la lista buena sale de ahí)
+    "The Beauty Corner", "Roxy", "Braun", "Suunto"
   ];
 
   // Algunas tiendas se guardan sin espacios ni acentos (el nombre viene del feed).
@@ -5903,6 +5930,7 @@
         const store = btn.dataset.store;
         if (activeStore === store) return;
         activeStore = store;
+        _fselLimpiar();
         bar.querySelectorAll(".store-pill").forEach(b => b.classList.remove("store-pill--active"));
         btn.classList.add("store-pill--active");
         buildSubcatBar();   // al cambiar de tienda, recalcular subcategorías disponibles
@@ -6237,7 +6265,7 @@
 
   function _isMobileViewport() { return window.innerWidth <= 767; }
   function _isMobileDiscovery() {
-    return _isMobileViewport() && activeCategory === "todas" && activeSort === "recientes" && !activeLowCost && !searchQuery;
+    return _isMobileViewport() && activeCategory === "todas" && activeSort === "recientes" && !activeLowCost && !searchQuery && !_fselActivo();
   }
 
   // Sincroniza el toggle móvil Explorar/Todo — llamado desde los dos "choke points"
@@ -6301,7 +6329,7 @@
       goBackToMhome();
     } else {
       _salirParaTi();
-      activeCategory = "todas"; _resetSubcats(); activeSort = "recientes"; activeLowCost = false;
+      activeCategory = "todas"; _resetSubcats(); _fselLimpiar(); activeSort = "recientes"; activeLowCost = false;
       _showRegularGrid();
       allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
       document.getElementById("js-grid").innerHTML = "";
@@ -6418,7 +6446,7 @@
     if (!_tienePrefs()) { openPrefsEditor(); return; }   // sin intereses aún → configurarlos primero
     if (_paraTiView) { openPrefsEditor(); return; }
     _paraTiView = true;
-    activeCategory = "todas"; _resetSubcats();
+    activeCategory = "todas"; _resetSubcats(); _fselLimpiar();
     activeSort = "recientes"; activeLowCost = false; activeStore = "";
     _showRegularGrid();
     _syncParaTiUI();
@@ -6833,6 +6861,7 @@
     // Reset estado de navegación al inicial — clave para que el home funcione correctamente
     activeCategory   = "todas";
     _resetSubcats();
+    _fselLimpiar();
     activeSort       = "recientes";
     activeLowCost    = false;
     if (_mhomeDeals.length) renderMobileHome(_mhomeDeals);
@@ -7345,6 +7374,7 @@
     const btn = bar ? bar.querySelector(`[data-cat="${catId}"]`) : null;
     if (btn) {
       activeCategory = catId;
+      _fselLimpiar();
       activeSort = "recientes";
       document.querySelectorAll(".sort-tab").forEach(b => b.classList.toggle("sort-tab--active", b.dataset.sort === "recientes"));
       bar.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === catId));
@@ -7367,6 +7397,7 @@
     activeStore = storeName;
     activeSort = "recientes";
     activeCategory = "todas";
+    _fselLimpiar();
     document.querySelectorAll(".sort-tab").forEach(b => b.classList.toggle("sort-tab--active", b.dataset.sort === "recientes"));
     const cb = document.getElementById("js-cat-bar");
     if (cb) cb.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "todas"));
@@ -7411,6 +7442,7 @@
     if (back && _isMobileViewport()) back.style.display = "inline-flex";
     activeCategory = catId;
     _resetSubcats();
+    _fselLimpiar();
     const sd = _SUBCAT_DEFS[catId];
     if (sd) sd.set(subcatId);
     activeSort = "recientes";
@@ -7479,6 +7511,7 @@
       pmin:    activePriceMin,
       pmax:    activePriceMax,
       q:       searchQuery,
+      sel:     JSON.parse(JSON.stringify(_fsel)),
       sub: {
         tecnologia: activeTechSubcat, moda: activeModaSubcat, deportes: activeDeporteSubcat,
         belleza: activeBellezaSubcat, hogar: activeHogarSubcat,
@@ -7488,7 +7521,7 @@
   }
 
   function _viewSig(s) {
-    return JSON.stringify([s.home, s.desktop, s.parati, s.cat, s.store, s.sort, s.low, s.pmin, s.pmax, s.q, s.sub]);
+    return JSON.stringify([s.home, s.desktop, s.parati, s.cat, s.store, s.sort, s.low, s.pmin, s.pmax, s.q, s.sub, s.sel]);
   }
 
   // Actualiza la entrada actual sin apilar otra. Se usa cuando la vista se
@@ -7524,6 +7557,7 @@
       activePriceMin  = s.pmin ?? 0;
       activePriceMax  = s.pmax ?? null;
       searchQuery     = s.q ?? "";
+      _fsel = (s.sel && Array.isArray(s.sel.cats)) ? JSON.parse(JSON.stringify(s.sel)) : { cats: [], subcats: {}, stores: [] };
       _resetSubcats();
       const sub = s.sub || {};
       Object.keys(sub).forEach(k => { const d = _SUBCAT_DEFS[k]; if (d) d.set(sub[k] || "todas"); });
@@ -7657,11 +7691,119 @@
   }
   // Nº de filtros puestos, en la cabecera del panel ("Filtros 2")
   function _fpSyncCabecera() {
-    const n = (activeCategory !== "todas" ? 1 : 0) + (_subcatActivaLabel() ? 1 : 0)
-            + (activeStore ? 1 : 0) + ((activePriceMin > 0 || activePriceMax !== null) ? 1 : 0)
+    const n = _fsel.cats.length + _fsel.stores.length
+            + (activeCategory !== "todas" ? 1 : 0) + (activeStore ? 1 : 0)
+            + ((activePriceMin > 0 || activePriceMax !== null) ? 1 : 0)
             + (activeSort !== "recientes" ? 1 : 0) + (activeLowCost ? 1 : 0);
     const b = document.getElementById("js-fpanel-nactivos");
     if (b) { b.textContent = n; b.hidden = !n; }
+  }
+
+  // ── Tiendas para el panel: la lista REAL de la API (todas las que tienen ofertas
+  // y cuántas), con la constante + la muestra como respaldo si la API no responde.
+  let _tiendasVivas = null;   // { "Amazon": 1137, ... }
+  async function _cargarTiendasVivas() {
+    if (USE_MOCK) return;
+    try {
+      const r = await fetch(API_BASE + "/api/deals/tiendas");
+      if (!r.ok) return;
+      const lista = await r.json();
+      _tiendasVivas = {};
+      lista.forEach(t => { if (t && t.tienda) _tiendasVivas[t.tienda] = t.n || 0; });
+      if (document.getElementById("js-filter-panel")?.classList.contains("open")) buildFilterPanel();
+    } catch {}
+  }
+  // Amazon primero; después, las que más ofertas tienen (lo útil arriba)
+  function _tiendasOrdenadas() {
+    let nombres, cuenta;
+    if (_tiendasVivas && Object.keys(_tiendasVivas).length) {
+      nombres = Object.keys(_tiendasVivas);
+      cuenta  = _tiendasVivas;
+    } else {
+      cuenta = {};
+      _poolDeals().forEach(d => { if (d.tienda) cuenta[d.tienda] = (cuenta[d.tienda] || 0) + 1; });
+      nombres = [..._allStores()].filter(Boolean);
+    }
+    _fsel.stores.forEach(st => { if (!nombres.includes(st)) nombres.push(st); });
+    return nombres.sort((x, y) =>
+      (y === "Amazon") - (x === "Amazon") ||
+      (cuenta[y] || 0) - (cuenta[x] || 0) ||
+      _storeLabel(x).localeCompare(_storeLabel(y), "es"));
+  }
+  const _FP_TIENDAS_PLEGADAS = 12;   // ~3 filas en un móvil
+  let _fpTiendasAbiertas = false;
+  function fpanelVerTiendas() { _fpTiendasAbiertas = !_fpTiendasAbiertas; buildFilterPanel(); }
+
+  // Título de la sección con lo elegido: "Tecnología + Hogar · Amazon"
+  function _fselTitulo() {
+    const cats = _fsel.cats.map(id => {
+      const c = CATEGORIAS.find(x => x.id === id);
+      const subs = _subcatsDe(_fsel, id);
+      const sd = _SUBCAT_DEFS[id];
+      const lab = c ? c.label : id;
+      return (subs.length === 1 && sd) ? `${lab} — ${(sd.list.find(x => x.id === subs[0]) || {}).label || ""}` : lab;
+    });
+    const tiendas = _fsel.stores.map(_storeLabel);
+    const parte = (l, max) => l.length <= max ? l.join(" + ") : `${l.slice(0, max).join(" + ")} +${l.length - max}`;
+    return [cats.length ? parte(cats, 2) : "", tiendas.length ? parte(tiendas, 2) : ""].filter(Boolean).join(" · ") || "Clasificados";
+  }
+
+  // Tras cada toque: la selección manda y el estado antiguo de una sola
+  // categoría/tienda se queda neutro; se recarga el listado al momento.
+  function _fselAplicar() {
+    activeCategory = "todas"; activeStore = ""; _resetSubcats(); _lowCostOff();
+    document.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "todas"));
+    document.querySelectorAll(".store-pill").forEach(b => b.classList.toggle("store-pill--active", !b.dataset.store));
+    const sinNada = !_fselActivo() && activeSort === "recientes" && !_priceFiltroActivo() && !searchQuery;
+    if (sinNada && _isMobileViewport()) {
+      // Sin ningún filtro, en el móvil lo natural es volver a Explorar
+      if (_mhomeDeals.length) { _showMobileHome(); renderMobileHome(_mhomeDeals); }
+      else { _mhomeLoading = false; loadMobileHome(); }
+    } else {
+      _showRegularGrid();
+      _updateSectionTitle();
+      allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
+      const g = document.getElementById("js-grid"); if (g) g.innerHTML = "";
+      window.scrollTo({ top: 0, behavior: "instant" });
+      loadMore();
+    }
+    updateIntroHero();
+    buildFilterPanel();
+  }
+  function fpanelToggleCat(catId) {
+    const i = _fsel.cats.indexOf(catId);
+    if (i >= 0) { _fsel.cats.splice(i, 1); delete _fsel.subcats[catId]; }
+    else _fsel.cats.push(catId);
+    _fselAplicar();
+  }
+  // Subcategorías: on/off independientes; "Todo" las quita (= toda la categoría)
+  function fpanelSetSubcat(catId, subId) {
+    if (subId === "todas") delete _fsel.subcats[catId];
+    else {
+      const lista = _subcatsDe(_fsel, catId);
+      const i = lista.indexOf(subId);
+      if (i >= 0) lista.splice(i, 1); else lista.push(subId);
+      if (lista.length) _fsel.subcats[catId] = lista; else delete _fsel.subcats[catId];
+    }
+    _fselAplicar();
+  }
+  function fpanelToggleTienda(store) {
+    const i = _fsel.stores.indexOf(store);
+    if (i >= 0) _fsel.stores.splice(i, 1); else _fsel.stores.push(store);
+    _fselAplicar();
+  }
+  // Si se llega al panel con una categoría/tienda puesta desde otro sitio (p. ej.
+  // "Ver todo" de Hogar en la home móvil), se pasa a la selección para que se vea
+  // encendida y se pueda combinar con otras. El resultado es el mismo.
+  function _fselImportar() {
+    if (_fselActivo()) return;
+    if (activeCategory !== "todas") {
+      _fsel.cats = [activeCategory];
+      const sd = _SUBCAT_DEFS[activeCategory];
+      if (sd && sd.get() !== "todas") _fsel.subcats[activeCategory] = [sd.get()];
+    }
+    if (activeStore) _fsel.stores = [activeStore];
+    if (_fselActivo()) { activeCategory = "todas"; activeStore = ""; _resetSubcats(); }
   }
 
   function buildFilterPanel() {
@@ -7670,75 +7812,79 @@
     const panel = document.getElementById("js-filter-panel");
     const scrollPrevio = panel ? panel.scrollTop : 0;   // se repinta en cada toque
 
-    // ── 1 · Categoría: tarjetas de selección única; su "afinar" cuelga debajo ──
-    const SUBS = {
-      tecnologia: [TECH_SUBCATS,    activeTechSubcat],
-      moda:       [MODA_SUBCATS,    activeModaSubcat],
-      deportes:   [DEPORTE_SUBCATS, activeDeporteSubcat],
-    };
+    // ── 1 · Categorías: interruptor on/off, varias a la vez; al encender una,
+    //        aparecen sus subcategorías debajo (también varias). Igual que "Para ti".
     const cats = CATEGORIAS.filter(c => !c.hidden && c.id !== "todas").map(c => {
-      const on = activeCategory === c.id;
-      const sd = SUBS[c.id];
-      const subs = (on && sd) ? `<div class="prefs__subs">
-          <span class="prefs__subs-label">Afinar ${c.label.toLowerCase()} <em>(opcional)</em></span>
-          <div class="prefs__subs-pills">${sd[0].map(s => {
-            const sel = (sd[1] || "todas") === s.id;
-            return `<button class="prefs__subpill${sel ? " prefs__subpill--on" : ""}" aria-pressed="${sel}"
-                      onclick="fpanelSelectSubcat('${c.id}','${s.id}')">${s.id === "todas" ? "Todo" : s.label}</button>`;
-          }).join("")}</div>
-        </div>` : "";
+      const on  = _fsel.cats.includes(c.id);
+      const def = _SUBCAT_DEFS[c.id];
+      const elegidas = _subcatsDe(_fsel, c.id);
+      const subs = (on && def)
+        ? `<div class="prefs__subs">
+             <span class="prefs__subs-label">Afinar ${c.label.toLowerCase()}
+               <em>${elegidas.length ? `· ${elegidas.length} de ${def.list.length - 1}` : "(opcional, puedes elegir varias)"}</em></span>
+             <div class="prefs__subs-pills">
+               <button class="prefs__subpill${!elegidas.length ? " prefs__subpill--on" : ""}"
+                       onclick="fpanelSetSubcat('${c.id}','todas')">Todo</button>
+               ${def.list.filter(x => x.id !== "todas").map(x =>
+                 `<button class="prefs__subpill${elegidas.includes(x.id) ? " prefs__subpill--on" : ""}"
+                          aria-pressed="${elegidas.includes(x.id)}"
+                          onclick="fpanelSetSubcat('${c.id}','${x.id}')">${x.label}</button>`).join("")}
+             </div>
+           </div>`
+        : "";
       return `<div class="prefs__cat${on ? " prefs__cat--on" : ""}">
-          <button class="prefs__cat-row" role="radio" aria-checked="${on}"
-                  onclick="fpanelSelectCat('${on ? "todas" : c.id}')">
-            <span class="prefs__cat-name">${c.label}</span>
-            <span class="fsel__radio" aria-hidden="true"></span>
-          </button>${subs}
-        </div>`;
+                <button class="prefs__cat-row" onclick="fpanelToggleCat('${c.id}')" role="switch" aria-checked="${on}">
+                  <span class="prefs__cat-name">${c.label}</span>
+                  <span class="prefs__switch" aria-hidden="true"></span>
+                </button>
+                ${subs}
+              </div>`;
     }).join("");
-    const catCount = activeCategory === "todas" ? "todas"
-      : ((CATEGORIAS.find(c => c.id === activeCategory) || {}).label || "");
+    const nCats = _fsel.cats.length;
 
-    // ── 2 · Tienda: solo las que tienen algo en la categoría elegida ──
-    let stores = [..._allStores()].filter(Boolean);
-    if (activeCategory !== "todas") {
-      const allowed = _storesForCategory(activeCategory);
-      if (allowed && allowed.size) stores = stores.filter(s => allowed.has(s));
-    }
-    stores.sort((a, b) => _storeLabel(a).localeCompare(_storeLabel(b), "es"));
-    const storeChips = stores.length
-      ? `<div class="prefs__chips">` + stores.map(s => {
-          const on = activeStore === s;
-          return `<button class="prefs__chip${on ? " prefs__chip--on" : ""}" aria-pressed="${on}"
-                    onclick="fpanelSelectStore('${s.replace(/'/g, "\\'")}')">${_storeLabel(s)}</button>`;
-        }).join("") + `</div>`
-      : `<p class="fsel__empty">Cargando tiendas…</p>`;
+    // ── 2 · Tiendas: varias a la vez, Amazon primero; plegadas con "Ver todas" ──
+    const todas = _tiendasOrdenadas();
+    let visibles = _fpTiendasAbiertas ? todas : todas.slice(0, _FP_TIENDAS_PLEGADAS);
+    // Una tienda elegida nunca se esconde tras el "Ver todas"
+    if (!_fpTiendasAbiertas) _fsel.stores.forEach(st => { if (!visibles.includes(st)) visibles.push(st); });
+    const ocultas = todas.length - visibles.length;
+    const chipTienda = st => {
+      const on = _fsel.stores.includes(st);
+      return `<button class="prefs__chip${on ? " prefs__chip--on" : ""}" aria-pressed="${on}"
+                onclick="fpanelToggleTienda('${st.replace(/'/g, "\\'")}')">${_storeLabel(st)}</button>`;
+    };
+    const verMas = (ocultas > 0 || _fpTiendasAbiertas) && todas.length > _FP_TIENDAS_PLEGADAS
+      ? `<button class="fsel__vermas" onclick="fpanelVerTiendas()" aria-expanded="${_fpTiendasAbiertas}">
+           ${_fpTiendasAbiertas ? "Ver menos ▴" : `Ver todas (${todas.length}) ▾`}</button>`
+      : "";
+    const nTiendas = _fsel.stores.length;
 
     wrap.innerHTML = `
       <div class="prefs__section-head">
-        <span class="fpanel__label" style="padding:0">1 · Categoría</span>
-        <span class="prefs__count">${catCount}</span>
+        <span class="fpanel__label" style="padding:0">1 · Categorías</span>
+        <span class="prefs__count">${nCats ? `${nCats} elegida${nCats > 1 ? "s" : ""}` : "todas · puedes elegir varias"}</span>
       </div>
-      <div class="prefs__cats" role="radiogroup" aria-label="Categoría">${cats}</div>
+      <div class="prefs__cats">${cats}</div>
       <div class="prefs__section-head" style="margin-top:16px">
-        <span class="fpanel__label" style="padding:0">2 · Tienda</span>
-        <span class="prefs__count">${activeStore ? _storeLabel(activeStore) : "todas"}</span>
+        <span class="fpanel__label" style="padding:0">2 · Tiendas</span>
+        <span class="prefs__count">${nTiendas ? `${nTiendas} elegida${nTiendas > 1 ? "s" : ""}` : "todas · puedes elegir varias"}</span>
       </div>
-      ${storeChips}`;
+      <div class="prefs__chips fsel__tiendas">${visibles.map(chipTienda).join("")}${verMas}</div>`;
 
     // ── 4 · Ordenar ──
     const sortWrap = document.getElementById("js-fpanel-sort");
     if (sortWrap) {
-      const sortLabel = ((_SORT_OPTS.find(s => s.id === activeSort) || {}).label || "Más recientes");
+      const sortLabel = ((_SORT_OPTS.find(x => x.id === activeSort) || {}).label || "Más recientes");
       sortWrap.innerHTML = `
         <div class="prefs__section-head" style="margin-top:16px">
           <span class="fpanel__label" style="padding:0">4 · Ordenar</span>
           <span class="prefs__count">${sortLabel.toLowerCase()}${activeLowCost ? " · menos de 25 €" : ""}</span>
         </div>
         <div class="prefs__chips">` +
-        _SORT_OPTS.map(s => {
-          const on = s.id === activeSort;
+        _SORT_OPTS.map(x => {
+          const on = x.id === activeSort;
           return `<button class="prefs__chip${on ? " prefs__chip--on" : ""}" aria-pressed="${on}"
-                    onclick="fpanelSelectSort('${s.id}')">${s.label}</button>`;
+                    onclick="fpanelSelectSort('${x.id}')">${x.label}</button>`;
         }).join("") +
         `<button class="prefs__chip${activeLowCost ? " prefs__chip--on" : ""}" aria-pressed="${activeLowCost}"
                  onclick="fpanelToggleLowCost()">💸 Menos de 25 €</button></div>`;
@@ -7787,6 +7933,7 @@
       // las casillas de precio del móvil no hacían nada (nunca tuvieron listeners).
       if (!_fpPrecioListo) { _priceSliderInit("js-fpanel-price"); _fpPrecioListo = true; }
       _priceSyncUI("js-fpanel-price");
+      _fselImportar();
       buildFilterPanel();
       panel.classList.add("open");
       backdrop.classList.add("open");
@@ -7808,6 +7955,7 @@
   }
 
   function fpanelSelectCat(catId) {
+    _fselLimpiar();
     if (catId === "todas" && activeSort === "recientes" && !activeLowCost && !searchQuery && _isMobileViewport()) {
       if (_mhomeDeals.length) { _showMobileHome(); renderMobileHome(_mhomeDeals); }
       else { _mhomeLoading = false; loadMobileHome(); }
@@ -7834,6 +7982,7 @@
 
   // Elegir tienda desde el panel móvil. Volver a pulsar la activa la quita.
   function fpanelSelectStore(store) {
+    _fselLimpiar();
     if (store && activeStore === store) store = "";
     activeStore = store;
     // Sync con la barra de escritorio para que el estado sea uno solo
@@ -7872,6 +8021,7 @@
   // Botón "Restablecer" del panel — limpia categoría/subtipo/orden/low-cost/precio,
   // deja el panel ABIERTO (refrescado) para que el usuario elija de cero sin reabrir el FAB.
   function fpanelReset() {
+    _fselLimpiar();
     activeCategory = "todas";
     _resetSubcats();
     _fpanelAbierto = "";      // vuelve a la vista de resumen, todo plegado
@@ -7931,6 +8081,7 @@
 
   // ── Init ──────────────────────────────────────────────────────
   fetchTotalCount();
+  _cargarTiendasVivas();
   loadPromos();
   buildCatBar();
   buildSubcatBar();
@@ -8316,14 +8467,14 @@
         <button class="prefs__close" onclick="closeFilterPanel()" aria-label="Cerrar filtros">✕</button>
       </div>
     </div>
-    <p class="prefs__sub">Elige y <b>verás el resultado al momento</b>. Toca otra vez una opción para quitarla.</p>
+    <p class="prefs__sub">Puedes elegir <b>varias categorías y tiendas</b> a la vez. Verás el resultado al momento.</p>
     <div id="js-fpanel-groups"></div>
     <!-- Precio: fijo en el HTML (no se repinta) para no cortar el arrastre del slider -->
     <div class="prefs__section-head" style="margin-top:16px">
       <span class="fpanel__label" style="padding:0">3 · Precio</span>
       <span class="prefs__count" id="js-fpanel-price-count">sin límite</span>
     </div>
-    <div class="prefs__chips" id="js-fpanel-price-chips"></div>
+    <div class="prefs__chips fsel__tiendas" id="js-fpanel-price-chips"></div>
     <div class="price-filter price-filter--panel fsel__price">
       <div class="price-slider">
         <div class="price-slider__track"></div>
