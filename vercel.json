@@ -49,6 +49,8 @@
     { "source": "/cuenta",      "destination": "/cuenta.html" },
     { "source": "/mis-links",   "destination": "/mis-links.html" },
     { "source": "/desde-threads", "destination": "/desde-threads.html" },
+    { "source": "/menos-de-15",   "destination": "/" },
+    { "source": "/menos-de-25",   "destination": "/" },
     { "source": "/3b1fa13b0f80cf697ef930ea6046de01.html", "destination": "/awin-verify" },
     { "source": "/3b1fa13b0f80cf697ef930ea6046de01",      "destination": "/awin-verify" }
   ]

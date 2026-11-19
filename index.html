@@ -618,6 +618,30 @@
       color: var(--brand);
     }
 
+    /* ── Atajos móviles bajo la barra de controles ("Menos de 15 €" el primero) ── */
+    .mquick { display: none; }
+    @media (max-width: 767px) {
+      .mquick {
+        display: flex; gap: 7px; padding: 9px 12px 2px; overflow-x: auto;
+        scrollbar-width: none; -webkit-overflow-scrolling: touch;
+      }
+      .mquick::-webkit-scrollbar { display: none; }
+      .mquick__chip {
+        flex-shrink: 0; display: inline-flex; align-items: center; white-space: nowrap;
+        font-family: var(--sans); font-size: 12.5px; font-weight: 700; color: var(--ink);
+        padding: 7px 13px; border-radius: 9999px; cursor: pointer; text-decoration: none;
+        background: var(--surface); border: 1.5px solid var(--border);
+        -webkit-tap-highlight-color: transparent; transition: background .12s, border-color .12s, color .12s;
+      }
+      /* El de 15 € destaca aunque esté apagado: es el atajo prioritario */
+      .mquick__chip--top { border-color: var(--teal); color: #0D7A6F; background: var(--teal-light); }
+      [data-theme="dark"] .mquick__chip--top { color: #5FCBBB; background: rgba(20,193,174,.12); }
+      .mquick__chip--on, .mquick__chip--top.mquick__chip--on {
+        background: var(--teal); border-color: var(--teal); color: #fff;
+      }
+      .mquick__chip:active { opacity: .75; }
+    }
+
     /* ── Low-cost active note ("Menos de 25€") — sutil, tipo nota ─── */
     .lowcost-banner {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -3099,7 +3123,8 @@
           </select>
         </span>
       </label>
-      <button class="sort-tab sort-tab--lowcost" id="js-lowcost-chip" type="button" aria-pressed="false">💸 Menos de 25€</button>
+      <button class="sort-tab sort-tab--lowcost" id="js-lowcost15-chip" type="button" aria-pressed="false" data-lowcost="15">💸 Menos de 15€</button>
+      <button class="sort-tab sort-tab--lowcost" id="js-lowcost-chip" type="button" aria-pressed="false" data-lowcost="25">💸 Menos de 25€</button>
       <a href="/cupones" class="sort-tab sort-tab--cupones">🎟️ Cupones</a>
       <!-- "Para Revender" oculto: sin productos por ahora. Lógica intacta para reactivar (premium). -->
     </nav>
@@ -3164,6 +3189,13 @@
     </div>
   </div>
 
+  <!-- ── ATAJOS MÓVIL: lo barato primero (no se fija al hacer scroll) ── -->
+  <nav class="mquick" aria-label="Atajos">
+    <button class="mquick__chip mquick__chip--top" type="button" data-lowcost="15" data-on="mquick__chip--on" aria-pressed="false">💸 Menos de 15 €</button>
+    <button class="mquick__chip" type="button" data-lowcost="25" data-on="mquick__chip--on" aria-pressed="false">Menos de 25 €</button>
+    <a class="mquick__chip" href="/cupones">🎟️ Cupones</a>
+  </nav>
+
   <!-- ── SEARCH ACTIVE BANNER ──────────────────────────────────── -->
   <div class="search-active-banner" id="js-search-banner" style="display:none">
     <span id="js-search-banner-text"></span>
@@ -3173,10 +3205,10 @@
   <!-- ── LOW-COST ACTIVE BANNER (filtro "Menos de 25€") ──────────── -->
   <div class="lowcost-banner" id="js-lowcost-banner" style="display:none" role="status">
     <div class="lowcost-banner__text">
-      <span class="lowcost-banner__title">💸 Ofertas por menos de 25€</span>
+      <span class="lowcost-banner__title" id="js-lowcost-banner-title">💸 Ofertas por menos de 25€</span>
       <span class="lowcost-banner__sub">· vista filtrada</span>
     </div>
-    <button class="lowcost-banner__clear" onclick="_toggleLowCost(false)" aria-label="Quitar el filtro de menos de 25€">Ver todo ×</button>
+    <button class="lowcost-banner__clear" onclick="_toggleLowCost(false)" aria-label="Quitar el filtro de precio bajo">Ver todo ×</button>
   </div>
 
 
@@ -4010,6 +4042,9 @@
 
   // Filtro "menos de 25€" — desacoplado del sorting (es un filtro, no un orden)
   let activeLowCost = false;
+  // Tope del modo "Menos de X €": 15 o 25. Una sola variable para que chips, banner,
+  // título, panel y URL (/menos-de-15, /menos-de-25) digan siempre lo mismo.
+  let _lowCostTope = 25;
 
   // Filtro de precio (slider doble 0€–1000€+ campos numéricos). null en el máximo = sin límite superior.
   let activePriceMin = 0;
@@ -4101,7 +4136,7 @@
   function dealMatchesFilters(deal) {
     if (_paraTiView && !dealMatchesPrefs(deal)) return false;
     if (_fselActivo() && !_dealMatchesSel(deal)) return false;
-    if (activeLowCost && (deal.precio_actual || 0) >= 25) return false;
+    if (activeLowCost && (deal.precio_actual || 0) >= _lowCostTope) return false;
     const p = deal.precio_actual || 0;
     if (activePriceMin > 0 && p < activePriceMin) return false;
     if (activePriceMax !== null && p > activePriceMax) return false;
@@ -5512,7 +5547,9 @@
 
   function updateCount() {
     const el = document.getElementById("js-count");
-    if (activeCategory !== "todas" || activeStore || searchQuery || _priceFiltroActivo() || _paraTiView) {
+    // Con cualquier filtro puesto se cuenta lo que cumple el filtro, no el total de la web
+    // (con "Menos de 15/25 €" o varias tiendas decía "15.342 ofertas").
+    if (activeCategory !== "todas" || activeStore || searchQuery || _priceFiltroActivo() || _paraTiView || activeLowCost || _fselActivo()) {
       const n = allDeals.filter(d => dealMatchesFilters(d)).length;
       el.textContent = `${n} oferta${n !== 1 ? "s" : ""}${hasMore ? "+" : ""}`;
     } else if (_totalDealsDB !== null) {
@@ -5733,7 +5770,7 @@
       ? (CATEGORIAS.find(c => c.id === activeCategory)?.label || "Clasificados")
       : (titles[activeSort] || "Clasificados");
     if (_fselActivo()) t = _fselTitulo();
-    if (activeLowCost) t = (activeCategory !== "todas") ? (t + " · −25€") : "Menos de 25€";
+    if (activeLowCost) t = (activeCategory !== "todas" || _fselActivo()) ? (t + ` · −${_lowCostTope}€`) : `Menos de ${_lowCostTope}€`;
     const el = document.getElementById("js-section-title");
     if (el) el.textContent = t;
   }
@@ -5743,6 +5780,19 @@
   function _updateLowCostBanner() {
     const b = document.getElementById("js-lowcost-banner");
     if (b) b.style.display = activeLowCost ? "flex" : "none";
+    const t = document.getElementById("js-lowcost-banner-title");
+    if (t) t.textContent = `💸 Ofertas por menos de ${_lowCostTope}€`;
+    _syncLowCostChips();
+  }
+  // Todos los botones "Menos de X €" (escritorio y barra rápida del móvil) llevan
+  // data-lowcost="15|25" y data-on="clase activa". Marcarlos aquí evita que un chip
+  // se quede encendido cuando otra navegación apaga el filtro.
+  function _syncLowCostChips() {
+    document.querySelectorAll("[data-lowcost]").forEach(el => {
+      const on = activeLowCost && Number(el.dataset.lowcost) === _lowCostTope;
+      el.classList.toggle(el.dataset.on || "sort-tab--active", on);
+      el.setAttribute("aria-pressed", on ? "true" : "false");
+    });
   }
 
   function _reloadAfterFilterChange() {
@@ -5751,6 +5801,11 @@
       // Con un filtro que exige TODAS las páginas (low-cost/categoría/tienda), seguir
       // cargando el resto en vez de quedarse con lo ya cargado en memoria.
       const _wantAll = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo() || _paraTiView || _fselActivo();
+      // La home móvil deja en memoria solo su 1ª página (120) y marca hasMore=false.
+      // Un filtro que necesita TODO el catálogo se quedaba con esas 120: "Menos de
+      // 15 €" desde la home daba 17 ofertas en vez de ~485. Si sabemos que hay más,
+      // se sigue cargando desde donde se quedó.
+      if (_wantAll && !hasMore && _totalDealsDB && allDeals.length < _totalDealsDB) hasMore = true;
       if (_wantAll && hasMore && !isLoading) loadMore();
     } else {
       allDeals = []; currentOffset = 0; hasMore = true;
@@ -5831,6 +5886,7 @@
   function _lowCostOff() {
     if (!activeLowCost) return;
     activeLowCost = false;
+    _syncLowCostChips();
     const c = document.getElementById("js-lowcost-chip");
     if (c) { c.classList.remove("sort-tab--active"); c.setAttribute("aria-pressed", "false"); }
     _updateLowCostBanner();
@@ -5848,13 +5904,21 @@
   }
 
   // "Menos de 25€": filtro independiente del orden (no es un sorting)
-  function _toggleLowCost(force) {
-    const v = (typeof force === "boolean") ? force : !activeLowCost;
-    if (v === activeLowCost) return;
+  function _toggleLowCost(force, tope) {
+    tope = tope || _lowCostTope || 25;
+    // Pulsar el chip ya activo lo apaga; pulsar el otro tope cambia de 25 a 15 (o al revés)
+    const v = (typeof force === "boolean") ? force : !(activeLowCost && _lowCostTope === tope);
+    if (v === activeLowCost && (!v || _lowCostTope === tope)) return;
     activeLowCost = v;
-    const chip = document.getElementById("js-lowcost-chip");
-    if (chip) { chip.classList.toggle("sort-tab--active", activeLowCost); chip.setAttribute("aria-pressed", activeLowCost ? "true" : "false"); }
-    _updateLowCostBanner();   // feedback inmediato: el banner aparece/desaparece al instante
+    if (v) _lowCostTope = tope;
+    _updateLowCostBanner();
+    // Apagado y sin nada más puesto, en el móvil se vuelve a Explorar (no al listado entero)
+    if (!v && _isMobileViewport() && activeCategory === "todas" && !activeStore && !_fselActivo()
+        && activeSort === "recientes" && !searchQuery && !_paraTiView && !_priceFiltroActivo()) {
+      if (_mhomeDeals.length) { _showMobileHome(); renderMobileHome(_mhomeDeals); }
+      else { _mhomeLoading = false; loadMobileHome(); }
+      return;
+    }   // feedback inmediato: el banner aparece/desaparece al instante
     _showRegularGrid();
     _updateSectionTitle();
     // El re-render puede ser pesado (low-cost carga muchas páginas → renderizar todo el
@@ -5869,8 +5933,8 @@
       sel.value = (activeSort === "low_cost" || activeSort === "reventa") ? "recientes" : activeSort;
       sel.addEventListener("change", () => _applySort(sel.value));
     }
-    const chip = document.getElementById("js-lowcost-chip");
-    if (chip) chip.addEventListener("click", () => _toggleLowCost());
+    document.querySelectorAll("[data-lowcost]").forEach(el =>
+      el.addEventListener("click", () => _toggleLowCost(undefined, Number(el.dataset.lowcost))));
   }
 
   // ── Store bar ─────────────────────────────────────────────────
@@ -6296,6 +6360,7 @@
     if (back) back.style.display = "none";
     _cameFromMhome = false;
     _syncMobileViewToggle(true);
+    _syncLowCostChips();
     updateIntroHero();
   }
 
@@ -6864,7 +6929,9 @@
     _fselLimpiar();
     activeSort       = "recientes";
     activeLowCost    = false;
+    _syncLowCostChips();
     if (_mhomeDeals.length) renderMobileHome(_mhomeDeals);
+    else { _mhomeLoading = false; loadMobileHome(); }   // p. ej. tras entrar por /menos-de-15
     // Sync UI bars
     const cb = document.getElementById("js-cat-bar");
     if (cb) cb.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "todas"));
@@ -7507,7 +7574,7 @@
       cat:     activeCategory,
       store:   activeStore,
       sort:    activeSort,
-      low:     activeLowCost,
+      low:     activeLowCost ? _lowCostTope : 0,
       pmin:    activePriceMin,
       pmax:    activePriceMax,
       q:       searchQuery,
@@ -7520,6 +7587,21 @@
     };
   }
 
+  // Con SOLO el filtro "Menos de X €" puesto, la barra de direcciones muestra
+  // /menos-de-15 (o -25): se copia y se comparte tal cual. Al quitarlo vuelve a "/".
+  // Cualquier otra ruta (?q=, etc.) no se toca.
+  function _urlVista() {
+    const soloLow = activeLowCost && activeCategory === "todas" && !activeStore && !_fselActivo()
+                    && !searchQuery && !_paraTiView && !_priceFiltroActivo();
+    if (soloLow) return "/menos-de-" + _lowCostTope;
+    if (/^\/menos-de-\d+\/?$/.test(location.pathname)) return "/";
+    return null;
+  }
+  function _historyPut(metodo, estado) {
+    const u = _urlVista();
+    try { if (u) history[metodo](estado, "", u); else history[metodo](estado, ""); } catch {}
+  }
+
   function _viewSig(s) {
     return JSON.stringify([s.home, s.desktop, s.parati, s.cat, s.store, s.sort, s.low, s.pmin, s.pmax, s.q, s.sub, s.sel]);
   }
@@ -7528,7 +7610,7 @@
   // establece de forma asíncrona (el home móvil se muestra al terminar el fetch).
   function _replaceView() {
     _estadoActual = _viewSnapshot();
-    try { history.replaceState(_estadoActual, ""); } catch {}
+    _historyPut("replaceState", _estadoActual);
   }
 
   // Apila una entrada si el estado visible cambió respecto a la última.
@@ -7543,7 +7625,7 @@
       try { history.replaceState({ ..._estadoActual, y: _scrollAlInteractuar }, ""); } catch {}
     }
     _estadoActual = nuevo;
-    try { history.pushState(nuevo, ""); } catch {}
+    _historyPut("pushState", nuevo);
   }
 
   function _aplicarViewState(s) {
@@ -7554,6 +7636,7 @@
       activeStore     = s.store ?? "";
       activeSort      = s.sort  ?? "recientes";
       activeLowCost   = !!s.low;
+      _lowCostTope    = (s.low === 15) ? 15 : 25;
       activePriceMin  = s.pmin ?? 0;
       activePriceMax  = s.pmax ?? null;
       searchQuery     = s.q ?? "";
@@ -7878,7 +7961,7 @@
       sortWrap.innerHTML = `
         <div class="prefs__section-head" style="margin-top:16px">
           <span class="fpanel__label" style="padding:0">4 · Ordenar</span>
-          <span class="prefs__count">${sortLabel.toLowerCase()}${activeLowCost ? " · menos de 25 €" : ""}</span>
+          <span class="prefs__count">${sortLabel.toLowerCase()}${activeLowCost ? ` · menos de ${_lowCostTope} €` : ""}</span>
         </div>
         <div class="prefs__chips">` +
         _SORT_OPTS.map(x => {
@@ -7886,8 +7969,11 @@
           return `<button class="prefs__chip${on ? " prefs__chip--on" : ""}" aria-pressed="${on}"
                     onclick="fpanelSelectSort('${x.id}')">${x.label}</button>`;
         }).join("") +
-        `<button class="prefs__chip${activeLowCost ? " prefs__chip--on" : ""}" aria-pressed="${activeLowCost}"
-                 onclick="fpanelToggleLowCost()">💸 Menos de 25 €</button></div>`;
+        [15, 25].map(t => {
+          const on = activeLowCost && _lowCostTope === t;
+          return `<button class="prefs__chip${on ? " prefs__chip--on" : ""}" aria-pressed="${on}"
+                    onclick="fpanelToggleLowCost(${t})">💸 Menos de ${t} €</button>`;
+        }).join("") + `</div>`;
     }
 
     _fpSyncPrecio();
@@ -8013,8 +8099,8 @@
     _applySort(sortId);
     buildFilterPanel();
   }
-  function fpanelToggleLowCost() {
-    _toggleLowCost();
+  function fpanelToggleLowCost(tope) {
+    _toggleLowCost(undefined, tope || 25);
     buildFilterPanel();
   }
 
@@ -8090,17 +8176,30 @@
   _priceSliderInit("js-fpanel-price");
   initZoom();
 
+  // Enlace directo compartible: flipazo.es/menos-de-15 (o /menos-de-25) abre ya filtrado
+  const _rutaLow = location.pathname.match(/^\/menos-de-(15|25)\/?$/);
+  if (_rutaLow) {
+    activeLowCost = true;
+    _lowCostTope  = Number(_rutaLow[1]);
+    document.title = `Ofertas de menos de ${_lowCostTope} € · Flipazo`;
+  }
+
   if (_isMobileViewport()) {
-    loadMobileHome();
+    // Con el enlace directo (/menos-de-15) NO se carga la home al entrar: su primera
+    // página fija hasMore=false si llega antes que el listado y lo dejaba en 200
+    // ofertas. Se carga después, si el usuario toca "Explorar" (goBackToMhome).
+    if (!activeLowCost) loadMobileHome();
     const savedView = (() => { try { return localStorage.getItem("flipazo_view") || "mosaic"; } catch { return "mosaic"; } })();
     setMobileView(savedView);
+    if (activeLowCost) { _showRegularGrid(); _updateLowCostBanner(); _updateSectionTitle(); loadMore(); }
   } else {
     // Vista por defecto = "Todos" (all deals con el banner de bienvenida encima).
     // Los usuarios que eligieron "Explorar" mantienen su preferencia guardada.
     const savedDesktopView = (() => { try { return localStorage.getItem("flipazo_desktop_view") || "todos"; } catch { return "todos"; } })();
-    if (savedDesktopView === "explorar") {
+    if (savedDesktopView === "explorar" && !activeLowCost) {
       setDesktopView("explorar");
     } else {
+      if (activeLowCost) { _updateLowCostBanner(); _updateSectionTitle(); }
       loadMore();
     }
   }
