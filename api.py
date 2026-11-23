@@ -1295,13 +1295,16 @@ def get_tiendas():
 
 
 @app.get("/api/promociones")
-def get_promociones(limit: int = Query(default=40, ge=1, le=100)):
+def get_promociones(limit: int = Query(default=40, ge=1, le=500)):
     """Promos/cupones de tienda VIGENTES HOY (AWIN + Tradedoubler), con código primero.
 
     El filtro va por fecha, no por el `estado` guardado: un cupón que empieza el día 16
     está en la tabla desde antes y se vuelve válido solo, sin depender de que el pipeline
     lo vuelva a capturar. Publicar uno que aún no ha empezado manda al usuario a una
     tienda donde el código todavía no funciona.
+
+    /cupones pide limit=500 (tiene buscador por tienda y necesita la lista entera):
+    con el tope antiguo de 40 se quedaban fuera 5 de 45 cupones vigentes (nov-2026).
     """
     try:
         ahora = datetime.now(timezone.utc).isoformat()
