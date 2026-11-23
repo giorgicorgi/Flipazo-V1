@@ -48,6 +48,7 @@ import requests as _http
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 # La regla de 'precio habitual' vive en el pipeline: el panel la importa en vez
@@ -134,6 +135,10 @@ _VERIFIER_MAX_POR_PASADA = 200    # límite de deals por pasada (no saturar)
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(title="Flipazo API", version="2.0.0")
+
+# Compresión: /api/deals?limit=500 pesaba 541 KB en crudo (JSON muy repetitivo,
+# comprime ~5:1). Con un filtro puesto la web pide el catálogo entero por páginas.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 app.add_middleware(
     CORSMiddleware,
@@ -1271,6 +1276,26 @@ def get_count():
         historico = total
         desde = con.execute("SELECT MIN(publicado_en) FROM deals_publicados").fetchone()[0] or ""
     return {"total": total, "historico": historico, "desde": desde[:10]}
+
+
+@app.get("/api/deals/indice")
+def get_deals_indice():
+    """Índice LIGERO de todo el catálogo para contar en el cliente.
+
+    El contador del botón "Ver ofertas" del panel de Filtros tiene que aplicar las
+    MISMAS reglas que el listado (categorías y subcategorías por regex sobre el
+    título, en index.html), así que el recuento se hace en el navegador. Para eso
+    basta con 5 campos por oferta en vez de los ~35 de /api/deals: ~16k filas en
+    ~2 MB crudos, unos 400 KB con gzip, y solo se pide al abrir el panel.
+    """
+    with _get_db() as con:
+        rows = con.execute(
+            "SELECT deal_id, titulo, tienda, precio, COALESCE(categoria, '') "
+            "FROM deals_publicados ORDER BY publicado_en DESC").fetchall()
+    return JSONResponse(
+        content={"campos": ["id", "titulo", "tienda", "precio_actual", "categoria"],
+                 "filas": [[r[0], r[1] or "", r[2] or "", r[3] or 0.0, r[4] or ""] for r in rows]},
+        headers={"Cache-Control": "public, max-age=300"})
 
 
 @app.get("/api/deals/tiendas")
