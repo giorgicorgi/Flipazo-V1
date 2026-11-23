@@ -2970,9 +2970,16 @@
     .fsel__price { margin-top: 10px; }
     .fsel__footer {
       position: sticky; bottom: 0; z-index: 2; background: var(--paper);
+      flex-direction: column; align-items: stretch; gap: 0;
       margin-top: 18px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
     }
-    .fsel__footer .fpanel__btn--apply { padding: 14px; font-size: 15px; border-radius: 14px; }
+    .fsel__footer .fpanel__btn--apply { padding: 14px; font-size: 15px; border-radius: 14px; width: 100%; font-variant-numeric: tabular-nums; transition: background .2s ease, border-color .2s ease; }
+    .fsel__footer .fsel__apply--vacio { background: var(--navy, #2C3E50); border-color: var(--navy, #2C3E50); }
+    .fsel__apply--pop { animation: fselPop .32s ease-out; }
+    @keyframes fselPop { 40% { transform: scale(1.035); } }
+    .fsel__hint { margin: 0 2px 9px; font: 600 12.5px/1.35 var(--sans); color: #B4232C; text-align: center; }
+    [data-theme="dark"] .fsel__hint { color: #FF8A91; }
+    @media (prefers-reduced-motion: reduce) { .fsel__apply--pop { animation: none; } }
     .fsel__empty { padding: 0 16px; font-family: var(--sans); font-size: 12.5px; color: var(--text-dim); }
 
     /* ── BACK BUTTON en section-header (solo móvil) ─────────────── */
@@ -5770,7 +5777,14 @@
     try {
       const isCatFilter = activeCategory !== "todas" || !!activeStore || activeLowCost || _priceFiltroActivo() || _paraTiView || _fselActivo();
       const limit = isCatFilter ? 200 : PAGE_SIZE;
+      const offPedido = currentOffset;
       const batch = await fetchDeals(limit, currentOffset);
+      // Si el listado se reinició mientras llegaba esta página (otro filtro), es de
+      // otra carga: descartarla y empezar la nueva. Antes se pegaba con el offset
+      // equivocado y el listado se saltaba páginas.
+      if (currentOffset !== offPedido) {
+        showLoading(false); isLoading = false; loadMore(); return;
+      }
       if (batch.length < limit) hasMore = false;
       if (batch.length === 0) { showLoading(false); isLoading = false; return; }
 
@@ -5975,6 +5989,10 @@
   }
 
   function _reloadAfterFilterChange() {
+    // Con el panel de Filtros abierto no se recarga nada: cada toque solo cambia la
+    // selección y el listado se pone al día UNA vez, al cerrar (_fpAplicarAlCerrar).
+    // Antes cada toque descargaba el catálogo entero y el panel se trababa.
+    if (_fpAbierto()) return;
     if (allDeals.length > 0) {
       renderGrid();
       // Con un filtro que exige TODAS las páginas (low-cost/categoría/tienda), seguir
@@ -6091,6 +6109,7 @@
     activeLowCost = v;
     if (v) _lowCostTope = tope;
     _updateLowCostBanner();
+    if (_fpAbierto()) return;   // desde el panel: se aplica al cerrarlo
     // Apagado y sin nada más puesto, en el móvil se vuelve a Explorar (no al listado entero)
     if (!v && _isMobileViewport() && activeCategory === "todas" && !activeStore && !_fselActivo()
         && activeSort === "recientes" && !searchQuery && !_paraTiView && !_priceFiltroActivo()) {
@@ -8284,6 +8303,7 @@
             + (activeSort !== "recientes" ? 1 : 0) + (activeLowCost ? 1 : 0);
     const b = document.getElementById("js-fpanel-nactivos");
     if (b) { b.textContent = n; b.hidden = !n; }
+    if (_fpAbierto()) _fpContar();
   }
 
   // ── Tiendas para el panel: la lista REAL de la API (todas las que tienen ofertas
@@ -8338,9 +8358,10 @@
   // Tras cada toque: la selección manda y el estado antiguo de una sola
   // categoría/tienda se queda neutro; se recarga el listado al momento.
   function _fselAplicar() {
-    activeCategory = "todas"; activeStore = ""; _resetSubcats(); _lowCostOff();
+    activeCategory = "todas"; activeStore = ""; _resetSubcats();
     document.querySelectorAll(".cat-pill").forEach(b => b.classList.toggle("cat-pill--active", b.dataset.cat === "todas"));
     document.querySelectorAll(".store-pill").forEach(b => b.classList.toggle("store-pill--active", !b.dataset.store));
+    if (_fpAbierto()) { buildFilterPanel(); return; }   // se aplica al cerrar
     const sinNada = !_fselActivo() && activeSort === "recientes" && !_priceFiltroActivo() && !searchQuery;
     if (sinNada && _isMobileViewport()) {
       // Sin ningún filtro, en el móvil lo natural es volver a Explorar
@@ -8524,8 +8545,10 @@
       if (!_fpPrecioListo) { _priceSliderInit("js-fpanel-price"); _fpPrecioListo = true; }
       _priceSyncUI("js-fpanel-price");
       _fselImportar();
+      panel.classList.add("open");          // antes de pintar: _fpAbierto() ya es true
+      _fpFirmaAlAbrir = _fpFirma();
+      _fpCargarIndice();
       buildFilterPanel();
-      panel.classList.add("open");
       backdrop.classList.add("open");
       document.getElementById("js-filter-toggle")?.setAttribute("aria-expanded", "true");
     }
@@ -8539,9 +8562,93 @@
   function closeFilterPanel() {
     const panel    = document.getElementById("js-filter-panel");
     const backdrop = document.getElementById("js-filter-backdrop");
+    const estabaAbierto = !!(panel && panel.classList.contains("open"));
     if (panel)    panel.classList.remove("open");
     if (backdrop) backdrop.classList.remove("open");
     document.getElementById("js-filter-toggle")?.setAttribute("aria-expanded", "false");
+    if (estabaAbierto) _fpAplicarAlCerrar();
+  }
+
+  // ── Panel de Filtros: se elige con el panel abierto y se aplica al cerrarlo ──
+  // Cerrar de cualquier forma (Ver ofertas, ✕, fondo, Esc) aplica lo elegido: no
+  // se pierde nada de lo que el usuario ha tocado.
+  var _fpFirmaAlAbrir = "";
+  function _fpAbierto() { return !!document.getElementById("js-filter-panel")?.classList.contains("open"); }
+  function _fpFirma() {
+    return JSON.stringify([_fsel, activeCategory, activeStore, activeSort, activeLowCost, _lowCostTope, activePriceMin, activePriceMax]);
+  }
+  function _fpAplicarAlCerrar() {
+    if (_fpFirma() === _fpFirmaAlAbrir) return;          // no cambió nada
+    _fpFirmaAlAbrir = _fpFirma();
+    const sinNada = !_fselActivo() && activeCategory === "todas" && !activeStore && activeSort === "recientes"
+                 && !activeLowCost && !_priceFiltroActivo() && !searchQuery && !_paraTiView;
+    if (sinNada && _isMobileViewport()) {
+      if (_mhomeDeals.length) { _showMobileHome(); renderMobileHome(_mhomeDeals); }
+      else { _mhomeLoading = false; loadMobileHome(); }
+    } else {
+      _showRegularGrid();
+      _updateSectionTitle();
+      _updateLowCostBanner();
+      window.scrollTo({ top: 0, behavior: "instant" });
+      _reloadAfterFilterChange();   // reutiliza lo ya descargado y sigue cargando si hace falta
+    }
+    updateIntroHero();
+  }
+
+  // ── Contador del botón "Ver ofertas" ─────────────────────────────
+  // Cuenta sobre TODO el catálogo con las mismas reglas que el listado
+  // (dealMatchesFilters), usando un índice ligero de 4 campos por oferta que se
+  // pide al abrir el panel. Tope 100: "Ver 100+ ofertas"; por debajo, el número
+  // exacto, para avisar de que con tantos filtros se queda sin ofertas.
+  var _fpIdx = null, _fpIdxPidiendo = false, _fpCuentaRaf = 0, _fpUltimaCuenta = undefined;
+  function _fpCargarIndice() {
+    if (_fpIdx || _fpIdxPidiendo) return;
+    if (USE_MOCK) { _fpIdx = _poolDeals(); return; }
+    _fpIdxPidiendo = true;
+    fetch(API_BASE + "/api/deals/indice")
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (!j || !Array.isArray(j.filas)) return;
+        const c = j.campos;
+        _fpIdx = j.filas.map(f => { const o = {}; for (let i = 0; i < c.length; i++) o[c[i]] = f[i]; return o; });
+      })
+      .catch(() => {})
+      .finally(() => { _fpIdxPidiendo = false; _fpContar(); });
+  }
+  function _fpContar() {
+    cancelAnimationFrame(_fpCuentaRaf);
+    _fpCuentaRaf = requestAnimationFrame(_fpPintarCuenta);
+  }
+  function _fpPintarCuenta() {
+    const btn = document.getElementById("js-fpanel-apply");
+    if (!btn) return;
+    let n = null;   // null = aún no se sabe
+    if (_fpIdx) {
+      n = 0;
+      for (const d of _fpIdx) if (dealMatchesFilters(d) && ++n >= 100) break;
+    } else {
+      // Mientras llega el índice: lo ya cargado solo sirve si ya pasa de 100
+      let k = 0;
+      for (const d of _poolDeals()) if (dealMatchesFilters(d) && ++k >= 100) break;
+      if (k >= 100) n = 100;
+    }
+    btn.textContent = n === null ? "Ver ofertas"
+      : n >= 100 ? "Ver 100+ ofertas"
+      : n === 0  ? "Sin ofertas con estos filtros"
+      : `Ver ${n} oferta${n === 1 ? "" : "s"}`;
+    btn.classList.toggle("fsel__apply--vacio", n === 0);
+    if (n !== _fpUltimaCuenta && _fpUltimaCuenta !== undefined) {
+      btn.classList.remove("fsel__apply--pop"); void btn.offsetWidth; btn.classList.add("fsel__apply--pop");
+    }
+    _fpUltimaCuenta = n;
+    const hint = document.getElementById("js-fpanel-hint");
+    if (hint) {
+      const txt = n === 0 ? "Ninguna oferta cumple todo a la vez. Quita algún filtro o elige otros menos restrictivos."
+                : (n !== null && n < 10) ? "Quedan pocas ofertas: con filtros menos restrictivos verás más."
+                : "";
+      hint.textContent = txt;
+      hint.hidden = !txt;
+    }
   }
 
   function fpanelSelectCat(catId) {
@@ -8630,7 +8737,9 @@
     if (titleEl) titleEl.textContent = "Clasificados";
     // En móvil, "todas"+"recientes"+sin low-cost es el estado de Explorar (mobile home);
     // en desktop siempre mostramos el grid plano.
-    if (_isMobileViewport() && !searchQuery) {
+    if (_fpAbierto()) {
+      // nada: el listado se pone al día al cerrar el panel
+    } else if (_isMobileViewport() && !searchQuery) {
       if (_mhomeDeals.length) { _showMobileHome(); renderMobileHome(_mhomeDeals); }
       else { _mhomeLoading = false; loadMobileHome(); }
     } else {
@@ -9070,7 +9179,7 @@
         <button class="prefs__close" onclick="closeFilterPanel()" aria-label="Cerrar filtros">✕</button>
       </div>
     </div>
-    <p class="prefs__sub">Puedes elegir <b>varias categorías y tiendas</b> a la vez. Verás el resultado al momento.</p>
+    <p class="prefs__sub">Puedes elegir <b>varias categorías y tiendas</b> a la vez. Abajo verás cuántas ofertas quedan.</p>
     <div id="js-fpanel-groups"></div>
     <!-- Precio: fijo en el HTML (no se repinta) para no cortar el arrastre del slider -->
     <div class="prefs__section-head" style="margin-top:16px">
@@ -9099,6 +9208,7 @@
     </div>
     <div id="js-fpanel-sort"></div>
     <div class="fpanel__footer fsel__footer">
+      <p class="fsel__hint" id="js-fpanel-hint" hidden></p>
       <button class="fpanel__btn fpanel__btn--apply" id="js-fpanel-apply" onclick="closeFilterPanel()">Ver ofertas</button>
     </div>
   </div>
