@@ -3510,7 +3510,7 @@
 
   <!-- ── BLACK FRIDAY (20-nov → 30-nov) ────────────────────────────
        Escaparate por temas al estilo "mosaico": un panel grande con la cuenta
-       atrás, "el chollo más gordo" y una tarjeta 2×2 por categoría. Se pinta solo
+       atrás, "chollos gordos" y una tarjeta 2×2 por categoría. Se pinta solo
        en la portada (sin filtros) y se apaga solo el 1-dic (_BF_FIN). -->
   <style>
     .bf { padding: 20px 40px 8px; position: relative; }
@@ -3528,9 +3528,21 @@
       padding: 14px 14px 12px; color: #fff; scroll-snap-align: start;
       display: flex; flex-direction: column; min-width: 0;
       background: #16161A; box-shadow: 0 6px 18px rgba(17,17,20,.14);
-      transition: transform .25s ease, box-shadow .25s ease;
     }
-    .bf__tile:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(17,17,20,.22); }
+    /* Rendimiento en iPhone (24-nov): solo se animan transform y opacity, que
+       Safari mueve en la GPU. Nada de animar sombras, degradados ni
+       background-clip:text (se repintan en cada fotograma), y el :hover solo
+       con ratón, porque en iOS se queda pegado tras tocar. */
+    @media (hover: hover) {
+      .bf__tile { transition: transform .25s ease; }
+      .bf__tile:hover { transform: translateY(-3px); }
+      .bf__th:hover .bf__th-img img { transform: scale(1.07); }
+      .bf__cta:hover { transform: translateX(3px); background: #FFE7E9; }
+      .bf__more:hover { opacity: 1; text-decoration: underline; }
+      .bf__head:hover .bf__h { text-decoration: underline; text-underline-offset: 3px; }
+    }
+    /* Fuera de pantalla, todo quieto */
+    .bf--pausa *, .bf--pausa *::before, .bf--pausa *::after { animation-play-state: paused !important; }
     .bf__tile--red { background: linear-gradient(160deg, #FF3B47 0%, #F52834 55%, #D91B27 100%); }
     .bf__tile--hero { grid-row: span 2; grid-column: span 2; background: #0C0C0F; padding: 26px 26px 22px; }
     .bf__tile--fat  { grid-row: span 2; }
@@ -3542,12 +3554,18 @@
 
     /* ── Panel principal ── */
     .bf__glow {
-      position: absolute; inset: -30%; pointer-events: none;
-      background: radial-gradient(circle at 30% 25%, rgba(245,40,52,.45), transparent 42%),
-                  radial-gradient(circle at 85% 80%, rgba(245,40,52,.30), transparent 40%);
-      animation: bfGlow 9s ease-in-out infinite alternate;
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(circle at 22% 18%, rgba(245,40,52,.45), transparent 55%),
+                  radial-gradient(circle at 92% 92%, rgba(245,40,52,.28), transparent 50%);
     }
-    @keyframes bfGlow { to { transform: translate(6%, 4%) rotate(8deg); } }
+    /* Destello que cruza la tarjeta: una franja que se DESPLAZA (transform) */
+    .bf__tile--hero::after {
+      content: ""; position: absolute; top: -10%; bottom: -10%; left: 0; width: 40%; pointer-events: none;
+      background: linear-gradient(100deg, transparent 0%, rgba(255,255,255,.07) 40%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.07) 60%, transparent 100%);
+      transform: translate3d(-130%, 0, 0) skewX(-14deg); will-change: transform;
+      animation: bfShine 6.5s ease-in-out infinite;
+    }
+    @keyframes bfShine { 0%, 55% { transform: translate3d(-130%, 0, 0) skewX(-14deg); } 100% { transform: translate3d(360%, 0, 0) skewX(-14deg); } }
     .bf__tile--hero > *:not(.bf__glow) { position: relative; }
     .bf__eyebrow {
       align-self: flex-start; display: inline-flex; align-items: center; gap: 8px;
@@ -3555,16 +3573,14 @@
       background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18);
       padding: 7px 12px; border-radius: 999px;
     }
-    .bf__dot { width: 8px; height: 8px; border-radius: 50%; background: #FF3B47; box-shadow: 0 0 0 0 rgba(255,59,71,.7); animation: bfDot 1.6s infinite; }
-    @keyframes bfDot { 70% { box-shadow: 0 0 0 9px rgba(255,59,71,0); } 100% { box-shadow: 0 0 0 0 rgba(255,59,71,0); } }
+    .bf__dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: #FF3B47; }
+    .bf__dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #FF3B47; animation: bfDot 1.6s ease-out infinite; will-change: transform, opacity; }
+    @keyframes bfDot { from { transform: scale(1); opacity: .7; } 70%, to { transform: scale(3.2); opacity: 0; } }
     .bf__title {
-      margin: 16px 0 0; font: 900 clamp(44px, 5.2vw, 70px)/.9 var(--sans); letter-spacing: -.02em;
-      background: linear-gradient(100deg, #fff 0%, #fff 38%, #FF5A63 50%, #fff 62%, #fff 100%);
-      background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
-      animation: bfSheen 4.5s ease-in-out infinite;
+      margin: 16px 0 0; font: 900 clamp(44px, 5.2vw, 70px)/.9 var(--sans); letter-spacing: -.02em; color: #fff;
     }
     .bf__title span { display: block; }
-    @keyframes bfSheen { 0% { background-position: 120% 0; } 60%, 100% { background-position: -30% 0; } }
+    .bf__title span + span { color: #FF4752; }
     .bf__lead { margin: 14px 0 0; max-width: 360px; font: 600 15px/1.45 var(--sans); color: rgba(255,255,255,.78); }
     .bf__lead b { color: #fff; }
     .bf__count { display: flex; align-items: flex-end; gap: 6px; margin-top: 18px; }
@@ -3578,7 +3594,7 @@
     .bf__float {
       position: absolute; bottom: 0; width: 128px; aspect-ratio: 1; background: #fff; border-radius: 16px;
       box-shadow: 0 12px 28px rgba(0,0,0,.45); padding: 10px; display: block;
-      animation: bfFloat 5s ease-in-out infinite; animation-delay: var(--d, 0s);
+      animation: bfFloat 5s ease-in-out infinite; animation-delay: var(--d, 0s); will-change: transform;
     }
     .bf__float img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .bf__float:nth-child(1) { left: 0;     transform: rotate(-6deg); --r: -6deg; }
@@ -3595,35 +3611,31 @@
       background: #fff; color: #0C0C0F; font: 800 15px/1 var(--sans); padding: 14px 20px;
       display: inline-flex; align-items: center; gap: 8px; transition: transform .2s ease, background .2s ease;
     }
-    .bf__cta:hover { transform: translateX(3px); background: #FFE7E9; }
 
     /* ── Cabecera de las tarjetas ── */
     .bf__head { display: block; color: inherit; text-decoration: none; cursor: pointer; margin-bottom: 10px; }
     .bf__h { margin: 0; font: 900 20px/1.08 var(--sans); letter-spacing: -.01em; }
     .bf__upto { display: inline-block; margin-top: 6px; font: 800 12px/1 var(--sans); background: rgba(255,255,255,.16); padding: 5px 8px; border-radius: 999px; }
     .bf__tile--red .bf__upto { background: rgba(0,0,0,.18); }
-    .bf__head:hover .bf__h { text-decoration: underline; text-underline-offset: 3px; }
 
     /* ── 2×2 de productos ── */
-    .bf__grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; min-height: 0; perspective: 700px; }
+    .bf__grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; min-height: 0; }
     .bf__th {
       position: relative; display: flex; flex-direction: column; min-height: 0;
       background: #fff; border-radius: 12px; overflow: hidden; text-decoration: none;
-      transform-style: preserve-3d; transition: transform .28s ease;
+      transition: transform .28s ease, opacity .28s ease;
     }
-    .bf__th.bf__flip { transform: rotateY(90deg); }
+    .bf__th.bf__flip { transform: scale(.86); opacity: 0; }
     .bf__th-img { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 6px 6px 0; }
     .bf__th-img img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform .3s ease; }
-    .bf__th:hover .bf__th-img img { transform: scale(1.07); }
     .bf__th-p { font: 800 13px/1 var(--sans); color: #0581FC; padding: 4px 8px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .bf__th .bf__badge { top: 6px; left: 6px; bottom: auto; font-size: 11px; padding: 3px 6px; }
     .bf__more { margin-top: 9px; font: 800 12.5px/1 var(--sans); color: #fff; opacity: .85; text-decoration: none; cursor: pointer; background: none; border: 0; padding: 0; text-align: left; }
-    .bf__more:hover { opacity: 1; text-decoration: underline; }
 
-    /* ── El chollo más gordo ── */
+    /* ── Chollos gordos ── */
     .bf__fat { position: relative; flex: 1; display: flex; flex-direction: column; text-decoration: none; color: #fff; min-height: 0; }
     .bf__fat-stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
-    .bf__ring { position: absolute; width: 74%; aspect-ratio: 1; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); animation: bfRing 2.8s ease-out infinite; }
+    .bf__ring { position: absolute; width: 74%; aspect-ratio: 1; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); animation: bfRing 2.8s ease-out infinite; will-change: transform, opacity; }
     .bf__ring + .bf__ring { animation-delay: 1.4s; }
     @keyframes bfRing { from { transform: scale(.75); opacity: .9; } to { transform: scale(1.25); opacity: 0; } }
     .bf__fat-disc { position: relative; width: 74%; aspect-ratio: 1; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 30px rgba(0,0,0,.25); }
@@ -3633,6 +3645,9 @@
     .bf__fat-p { margin-top: 6px; font: 600 13px/1 var(--sans); color: rgba(255,255,255,.85); }
     .bf__fat-p s { opacity: .75; margin-right: 6px; }
     .bf__fat-p b { color: #fff; font-size: 17px; font-weight: 900; }
+    .bf__fat-dots { display: flex; gap: 5px; margin-top: 10px; }
+    .bf__fat-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.4); }
+    .bf__fat-dots i.on { background: #fff; transform: scale(1.25); }
     .bf__fat-store { margin-top: 5px; font: 700 12px/1 var(--sans); color: rgba(255,255,255,.8); }
     .bf__fade { transition: opacity .35s ease; }
     .bf__fade--out { opacity: 0; }
@@ -3674,7 +3689,8 @@
     }
     @media (prefers-reduced-motion: reduce) {
       .bf .bf__tile { opacity: 1; transform: none; animation: none !important; }
-      .bf__glow, .bf__title, .bf__dot, .bf__float, .bf__ring, .bf__cbox b.bf__tick { animation: none !important; }
+      .bf__dot::after, .bf__float, .bf__ring, .bf__cbox b.bf__tick { animation: none !important; }
+      .bf__tile--hero::after { display: none; }
       .bf__th { transition: none; }
     }
   </style>
@@ -7477,7 +7493,7 @@
   // ════════════════════════════════════════════════════════════════
   // BLACK FRIDAY — escaparate por temas (#js-bf), del 20 al 30 de nov.
   //
-  // Mosaico de tarjetas: panel grande con cuenta atrás, "el chollo más gordo"
+  // Mosaico de tarjetas: panel grande con cuenta atrás, "chollos gordos"
   // (más euros ahorrados) y una tarjeta 2×2 por tema que va girando productos.
   // Solo en la portada sin filtros (mismo criterio que el hero) y se apaga
   // sola el 1-dic. Todo con `var`: updateHero() lo llama y puede correr antes
@@ -7543,23 +7559,52 @@
     return out;
   }
 
+  // Las fotos de algunas tiendas llegan a tamaño completo (MediaMarkt: PNG de
+  // 1500×1500, ~350 KB y ~9 MB al descodificar) para pintarse a ~100 px. En el
+  // iPhone eso atascaba cada cambio de producto. Se piden reducidas a su CDN;
+  // si la reducida fallara, onerror vuelve a la original (data-orig).
+  function _bfImg(u, grande) {
+    if (!u) return "";
+    const px = grande ? 600 : 360;
+    let r = u
+      .replace(/\/fee_1500_1500_png$/, grande ? "/fee_786_587_png" : "/fee_325_225_png")   // MediaMarkt
+      .replace(/\._AC_SL1\d{3}_\./, `._AC_SL${px}_.`)                                     // Amazon grande
+      .replace(/([?&])wid=\d+&hei=\d+/, `$1wid=${px}&hei=${px}`)                           // Foot Locker
+      .replace(/\/images\/w_\d+,h_\d+,/, `/images/w_${px},h_${px},`)                       // Adidas
+      .replace(/^(https:\/\/dam\.delonghi\.com\/)\d+x\d+\//, `$1${px}x${px}/`);           // De'Longhi
+    if (/^https:\/\/cdn\.shopify\.com\//.test(r) && !/[?&]width=/.test(r)) r += (r.includes("?") ? "&" : "?") + "width=" + px;
+    return r;
+  }
+  function _bfImgTag(d, grande, extra) {
+    const src = _bfImg(d.imagen_url, grande);
+    return `<img src="${esc(src)}" data-orig="${esc(d.imagen_url)}" decoding="async" ${extra || ""}>`;
+  }
+  // Si la reducida falla, la original; si también falla, lo que diga `luego`
+  function _bfImgFallo(img) {
+    if (img.dataset.orig && img.src !== img.dataset.orig && !img.dataset.reint) {
+      img.dataset.reint = "1"; img.src = img.dataset.orig; return true;
+    }
+    return false;
+  }
+
   function _bfThumb(d) {
     return `<a class="bf__th" href="${esc(d.url_affiliate)}" data-track="${esc(d.id)}" data-id="${esc(d.id)}" target="_blank" rel="noopener sponsored" title="${esc(marcaPrimero(d.titulo || ""))}">
-      <span class="bf__th-img"><img src="${esc(d.imagen_url)}" alt="${esc(marcaPrimero(d.titulo || ""))}" loading="lazy" onerror="_bfImgRota(this)"></span>
+      <span class="bf__th-img">${_bfImgTag(d, false, `alt="${esc(marcaPrimero(d.titulo || ""))}" loading="lazy" onerror="_bfImgRota(this)"`)}</span>
       <span class="bf__badge">−${d.descuento_pct}%</span>
       <span class="bf__th-p">${fmtPrice(d.precio_actual)}</span>
     </a>`;
   }
 
-  function _bfFatHtml(d) {
+  function _bfFatHtml(d, idx) {
     const ahorro = Math.round((d.precio_original || 0) - (d.precio_actual || 0));
     return `<a class="bf__fat bf__fade" id="js-bf-fat" href="${esc(d.url_affiliate)}" data-track="${esc(d.id)}" target="_blank" rel="noopener sponsored">
       <span class="bf__fat-save">Ahorras ${ahorro.toLocaleString("es-ES")} €</span>
       <span class="bf__fat-stage"><i class="bf__ring"></i><i class="bf__ring"></i>
-        <span class="bf__fat-disc"><img src="${esc(d.imagen_url)}" alt=""></span></span>
+        <span class="bf__fat-disc">${_bfImgTag(d, true, `alt="" onerror="_bfImgFallo(this)"`)}</span></span>
       <p class="bf__fat-t">${_mhT(d.titulo, 60)}</p>
       <span class="bf__fat-p"><s>${fmtPrice(d.precio_original)}</s><b>${fmtPrice(d.precio_actual)}</b></span>
       <span class="bf__fat-store">${esc(d.tienda || "")} · −${d.descuento_pct}%</span>
+      ${_bfFat.length > 1 ? `<span class="bf__fat-dots" aria-hidden="true">${_bfFat.map((_, k) => `<i${k === (idx || 0) ? ' class="on"' : ""}></i>`).join("")}</span>` : ""}
     </a>`;
   }
 
@@ -7586,7 +7631,7 @@
     for (const d of top) { if (floats.length < 3 && !floats.includes(d)) floats.push(d); }
     floats.forEach(d => usados.add(d.id));
 
-    // El chollo más gordo: más euros de ahorro (no más %), rotando entre los 5 primeros.
+    // Chollos gordos: los de más euros de ahorro (no más %), rotando entre los 5 primeros.
     _bfFat = orden.filter(d => !_BF_OUTLET.has(d.tienda) && d.precio_actual >= 30 && (d.precio_original || 0) > d.precio_actual)
       .sort((a, b) => (b.precio_original - b.precio_actual) - (a.precio_original - a.precio_actual)).slice(0, 5);
     _bfFatI = 0;
@@ -7602,15 +7647,15 @@
       <div class="bf__count" id="js-bf-count" aria-label="Tiempo restante"></div>
       <div class="bf__stack" aria-hidden="true">${floats.map((d, k) =>
         `<a class="bf__float" style="--d:${k * -1.6}s" href="${esc(d.url_affiliate)}" data-track="${esc(d.id)}" target="_blank" rel="noopener sponsored" tabindex="-1">
-          <img src="${esc(d.imagen_url)}" alt=""><span class="bf__badge">−${d.descuento_pct}%</span></a>`).join("")}</div>
+          ${_bfImgTag(d, true, `alt="" onerror="_bfImgFallo(this)"`)}<span class="bf__badge">−${d.descuento_pct}%</span></a>`).join("")}</div>
       <button class="bf__cta" type="button" onclick="mhomeSort('descuento')">Ver los mayores descuentos <span aria-hidden="true">→</span></button>
     </div>`;
     tiles.push(hero);
 
     if (_bfFat.length) {
       tiles.push(`<div class="bf__tile bf__tile--red bf__tile--fat" style="--i:${i++}">
-        <div class="bf__head" style="cursor:default"><h3 class="bf__h">El chollo más gordo</h3></div>
-        ${_bfFatHtml(_bfFat[0])}
+        <div class="bf__head" style="cursor:default"><h3 class="bf__h">Chollos gordos</h3></div>
+        ${_bfFatHtml(_bfFat[0], 0)}
       </div>`);
     }
 
@@ -7664,8 +7709,9 @@
     if (!_bfObs && "IntersectionObserver" in window) {
       _bfObs = new IntersectionObserver(es => es.forEach(e => {
         _bfVisible = e.isIntersecting;
+        el.classList.toggle("bf--pausa", !e.isIntersecting);   // CSS quieto fuera de pantalla
         if (e.isIntersecting) el.classList.add("bf--in");
-      }), { threshold: 0.15 });
+      }), { threshold: 0.01 });
       _bfObs.observe(el);
       document.getElementById("js-bf-track").addEventListener("scroll", _bfFlechas, { passive: true });
       window.addEventListener("resize", _bfFlechas, { passive: true });
@@ -7712,11 +7758,17 @@
     return null;
   }
 
-  // Sustituye una miniatura por otra con un giro; la imagen nueva se precarga
-  // para no girar hacia un hueco en blanco (y si está rota, se salta).
-  function _bfCambiar(th, d, sinGiro, intentos) {
+  // Sustituye una miniatura por otra con un fundido; la imagen nueva se precarga
+  // y se descodifica antes (si está rota, se salta a la siguiente).
+  function _bfPrecargar(url, ok, ko) {
     const im = new Image();
-    im.onload = () => {
+    im.decoding = "async";
+    im.src = url;
+    (im.decode ? im.decode() : new Promise((res, rej) => { im.onload = res; im.onerror = rej; }))
+      .then(ok, ko);
+  }
+  function _bfCambiar(th, d, sinGiro, intentos) {
+    _bfPrecargar(_bfImg(d.imagen_url, false), () => {
       const tmp = document.createElement("div");
       tmp.innerHTML = _bfThumb(d).trim();
       const nuevo = tmp.firstElementChild;
@@ -7727,16 +7779,15 @@
         th.replaceWith(nuevo);
         requestAnimationFrame(() => requestAnimationFrame(() => nuevo.classList.remove("bf__flip")));
       }, 280);
-    };
-    im.onerror = () => {
+    }, () => {
       const tile = th.closest("[data-tema]");
       const otro = tile && (intentos || 0) < 4 ? _bfSiguiente(tile.dataset.tema, tile) : null;
       if (otro) _bfCambiar(th, otro, sinGiro, (intentos || 0) + 1);
-    };
-    im.src = d.imagen_url;
+    });
   }
 
   function _bfImgRota(img) {
+    if (_bfImgFallo(img)) return;          // primero, la foto original
     const th = img.closest(".bf__th"), tile = th && th.closest("[data-tema]");
     if (!tile || th.dataset.rota) return;
     th.dataset.rota = "1";
@@ -7769,19 +7820,17 @@
     if (!a || a.matches(":hover")) return;
     _bfFatI = (_bfFatI + 1) % _bfFat.length;
     const d = _bfFat[_bfFatI];
-    const im = new Image();
-    im.onload = () => {
+    _bfPrecargar(_bfImg(d.imagen_url, true), () => {
       a.classList.add("bf__fade--out");
       setTimeout(() => {
         const tmp = document.createElement("div");
-        tmp.innerHTML = _bfFatHtml(d).trim();
+        tmp.innerHTML = _bfFatHtml(d, _bfFatI).trim();
         const nuevo = tmp.firstElementChild;
         nuevo.classList.add("bf__fade--out");
         a.replaceWith(nuevo);
         requestAnimationFrame(() => requestAnimationFrame(() => nuevo.classList.remove("bf__fade--out")));
       }, 350);
-    };
-    im.src = d.imagen_url;
+    }, () => {});
   }
 
   function _bfScroll(dir) {
@@ -7843,8 +7892,8 @@
       ? _mhSection("Cupones y códigos", _cupones.map(_heroCouponCard).join(""), "location.href='/cupones'")
       : "";
 
-    // El 'Deal del momento' y los cupones van DETRÁS del banner de bienvenida: solo
-    // aparecen cuando el usuario cierra el banner (igual que el hero en desktop).
+    // El 'Deal del momento' va DETRÁS del banner de bienvenida: solo aparece cuando
+    // el usuario cierra el banner (igual que el hero en desktop). Los cupones, en la 6ª fila.
     //
     // Y SOLO en móvil: en desktop las dos cosas las pinta el hero de arriba (oferta
     // del día + carrusel de cupones a su derecha). Repetirlas aquí sacaba la misma
@@ -7852,7 +7901,7 @@
     // /cupones en desktop sigue estando en el chip 'Cupones' de la barra de filtros.
     const esMovil = _isMobileViewport();
     const behindBanner = (_introDismissed && !_introPorScroll && esMovil)
-      ? ((featured ? renderWhero(featured) : "") + couponsSection)
+      ? (featured ? renderWhero(featured) : "")
       : "";
 
     // Filas del feed. "Explorar" (tags de categorías) se coloca en el 8º lugar.
@@ -7867,6 +7916,9 @@
       _mhSection("Cuidado Personal", bellezaDeals.map(renderHCard).join(""),  "mhomeCat('belleza')"),
       _mhSection("Juguetes",         juguetesDeals.map(renderHCard).join(""), "mhomeCat('juguetes')"),
     ].filter(s => s && s.trim());
+    // Cupones y códigos → 6ª fila (24-nov: antes iban arriba del todo y el usuario
+    // los quería más abajo). Solo en móvil: en desktop van junto al hero.
+    if (esMovil && couponsSection) rows.splice(5, 0, couponsSection);
     rows.splice(7, 0, catSection);   // Explorar → 8º lugar del feed
 
     mh.innerHTML = behindBanner + rows.join("");
