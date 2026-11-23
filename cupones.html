@@ -29,6 +29,7 @@
       --brand: #F52834; --ink: #111827; --ink-light: #4B5563; --bg: #FEFEF8;
       --surface: #F3F4F6; --border: #E5E7EB; --text-mid: #6B7280; --text-dim: #9CA3AF;
       --sans: 'Nunito', system-ui, sans-serif; --serif: 'Playfair Display', Georgia, serif;
+      --teal: #14C1AE;
     }
     [data-theme="dark"] {
       color-scheme: dark;
@@ -108,6 +109,47 @@
     .coupon__cta { font-size: 12px; font-weight: 800; color: var(--brand); white-space: nowrap; }
     .coupon__cta:hover { text-decoration: underline; }
 
+    /* ── Buscador por tienda ── */
+    .cfind { margin-bottom: 20px; }
+    .cfind[hidden] { display: none; }
+    .cfind__field {
+      position: relative; display: flex; align-items: center;
+      background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .cfind__field:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(245,40,52,.08); }
+    .cfind__field svg { position: absolute; left: 14px; width: 17px; height: 17px; color: var(--text-dim); pointer-events: none; }
+    .cfind__input {
+      width: 100%; padding: 13px 40px 13px 42px; background: none; border: none; outline: none;
+      font-family: var(--sans); font-size: 15px; font-weight: 600; color: var(--ink);
+    }
+    .cfind__input::placeholder { color: var(--text-dim); font-weight: 500; }
+    .cfind__input::-webkit-search-cancel-button { display: none; }
+    .cfind__clear {
+      position: absolute; right: 8px; width: 28px; height: 28px; border-radius: 50%;
+      border: none; background: var(--border); color: var(--ink-light); font-size: 16px; line-height: 1; cursor: pointer;
+    }
+    .cfind__clear[hidden] { display: none; }
+    .cfind__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .cfind__chip {
+      display: inline-flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap;
+      font-family: var(--sans); font-size: 12.5px; font-weight: 700; color: var(--ink);
+      padding: 6px 12px; border-radius: 9999px; background: var(--surface); border: 1.5px solid var(--border);
+      transition: background .12s, border-color .12s, color .12s;
+    }
+    .cfind__chip b { font-weight: 800; color: var(--text-dim); font-size: 11px; }
+    .cfind__chip:hover { border-color: var(--teal); }
+    .cfind__chip--on { background: var(--teal); border-color: var(--teal); color: #fff; }
+    .cfind__chip--on b { color: rgba(255,255,255,.85); }
+    .cfind__count { margin-top: 12px; font-size: 12.5px; font-weight: 700; color: var(--text-mid); }
+    .cfind__count button { background: none; border: none; color: var(--brand); font: inherit; cursor: pointer; padding: 0 0 0 4px; }
+    @media (max-width: 640px) {
+      /* En el móvil, una sola fila deslizable: no empuja los cupones hacia abajo */
+      .cfind__chips { flex-wrap: nowrap; overflow-x: auto; margin-left: -16px; margin-right: -16px; padding: 0 16px 2px; scrollbar-width: none; }
+      .cfind__chips::-webkit-scrollbar { display: none; }
+      .cfind__chip { flex-shrink: 0; }
+    }
+
     .coupons-empty, .coupons-loading { text-align: center; padding: 48px 20px; color: var(--text-mid); font-size: 15px; }
     .coupons-note { margin-top: 22px; font-size: 12.5px; color: var(--text-dim); text-align: center; }
 
@@ -168,6 +210,15 @@
   </div>
 
   <div class="content">
+    <div class="cfind" id="js-cfind" hidden>
+      <label class="cfind__field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7.5"/><line x1="20.5" y1="20.5" x2="16.4" y2="16.4"/></svg>
+        <input class="cfind__input" id="js-cfind-input" type="search" placeholder="Busca una tienda: Tiendanimal, HP, Tefal…" autocomplete="off" enterkeyhint="search" aria-label="Buscar cupones por tienda" />
+        <button class="cfind__clear" id="js-cfind-clear" type="button" aria-label="Borrar búsqueda" hidden>×</button>
+      </label>
+      <div class="cfind__chips" id="js-cfind-chips" role="group" aria-label="Tiendas con cupones"></div>
+      <p class="cfind__count" id="js-cfind-count" aria-live="polite"></p>
+    </div>
     <div class="coupons-grid" id="js-coupons">
       <p class="coupons-loading">Cargando cupones…</p>
     </div>
@@ -244,10 +295,71 @@
       '</article>';
     }
 
+    // ── Buscador por tienda ──────────────────────────────────────────
+    // El texto filtra a la vez los chips de tiendas y los cupones (por tienda o título);
+    // un chip elige una tienda exacta. ?tienda=X en la URL deja el filtro compartible.
+    var TODAS = [], tiendaSel = "", texto = "";
+    var norm = function(s){ return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim(); };
+
+    function porTienda(){
+      var c = {};
+      TODAS.forEach(function(p){ if (p.tienda) c[p.tienda] = (c[p.tienda] || 0) + 1; });
+      return Object.keys(c).map(function(t){ return { t: t, n: c[t] }; })
+        .sort(function(a, b){ return b.n - a.n || a.t.localeCompare(b.t, "es"); });
+    }
+
+    function pintar(){
+      var wrap = document.getElementById("js-coupons");
+      var q = norm(texto);
+      var tiendas = porTienda();
+      var visiblesT = q ? tiendas.filter(function(x){ return norm(x.t).indexOf(q) >= 0; }) : tiendas;
+      var chips = '<button type="button" class="cfind__chip' + (!tiendaSel ? ' cfind__chip--on' : '') + '" data-t="">Todas <b>' + TODAS.length + '</b></button>' +
+        visiblesT.map(function(x){
+          return '<button type="button" class="cfind__chip' + (tiendaSel === x.t ? ' cfind__chip--on' : '') + '" data-t="' + esc(x.t) + '">' + esc(x.t) + ' <b>' + x.n + '</b></button>';
+        }).join("");
+      document.getElementById("js-cfind-chips").innerHTML = chips;
+
+      var lista = TODAS.filter(function(p){
+        if (tiendaSel && p.tienda !== tiendaSel) return false;
+        if (q && norm(p.tienda).indexOf(q) < 0 && norm(p.titulo).indexOf(q) < 0) return false;
+        return true;
+      });
+      var cuenta = document.getElementById("js-cfind-count");
+      var filtrando = !!(tiendaSel || q);
+      cuenta.innerHTML = filtrando
+        ? lista.length + (lista.length === 1 ? " cupón" : " cupones") + (tiendaSel ? " de " + esc(tiendaSel) : "") +
+          ' · <button type="button" id="js-cfind-reset">Ver todos</button>'
+        : TODAS.length + " cupones de " + tiendas.length + " tiendas";
+      wrap.innerHTML = lista.length ? lista.map(renderCoupon).join("")
+        : '<p class="coupons-empty">No hay cupones de “' + esc(tiendaSel || texto) + '” ahora mismo. Se actualizan varias veces al día.</p>';
+      document.getElementById("js-cfind-clear").hidden = !texto;
+      try {
+        var u = new URL(location.href);
+        if (tiendaSel) u.searchParams.set("tienda", tiendaSel); else u.searchParams.delete("tienda");
+        history.replaceState(null, "", u.pathname + u.search);
+      } catch(e) {}
+    }
+
+    (function initBuscador(){
+      var inp = document.getElementById("js-cfind-input");
+      inp.addEventListener("input", function(){ texto = inp.value; tiendaSel = ""; pintar(); });
+      document.getElementById("js-cfind-clear").addEventListener("click", function(){ texto = ""; inp.value = ""; tiendaSel = ""; pintar(); inp.focus(); });
+      document.getElementById("js-cfind-chips").addEventListener("click", function(e){
+        var b = e.target.closest(".cfind__chip"); if (!b) return;
+        var t = b.getAttribute("data-t") || "";
+        tiendaSel = (t && tiendaSel !== t) ? t : "";
+        pintar();
+      });
+      document.getElementById("js-cfind-count").addEventListener("click", function(e){
+        if (e.target.id === "js-cfind-reset") { tiendaSel = ""; texto = ""; inp.value = ""; pintar(); }
+      });
+    })();
+
     (async function loadCupones(){
       var wrap = document.getElementById("js-coupons");
       try {
-        var res = await fetch(API_BASE + "/api/promociones");
+        // limit alto: con el buscador hace falta la lista entera (la API por defecto da 40)
+        var res = await fetch(API_BASE + "/api/promociones?limit=500");
         var promos = res.ok ? await res.json() : [];
         if (!Array.isArray(promos)) promos = [];
         // Con código primero (más accionables)
@@ -256,7 +368,17 @@
           wrap.innerHTML = '<p class="coupons-empty">No hay cupones activos ahora mismo. Vuelve pronto — se actualizan a diario.</p>';
           return;
         }
-        wrap.innerHTML = promos.map(renderCoupon).join("");
+        TODAS = promos;
+        try {
+          var t = new URL(location.href).searchParams.get("tienda") || "";
+          if (t) {
+            var real = porTienda().filter(function(x){ return norm(x.t) === norm(t); })[0];
+            tiendaSel = real ? real.t : "";
+            if (!real) { texto = t; document.getElementById("js-cfind-input").value = t; }
+          }
+        } catch(e) {}
+        document.getElementById("js-cfind").hidden = false;
+        pintar();
       } catch (e) {
         wrap.innerHTML = '<p class="coupons-empty">No se pudieron cargar los cupones. Recarga la página.</p>';
       }

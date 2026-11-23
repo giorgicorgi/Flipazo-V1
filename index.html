@@ -618,7 +618,7 @@
       color: var(--brand);
     }
 
-    /* ── Atajos móviles bajo la barra de controles ("Menos de 15 €" el primero) ── */
+    /* ── Atajos móviles bajo la barra de controles ("Menos de 25 €" el primero) ── */
     .mquick { display: none; }
     @media (max-width: 767px) {
       .mquick {
@@ -633,7 +633,7 @@
         background: var(--surface); border: 1.5px solid var(--border);
         -webkit-tap-highlight-color: transparent; transition: background .12s, border-color .12s, color .12s;
       }
-      /* El de 15 € destaca aunque esté apagado: es el atajo prioritario */
+      /* "Menos de 25 €" destaca aunque esté apagado: es el atajo prioritario */
       .mquick__chip--top { border-color: var(--teal); color: #0D7A6F; background: var(--teal-light); }
       [data-theme="dark"] .mquick__chip--top { color: #5FCBBB; background: rgba(20,193,174,.12); }
       .mquick__chip--on, .mquick__chip--top.mquick__chip--on {
@@ -3123,7 +3123,6 @@
           </select>
         </span>
       </label>
-      <button class="sort-tab sort-tab--lowcost" id="js-lowcost15-chip" type="button" aria-pressed="false" data-lowcost="15">💸 Menos de 15€</button>
       <button class="sort-tab sort-tab--lowcost" id="js-lowcost-chip" type="button" aria-pressed="false" data-lowcost="25">💸 Menos de 25€</button>
       <a href="/cupones" class="sort-tab sort-tab--cupones">🎟️ Cupones</a>
       <!-- "Para Revender" oculto: sin productos por ahora. Lógica intacta para reactivar (premium). -->
@@ -3189,10 +3188,11 @@
     </div>
   </div>
 
-  <!-- ── ATAJOS MÓVIL: lo barato primero (no se fija al hacer scroll) ── -->
+  <!-- ── ATAJOS MÓVIL: lo barato primero (no se fija al hacer scroll) ──
+       El botón de 15 € se quitó a petición (23-nov-2026); /menos-de-15 sigue
+       funcionando como enlace para compartir. -->
   <nav class="mquick" aria-label="Atajos">
-    <button class="mquick__chip mquick__chip--top" type="button" data-lowcost="15" data-on="mquick__chip--on" aria-pressed="false">💸 Menos de 15 €</button>
-    <button class="mquick__chip" type="button" data-lowcost="25" data-on="mquick__chip--on" aria-pressed="false">Menos de 25 €</button>
+    <button class="mquick__chip mquick__chip--top" type="button" data-lowcost="25" data-on="mquick__chip--on" aria-pressed="false">💸 Menos de 25 €</button>
     <a class="mquick__chip" href="/cupones">🎟️ Cupones</a>
   </nav>
 
@@ -7969,7 +7969,7 @@
           return `<button class="prefs__chip${on ? " prefs__chip--on" : ""}" aria-pressed="${on}"
                     onclick="fpanelSelectSort('${x.id}')">${x.label}</button>`;
         }).join("") +
-        [15, 25].map(t => {
+        [25].map(t => {
           const on = activeLowCost && _lowCostTope === t;
           return `<button class="prefs__chip${on ? " prefs__chip--on" : ""}" aria-pressed="${on}"
                     onclick="fpanelToggleLowCost(${t})">💸 Menos de ${t} €</button>`;
