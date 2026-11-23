@@ -3501,6 +3501,184 @@
     </div>
   </section>
 
+  <!-- ── BLACK FRIDAY (20-nov → 30-nov) ────────────────────────────
+       Escaparate por temas al estilo "mosaico": un panel grande con la cuenta
+       atrás, "el chollo más gordo" y una tarjeta 2×2 por categoría. Se pinta solo
+       en la portada (sin filtros) y se apaga solo el 1-dic (_BF_FIN). -->
+  <style>
+    .bf { padding: 20px 40px 8px; position: relative; }
+    .bf__wrap { position: relative; }
+    .bf__track {
+      display: grid; grid-auto-flow: column dense;
+      grid-template-rows: repeat(2, 292px); grid-auto-columns: 252px;
+      gap: 12px; overflow-x: auto; overscroll-behavior-x: contain;
+      scroll-snap-type: x proximity; scroll-padding-left: 2px;
+      scrollbar-width: none; padding: 4px 2px 10px;
+    }
+    .bf__track::-webkit-scrollbar { display: none; }
+    .bf__tile {
+      position: relative; overflow: hidden; border-radius: 18px;
+      padding: 14px 14px 12px; color: #fff; scroll-snap-align: start;
+      display: flex; flex-direction: column; min-width: 0;
+      background: #16161A; box-shadow: 0 6px 18px rgba(17,17,20,.14);
+      transition: transform .25s ease, box-shadow .25s ease;
+    }
+    .bf__tile:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(17,17,20,.22); }
+    .bf__tile--red { background: linear-gradient(160deg, #FF3B47 0%, #F52834 55%, #D91B27 100%); }
+    .bf__tile--hero { grid-row: span 2; grid-column: span 2; background: #0C0C0F; padding: 26px 26px 22px; }
+    .bf__tile--fat  { grid-row: span 2; }
+
+    /* Entrada en cascada al aparecer en pantalla */
+    .bf .bf__tile { opacity: 0; transform: translateY(18px) scale(.97); }
+    .bf--in .bf__tile { animation: bfIn .6s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+    @keyframes bfIn { to { opacity: 1; transform: none; } }
+
+    /* ── Panel principal ── */
+    .bf__glow {
+      position: absolute; inset: -30%; pointer-events: none;
+      background: radial-gradient(circle at 30% 25%, rgba(245,40,52,.45), transparent 42%),
+                  radial-gradient(circle at 85% 80%, rgba(245,40,52,.30), transparent 40%);
+      animation: bfGlow 9s ease-in-out infinite alternate;
+    }
+    @keyframes bfGlow { to { transform: translate(6%, 4%) rotate(8deg); } }
+    .bf__tile--hero > *:not(.bf__glow) { position: relative; }
+    .bf__eyebrow {
+      align-self: flex-start; display: inline-flex; align-items: center; gap: 8px;
+      font: 800 12px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase;
+      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18);
+      padding: 7px 12px; border-radius: 999px;
+    }
+    .bf__dot { width: 8px; height: 8px; border-radius: 50%; background: #FF3B47; box-shadow: 0 0 0 0 rgba(255,59,71,.7); animation: bfDot 1.6s infinite; }
+    @keyframes bfDot { 70% { box-shadow: 0 0 0 9px rgba(255,59,71,0); } 100% { box-shadow: 0 0 0 0 rgba(255,59,71,0); } }
+    .bf__title {
+      margin: 16px 0 0; font: 900 clamp(44px, 5.2vw, 70px)/.9 var(--sans); letter-spacing: -.02em;
+      background: linear-gradient(100deg, #fff 0%, #fff 38%, #FF5A63 50%, #fff 62%, #fff 100%);
+      background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: bfSheen 4.5s ease-in-out infinite;
+    }
+    .bf__title span { display: block; }
+    @keyframes bfSheen { 0% { background-position: 120% 0; } 60%, 100% { background-position: -30% 0; } }
+    .bf__lead { margin: 14px 0 0; max-width: 360px; font: 600 15px/1.45 var(--sans); color: rgba(255,255,255,.78); }
+    .bf__lead b { color: #fff; }
+    .bf__count { display: flex; align-items: flex-end; gap: 6px; margin-top: 18px; }
+    .bf__count-lbl { font: 700 12px/1 var(--sans); color: rgba(255,255,255,.65); margin-right: 4px; padding-bottom: 6px; }
+    .bf__cbox { min-width: 50px; text-align: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 7px 4px 5px; }
+    .bf__cbox b { display: block; font: 900 22px/1 var(--sans); font-variant-numeric: tabular-nums; }
+    .bf__cbox b.bf__tick { animation: bfTick .35s ease-out; }
+    @keyframes bfTick { from { transform: translateY(-40%); opacity: 0; } }
+    .bf__cbox small { display: block; margin-top: 3px; font: 700 10px/1 var(--sans); color: rgba(255,255,255,.55); text-transform: uppercase; letter-spacing: .06em; }
+    .bf__stack { position: relative; flex: 1; min-height: 120px; margin: 16px 0 12px; }
+    .bf__float {
+      position: absolute; bottom: 0; width: 128px; aspect-ratio: 1; background: #fff; border-radius: 16px;
+      box-shadow: 0 12px 28px rgba(0,0,0,.45); padding: 10px; display: block;
+      animation: bfFloat 5s ease-in-out infinite; animation-delay: var(--d, 0s);
+    }
+    .bf__float img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .bf__float:nth-child(1) { left: 0;     transform: rotate(-6deg); --r: -6deg; }
+    .bf__float:nth-child(2) { left: 31%;   transform: rotate(3deg);  --r: 3deg; z-index: 2; width: 150px; }
+    .bf__float:nth-child(3) { left: 64%;   transform: rotate(8deg);  --r: 8deg; }
+    @keyframes bfFloat { 50% { transform: translateY(-10px) rotate(var(--r)); } 0%, 100% { transform: translateY(0) rotate(var(--r)); } }
+    .bf__badge {
+      position: absolute; left: 8px; bottom: 8px; background: var(--brand, #F52834); color: #fff;
+      font: 900 12px/1 var(--sans); padding: 4px 7px; border-radius: 6px;
+    }
+    .bf__float .bf__badge { left: auto; right: -8px; top: -8px; bottom: auto; font-size: 14px; padding: 6px 8px; border-radius: 9px; box-shadow: 0 4px 10px rgba(0,0,0,.3); }
+    .bf__cta {
+      align-self: flex-start; border: 0; cursor: pointer; border-radius: 999px;
+      background: #fff; color: #0C0C0F; font: 800 15px/1 var(--sans); padding: 14px 20px;
+      display: inline-flex; align-items: center; gap: 8px; transition: transform .2s ease, background .2s ease;
+    }
+    .bf__cta:hover { transform: translateX(3px); background: #FFE7E9; }
+
+    /* ── Cabecera de las tarjetas ── */
+    .bf__head { display: block; color: inherit; text-decoration: none; cursor: pointer; margin-bottom: 10px; }
+    .bf__h { margin: 0; font: 900 20px/1.08 var(--sans); letter-spacing: -.01em; }
+    .bf__upto { display: inline-block; margin-top: 6px; font: 800 12px/1 var(--sans); background: rgba(255,255,255,.16); padding: 5px 8px; border-radius: 999px; }
+    .bf__tile--red .bf__upto { background: rgba(0,0,0,.18); }
+    .bf__head:hover .bf__h { text-decoration: underline; text-underline-offset: 3px; }
+
+    /* ── 2×2 de productos ── */
+    .bf__grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; min-height: 0; perspective: 700px; }
+    .bf__th {
+      position: relative; display: flex; flex-direction: column; min-height: 0;
+      background: #fff; border-radius: 12px; overflow: hidden; text-decoration: none;
+      transform-style: preserve-3d; transition: transform .28s ease;
+    }
+    .bf__th.bf__flip { transform: rotateY(90deg); }
+    .bf__th-img { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 6px 6px 0; }
+    .bf__th-img img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform .3s ease; }
+    .bf__th:hover .bf__th-img img { transform: scale(1.07); }
+    .bf__th-p { font: 800 13px/1 var(--sans); color: #0581FC; padding: 4px 8px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bf__th .bf__badge { top: 6px; left: 6px; bottom: auto; font-size: 11px; padding: 3px 6px; }
+    .bf__more { margin-top: 9px; font: 800 12.5px/1 var(--sans); color: #fff; opacity: .85; text-decoration: none; cursor: pointer; background: none; border: 0; padding: 0; text-align: left; }
+    .bf__more:hover { opacity: 1; text-decoration: underline; }
+
+    /* ── El chollo más gordo ── */
+    .bf__fat { position: relative; flex: 1; display: flex; flex-direction: column; text-decoration: none; color: #fff; min-height: 0; }
+    .bf__fat-stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+    .bf__ring { position: absolute; width: 74%; aspect-ratio: 1; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); animation: bfRing 2.8s ease-out infinite; }
+    .bf__ring + .bf__ring { animation-delay: 1.4s; }
+    @keyframes bfRing { from { transform: scale(.75); opacity: .9; } to { transform: scale(1.25); opacity: 0; } }
+    .bf__fat-disc { position: relative; width: 74%; aspect-ratio: 1; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 30px rgba(0,0,0,.25); }
+    .bf__fat-disc img { width: 72%; height: 72%; object-fit: contain; transition: opacity .4s ease, transform .4s ease; }
+    .bf__fat-save { font: 900 26px/1 var(--sans); letter-spacing: -.01em; }
+    .bf__fat-t { margin: 8px 0 0; font: 700 14px/1.25 var(--sans); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .bf__fat-p { margin-top: 6px; font: 600 13px/1 var(--sans); color: rgba(255,255,255,.85); }
+    .bf__fat-p s { opacity: .75; margin-right: 6px; }
+    .bf__fat-p b { color: #fff; font-size: 17px; font-weight: 900; }
+    .bf__fat-store { margin-top: 5px; font: 700 12px/1 var(--sans); color: rgba(255,255,255,.8); }
+    .bf__fade { transition: opacity .35s ease; }
+    .bf__fade--out { opacity: 0; }
+
+    /* ── Flechas (escritorio) ── */
+    .bf__arrow {
+      position: absolute; top: 50%; z-index: 3; width: 44px; height: 64px; margin-top: -32px;
+      border: 1px solid var(--border, #E5E7EB); background: var(--card-bg, #fff); color: var(--ink, #111);
+      box-shadow: 0 6px 18px rgba(0,0,0,.18); cursor: pointer; font: 400 30px/1 var(--sans);
+      display: flex; align-items: center; justify-content: center; transition: opacity .2s ease;
+    }
+    .bf__arrow--prev { left: -14px; border-radius: 0 12px 12px 0; }
+    .bf__arrow--next { right: -14px; border-radius: 12px 0 0 12px; }
+    .bf__arrow[hidden] { display: none; }
+
+    @media (max-width: 767px) {
+      .bf { padding: 14px 0 4px; }
+      .bf__track {
+        display: flex; gap: 10px; padding: 4px 14px 12px; scroll-padding-left: 14px;
+        scroll-snap-type: x mandatory;
+      }
+      .bf__tile { flex: 0 0 232px; height: 340px; }
+      .bf__tile--hero { flex-basis: min(86vw, 330px); padding: 18px 18px 16px; }
+      .bf__title { font-size: 44px; margin-top: 12px; }
+      .bf__lead { font-size: 13.5px; margin-top: 16px; }
+      .bf__count { margin-top: auto; }
+      .bf__cbox { min-width: 44px; padding: 6px 3px 4px; }
+      .bf__cbox b { font-size: 18px; }
+      .bf__count-lbl { display: none; }
+      /* Los productos suben junto al título (a la derecha) para no tapar el texto */
+      .bf__tile--hero > .bf__stack { position: absolute; top: 56px; right: 14px; width: 116px; height: 60px; margin: 0; flex: none; }
+      .bf__float { width: 52px; padding: 5px; border-radius: 10px; }
+      .bf__float:nth-child(1) { left: 0; top: 6px; bottom: auto; }
+      .bf__float:nth-child(2) { left: auto; right: 0; top: 0; bottom: auto; width: 58px; }
+      .bf__float:nth-child(3) { display: none; }
+      .bf__float .bf__badge { font-size: 11px; padding: 3px 5px; right: -6px; top: -6px; }
+      .bf__cta { font-size: 14px; padding: 12px 16px; margin-top: 12px; }
+      .bf__arrow { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bf .bf__tile { opacity: 1; transform: none; animation: none !important; }
+      .bf__glow, .bf__title, .bf__dot, .bf__float, .bf__ring, .bf__cbox b.bf__tick { animation: none !important; }
+      .bf__th { transition: none; }
+    }
+  </style>
+  <section class="bf" id="js-bf" hidden aria-label="Black Friday en Flipazo">
+    <div class="bf__wrap">
+      <button class="bf__arrow bf__arrow--prev" type="button" aria-label="Anterior" hidden onclick="_bfScroll(-1)">‹</button>
+      <div class="bf__track" id="js-bf-track"></div>
+      <button class="bf__arrow bf__arrow--next" type="button" aria-label="Siguiente" onclick="_bfScroll(1)">›</button>
+    </div>
+  </section>
+
   <!-- ── HERO SECTION ──────────────────────────────────────────── -->
   <section class="hero" id="js-hero" style="display:none" aria-label="Oferta destacada">
     <div class="hero__grid">
@@ -4828,6 +5006,7 @@
 
   function updateHero() {
     const hero = document.getElementById("js-hero");
+    _bfUpdate();   // el escaparate de Black Friday sigue el mismo criterio de "portada"
     // En móvil el 'Deal del momento' lo pinta la home móvil (renderWhero), no el hero
     // de desktop → aquí nunca se muestra el hero grande.
     if (_isMobileViewport()) { hero.style.display = "none"; heroMode = false; _heroId = null; return; }
@@ -6517,6 +6696,7 @@
     _syncParaTiUI();
     const titleEl = document.getElementById("js-section-title");
     if (titleEl) titleEl.textContent = "Para ti";
+    _bfUpdate();
     allDeals = []; currentOffset = 0; hasMore = true; _searchAllLoaded = false;
     document.getElementById("js-grid").innerHTML = "";
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -6527,6 +6707,7 @@
     if (!_paraTiView) return;
     _paraTiView = false;
     _syncParaTiUI();
+    _bfUpdate();
   }
 
   // ── Fila "Para ti" dentro de Explorar ─────────────────────────────
@@ -7274,6 +7455,328 @@
     });
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // BLACK FRIDAY — escaparate por temas (#js-bf), del 20 al 30 de nov.
+  //
+  // Mosaico de tarjetas: panel grande con cuenta atrás, "el chollo más gordo"
+  // (más euros ahorrados) y una tarjeta 2×2 por tema que va girando productos.
+  // Solo en la portada sin filtros (mismo criterio que el hero) y se apaga
+  // sola el 1-dic. Todo con `var`: updateHero() lo llama y puede correr antes
+  // de que el script llegue hasta aquí.
+  // ════════════════════════════════════════════════════════════════
+  var _BF_INI = Date.parse("2026-11-20T00:00:00+01:00");
+  var _BF_FIN = Date.parse("2026-12-01T00:00:00+01:00");   // Cyber Monday incluido
+  var _BF_OUTLET = new Set(["Esdemarca", "Desigual"]);     // outlet permanente: no protagonizan
+  var _bfDeals = [], _bfFetching = false, _bfRendered = false, _bfLen = 0;
+  var _bfPools = {}, _bfFat = [], _bfFatI = 0, _bfVisible = false, _bfObs = null, _bfTimersOn = false;
+  var _bfReduce = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  var _BF_TEMAS = [
+    { id: "tecnologia", h: "Tecnología",        test: d => dealInCategory(d, "tecnologia"), go: "mhomeCat('tecnologia')" },
+    { id: "zapas",      h: "Zapatillas",        test: d => _esCalzadoDeportivo(d),          go: "mhomeSubcat('deportes','calzado')" },
+    { id: "hogar",      h: "Hogar y cocina",    test: d => dealInCategory(d, "hogar"),      go: "mhomeCat('hogar')" },
+    { id: "amazon",     h: "Lo mejor de Amazon", test: d => d.tienda === "Amazon",          go: "mhomeStore('Amazon')" },
+    { id: "moda",       h: "Moda",              test: d => dealInCategory(d, "moda"),       go: "mhomeCat('moda')" },
+    { id: "deportes",   h: "Deporte",           test: d => dealInCategory(d, "deportes") && !_esCalzadoDeportivo(d), go: "mhomeCat('deportes')" },
+    { id: "low",        h: "Por menos de 25 €", test: d => (d.precio_actual || 0) > 0 && d.precio_actual < 25, go: "_toggleLowCost(true,25)" },
+    { id: "belleza",    h: "Cuidado personal",  test: d => dealInCategory(d, "belleza"),    go: "mhomeCat('belleza')" },
+    { id: "juguetes",   h: "Juguetes",          test: d => dealInCategory(d, "juguetes"),   go: "mhomeCat('juguetes')" },
+    { id: "mascotas",   h: "Mascotas",          test: d => dealInCategory(d, "mascotas"),   go: "mhomeCat('mascotas')" },
+  ];
+
+  function _bfEnCampana() { const n = Date.now(); return n >= _BF_INI && n < _BF_FIN; }
+  function _bfDebeVerse() { return _bfEnCampana() && shouldShowHero() && !_paraTiView; }
+
+  // De dónde salen los productos: la home ya trae 120+ en móvil y en Explorar;
+  // en la vista "Todos" de escritorio solo hay 24, así que se piden 300 aparte.
+  function _bfFuente() {
+    const mh = (typeof _mhomeDeals !== "undefined" && _mhomeDeals) || [];
+    if ((mh.length >= 100 || (USE_MOCK && mh.length)) && mh.length >= _bfDeals.length) return mh;
+    if (_bfDeals.length) return _bfDeals;
+    if (!_bfFetching) {
+      _bfFetching = true;
+      const pedir = () => fetch(`${API_URL}?limit=300&offset=0`)
+        .then(r => r.ok ? r.json() : [])
+        .then(d => { _bfDeals = Array.isArray(d) ? d : []; _bfUpdate(); })
+        .catch(() => {});
+      // En móvil la home los trae en ~1 s; solo se piden aparte si no llegan.
+      if (_isMobileViewport()) setTimeout(() => { if (!_bfRendered) pedir(); }, 2500); else pedir();
+    }
+    return null;
+  }
+
+  // Calidad primero (score, descuento) y variedad después: una por familia de
+  // producto y las tiendas intercaladas, para que un tema no sean 4 zapatillas iguales.
+  function _bfOrdenar(list) {
+    const fams = new Set(), porTienda = new Map();
+    // ≥40% siempre: aquí no entran las excepciones manuales (el iPhone al −9%).
+    list.filter(d => d && !d.expirado && d.imagen_url && d.url_affiliate && (d.descuento_pct || 0) >= 40 && (d.precio_actual || 0) > 0)
+      .sort((a, b) => (b.deal_score || 0) - (a.deal_score || 0) || (b.descuento_pct || 0) - (a.descuento_pct || 0))
+      .forEach(d => {
+        const fam = d.tienda + "|" + marcaPrimero(d.titulo || "").toLowerCase().split(/\s+/).slice(0, 3).join(" ");
+        if (fams.has(fam)) return;
+        fams.add(fam);
+        if (!porTienda.has(d.tienda)) porTienda.set(d.tienda, []);
+        porTienda.get(d.tienda).push(d);
+      });
+    const colas = [...porTienda.values()], out = [];
+    while (colas.some(c => c.length)) for (const c of colas) if (c.length) out.push(c.shift());
+    return out;
+  }
+
+  function _bfThumb(d) {
+    return `<a class="bf__th" href="${esc(d.url_affiliate)}" data-track="${esc(d.id)}" data-id="${esc(d.id)}" target="_blank" rel="noopener sponsored" title="${esc(marcaPrimero(d.titulo || ""))}">
+      <span class="bf__th-img"><img src="${esc(d.imagen_url)}" alt="${esc(marcaPrimero(d.titulo || ""))}" loading="lazy" onerror="_bfImgRota(this)"></span>
+      <span class="bf__badge">−${d.descuento_pct}%</span>
+      <span class="bf__th-p">${fmtPrice(d.precio_actual)}</span>
+    </a>`;
+  }
+
+  function _bfFatHtml(d) {
+    const ahorro = Math.round((d.precio_original || 0) - (d.precio_actual || 0));
+    return `<a class="bf__fat bf__fade" id="js-bf-fat" href="${esc(d.url_affiliate)}" data-track="${esc(d.id)}" target="_blank" rel="noopener sponsored">
+      <span class="bf__fat-save">Ahorras ${ahorro.toLocaleString("es-ES")} €</span>
+      <span class="bf__fat-stage"><i class="bf__ring"></i><i class="bf__ring"></i>
+        <span class="bf__fat-disc"><img src="${esc(d.imagen_url)}" alt=""></span></span>
+      <p class="bf__fat-t">${_mhT(d.titulo, 60)}</p>
+      <span class="bf__fat-p"><s>${fmtPrice(d.precio_original)}</s><b>${fmtPrice(d.precio_actual)}</b></span>
+      <span class="bf__fat-store">${esc(d.tienda || "")} · −${d.descuento_pct}%</span>
+    </a>`;
+  }
+
+  function _bfEyebrow() {
+    const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
+    if (hoy === "2026-11-30") return "Cyber Monday · último día";
+    if (hoy >= "2026-11-28") return "Fin de semana Black Friday";
+    if (hoy === "2026-11-27") return "Hoy es Black Friday";
+    return "Semana Black Friday";
+  }
+
+  function _bfRender(deals) {
+    const track = document.getElementById("js-bf-track");
+    if (!track) return;
+    const orden = _bfOrdenar(deals);
+    const usados = new Set();
+    _bfPools = {};
+
+    // Panel principal: 3 productos flotando, los de mayor % de tiendas distintas.
+    const top = orden.filter(d => !_BF_OUTLET.has(d.tienda) && d.precio_actual >= 30)
+      .sort((a, b) => (b.descuento_pct || 0) - (a.descuento_pct || 0));
+    const floats = [], tiendas = new Set();
+    for (const d of top) { if (floats.length < 3 && !tiendas.has(d.tienda)) { floats.push(d); tiendas.add(d.tienda); } }
+    for (const d of top) { if (floats.length < 3 && !floats.includes(d)) floats.push(d); }
+    floats.forEach(d => usados.add(d.id));
+
+    // El chollo más gordo: más euros de ahorro (no más %), rotando entre los 5 primeros.
+    _bfFat = orden.filter(d => !_BF_OUTLET.has(d.tienda) && d.precio_actual >= 30 && (d.precio_original || 0) > d.precio_actual)
+      .sort((a, b) => (b.precio_original - b.precio_actual) - (a.precio_original - a.precio_actual)).slice(0, 5);
+    _bfFatI = 0;
+    _bfFat.forEach(d => usados.add(d.id));
+
+    let i = 0;
+    const tiles = [];
+    const hero = `<div class="bf__tile bf__tile--hero" style="--i:${i++}">
+      <div class="bf__glow" aria-hidden="true"></div>
+      <span class="bf__eyebrow"><i class="bf__dot" aria-hidden="true"></i>${_bfEyebrow()}</span>
+      <h2 class="bf__title"><span>Black</span><span>Friday</span></h2>
+      <p class="bf__lead">Aquí no vale subir el precio la víspera: <b>cada descuento, contrastado con su historial.</b></p>
+      <div class="bf__count" id="js-bf-count" aria-label="Tiempo restante"></div>
+      <div class="bf__stack" aria-hidden="true">${floats.map((d, k) =>
+        `<a class="bf__float" style="--d:${k * -1.6}s" href="${esc(d.url_affiliate)}" data-track="${esc(d.id)}" target="_blank" rel="noopener sponsored" tabindex="-1">
+          <img src="${esc(d.imagen_url)}" alt=""><span class="bf__badge">−${d.descuento_pct}%</span></a>`).join("")}</div>
+      <button class="bf__cta" type="button" onclick="mhomeSort('descuento')">Ver los mayores descuentos <span aria-hidden="true">→</span></button>
+    </div>`;
+    tiles.push(hero);
+
+    if (_bfFat.length) {
+      tiles.push(`<div class="bf__tile bf__tile--red bf__tile--fat" style="--i:${i++}">
+        <div class="bf__head" style="cursor:default"><h3 class="bf__h">El chollo más gordo</h3></div>
+        ${_bfFatHtml(_bfFat[0])}
+      </div>`);
+    }
+
+    let n = 0;
+    for (const t of _BF_TEMAS) {
+      const pool = orden.filter(t.test);
+      if (pool.length < 4) continue;
+      // Las 4 de salida, sin repetir lo que ya enseñan otras tarjetas.
+      const salida = pool.filter(d => !usados.has(d.id)).slice(0, 4);
+      if (salida.length < 4) continue;
+      salida.forEach(d => usados.add(d.id));
+      const resto = pool.filter(d => !salida.includes(d));
+      _bfPools[t.id] = { cola: resto.concat(salida), ptr: 0 };
+      const maxPct = Math.max(...pool.map(d => d.descuento_pct || 0));
+      const rojo = (n++ % 3 === 1);
+      tiles.push(`<div class="bf__tile${rojo ? " bf__tile--red" : ""}" style="--i:${i++}" data-tema="${t.id}">
+        <a class="bf__head" href="#" onclick="event.preventDefault();${t.go}">
+          <h3 class="bf__h">${t.h}</h3><span class="bf__upto">hasta −${maxPct}%</span>
+        </a>
+        <div class="bf__grid">${salida.map(_bfThumb).join("")}</div>
+        <a class="bf__more" href="#" onclick="event.preventDefault();${t.go}">Ver todo ›</a>
+      </div>`);
+    }
+
+    track.innerHTML = tiles.join("");
+    _bfRendered = true;
+    _bfLen = deals.length;
+    _bfTick(true);
+    _bfFlechas();
+  }
+
+  function _bfUpdate() {
+    const el = document.getElementById("js-bf");
+    if (!el) return;
+    if (!_bfDebeVerse()) { el.hidden = true; return; }
+    const deals = _bfFuente();
+    if (!deals) return;
+    // Si está encima de lo que el usuario lee, compensar el scroll al aparecer.
+    const arriba = el.getBoundingClientRect().top < 0;
+    const antes = document.documentElement.scrollHeight;
+    const crecio = deals.length >= _bfLen * 1.5 && !_bfVisible;   // llegó el resto del feed
+    if (!_bfRendered || crecio) _bfRender(deals);
+    if (el.hidden) el.hidden = false;
+    _bfArrancar();
+    const delta = document.documentElement.scrollHeight - antes;
+    if (arriba && delta) window.scrollBy({ top: delta, behavior: "instant" });
+  }
+
+  function _bfArrancar() {
+    const el = document.getElementById("js-bf");
+    if (!_bfObs && "IntersectionObserver" in window) {
+      _bfObs = new IntersectionObserver(es => es.forEach(e => {
+        _bfVisible = e.isIntersecting;
+        if (e.isIntersecting) el.classList.add("bf--in");
+      }), { threshold: 0.15 });
+      _bfObs.observe(el);
+      document.getElementById("js-bf-track").addEventListener("scroll", _bfFlechas, { passive: true });
+      window.addEventListener("resize", _bfFlechas, { passive: true });
+    } else if (!_bfObs) { el.classList.add("bf--in"); _bfVisible = true; }
+    if (_bfTimersOn) return;
+    _bfTimersOn = true;
+    setInterval(() => _bfTick(false), 1000);
+    if (_bfReduce) return;
+    setInterval(_bfRotarTema, 2600);
+    setInterval(_bfRotarFat, 5500);
+  }
+
+  // Cuenta atrás hasta el cierre del Cyber Monday (medianoche en Madrid).
+  var _bfUltimo = {};
+  function _bfTick(forzar) {
+    const box = document.getElementById("js-bf-count");
+    if (!box || (!forzar && (!_bfVisible || document.hidden))) return;
+    let s = Math.max(0, Math.floor((_BF_FIN - Date.now()) / 1000));
+    if (!s) { const el = document.getElementById("js-bf"); if (el) el.hidden = true; return; }
+    const v = { d: Math.floor(s / 86400), h: Math.floor(s % 86400 / 3600), m: Math.floor(s % 3600 / 60), s: s % 60 };
+    if (!box.firstChild) {
+      box.innerHTML = `<span class="bf__count-lbl">Termina en</span>` +
+        [["d", "días"], ["h", "horas"], ["m", "min"], ["s", "seg"]].map(([k, l]) => `<span class="bf__cbox"><b data-k="${k}"></b><small>${l}</small></span>`).join("");
+      _bfUltimo = {};
+    }
+    box.querySelectorAll("b[data-k]").forEach(b => {
+      const k = b.dataset.k, txt = String(v[k]).padStart(2, "0");
+      if (_bfUltimo[k] === txt) return;
+      b.textContent = txt;
+      if (_bfUltimo[k] !== undefined && !_bfReduce) { b.classList.remove("bf__tick"); void b.offsetWidth; b.classList.add("bf__tick"); }
+      _bfUltimo[k] = txt;
+    });
+  }
+
+  function _bfSiguiente(temaId, tile) {
+    const p = _bfPools[temaId];
+    if (!p || !p.cola.length) return null;
+    const enPantalla = new Set([...tile.querySelectorAll(".bf__th")].map(a => a.dataset.id));
+    for (let k = 0; k < p.cola.length; k++) {
+      const d = p.cola[p.ptr];
+      p.ptr = (p.ptr + 1) % p.cola.length;
+      if (!enPantalla.has(String(d.id))) return d;
+    }
+    return null;
+  }
+
+  // Sustituye una miniatura por otra con un giro; la imagen nueva se precarga
+  // para no girar hacia un hueco en blanco (y si está rota, se salta).
+  function _bfCambiar(th, d, sinGiro, intentos) {
+    const im = new Image();
+    im.onload = () => {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = _bfThumb(d).trim();
+      const nuevo = tmp.firstElementChild;
+      if (sinGiro || _bfReduce) { th.replaceWith(nuevo); return; }
+      th.classList.add("bf__flip");
+      setTimeout(() => {
+        nuevo.classList.add("bf__flip");
+        th.replaceWith(nuevo);
+        requestAnimationFrame(() => requestAnimationFrame(() => nuevo.classList.remove("bf__flip")));
+      }, 280);
+    };
+    im.onerror = () => {
+      const tile = th.closest("[data-tema]");
+      const otro = tile && (intentos || 0) < 4 ? _bfSiguiente(tile.dataset.tema, tile) : null;
+      if (otro) _bfCambiar(th, otro, sinGiro, (intentos || 0) + 1);
+    };
+    im.src = d.imagen_url;
+  }
+
+  function _bfImgRota(img) {
+    const th = img.closest(".bf__th"), tile = th && th.closest("[data-tema]");
+    if (!tile || th.dataset.rota) return;
+    th.dataset.rota = "1";
+    const d = _bfSiguiente(tile.dataset.tema, tile);
+    if (d) _bfCambiar(th, d, true);
+  }
+
+  function _bfRotarTema() {
+    if (!_bfVisible || document.hidden) return;
+    const track = document.getElementById("js-bf-track");
+    if (!track) return;
+    // Solo las tarjetas que se ven en pantalla (en móvil el carril es horizontal).
+    const r0 = track.getBoundingClientRect();
+    const vis = [...track.querySelectorAll("[data-tema]")].filter(t => {
+      const r = t.getBoundingClientRect();
+      return r.right > r0.left + 20 && r.left < r0.right - 20;
+    });
+    if (!vis.length) return;
+    const tile = vis[Math.floor(Math.random() * vis.length)];
+    const ths = tile.querySelectorAll(".bf__th");
+    const th = ths[Math.floor(Math.random() * ths.length)];
+    if (!th || th.matches(":hover")) return;
+    const d = _bfSiguiente(tile.dataset.tema, tile);
+    if (d) _bfCambiar(th, d, false);
+  }
+
+  function _bfRotarFat() {
+    if (!_bfVisible || document.hidden || _bfFat.length < 2) return;
+    const a = document.getElementById("js-bf-fat");
+    if (!a || a.matches(":hover")) return;
+    _bfFatI = (_bfFatI + 1) % _bfFat.length;
+    const d = _bfFat[_bfFatI];
+    const im = new Image();
+    im.onload = () => {
+      a.classList.add("bf__fade--out");
+      setTimeout(() => {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = _bfFatHtml(d).trim();
+        const nuevo = tmp.firstElementChild;
+        nuevo.classList.add("bf__fade--out");
+        a.replaceWith(nuevo);
+        requestAnimationFrame(() => requestAnimationFrame(() => nuevo.classList.remove("bf__fade--out")));
+      }, 350);
+    };
+    im.src = d.imagen_url;
+  }
+
+  function _bfScroll(dir) {
+    const t = document.getElementById("js-bf-track");
+    if (t) t.scrollBy({ left: dir * Math.max(260, t.clientWidth * 0.8), behavior: "smooth" });
+  }
+  function _bfFlechas() {
+    const t = document.getElementById("js-bf-track");
+    if (!t) return;
+    const prev = document.querySelector(".bf__arrow--prev"), next = document.querySelector(".bf__arrow--next");
+    if (prev) prev.hidden = t.scrollLeft < 8;
+    if (next) next.hidden = t.scrollLeft + t.clientWidth >= t.scrollWidth - 8;
+  }
+
   // ── Render completo del home ──────────────────────────────────
 
   function renderMobileHome(deals) {
@@ -7353,6 +7856,7 @@
     // que salga siempre, no cuando pasa el primer pollNew/loadMore.
     if (!esMovil) updateHero();
 
+    _bfUpdate();
     requestAnimationFrame(_animarFilasExplorar);
   }
 
