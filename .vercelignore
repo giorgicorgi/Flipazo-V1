@@ -1,0 +1,24 @@
+# Vercel publica este repo como web estática: sin esta lista, TODO el repo era
+# descargable desde flipazo.es (api.py, flipazo_main.py, CLAUDE.md con la IP del
+# servidor…). Comprobado y cerrado el 26-nov-2026. La web solo necesita los .html,
+# blog/, css/js, imágenes, posts.json, sitemap.xml, robots.txt, llms.txt y la
+# clave de IndexNow (.txt). Al añadir una carpeta de código nueva, añadirla aquí.
+*.py
+*.md
+*.sh
+*.service
+*.pages
+requirements.txt
+skills-lock.json
+.env*
+Notas
+scrapers/
+scripts/
+analytics/
+affiliate/
+discovery/
+tests/
+web/
+.claude/
+.github/
+Fotos Threads/
