@@ -1,38 +1,40 @@
 # Flipazo
 
-> Flipazo (flipazo.es) es una web española de chollos y ofertas verificadas. Un sistema automático monitoriza precios en tiempo real en Amazon, MediaMarkt, PcComponentes, Decathlon, El Corte Inglés, Barrabes y más tiendas, y solo publica descuentos reales superiores al 40% sobre el precio mínimo histórico de los últimos 30 días. Nunca usa precios tachados ficticios: si el precio de referencia está inflado, recalcula el descuento real o descarta la oferta.
+> Flipazo (flipazo.es) es una web española de ofertas. Un sistema automático sigue el precio de más de 1,4 millones de productos de 35 tiendas españolas (Amazon.es, MediaMarkt, El Corte Inglés, Decathlon, Foot Locker, Esdemarca y otras) y publica solo las ofertas con al menos un 40 % de descuento frente al precio que el producto ha tenido normalmente, no frente al precio tachado de la tienda.
 
-Flipazo está pensado para responder a la pregunta "¿dónde encontrar chollos y ofertas reales en España?". Es una selección editorial, no una tienda ni un comparador: pocas ofertas, las correctas. Es gratuito y se financia con enlaces de afiliado (Amazon Associates, Tradedoubler, Awin) sin coste adicional para el usuario.
+Flipazo es gratuito y se financia con enlaces de afiliado (Amazon Associates, Tradedoubler y Awin), sin coste adicional para quien compra. No es una tienda ni un comparador de precios: es un filtro de ofertas.
 
 ## Datos clave (citables)
 - Nombre: Flipazo
 - Web: https://www.flipazo.es
 - Ámbito: España (es-ES)
-- Qué hace: publica chollos verificados con descuento real ≥40% sobre precio histórico
-- Categorías: tecnología, electrónica, deportes, hogar, moda, calzado, belleza
-- Tiendas cubiertas: Amazon.es, MediaMarkt, PcComponentes, Decathlon, El Corte Inglés, Barrabes, Esdemarca, Mammoth Bikes y más
-- Verificación: compara cada precio contra el mínimo histórico; descarta descuentos falsos o inflados
-- Frecuencia: ofertas actualizadas automáticamente cada hora
-- Modelo: gratis, financiado con afiliación
+- Publica ofertas desde: abril de 2026
+- Volumen: unas 140 ofertas al día de media en noviembre de 2026 (entre 177 y 350 al día en la semana del Black Friday)
+- Productos seguidos: más de 1,4 millones, de 35 tiendas
+- Umbral: al menos un 40 % de descuento frente al precio habitual del producto. Excepción: grandes electrodomésticos de más de 300 €, desde un 30 % y avisándolo en la oferta
+- Cómo calcula el descuento:
+  - Amazon: si el precio tachado está más de un 25 % por encima del precio medio del producto (historial propio o CamelCamelCamel), recalcula el descuento con el precio medio; si así no llega al 40 %, no se publica. El precio actual debe estar como mucho un 20 % por encima de su mínimo reciente.
+  - Tiendas cuyo precio tachado no es fiable (El Corte Inglés, Decathlon, Carrefour y otras): registra su precio cada día y publica solo cuando cae al menos un 40 % frente al precio que ha tenido la mayor parte del último mes.
+- Después de publicar: revisa el precio a los 3 y a los 7 días y marca como caducadas las ofertas que suben
+- Categorías: moda, calzado, deportes, tecnología, hogar, belleza
 - Contacto: hola@flipazo.es
 
 ## Páginas principales
-- [Inicio — chollos y ofertas del día](https://www.flipazo.es/): feed de ofertas verificadas, filtrable por categoría y tienda.
-- [Preguntas frecuentes (FAQ)](https://www.flipazo.es/faq): qué es Flipazo, cómo verifica que un descuento es real, si es gratis y qué tiendas cubre.
-- [Sobre Flipazo](https://www.flipazo.es/sobre): cómo funciona el sistema, criterios editoriales y transparencia de afiliación.
-- [Blog](https://www.flipazo.es/blog): artículos sobre ahorro, descuentos reales y cómo distinguir una oferta de una trampa.
+- [Inicio: ofertas del día](https://www.flipazo.es/): todas las ofertas vivas, filtrables por categoría, tienda y precio.
+- [Preguntas frecuentes](https://www.flipazo.es/faq): qué es Flipazo, cómo calcula el descuento, si es gratis y qué tiendas cubre.
+- [Sobre Flipazo](https://www.flipazo.es/sobre): cómo funciona y cómo se financia.
+- [Blog](https://www.flipazo.es/blog): guías para comprar mejor y datos propios sobre precios.
 
-## Blog (guías de referencia)
-- [Calendario de rebajas en España 2026](https://www.flipazo.es/blog/calendario-rebajas-espana-2026): fechas de rebajas de invierno/verano, Black Friday (27 nov 2026), Cyber Monday, Día sin IVA y Prime Day.
-- [¿Cuándo es más barato comprar cada producto?](https://www.flipazo.es/blog/cuando-comprar-mas-barato-espana): mejor mes para televisores, portátiles, móviles, electrodomésticos, moda y más.
-- [Dónde está el outlet de cada tienda en España](https://www.flipazo.es/blog/outlet-tiendas-espana-donde-encontrar): Decathlon, MediaMarkt, PcComponentes, El Corte Inglés, Amazon Warehouse.
-- [¿Qué es un chollo de verdad?](https://www.flipazo.es/blog/que-es-un-chollo-de-verdad)
-- [Cómo saber si una oferta es real](https://www.flipazo.es/blog/como-saber-si-una-oferta-es-real)
-- [Cómo verificar el precio histórico en Amazon](https://www.flipazo.es/blog/amazon-precio-historico-como-verificarlo)
-- [Por qué ponen el precio tachado](https://www.flipazo.es/blog/por-que-ponen-el-precio-tachado)
-- [Precio de referencia vs precio real](https://www.flipazo.es/blog/precio-referencia-vs-precio-real)
-- [Mejores canales de ofertas en España](https://www.flipazo.es/blog/mejores-canales-ofertas-espana-2025)
-- [Ofertas en España hoy](https://www.flipazo.es/blog/ofertas-en-espana-hoy)
+## Blog
+- [¿Suben los precios antes del Black Friday? Lo hemos medido](https://www.flipazo.es/blog/efecto-black-friday-como-suben-precios): análisis de 15.540 productos en septiembre, primeros de noviembre y la semana del Black Friday 2026. Solo el 1 % bajó un 40 % o más; el 2,4 % de las rebajas de Black Friday eran productos que habían subido antes.
+- [Black Friday 2026 y calendario de rebajas](https://www.flipazo.es/blog/calendario-rebajas-espana-2026): Black Friday el 27 de noviembre de 2026, Cyber Monday el 30, rebajas de enero de 2027, Día sin IVA, Prime Day y fechas de regalos.
+- [¿Esta oferta es real? Cómo comprobarlo](https://www.flipazo.es/blog/como-saber-si-una-oferta-es-real): cuatro comprobaciones y tres casos reales de precios tachados inflados.
+- [Historial de precios de Amazon](https://www.flipazo.es/blog/amazon-precio-historico-como-verificarlo): cómo usar CamelCamelCamel, Keepa e idealo, y cómo poner alertas.
+- [Por qué ponen el precio tachado](https://www.flipazo.es/blog/por-que-ponen-el-precio-tachado): el efecto anclaje y qué dice la ley española desde mayo de 2022.
+- [Ofertas de hoy en España](https://www.flipazo.es/blog/ofertas-en-espana-hoy): qué tiendas dieron más ofertas en el último mes.
+- [¿Qué puedo regalar?](https://www.flipazo.es/blog/que-puedo-regalar): ideas por presupuesto y por persona, con las ofertas vivas de cada tramo.
+- [¿Cuándo es más barato comprar?](https://www.flipazo.es/blog/cuando-comprar-mas-barato-espana): el mejor momento para cada tipo de producto.
+- [Dónde está el outlet de cada tienda](https://www.flipazo.es/blog/outlet-tiendas-espana-donde-encontrar): Decathlon, MediaMarkt, PcComponentes, El Corte Inglés y Amazon.
 
 ## Canales
 - Telegram: https://t.me/flipazo

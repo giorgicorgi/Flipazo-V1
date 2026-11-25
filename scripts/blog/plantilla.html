@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+
+  <title>{{SEO_TITULO}}</title>
+  <meta name="description" content="{{DESCRIPCION}}">
+  <link rel="canonical" href="{{URL}}">
+
+  <meta property="og:title" content="{{SEO_TITULO}}">
+  <meta property="og:description" content="{{DESCRIPCION}}">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="{{URL}}">
+  <meta property="og:site_name" content="Flipazo">
+  <meta property="og:image" content="https://www.flipazo.es/og-image.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{SEO_TITULO}}">
+  <meta name="twitter:description" content="{{DESCRIPCION}}">
+
+  {{JSONLD}}
+
+  <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <script>(function(){ var t = localStorage.getItem('flipazo_theme')||'light'; if(t==='dark') document.documentElement.setAttribute('data-theme','dark'); })();</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/blog-article.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a href="/" class="site-logo" title="Volver al inicio" aria-label="Flipazo — inicio">
+      <img src="/flipazo-logo.png" alt="Flipazo" height="49" class="site-logo__img"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <svg viewBox="0 0 218 52" xmlns="http://www.w3.org/2000/svg" height="38" aria-hidden="true" style="display:none">
+        <text x="2" y="43" font-family="'Nunito', sans-serif" font-size="50" font-weight="900" fill="#F52834" letter-spacing="-0.5">Flipazo</text>
+      </svg>
+    </a>
+    <nav class="header-nav" aria-label="Navegación principal">
+      <a href="/" class="header-nav__link">Ofertas</a>
+      <a href="/blog" class="header-nav__link header-nav__link--active">Blog</a>
+      <a href="/cuenta" class="header-nav__link">Mi&nbsp;Cuenta</a>
+      <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema">☾</button>
+    </nav>
+  </div>
+  <nav class="blog-subnav" aria-label="Ubicación">
+    <a href="/">Inicio</a>
+    <span class="blog-subnav__sep">›</span>
+    <a href="/blog">Blog</a>
+    <span class="blog-subnav__sep">›</span>
+    <span class="blog-subnav__current">{{TITULO}}</span>
+  </nav>
+</header>
+
+<main class="art-main">
+  <div class="art-container">
+    <article>
+      <p class="art-category">{{CATEGORIA}}</p>
+      <h1 class="art-title">{{TITULO}}</h1>
+      <p class="art-entradilla">{{ENTRADILLA}}</p>
+      <p class="art-readtime">⏱ {{LECTURA}} min de lectura</p>
+      <hr class="art-divider">
+
+      <div class="art-body">
+        {{CUERPO}}
+
+        <div class="art-cta">
+          <strong>{{CTA_TITULO}}</strong>
+          <p>{{CTA_TEXTO}}</p>
+          <a class="art-cta__btn" href="{{CTA_URL}}">{{CTA_BOTON}}</a>
+        </div>
+      </div>
+    </article>
+    <aside class="art-aside" aria-label="Chollos recientes">
+      <div class="art-aside__head">
+        <span class="art-aside__kicker">🔥 En directo</span>
+        <h2 class="art-aside__title">Chollos recientes</h2>
+      </div>
+      <div class="deal-mini-list" id="blog-deals">
+        <div class="deal-mini deal-mini--skeleton"></div>
+        <div class="deal-mini deal-mini--skeleton"></div>
+        <div class="deal-mini deal-mini--skeleton"></div>
+        <div class="deal-mini deal-mini--skeleton"></div>
+      </div>
+      <a href="/" class="art-aside__cta">Ver todas las ofertas →</a>
+    </aside>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer__bottom">
+    <div class="footer__top">
+      <nav class="footer__links" aria-label="Legal">
+        <a href="/sobre">Sobre</a>
+        <a href="/faq">FAQ</a>
+        <a href="/privacidad">Privacidad</a>
+        <a href="/cookies">Cookies</a>
+        <a href="/aviso-legal">Aviso Legal</a>
+        <a href="mailto:hola@flipazo.es">Contacto</a>
+        <a href="https://t.me/flipazo" target="_blank" rel="noopener">Telegram</a>
+      </nav>
+    </div>
+    <p class="footer__affiliate">Algunos enlaces son de afiliado: si compras a través de ellos podemos recibir una comisión sin coste adicional para ti. Participamos en Amazon Associates (tag: flipazo-21), Tradedoubler y Awin.</p>
+    <p class="footer__copy">© 2026 Flipazo · Barcelona, España · Precios sujetos a cambio sin previo aviso</p>
+  </div>
+</footer>
+
+<script>
+  function toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('flipazo_theme', next);
+    document.getElementById('theme-toggle').textContent = next === 'dark' ? '☀' : '☾';
+  }
+  (function(){ const t = document.documentElement.getAttribute('data-theme')||'light'; const b = document.getElementById('theme-toggle'); if(b) b.textContent = t==='dark'?'☀':'☾'; })();
+</script>
+<script src="/blog-sidebar.js" defer></script>
+</body>
+</html>

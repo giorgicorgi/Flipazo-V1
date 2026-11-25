@@ -324,3 +324,14 @@ a { color: inherit; text-decoration: none; }
   .footer { padding: 24px 18px 60px; }
 }
 @media (max-width: 480px) { .art-container { padding: 0 16px; } }
+
+/* ── Regalos por presupuesto (blog-regalos.js) ─────────────────────────────── */
+.regalos-vivos { margin: 8px 0 28px; }
+.regalos-vivos__tramo { margin-top: 22px; }
+.regalos-vivos__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.regalos-vivos__grid .deal-mini { min-width: 0; }
+.regalos-vivos__nota, .regalos-vivos__cargando { font-size: 13px; opacity: .7; margin-top: 12px; }
+@media (max-width: 560px) { .regalos-vivos__grid { grid-template-columns: 1fr; } }
+/* Tablas anchas: se deslizan dentro del artículo en vez de ensanchar la página */
+.tabla-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1.3em; }
+.tabla-scroll table { margin-bottom: 0; min-width: 100%; }

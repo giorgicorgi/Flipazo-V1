@@ -9,7 +9,13 @@
       "permanent": true
     },
     { "source": "/index-v2",      "destination": "/", "permanent": true },
-    { "source": "/index-v2.html", "destination": "/", "permanent": true }
+    { "source": "/index-v2.html", "destination": "/", "permanent": true },
+    { "source": "/blog/que-es-un-chollo-de-verdad", "destination": "/blog/como-saber-si-una-oferta-es-real", "permanent": true },
+    { "source": "/blog/que-significa-descuento-real", "destination": "/blog/como-saber-si-una-oferta-es-real", "permanent": true },
+    { "source": "/blog/precio-referencia-vs-precio-real", "destination": "/blog/por-que-ponen-el-precio-tachado", "permanent": true },
+    { "source": "/blog/compre-productos-vendi-wallapop-esto-gane", "destination": "/blog/como-saber-si-una-oferta-es-real", "permanent": true },
+    { "source": "/blog/mejores-canales-ofertas-espana-2025", "destination": "/blog/ofertas-en-espana-hoy", "permanent": true },
+    { "source": "/blog/ofertas-que-desaparecen-en-horas", "destination": "/blog/efecto-black-friday-como-suben-precios", "permanent": true }
   ],
   "headers": [
     {
