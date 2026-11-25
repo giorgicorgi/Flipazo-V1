@@ -40,6 +40,7 @@
     { "source": "/tiktok",    "destination": "https://api.flipazo.es/go/tiktok" },
     { "source": "/youtube",   "destination": "https://api.flipazo.es/go/youtube" },
     { "source": "/go/:slug",       "destination": "https://api.flipazo.es/go/:slug" },
+    { "source": "/h/:slug",        "destination": "https://api.flipazo.es/go/h-:slug" },
     { "source": "/go-stats/:slug", "destination": "https://api.flipazo.es/go-stats/:slug" },
     { "source": "/blog/(.*)",   "destination": "/blog.html" },
     { "source": "/blog",        "destination": "/blog.html" },

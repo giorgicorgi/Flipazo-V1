@@ -6,6 +6,15 @@
   <meta name="robots" content="noindex, follow" />
   <meta name="color-scheme" content="light" />
   <title>Flipazo — nada vale lo que parece</title>
+  <!-- La tarjeta de vista previa que enseña Threads bajo la respuesta con el enlace -->
+  <meta property="og:title" content="Nada vale lo que parece. Con los precios pasa lo mismo." />
+  <meta property="og:description" content="Productos que hoy están en su precio más bajo de verdad, no el del cartel. Seguimos su precio cada día." />
+  <meta property="og:url" content="https://www.flipazo.es/desde-threads" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://www.flipazo.es/og-image.png" />
+  <meta property="og:locale" content="es_ES" />
+  <meta property="og:site_name" content="Flipazo" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="/flipazo-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -203,6 +212,13 @@
 
   <script>
     const API = "https://api.flipazo.es";
+    // Quien llega por la respuesta de una historia (flipazo.es/h/<historia>) trae
+    // utm_medium=respuesta&utm_campaign=<historia>: sus clics se apuntan a esa historia.
+    const CANAL = (() => {
+      const p = new URLSearchParams(location.search);
+      const h = (p.get('utm_campaign') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 30);
+      return p.get('utm_medium') === 'respuesta' && h ? 'threads_resp:' + h : 'threads_landing';
+    })();
     const STORE_LABELS = { ElCorteIngles: 'El Corte Inglés', PcComponentes: 'PcComponentes', MediaMarkt: 'MediaMarkt' };
     const tiendaLabel = t => STORE_LABELS[t] || t || '';
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -248,7 +264,7 @@
     function cardHTML(d, i) {
       const ahorro = d.precio_referencia - d.precio_actual;
       const tienda = tiendaLabel(d.tienda);
-      const link = `${API}/r/${encodeURIComponent(d.id)}?canal=threads_landing`;
+      const link = `${API}/r/${encodeURIComponent(d.id)}?canal=${encodeURIComponent(CANAL)}`;
       return `
         <a class="card" href="${link}" target="_blank" rel="noopener">
           <div class="card__img">

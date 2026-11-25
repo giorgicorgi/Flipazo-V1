@@ -1810,6 +1810,13 @@ def go_bio(slug: str, request: Request):
     destino = _BIO_LINKS.get(slug) or (
         f"https://www.flipazo.es/?utm_source={slug or 'bio'}&utm_medium=bio&utm_campaign=perfil"
     )
+    # `h-<historia>`: el enlace que la cuenta deja como respuesta al final de una
+    # historia de Threads (scripts/responder_hilos.py). Uno por historia para saber
+    # cuál trae clics; flipazo.es/h/<historia> llega aquí por el rewrite de Vercel.
+    if not conocido and _re.fullmatch(r"h-[a-z0-9-]{2,30}", slug):
+        conocido = True
+        destino = ("https://www.flipazo.es/desde-threads?utm_source=threads"
+                   f"&utm_medium=respuesta&utm_campaign={slug[2:]}")
     if conocido:
         ip = request.headers.get("X-Forwarded-For", "")
         ip = (ip.split(",")[0].strip() if ip else (request.client.host if request.client else "unknown"))
